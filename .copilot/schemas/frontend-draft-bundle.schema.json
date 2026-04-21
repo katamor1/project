@@ -1,0 +1,27 @@
+// .copilot/schemas/frontend-draft-bundle.schema.json
+// Defines the frontend draft bundle schema used to describe TSX and TS skeleton files.
+// This exists so frontend code drafts can be reviewed as concrete draft files and contracts before repo handoff.
+// RELEVANT FILES: .copilot/prompts/P16_frontend_draft_author.md, .copilot/schemas/draft-file.schema.json, docs/sdlc/templates/frontend-draft-bundle.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "frontend-draft-bundle.schema.json",
+  "title": "Frontend Draft Bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_manifest",
+    "slice_id",
+    "files",
+    "component_contracts",
+    "state_flow",
+    "next_agent"
+  ],
+  "properties": {
+    "artifact_manifest": { "$ref": "./artifact-manifest.schema.json" },
+    "slice_id": { "type": "string" },
+    "files": { "type": "array", "items": { "$ref": "./draft-file.schema.json" } },
+    "component_contracts": { "type": "array", "items": { "type": "string" } },
+    "state_flow": { "type": "array", "items": { "type": "string" } },
+    "next_agent": { "type": "string", "const": "P17_backend_draft_author" }
+  }
+}

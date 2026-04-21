@@ -1,0 +1,29 @@
+// .copilot/schemas/approval-pack.schema.json
+// Defines the approval pack schema used to capture explicit implementation readiness after integration review.
+// This exists so repo handoff includes a clear approval decision, residual risks, and manual steps.
+// RELEVANT FILES: .copilot/prompts/P21_approval_pack_author.md, docs/sdlc/templates/approval-pack.md, .copilot/prompts/P8_review_record.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "approval-pack.schema.json",
+  "title": "Approval Pack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_manifest",
+    "artifact_refs",
+    "approval_status",
+    "ready_for_repo",
+    "manual_steps",
+    "residual_risks",
+    "next_agent"
+  ],
+  "properties": {
+    "artifact_manifest": { "$ref": "./artifact-manifest.schema.json" },
+    "artifact_refs": { "type": "array", "items": { "type": "string" } },
+    "approval_status": { "type": "string" },
+    "ready_for_repo": { "type": "boolean" },
+    "manual_steps": { "type": "array", "items": { "type": "string" } },
+    "residual_risks": { "type": "array", "items": { "type": "string" } },
+    "next_agent": { "type": "string", "const": "P8_review_record" }
+  }
+}

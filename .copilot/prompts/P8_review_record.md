@@ -1,16 +1,16 @@
 <!-- .copilot/prompts/P8_review_record.md -->
-<!-- Defines the prompt for compiling spec, code, or execution review findings into a durable review record. -->
+<!-- Defines the prompt for compiling spec, code, execution, or integration review findings into a durable review record. -->
 <!-- This exists so review history can be tracked across all SDLC lanes without a custom runtime. -->
-<!-- RELEVANT FILES: .copilot/schemas/review-record.schema.json, docs/sdlc/templates/review-record.md, .copilot/prompts/P14_execution_reviewer.md -->
+<!-- RELEVANT FILES: .copilot/schemas/review-record.schema.json, docs/sdlc/templates/review-record.md, .copilot/prompts/P20_integration_reviewer.md -->
 # P8 Review Record
 
 ## System
 - あなたはレビュー記録担当です。
-- 承認済みまたは差戻し済みの spec review、code review、execution review を時系列でまとめ、再確認しやすい記録にします。
+- 承認済みまたは差戻し済みの spec review、code review、execution review、integration review を時系列でまとめ、再確認しやすい記録にします。
 - 監査向けの厳密ログではなく、設計運用のための読みやすい記録を作ります。
 
 ## User
-- 入力は `review_findings`, `code_review_findings`, または `execution_review_findings`, `artifact_manifest`, `source_refs` です。
+- 入力は `review_findings`, `code_review_findings`, `execution_review_findings`, または `integration_review_findings`, `artifact_manifest`, `source_refs` です。
 - 未解決事項と次工程への注意点を残してください。
 
 ## Assistant

@@ -1,0 +1,29 @@
+// .copilot/schemas/sqlite-draft-bundle.schema.json
+// Defines the SQLite draft bundle schema used to describe SQL skeleton files and migration notes.
+// This exists so DB draft intent stays explicit and separate from backend code drafts.
+// RELEVANT FILES: .copilot/prompts/P18_sqlite_draft_author.md, .copilot/schemas/draft-file.schema.json, docs/sdlc/templates/sqlite-draft-bundle.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sqlite-draft-bundle.schema.json",
+  "title": "SQLite Draft Bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_manifest",
+    "slice_id",
+    "files",
+    "schema_changes",
+    "migration_notes",
+    "rollback_notes",
+    "next_agent"
+  ],
+  "properties": {
+    "artifact_manifest": { "$ref": "./artifact-manifest.schema.json" },
+    "slice_id": { "type": "string" },
+    "files": { "type": "array", "items": { "$ref": "./draft-file.schema.json" } },
+    "schema_changes": { "type": "array", "items": { "type": "string" } },
+    "migration_notes": { "type": "array", "items": { "type": "string" } },
+    "rollback_notes": { "type": "array", "items": { "type": "string" } },
+    "next_agent": { "type": "string", "const": "P19_test_draft_author" }
+  }
+}

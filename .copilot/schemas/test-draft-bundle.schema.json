@@ -1,0 +1,31 @@
+// .copilot/schemas/test-draft-bundle.schema.json
+// Defines the test draft bundle schema used to describe unit, integration, and regression test skeleton files.
+// This exists so test draft intent can be reviewed as concrete files before any runnable tests are written.
+// RELEVANT FILES: .copilot/prompts/P19_test_draft_author.md, .copilot/schemas/draft-file.schema.json, docs/sdlc/templates/test-draft-bundle.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "test-draft-bundle.schema.json",
+  "title": "Test Draft Bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_manifest",
+    "slice_id",
+    "files",
+    "unit_cases",
+    "integration_cases",
+    "regression_cases",
+    "fixtures",
+    "next_agent"
+  ],
+  "properties": {
+    "artifact_manifest": { "$ref": "./artifact-manifest.schema.json" },
+    "slice_id": { "type": "string" },
+    "files": { "type": "array", "items": { "$ref": "./draft-file.schema.json" } },
+    "unit_cases": { "type": "array", "items": { "type": "string" } },
+    "integration_cases": { "type": "array", "items": { "type": "string" } },
+    "regression_cases": { "type": "array", "items": { "type": "string" } },
+    "fixtures": { "type": "array", "items": { "type": "string" } },
+    "next_agent": { "type": "string", "const": "P20_integration_reviewer" }
+  }
+}

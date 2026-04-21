@@ -1,0 +1,22 @@
+// .copilot/schemas/draft-file.schema.json
+// Defines the reusable draft file schema used by all integration lane draft bundles.
+// This exists so every skeleton file carries the same minimal metadata and open-question contract.
+// RELEVANT FILES: .copilot/schemas/frontend-draft-bundle.schema.json, .copilot/schemas/backend-draft-bundle.schema.json, .copilot/schemas/sqlite-draft-bundle.schema.json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "draft-file.schema.json",
+  "title": "Draft File",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["path", "language", "purpose", "skeleton_code", "open_questions"],
+  "properties": {
+    "path": { "type": "string" },
+    "language": { "type": "string" },
+    "purpose": { "type": "string" },
+    "skeleton_code": { "type": "string" },
+    "open_questions": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 <!-- docs/sdlc/templates/review-record.md -->
-<!-- Provides the review record template for storing design, implementation, and execution review history. -->
+<!-- Provides the review record template for storing design, implementation, execution, and integration review history. -->
 <!-- This exists so review activity remains traceable without adding a custom logging system. -->
-<!-- RELEVANT FILES: .copilot/prompts/P8_review_record.md, .copilot/schemas/review-record.schema.json, reviews/execution/README.md -->
+<!-- RELEVANT FILES: .copilot/prompts/P8_review_record.md, .copilot/schemas/review-record.schema.json, reviews/integration/README.md -->
 ---
 artifact_id: RR-REQ-XXXX
 artifact_type: review_record
@@ -18,7 +18,7 @@ language: ja
 # Review Record
 
 ## 対象 Artifact
-- レビューした設計、実装準備、または execution pack artifact を書く
+- レビューした設計、実装準備、execution pack、または integration artifact を書く
 
 ## 判定履歴
 - 何回目のレビューでどうなったかを書く
