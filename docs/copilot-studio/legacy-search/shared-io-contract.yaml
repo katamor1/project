@@ -1,0 +1,98 @@
+# docs/copilot-studio/legacy-search/shared-io-contract.yaml
+# This file defines the shared input and output contract for the legacy search prompt pack.
+# This file exists so every Copilot Studio agent returns the same core fields and routing hints.
+# RELEVANT FILES: docs/copilot-studio/legacy-search/README.md, docs/copilot-studio/legacy-search/routing-matrix.md, docs/copilot-studio/legacy-search/agents/intake-router.md
+version: 1
+
+language:
+  default: ja-JP
+  rule: "All user-facing answers must be written in concise Japanese."
+
+common_input:
+  required:
+    - question
+    - goal
+    - entities
+    - source_scope
+    - known_constraints
+  fields:
+    question: "The user's question in Japanese."
+    goal: "The immediate outcome the agent should produce."
+    entities: "Known business terms, screen names, API names, tables, or aliases."
+    source_scope: "Allowed search boundary inside SharePoint or OneDrive."
+    known_constraints: "Known limits, approved sources, date limits, or exclusions."
+
+common_rules:
+  - "Use only SharePoint or OneDrive sources in v1."
+  - "Do not invent titles, sections, pages, or file paths."
+  - "If evidence is weak, conflicting, or missing, do not guess."
+  - "Return next_agent on every run."
+  - "Extra agent-specific fields are allowed, but the required fields must stay stable."
+
+candidate_source_schema:
+  required:
+    - title
+    - location
+    - section_or_page
+    - why_relevant
+    - authority
+    - freshness
+    - conflict_flag
+  field_notes:
+    title: "Human-readable document title."
+    location: "SharePoint or OneDrive location."
+    section_or_page: "Implementation-safe field name for the planned section/page value."
+    why_relevant: "One short sentence that explains relevance."
+    authority: "approved | working | unknown"
+    freshness: "current | stale | unknown"
+    conflict_flag: "true if another source disagrees or may disagree."
+
+router_output:
+  required:
+    - goal
+    - entities
+    - source_scope
+    - known_constraints
+    - unknowns
+    - next_agent
+  optional:
+    - decision_reason
+
+search_output:
+  required:
+    - candidate_sources
+    - confidence
+    - unknowns
+    - next_agent
+  optional:
+    - rejected_sources
+    - search_hints
+
+answer_output:
+  required:
+    - answer
+    - evidence
+    - confidence
+    - unknowns
+    - next_agent
+  field_notes:
+    evidence: "A subset of candidate sources used for the final answer."
+
+confidence_scale:
+  allowed:
+    - high
+    - medium
+    - low
+
+next_agent_values:
+  allowed:
+    - Intake Router
+    - Glossary Normalizer
+    - Document Locator
+    - Evidence Verifier
+    - Grounded Answerer
+    - Gap Reporter
+    - Renewal Impact Mapper
+    - Change Diff Scout
+    - human_follow_up
+    - complete
