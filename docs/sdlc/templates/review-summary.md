@@ -1,7 +1,7 @@
 <!-- docs/sdlc/templates/review-summary.md -->
-<!-- Provides the short review summary template used by spec review and code review. -->
-<!-- This exists so pass, revise, and block decisions are communicated in a consistent way across both lanes. -->
-<!-- RELEVANT FILES: .copilot/prompts/P3_spec_reviewer.md, .copilot/prompts/P7_code_reviewer.md, docs/sdlc/templates/review-record.md -->
+<!-- Provides the short review summary template used by spec, code, and execution review. -->
+<!-- This exists so pass, revise, and block decisions are communicated in a consistent way across all lanes. -->
+<!-- RELEVANT FILES: .copilot/prompts/P3_spec_reviewer.md, .copilot/prompts/P14_execution_reviewer.md, docs/sdlc/templates/review-record.md -->
 ---
 artifact_id: REVIEW-SUMMARY-REQ-XXXX
 artifact_type: review_summary

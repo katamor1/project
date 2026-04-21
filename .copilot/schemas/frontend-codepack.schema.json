@@ -1,0 +1,70 @@
+// .copilot/schemas/frontend-codepack.schema.json
+// Defines the frontend codepack schema used to describe target files, component contracts, and state flow.
+// This exists so frontend near-code intent can be handed off without writing runnable TSX yet.
+// RELEVANT FILES: .copilot/prompts/P11_frontend_codepack_author.md, docs/sdlc/templates/frontend-codepack.md, .copilot/schemas/execution-review-findings.schema.json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "frontend-codepack.schema.json",
+  "title": "Frontend Codepack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_manifest",
+    "slice_id",
+    "target_files",
+    "component_contracts",
+    "state_flow",
+    "api_calls",
+    "acceptance_refs",
+    "next_agent"
+  ],
+  "properties": {
+    "artifact_manifest": { "$ref": "./artifact-manifest.schema.json" },
+    "slice_id": { "type": "string" },
+    "target_files": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/targetFile" }
+    },
+    "component_contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["component_name", "props", "responsibility"],
+        "properties": {
+          "component_name": { "type": "string" },
+          "props": { "type": "array", "items": { "type": "string" } },
+          "responsibility": { "type": "string" }
+        }
+      }
+    },
+    "state_flow": { "type": "array", "items": { "type": "string" } },
+    "api_calls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["client_name", "endpoint", "usage"],
+        "properties": {
+          "client_name": { "type": "string" },
+          "endpoint": { "type": "string" },
+          "usage": { "type": "string" }
+        }
+      }
+    },
+    "acceptance_refs": { "type": "array", "items": { "type": "string" } },
+    "next_agent": { "type": "string", "const": "P12_backend_codepack_author" }
+  },
+  "$defs": {
+    "targetFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "purpose", "skeleton_outline"],
+      "properties": {
+        "path": { "type": "string" },
+        "purpose": { "type": "string" },
+        "skeleton_outline": { "type": "string" }
+      }
+    }
+  }
+}

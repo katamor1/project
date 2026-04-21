@@ -1,0 +1,31 @@
+// .copilot/schemas/target-repo-map.schema.json
+// Defines the target repo map schema used to freeze canonical roots and naming rules for execution packs.
+// This exists so implementers do not need to re-decide the target layout when the real app repo is connected later.
+// RELEVANT FILES: .copilot/prompts/P10_execution_bundle_planner.md, docs/sdlc/templates/target-repo-map.md, .copilot/routing/execution-matrix.yaml
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "target-repo-map.schema.json",
+  "title": "Target Repo Map",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "repo_shape",
+    "path_style",
+    "frontend_roots",
+    "backend_roots",
+    "db_roots",
+    "test_roots",
+    "naming_rules",
+    "next_agent"
+  ],
+  "properties": {
+    "repo_shape": { "type": "string", "const": "single_app_layout" },
+    "path_style": { "type": "string", "const": "frontend_backend_db" },
+    "frontend_roots": { "type": "array", "items": { "type": "string" } },
+    "backend_roots": { "type": "array", "items": { "type": "string" } },
+    "db_roots": { "type": "array", "items": { "type": "string" } },
+    "test_roots": { "type": "array", "items": { "type": "string" } },
+    "naming_rules": { "type": "array", "items": { "type": "string" } },
+    "next_agent": { "type": "string", "const": "P11_frontend_codepack_author" }
+  }
+}

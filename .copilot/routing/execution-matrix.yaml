@@ -1,0 +1,90 @@
+# .copilot/routing/execution-matrix.yaml
+# Defines the execution pack routing from repo bridge or code review pass into near-code bundle review and recording.
+# This exists so execution packs can be tracked separately from design and implementation prep lanes.
+# RELEVANT FILES: .copilot/prompts/P10_execution_bundle_planner.md, .copilot/prompts/P14_execution_reviewer.md, docs/sdlc/README.md
+version: 1
+flow_name: sdlc-execution-pack-lane
+agents:
+  - id: P7_code_reviewer
+    artifact_type: code_review_findings
+    prompt_path: .copilot/prompts/P7_code_reviewer.md
+  - id: P10_execution_bundle_planner
+    artifact_type: execution_bundle_packet
+    prompt_path: .copilot/prompts/P10_execution_bundle_planner.md
+  - id: P11_frontend_codepack_author
+    artifact_type: frontend_codepack
+    prompt_path: .copilot/prompts/P11_frontend_codepack_author.md
+  - id: P12_backend_codepack_author
+    artifact_type: backend_codepack
+    prompt_path: .copilot/prompts/P12_backend_codepack_author.md
+  - id: P13_test_codepack_author
+    artifact_type: test_codepack
+    prompt_path: .copilot/prompts/P13_test_codepack_author.md
+  - id: P14_execution_reviewer
+    artifact_type: execution_review_findings
+    prompt_path: .copilot/prompts/P14_execution_reviewer.md
+  - id: P8_review_record
+    artifact_type: review_record
+    prompt_path: .copilot/prompts/P8_review_record.md
+  - id: P9_eval_monitor
+    artifact_type: eval_report
+    prompt_path: .copilot/prompts/P9_eval_monitor.md
+entry_conditions:
+  - source: P7_code_reviewer
+    when: code_review_passed
+    handoff_artifacts:
+      - repo_bridge
+      - fullstack_slice
+      - test_pack
+  - source: repo_bridge
+    when: repo_bridge_ready
+standard_route:
+  - from: P10_execution_bundle_planner
+    to: P11_frontend_codepack_author
+    when: execution_bundle_packet_ready
+  - from: P11_frontend_codepack_author
+    to: P12_backend_codepack_author
+    when: frontend_codepack_ready
+  - from: P12_backend_codepack_author
+    to: P13_test_codepack_author
+    when: backend_codepack_ready
+    handoff_artifacts:
+      - backend_codepack
+      - sqlite_change_pack
+  - from: P13_test_codepack_author
+    to: P14_execution_reviewer
+    when: test_codepack_ready
+  - from: P14_execution_reviewer
+    to: P8_review_record
+    when: execution_review_passed
+  - from: P8_review_record
+    to: P9_eval_monitor
+    when: review_record_ready
+return_routes:
+  - reviewer: P14_execution_reviewer
+    decision: revise
+    category: frontend_interface
+    return_to: P11_frontend_codepack_author
+  - reviewer: P14_execution_reviewer
+    decision: revise
+    category: backend_db_contract
+    return_to: P12_backend_codepack_author
+  - reviewer: P14_execution_reviewer
+    decision: revise
+    category: test_coverage
+    return_to: P13_test_codepack_author
+  - reviewer: P14_execution_reviewer
+    decision: revise
+    category: bundle_boundary
+    return_to: P10_execution_bundle_planner
+  - reviewer: P14_execution_reviewer
+    decision: revise
+    category: repo_mapping
+    return_to: P10_execution_bundle_planner
+  - reviewer: P14_execution_reviewer
+    decision: block
+    return_to: P0_orchestrator
+    note: human_checkpoint を要求して bundle 前提を見直す
+terminal_states:
+  - complete
+  - human_checkpoint_required

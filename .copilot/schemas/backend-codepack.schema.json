@@ -1,0 +1,58 @@
+// .copilot/schemas/backend-codepack.schema.json
+// Defines the backend codepack schema used to describe route, service, DB touchpoints, and auth intent.
+// This exists so backend near-code intent can be handed off without locking the Python framework too early.
+// RELEVANT FILES: .copilot/prompts/P12_backend_codepack_author.md, docs/sdlc/templates/backend-codepack.md, .copilot/schemas/sqlite-change-pack.schema.json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "backend-codepack.schema.json",
+  "title": "Backend Codepack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_manifest",
+    "slice_id",
+    "target_files",
+    "route_contracts",
+    "service_flow",
+    "db_touchpoints",
+    "auth_rules",
+    "next_agent"
+  ],
+  "properties": {
+    "artifact_manifest": { "$ref": "./artifact-manifest.schema.json" },
+    "slice_id": { "type": "string" },
+    "target_files": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/targetFile" }
+    },
+    "route_contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["method", "path", "summary"],
+        "properties": {
+          "method": { "type": "string" },
+          "path": { "type": "string" },
+          "summary": { "type": "string" }
+        }
+      }
+    },
+    "service_flow": { "type": "array", "items": { "type": "string" } },
+    "db_touchpoints": { "type": "array", "items": { "type": "string" } },
+    "auth_rules": { "type": "array", "items": { "type": "string" } },
+    "next_agent": { "type": "string", "const": "P13_test_codepack_author" }
+  },
+  "$defs": {
+    "targetFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "purpose", "skeleton_outline"],
+      "properties": {
+        "path": { "type": "string" },
+        "purpose": { "type": "string" },
+        "skeleton_outline": { "type": "string" }
+      }
+    }
+  }
+}

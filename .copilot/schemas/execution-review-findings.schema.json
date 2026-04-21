@@ -1,0 +1,64 @@
+// .copilot/schemas/execution-review-findings.schema.json
+// Defines the execution review findings schema for pass, revise, and block decisions on near-code packs.
+// This exists so execution review can route back to the right pack author without free-text ambiguity.
+// RELEVANT FILES: .copilot/prompts/P14_execution_reviewer.md, .copilot/routing/execution-matrix.yaml, docs/sdlc/templates/review-summary.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "execution-review-findings.schema.json",
+  "title": "Execution Review Findings",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_refs",
+    "review_decision",
+    "findings",
+    "revise_to",
+    "human_checkpoint",
+    "next_agent"
+  ],
+  "properties": {
+    "artifact_refs": { "type": "array", "items": { "type": "string" } },
+    "review_decision": { "type": "string", "enum": ["pass", "revise", "block"] },
+    "summary": { "type": "string" },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["category", "severity", "title", "detail"],
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": ["frontend_interface", "backend_db_contract", "test_coverage", "bundle_boundary", "repo_mapping", "blocking"]
+          },
+          "severity": { "type": "string", "enum": ["low", "medium", "high"] },
+          "title": { "type": "string" },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "revise_to": {
+      "type": "string",
+      "enum": [
+        "P10_execution_bundle_planner",
+        "P11_frontend_codepack_author",
+        "P12_backend_codepack_author",
+        "P13_test_codepack_author",
+        "P0_orchestrator",
+        "none"
+      ]
+    },
+    "human_checkpoint": { "type": "boolean" },
+    "next_agent": {
+      "type": "string",
+      "enum": [
+        "P10_execution_bundle_planner",
+        "P11_frontend_codepack_author",
+        "P12_backend_codepack_author",
+        "P13_test_codepack_author",
+        "P8_review_record",
+        "P0_orchestrator"
+      ]
+    }
+  }
+}

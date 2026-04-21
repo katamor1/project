@@ -1,0 +1,54 @@
+// .copilot/schemas/execution-bundle-packet.schema.json
+// Defines the execution bundle packet schema used to start a near-code execution pack.
+// This exists so repo bridge assets can hand off into a fixed single-repo bundle without losing path intent.
+// RELEVANT FILES: .copilot/prompts/P10_execution_bundle_planner.md, .copilot/schemas/target-repo-map.schema.json, docs/sdlc/templates/execution-bundle-plan.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "execution-bundle-packet.schema.json",
+  "title": "Execution Bundle Packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "slice_id",
+    "repo_bridge_ref",
+    "target_repo_shape",
+    "target_paths",
+    "bundle_targets",
+    "constraints",
+    "done_criteria",
+    "next_agent"
+  ],
+  "properties": {
+    "request_id": { "type": "string" },
+    "slice_id": { "type": "string" },
+    "repo_bridge_ref": { "type": "string" },
+    "target_repo_shape": { "type": "string", "enum": ["single_app_layout"] },
+    "target_paths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "purpose", "owner"],
+        "properties": {
+          "path": { "type": "string" },
+          "purpose": { "type": "string" },
+          "owner": { "type": "string" }
+        }
+      }
+    },
+    "bundle_targets": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "constraints": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "done_criteria": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "next_agent": { "type": "string", "const": "P11_frontend_codepack_author" }
+  }
+}
