@@ -1,8 +1,8 @@
 # docs/copilot-studio/legacy-search/shared-io-contract.yaml
-# This file defines the shared input and output contract for the legacy search prompt pack.
-# This file exists so every Copilot Studio agent returns the same core fields and routing hints.
-# RELEVANT FILES: docs/copilot-studio/legacy-search/README.md, docs/copilot-studio/legacy-search/routing-matrix.md, docs/copilot-studio/legacy-search/agents/intake-router.md
-version: 1
+# This file defines the shared v2 input and output contract for the legacy search prompt pack.
+# This file exists so every Copilot Studio agent returns the same routing and handoff structure.
+# RELEVANT FILES: docs/copilot-studio/legacy-search/README.md, docs/copilot-studio/legacy-search/routing-matrix.md, docs/copilot-studio/legacy-search/implementation-guide.md
+version: 2
 
 language:
   default: ja-JP
@@ -23,10 +23,12 @@ common_input:
     known_constraints: "Known limits, approved sources, date limits, or exclusions."
 
 common_rules:
-  - "Use only SharePoint or OneDrive sources in v1."
+  - "Use only SharePoint or OneDrive sources in v2."
   - "Do not invent titles, sections, pages, or file paths."
   - "If evidence is weak, conflicting, or missing, do not guess."
+  - "The only valid entry agent is LS-01 Intake Router."
   - "Return next_agent on every run."
+  - "Return handoff_packet on every run."
   - "Extra agent-specific fields are allowed, but the required fields must stay stable."
 
 candidate_source_schema:
@@ -47,14 +49,36 @@ candidate_source_schema:
     freshness: "current | stale | unknown"
     conflict_flag: "true if another source disagrees or may disagree."
 
+handoff_packet_schema:
+  required:
+    - question
+    - goal
+    - entities
+    - source_scope
+    - known_constraints
+    - candidate_sources
+    - unknowns
+    - next_agent
+  field_notes:
+    question: "The current user question in Japanese."
+    goal: "The immediate outcome expected from the next agent."
+    entities: "Normalized business terms, screen names, APIs, tables, or aliases."
+    source_scope: "Allowed search boundary inside SharePoint or OneDrive."
+    known_constraints: "Known limits, approved sources, or exclusions."
+    candidate_sources: "May be an empty list for Router or Glossary."
+    unknowns: "Open items the next agent must keep visible."
+    next_agent: "The operational name of the next agent."
+
 router_output:
   required:
     - goal
     - entities
     - source_scope
     - known_constraints
+    - candidate_sources
     - unknowns
     - next_agent
+    - handoff_packet
   optional:
     - decision_reason
 
@@ -64,19 +88,24 @@ search_output:
     - confidence
     - unknowns
     - next_agent
+    - handoff_packet
   optional:
     - rejected_sources
     - search_hints
 
-answer_output:
+final_output:
   required:
-    - answer
+    - chat_response
+    - pm_copy_template
     - evidence
     - confidence
     - unknowns
     - next_agent
+    - handoff_packet
   field_notes:
     evidence: "A subset of candidate sources used for the final answer."
+    chat_response: "Markdown string with four headings: 結論, 根拠, 不明点, 次アクション."
+    pm_copy_template: "Markdown string with five lines: 確認事項, 確認結果, 根拠資料, 未解決, 次に見る agent."
 
 confidence_scale:
   allowed:
@@ -86,13 +115,13 @@ confidence_scale:
 
 next_agent_values:
   allowed:
-    - Intake Router
-    - Glossary Normalizer
-    - Document Locator
-    - Evidence Verifier
-    - Grounded Answerer
-    - Gap Reporter
-    - Renewal Impact Mapper
-    - Change Diff Scout
+    - LS-01 Intake Router
+    - LS-02 Glossary Normalizer
+    - LS-03 Document Locator
+    - LS-04 Evidence Verifier
+    - LS-05 Grounded Answerer
+    - LS-06 Gap Reporter
+    - LS-07 Renewal Impact Mapper
+    - LS-08 Change Diff Scout
     - human_follow_up
     - complete
