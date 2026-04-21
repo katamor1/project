@@ -1,0 +1,36 @@
+// .copilot/schemas/implementation-packet.schema.json
+// Defines the implementation packet schema used to start one bounded full-stack slice.
+// This exists so detail design can hand off to implementation planning without losing scope boundaries.
+// RELEVANT FILES: .copilot/prompts/P4_implementation_planner.md, .copilot/schemas/fullstack-slice.schema.json, docs/sdlc/templates/implementation-plan.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "implementation-packet.schema.json",
+  "title": "Implementation Packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "detail_design_ref",
+    "slice_id",
+    "ui_scope",
+    "api_scope",
+    "db_scope",
+    "constraints",
+    "done_criteria",
+    "next_agent"
+  ],
+  "properties": {
+    "request_id": { "type": "string" },
+    "detail_design_ref": { "type": "string" },
+    "slice_id": { "type": "string" },
+    "ui_scope": { "type": "array", "items": { "type": "string" } },
+    "api_scope": { "type": "array", "items": { "type": "string" } },
+    "db_scope": { "type": "array", "items": { "type": "string" } },
+    "constraints": { "type": "array", "items": { "type": "string" } },
+    "done_criteria": { "type": "array", "items": { "type": "string" } },
+    "next_agent": {
+      "type": "string",
+      "const": "P5_fullstack_slice_author"
+    }
+  }
+}

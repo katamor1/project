@@ -1,0 +1,32 @@
+// .copilot/schemas/api-contract.schema.json
+// Defines the helper schema for API contract artifacts used by implementation slices.
+// This exists so API intent can be documented consistently alongside slice and bridge assets.
+// RELEVANT FILES: docs/sdlc/templates/api-contract.md, .copilot/schemas/fullstack-slice.schema.json, docs/sdlc/samples/email-notification-implementation-dry-run.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "api-contract.schema.json",
+  "title": "API Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["endpoint", "auth", "request", "response", "errors", "source_refs"],
+  "properties": {
+    "endpoint": { "type": "string" },
+    "auth": { "type": "string" },
+    "request": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "response": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "errors": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "source_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+// .copilot/schemas/db-change.schema.json
+// Defines the helper schema for DB change artifacts used by implementation slices.
+// This exists so DB intent can be documented consistently before any migration is written.
+// RELEVANT FILES: docs/sdlc/templates/db-change.md, .copilot/schemas/fullstack-slice.schema.json, docs/sdlc/samples/email-notification-implementation-dry-run.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "db-change.schema.json",
+  "title": "DB Change",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["table_name", "fields", "migration", "backfill", "rollback", "source_refs"],
+  "properties": {
+    "table_name": { "type": "string" },
+    "fields": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "migration": { "type": "string" },
+    "backfill": { "type": "string" },
+    "rollback": { "type": "string" },
+    "source_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

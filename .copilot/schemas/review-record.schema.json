@@ -1,0 +1,52 @@
+// .copilot/schemas/review-record.schema.json
+// Defines the durable review record schema used after specification review.
+// This exists so review history can be carried into evaluation without custom storage.
+// RELEVANT FILES: .copilot/prompts/P8_review_record.md, docs/sdlc/templates/review-record.md, .copilot/prompts/P9_eval_monitor.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "review-record.schema.json",
+  "title": "Review Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "artifact_manifest",
+    "reviewed_artifacts",
+    "review_cycles",
+    "unresolved_risks",
+    "approval_note",
+    "next_agent"
+  ],
+  "properties": {
+    "request_id": { "type": "string" },
+    "artifact_manifest": { "$ref": "./artifact-manifest.schema.json" },
+    "reviewed_artifacts": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "review_cycles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["artifact_type", "decision", "reviewed_at", "reviewer_prompt_id", "notes"],
+        "properties": {
+          "artifact_type": { "type": "string" },
+          "decision": { "type": "string", "enum": ["pass", "revise", "block"] },
+          "reviewed_at": { "type": "string" },
+          "reviewer_prompt_id": { "type": "string" },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "unresolved_risks": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "approval_note": { "type": "string" },
+    "next_agent": {
+      "type": "string",
+      "const": "P9_eval_monitor"
+    }
+  }
+}

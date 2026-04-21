@@ -1,0 +1,61 @@
+// .copilot/schemas/fullstack-slice.schema.json
+// Defines the full-stack slice schema used to describe frontend, backend, and DB implementation intent.
+// This exists so implementation prep stays traceable before any code or migrations are written.
+// RELEVANT FILES: .copilot/prompts/P5_fullstack_slice_author.md, .copilot/schemas/db-change.schema.json, docs/sdlc/templates/fullstack-slice.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fullstack-slice.schema.json",
+  "title": "Fullstack Slice",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_manifest",
+    "slice_id",
+    "frontend_changes",
+    "backend_changes",
+    "db_changes",
+    "contract_refs",
+    "risk_flags",
+    "next_agent"
+  ],
+  "properties": {
+    "artifact_manifest": { "$ref": "./artifact-manifest.schema.json" },
+    "slice_id": { "type": "string" },
+    "frontend_changes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/changeIntent" }
+    },
+    "backend_changes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/changeIntent" }
+    },
+    "db_changes": {
+      "type": "array",
+      "items": { "$ref": "./db-change.schema.json" }
+    },
+    "contract_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "risk_flags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "next_agent": {
+      "type": "string",
+      "const": "P6_test_author"
+    }
+  },
+  "$defs": {
+    "changeIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["area", "file_intent", "notes"],
+      "properties": {
+        "area": { "type": "string" },
+        "file_intent": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}

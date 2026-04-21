@@ -1,0 +1,59 @@
+// .copilot/schemas/work-packet.schema.json
+// Defines the shared work packet schema for basic and detail design authoring.
+// This exists so both author prompts use the same handoff contract into review.
+// RELEVANT FILES: .copilot/prompts/P2_basic_design_author.md, .copilot/prompts/P2_detail_design_author.md, .copilot/prompts/P3_spec_reviewer.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "work-packet.schema.json",
+  "title": "Work Packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "artifact_manifest",
+    "stage",
+    "objective",
+    "inputs",
+    "decisions",
+    "constraints",
+    "traceability",
+    "next_agent"
+  ],
+  "properties": {
+    "request_id": { "type": "string" },
+    "artifact_manifest": { "$ref": "./artifact-manifest.schema.json" },
+    "stage": {
+      "type": "string",
+      "enum": ["basic_design", "detail_design"]
+    },
+    "objective": { "type": "string" },
+    "inputs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "decisions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "constraints": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "traceability": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_id", "target_section"],
+        "properties": {
+          "source_id": { "type": "string" },
+          "target_section": { "type": "string" }
+        }
+      }
+    },
+    "next_agent": {
+      "type": "string",
+      "const": "P3_spec_reviewer"
+    }
+  }
+}

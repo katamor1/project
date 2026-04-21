@@ -1,0 +1,53 @@
+// .copilot/schemas/review-findings.schema.json
+// Defines the review findings schema for pass, revise, and block decisions.
+// This exists so review outcomes stay machine-readable before automation exists.
+// RELEVANT FILES: .copilot/prompts/P3_spec_reviewer.md, .copilot/routing/agent-matrix.yaml, docs/sdlc/samples/email-notification-dry-run.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "review-findings.schema.json",
+  "title": "Review Findings",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "artifact_type",
+    "review_decision",
+    "summary",
+    "findings",
+    "revise_to",
+    "human_checkpoint",
+    "next_agent"
+  ],
+  "properties": {
+    "request_id": { "type": "string" },
+    "artifact_type": {
+      "type": "string",
+      "enum": ["basic_design", "detail_design"]
+    },
+    "review_decision": {
+      "type": "string",
+      "enum": ["pass", "revise", "block"]
+    },
+    "summary": { "type": "string" },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "title", "detail", "owner_section"],
+        "properties": {
+          "severity": { "type": "string", "enum": ["low", "medium", "high"] },
+          "title": { "type": "string" },
+          "detail": { "type": "string" },
+          "owner_section": { "type": "string" }
+        }
+      }
+    },
+    "revise_to": { "type": "string" },
+    "human_checkpoint": { "type": "boolean" },
+    "next_agent": {
+      "type": "string",
+      "enum": ["P2_basic_design_author", "P2_detail_design_author", "P8_review_record", "P0_orchestrator"]
+    }
+  }
+}

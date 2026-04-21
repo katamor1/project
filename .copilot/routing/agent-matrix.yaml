@@ -1,0 +1,62 @@
+# .copilot/routing/agent-matrix.yaml
+# Defines the standard SDLC routing and return rules for the upper design flow.
+# This exists so prompt handoffs stay explicit before any runtime automation is added.
+# RELEVANT FILES: .copilot/prompts/P0_orchestrator.md, .copilot/prompts/P3_spec_reviewer.md, docs/sdlc/README.md
+version: 1
+flow_name: sdlc-upper-design
+agents:
+  - id: P0_orchestrator
+    artifact_type: request_packet
+    prompt_path: .copilot/prompts/P0_orchestrator.md
+  - id: P1_scope
+    artifact_type: scope_packet
+    prompt_path: .copilot/prompts/P1_scope.md
+  - id: P2_basic_design_author
+    artifact_type: basic_design
+    prompt_path: .copilot/prompts/P2_basic_design_author.md
+  - id: P2_detail_design_author
+    artifact_type: detail_design
+    prompt_path: .copilot/prompts/P2_detail_design_author.md
+  - id: P3_spec_reviewer
+    artifact_type: review_findings
+    prompt_path: .copilot/prompts/P3_spec_reviewer.md
+  - id: P8_review_record
+    artifact_type: review_record
+    prompt_path: .copilot/prompts/P8_review_record.md
+  - id: P9_eval_monitor
+    artifact_type: eval_report
+    prompt_path: .copilot/prompts/P9_eval_monitor.md
+standard_route:
+  - from: P0_orchestrator
+    to: P1_scope
+    when: request_packet_ready
+  - from: P1_scope
+    to: P2_basic_design_author
+    when: scope_packet_ready
+  - from: P2_basic_design_author
+    to: P3_spec_reviewer
+    when: basic_design_ready
+  - from: P3_spec_reviewer
+    to: P2_detail_design_author
+    when: basic_design_passed
+  - from: P2_detail_design_author
+    to: P3_spec_reviewer
+    when: detail_design_ready
+  - from: P3_spec_reviewer
+    to: P8_review_record
+    when: detail_design_passed
+  - from: P8_review_record
+    to: P9_eval_monitor
+    when: review_record_ready
+return_routes:
+  - reviewer: P3_spec_reviewer
+    decision: revise
+    return_to: previous_author
+    note: basic design は P2_basic_design_author, detail design は P2_detail_design_author に戻す
+  - reviewer: P3_spec_reviewer
+    decision: block
+    return_to: P0_orchestrator
+    note: human_checkpoint を要求して依頼条件を見直す
+terminal_states:
+  - complete
+  - human_checkpoint_required

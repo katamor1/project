@@ -1,0 +1,39 @@
+// .copilot/schemas/artifact-manifest.schema.json
+// Defines the shared artifact manifest schema used by SDLC markdown artifacts and packets.
+// This exists so artifact naming and traceability stay stable across future phases.
+// RELEVANT FILES: docs/sdlc/templates/basic-design.md, docs/sdlc/templates/detail-design.md, .copilot/schemas/work-packet.schema.json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "artifact-manifest.schema.json",
+  "title": "Artifact Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_id",
+    "artifact_type",
+    "status",
+    "prompt_id",
+    "prompt_version",
+    "model_id",
+    "upstream_refs",
+    "review_record_refs",
+    "language"
+  ],
+  "properties": {
+    "artifact_id": { "type": "string" },
+    "artifact_type": { "type": "string" },
+    "status": { "type": "string", "enum": ["draft", "in_review", "approved", "blocked"] },
+    "prompt_id": { "type": "string" },
+    "prompt_version": { "type": "string" },
+    "model_id": { "type": "string" },
+    "upstream_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "review_record_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "language": { "type": "string" }
+  }
+}

@@ -1,0 +1,56 @@
+// .copilot/schemas/repo-bridge.schema.json
+// Defines the repo bridge schema used to hand approved implementation assets into a future app repository.
+// This exists so manual handoff into a real codebase can be structured before any automation exists.
+// RELEVANT FILES: docs/sdlc/templates/repo-bridge.md, docs/sdlc/samples/email-notification-implementation-dry-run.md, .copilot/routing/implementation-matrix.yaml
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "repo-bridge.schema.json",
+  "title": "Repo Bridge",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_manifest",
+    "target_stack",
+    "target_paths",
+    "handoff_order",
+    "manual_steps",
+    "open_questions",
+    "next_agent"
+  ],
+  "properties": {
+    "artifact_manifest": { "$ref": "./artifact-manifest.schema.json" },
+    "target_stack": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "target_paths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "purpose", "owner"],
+        "properties": {
+          "path": { "type": "string" },
+          "purpose": { "type": "string" },
+          "owner": { "type": "string" }
+        }
+      }
+    },
+    "handoff_order": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "manual_steps": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "open_questions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "next_agent": {
+      "type": "string",
+      "const": "P8_review_record"
+    }
+  }
+}

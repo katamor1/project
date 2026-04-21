@@ -1,0 +1,54 @@
+// .copilot/schemas/test-pack.schema.json
+// Defines the test pack schema used to describe non-executable implementation test intent.
+// This exists so code review can judge whether a slice has enough coverage before repo handoff.
+// RELEVANT FILES: .copilot/prompts/P6_test_author.md, .copilot/prompts/P7_code_reviewer.md, docs/sdlc/templates/test-spec.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "test-pack.schema.json",
+  "title": "Test Pack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_manifest",
+    "slice_id",
+    "test_levels",
+    "acceptance_cases",
+    "fixtures",
+    "coverage_focus",
+    "next_agent"
+  ],
+  "properties": {
+    "artifact_manifest": { "$ref": "./artifact-manifest.schema.json" },
+    "slice_id": { "type": "string" },
+    "test_levels": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["unit", "integration", "regression"] }
+    },
+    "acceptance_cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["case_id", "level", "title", "expected_result"],
+        "properties": {
+          "case_id": { "type": "string" },
+          "level": { "type": "string", "enum": ["unit", "integration", "regression"] },
+          "title": { "type": "string" },
+          "expected_result": { "type": "string" }
+        }
+      }
+    },
+    "fixtures": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "coverage_focus": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "next_agent": {
+      "type": "string",
+      "const": "P7_code_reviewer"
+    }
+  }
+}

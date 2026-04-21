@@ -1,0 +1,50 @@
+// .copilot/schemas/code-review-findings.schema.json
+// Defines the implementation review findings schema for pass, revise, and block decisions.
+// This exists so implementation review can route back to the right author without free-text ambiguity.
+// RELEVANT FILES: .copilot/prompts/P7_code_reviewer.md, .copilot/routing/implementation-matrix.yaml, docs/sdlc/templates/review-summary.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "code-review-findings.schema.json",
+  "title": "Code Review Findings",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_ref",
+    "review_decision",
+    "findings",
+    "revise_to",
+    "human_checkpoint",
+    "next_agent"
+  ],
+  "properties": {
+    "artifact_ref": { "type": "string" },
+    "review_decision": { "type": "string", "enum": ["pass", "revise", "block"] },
+    "summary": { "type": "string" },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["category", "severity", "title", "detail"],
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": ["code_or_interface", "test_coverage", "slice_boundary", "blocking"]
+          },
+          "severity": { "type": "string", "enum": ["low", "medium", "high"] },
+          "title": { "type": "string" },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "revise_to": {
+      "type": "string",
+      "enum": ["P4_implementation_planner", "P5_fullstack_slice_author", "P6_test_author", "P0_orchestrator", "none"]
+    },
+    "human_checkpoint": { "type": "boolean" },
+    "next_agent": {
+      "type": "string",
+      "enum": ["P4_implementation_planner", "P5_fullstack_slice_author", "P6_test_author", "P8_review_record", "P0_orchestrator"]
+    }
+  }
+}

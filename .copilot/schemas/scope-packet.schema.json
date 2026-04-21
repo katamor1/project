@@ -1,0 +1,56 @@
+// .copilot/schemas/scope-packet.schema.json
+// Defines the scope packet schema used between scope design and basic design.
+// This exists so in-scope, out-of-scope, and acceptance criteria stay explicit.
+// RELEVANT FILES: .copilot/prompts/P1_scope.md, docs/sdlc/templates/scope.md, .copilot/prompts/P2_basic_design_author.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "scope-packet.schema.json",
+  "title": "Scope Packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "artifact_manifest",
+    "scope_summary",
+    "in_scope",
+    "out_of_scope",
+    "acceptance_criteria",
+    "assumptions",
+    "glossary",
+    "open_questions",
+    "next_agent"
+  ],
+  "properties": {
+    "request_id": { "type": "string" },
+    "artifact_manifest": { "$ref": "./artifact-manifest.schema.json" },
+    "scope_summary": { "type": "string" },
+    "in_scope": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "out_of_scope": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "glossary": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "open_questions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "next_agent": {
+      "type": "string",
+      "const": "P2_basic_design_author"
+    }
+  }
+}

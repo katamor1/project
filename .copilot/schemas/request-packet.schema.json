@@ -1,0 +1,57 @@
+// .copilot/schemas/request-packet.schema.json
+// Defines the normalized request packet schema for SDLC intake.
+// This exists so the orchestrator always hands the same minimum fields to scope design.
+// RELEVANT FILES: .copilot/prompts/P0_orchestrator.md, .copilot/prompts/P1_scope.md, docs/sdlc/samples/email-notification-dry-run.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "request-packet.schema.json",
+  "title": "Request Packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "request_title",
+    "request_summary",
+    "business_goal",
+    "change_type",
+    "constraints",
+    "success_signals",
+    "source_refs",
+    "requested_by",
+    "language",
+    "open_questions",
+    "next_agent"
+  ],
+  "properties": {
+    "request_id": { "type": "string" },
+    "request_title": { "type": "string" },
+    "request_summary": { "type": "string" },
+    "business_goal": { "type": "string" },
+    "change_type": {
+      "type": "string",
+      "enum": ["new_feature", "change_request", "bugfix", "ops_request", "unknown"]
+    },
+    "constraints": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "success_signals": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "source_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "requested_by": { "type": "string" },
+    "language": { "type": "string" },
+    "open_questions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "next_agent": {
+      "type": "string",
+      "const": "P1_scope"
+    }
+  }
+}

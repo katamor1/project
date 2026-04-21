@@ -1,0 +1,71 @@
+# .copilot/routing/implementation-matrix.yaml
+# Defines the implementation lane routing from approved detail design to review, bridge handoff, and evaluation.
+# This exists so the implementation SDLC can be tracked separately from the upper design lane.
+# RELEVANT FILES: .copilot/prompts/P4_implementation_planner.md, .copilot/prompts/P7_code_reviewer.md, docs/sdlc/README.md
+version: 1
+flow_name: sdlc-implementation-lane
+agents:
+  - id: P3_spec_reviewer
+    artifact_type: review_findings
+    prompt_path: .copilot/prompts/P3_spec_reviewer.md
+  - id: P4_implementation_planner
+    artifact_type: implementation_packet
+    prompt_path: .copilot/prompts/P4_implementation_planner.md
+  - id: P5_fullstack_slice_author
+    artifact_type: fullstack_slice
+    prompt_path: .copilot/prompts/P5_fullstack_slice_author.md
+  - id: P6_test_author
+    artifact_type: test_pack
+    prompt_path: .copilot/prompts/P6_test_author.md
+  - id: P7_code_reviewer
+    artifact_type: code_review_findings
+    prompt_path: .copilot/prompts/P7_code_reviewer.md
+  - id: P8_review_record
+    artifact_type: review_record
+    prompt_path: .copilot/prompts/P8_review_record.md
+  - id: P9_eval_monitor
+    artifact_type: eval_report
+    prompt_path: .copilot/prompts/P9_eval_monitor.md
+standard_route:
+  - from: P3_spec_reviewer
+    to: P4_implementation_planner
+    when: detail_design_passed
+  - from: P4_implementation_planner
+    to: P5_fullstack_slice_author
+    when: implementation_packet_ready
+  - from: P5_fullstack_slice_author
+    to: P6_test_author
+    when: fullstack_slice_ready
+  - from: P6_test_author
+    to: P7_code_reviewer
+    when: test_pack_ready
+  - from: P7_code_reviewer
+    to: P8_review_record
+    when: code_review_passed
+    handoff_artifacts:
+      - fullstack_slice
+      - test_pack
+      - repo_bridge
+  - from: P8_review_record
+    to: P9_eval_monitor
+    when: review_record_ready
+return_routes:
+  - reviewer: P7_code_reviewer
+    decision: revise
+    category: code_or_interface
+    return_to: P5_fullstack_slice_author
+  - reviewer: P7_code_reviewer
+    decision: revise
+    category: test_coverage
+    return_to: P6_test_author
+  - reviewer: P7_code_reviewer
+    decision: revise
+    category: slice_boundary
+    return_to: P4_implementation_planner
+  - reviewer: P7_code_reviewer
+    decision: block
+    return_to: P0_orchestrator
+    note: human_checkpoint を要求して前提を見直す
+terminal_states:
+  - complete
+  - human_checkpoint_required
