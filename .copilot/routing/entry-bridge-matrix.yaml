@@ -1,0 +1,177 @@
+# .copilot/routing/entry-bridge-matrix.yaml
+# Defines the Claude Code entry bridge routing from entry classification through runtime dispatch and response shaping.
+# This exists so Claude Code-facing routing, checkpoints, and abstains can be tracked separately from runtime and SDLC lanes.
+# RELEVANT FILES: .copilot/prompts/C0_entry_router.md, .copilot/prompts/C4_entry_response_shaper.md, docs/claude-code/runtime-bridge/README.md
+version: 1
+flow_name: claude-code-entry-bridge
+agents:
+  - id: C0_entry_router
+    artifact_type: entry_route_decision
+    prompt_path: .copilot/prompts/C0_entry_router.md
+  - id: C1_intent_packet_builder
+    artifact_type: entry_request_packet
+    prompt_path: .copilot/prompts/C1_intent_packet_builder.md
+  - id: C2_session_scope_guard
+    artifact_type: session_scope_gate
+    prompt_path: .copilot/prompts/C2_session_scope_guard.md
+  - id: C3_dispatch_packet_author
+    artifact_type: entry_dispatch_packet
+    prompt_path: .copilot/prompts/C3_dispatch_packet_author.md
+  - id: K0_runtime_orchestrator
+    artifact_type: runtime_task_packet
+    prompt_path: .copilot/prompts/K0_runtime_orchestrator.md
+  - id: K5_retrieval_planner
+    artifact_type: retrieval_plan
+    prompt_path: .copilot/prompts/K5_retrieval_planner.md
+  - id: K6_legacy_diff_checker
+    artifact_type: diff_report
+    prompt_path: .copilot/prompts/K6_legacy_diff_checker.md
+  - id: K7_artifact_context_packer
+    artifact_type: artifact_context_packet
+    prompt_path: .copilot/prompts/K7_artifact_context_packer.md
+  - id: K8_evidence_reviewer
+    artifact_type: evidence_review
+    prompt_path: .copilot/prompts/K8_evidence_reviewer.md
+  - id: P2_basic_design_author
+    artifact_type: basic_design
+    prompt_path: .copilot/prompts/P2_basic_design_author.md
+  - id: P2_detail_design_author
+    artifact_type: detail_design
+    prompt_path: .copilot/prompts/P2_detail_design_author.md
+  - id: P2_functional_spec_author
+    artifact_type: functional_spec
+    prompt_path: .copilot/prompts/P2_functional_spec_author.md
+  - id: P2_integration_spec_author
+    artifact_type: integration_spec
+    prompt_path: .copilot/prompts/P2_integration_spec_author.md
+  - id: P4_implementation_planner
+    artifact_type: implementation_packet
+    prompt_path: .copilot/prompts/P4_implementation_planner.md
+  - id: P6_test_author
+    artifact_type: test_pack
+    prompt_path: .copilot/prompts/P6_test_author.md
+  - id: P8_review_record
+    artifact_type: review_record
+    prompt_path: .copilot/prompts/P8_review_record.md
+  - id: P9_eval_monitor
+    artifact_type: eval_report
+    prompt_path: .copilot/prompts/P9_eval_monitor.md
+  - id: C4_entry_response_shaper
+    artifact_type: entry_response
+    prompt_path: .copilot/prompts/C4_entry_response_shaper.md
+  - id: C5_entry_eval_monitor
+    artifact_type: entry_eval_note
+    prompt_path: .copilot/prompts/C5_entry_eval_monitor.md
+entry_conditions:
+  - source: claude_code_chat
+    when: entry_request_received
+standard_route:
+  - from: C0_entry_router
+    to: C1_intent_packet_builder
+    when: entry_route_ready
+  - from: C1_intent_packet_builder
+    to: C2_session_scope_guard
+    when: entry_request_packet_ready
+  - from: C2_session_scope_guard
+    to: C3_dispatch_packet_author
+    when: session_scope_verified
+  - from: C2_session_scope_guard
+    to: C4_entry_response_shaper
+    when: human_checkpoint_required
+  - from: C3_dispatch_packet_author
+    to: K0_runtime_orchestrator
+    when: entry_dispatch_packet_ready
+  - from: K0_runtime_orchestrator
+    to: K5_retrieval_planner
+    when: runtime_task_query_ready
+  - from: K5_retrieval_planner
+    to: K6_legacy_diff_checker
+    when: legacy_diff_requested
+  - from: K5_retrieval_planner
+    to: K7_artifact_context_packer
+    when: source_backed_generation_requested
+  - from: K6_legacy_diff_checker
+    to: K8_evidence_reviewer
+    when: diff_report_ready
+  - from: K7_artifact_context_packer
+    to: K8_evidence_reviewer
+    when: artifact_context_packet_ready
+  - from: K8_evidence_reviewer
+    to: P2_basic_design_author
+    when: downstream_target_basic_design
+  - from: K8_evidence_reviewer
+    to: P2_detail_design_author
+    when: downstream_target_detail_design
+  - from: K8_evidence_reviewer
+    to: P2_functional_spec_author
+    when: downstream_target_functional_spec
+  - from: K8_evidence_reviewer
+    to: P2_integration_spec_author
+    when: downstream_target_integration_spec
+  - from: K8_evidence_reviewer
+    to: P4_implementation_planner
+    when: downstream_target_implementation
+  - from: K8_evidence_reviewer
+    to: P6_test_author
+    when: downstream_target_test_pack
+  - from: K8_evidence_reviewer
+    to: P8_review_record
+    when: downstream_target_review_record
+  - from: K8_evidence_reviewer
+    to: P9_eval_monitor
+    when: downstream_target_eval
+  - from: K8_evidence_reviewer
+    to: C4_entry_response_shaper
+    when: entry_abstain_required
+  - from: P2_basic_design_author
+    to: C4_entry_response_shaper
+    when: entry_callback_requested
+  - from: P2_detail_design_author
+    to: C4_entry_response_shaper
+    when: entry_callback_requested
+  - from: P2_functional_spec_author
+    to: C4_entry_response_shaper
+    when: entry_callback_requested
+  - from: P2_integration_spec_author
+    to: C4_entry_response_shaper
+    when: entry_callback_requested
+  - from: P4_implementation_planner
+    to: C4_entry_response_shaper
+    when: entry_callback_requested
+  - from: P6_test_author
+    to: C4_entry_response_shaper
+    when: entry_callback_requested
+  - from: P8_review_record
+    to: C4_entry_response_shaper
+    when: entry_callback_requested
+  - from: P9_eval_monitor
+    to: C4_entry_response_shaper
+    when: entry_callback_requested
+  - from: C4_entry_response_shaper
+    to: C5_entry_eval_monitor
+    when: entry_response_ready
+gate_rules:
+  - condition: session_scope_missing
+    return_to: C2_session_scope_guard
+    result: human_checkpoint_required
+  - condition: workspace_target_mismatch
+    return_to: C2_session_scope_guard
+    result: human_checkpoint_required
+  - condition: allowed_target_missing
+    return_to: C2_session_scope_guard
+    result: human_checkpoint_required
+  - condition: confidence_below_0_65
+    return_to: C4_entry_response_shaper
+    result: abstain_next_action
+  - condition: acl_mismatch
+    return_to: C4_entry_response_shaper
+    result: abstain_next_action
+  - condition: authoritative_conflict
+    return_to: C4_entry_response_shaper
+    result: abstain_next_action
+  - condition: confidence_between_0_65_and_0_78
+    return_to: K5_retrieval_planner
+    result: second_pass_required
+terminal_states:
+  - complete
+  - human_checkpoint_required

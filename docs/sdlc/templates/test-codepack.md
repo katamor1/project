@@ -8,7 +8,7 @@ artifact_type: test_codepack
 status: draft
 prompt_id: P13_test_codepack_author
 prompt_version: "1.0"
-model_id: copilot
+model_id: claude-code
 upstream_refs:
   - EXEC-BUNDLE-REQ-XXXX
 review_record_refs: []

@@ -45,7 +45,7 @@
       "status": "draft",
       "prompt_id": "P18_sqlite_draft_author",
       "prompt_version": "1.0",
-      "model_id": "copilot",
+      "model_id": "claude-code",
       "upstream_refs": ["EXEC-BUNDLE-REQ-EMAIL-NOTIFY-001", "SQLPACK-REQ-EMAIL-NOTIFY-001"],
       "review_record_refs": [],
       "language": "ja"

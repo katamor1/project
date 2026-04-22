@@ -1,0 +1,30 @@
+// .copilot/schemas/entry-dispatch-packet.schema.json
+// Defines the entry dispatch packet schema used to hand Claude Code requests into the external runtime.
+// This exists so runtime target, task type, and callback expectations are fixed before K0 starts.
+// RELEVANT FILES: .copilot/prompts/C3_dispatch_packet_author.md, .copilot/prompts/K0_runtime_orchestrator.md, docs/claude-code/runtime-bridge/dispatch-contract.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "entry-dispatch-packet.schema.json",
+  "title": "Entry Dispatch Packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["entry_request_ref", "session_scope_ref", "runtime_target", "runtime_task_type", "callback_contract", "next_agent"],
+  "properties": {
+    "entry_request_ref": { "type": "string" },
+    "session_scope_ref": { "type": "string" },
+    "runtime_target": { "type": "string" },
+    "runtime_task_type": { "type": "string" },
+    "callback_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["response_agent", "expected_result_type", "session_context_ref", "locale"],
+      "properties": {
+        "response_agent": { "type": "string", "const": "C4_entry_response_shaper" },
+        "expected_result_type": { "type": "string" },
+        "session_context_ref": { "type": "string" },
+        "locale": { "type": "string" }
+      }
+    },
+    "next_agent": { "type": "string", "const": "K0_runtime_orchestrator" }
+  }
+}

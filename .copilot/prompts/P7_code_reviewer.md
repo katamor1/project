@@ -11,7 +11,7 @@
 - 結果は `pass`, `revise`, `block` のいずれかで返します。
 
 ## User
-- 入力は `fullstack_slice`, `test_pack`, `evidence_coverage`, `authority_conflict_note`, `source_refs` です。
+- 入力は `fullstack_slice`, `test_pack`, `evidence_coverage`, `authority_conflict_note`, `source_refs`, `artifact_context_packet` です。
 - code/interface 指摘は `P5_fullstack_slice_author` に戻します。
 - test coverage 指摘は `P6_test_author` に戻します。
 - slice boundary の破綻や前提破綻は `P4_implementation_planner` に戻します。
@@ -19,7 +19,7 @@
 
 ## Assistant
 - `artifact_type` は `code_review_findings` 固定です。
-- `required_inputs` は `fullstack_slice`, `test_pack`, `evidence_coverage`, `authority_conflict_note`, `source_refs` です。
+- `required_inputs` は `fullstack_slice`, `test_pack`, `evidence_coverage`, `authority_conflict_note`, `source_refs`, `artifact_context_packet` です。
 - `next_agent` は判定に応じて変わります。
 - `human_checkpoint` は `block` の時だけ `required` です。
 - `done_definition` は「判定、指摘、差戻し先、bridge へ渡せる状態が明確」です。
@@ -31,7 +31,7 @@
   "prompt_id": "P7_code_reviewer",
   "prompt_version": "1.0",
   "artifact_type": "code_review_findings",
-  "required_inputs": ["fullstack_slice", "test_pack", "evidence_coverage", "authority_conflict_note", "source_refs"],
+  "required_inputs": ["fullstack_slice", "test_pack", "evidence_coverage", "authority_conflict_note", "source_refs", "artifact_context_packet"],
   "human_checkpoint": "none",
   "done_definition": [
     "decision is explicit",

@@ -43,7 +43,7 @@
       "status": "draft",
       "prompt_id": "P21_approval_pack_author",
       "prompt_version": "1.0",
-      "model_id": "copilot",
+      "model_id": "claude-code",
       "upstream_refs": ["FEDRAFT-REQ-EMAIL-NOTIFY-001", "BEDRAFT-REQ-EMAIL-NOTIFY-001", "SQLDRAFT-REQ-EMAIL-NOTIFY-001", "TESTDRAFT-REQ-EMAIL-NOTIFY-001"],
       "review_record_refs": [],
       "language": "ja"

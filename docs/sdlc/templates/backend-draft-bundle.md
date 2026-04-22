@@ -8,7 +8,7 @@ artifact_type: backend_draft_bundle
 status: draft
 prompt_id: P17_backend_draft_author
 prompt_version: "1.0"
-model_id: copilot
+model_id: claude-code
 upstream_refs:
   - DRAFT-BUNDLE-REQ-XXXX
 review_record_refs: []

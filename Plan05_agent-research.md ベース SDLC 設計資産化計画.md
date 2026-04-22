@@ -4,7 +4,7 @@
 - 次フェーズでは、既存の `legacy-search` とは別トラックで、`agent-research.md` の上流 SDLC 設計を repo 資産として落とす。
 - 今回は `Copilot内で準備` に寄せる。外部 custom engine や実行基盤は入れず、将来の hybrid 化に耐える `prompt registry`, `schema`, `artifact template`, `routing` を先に固める。
 - 対象範囲は `案件司令塔`, `要件正規化`, `基本設計`, `詳細設計`, `仕様レビュー`, `レビュー記録`, `評価監視` の 7 役まで。実装分割、コード生成、単体テスト、コードレビューはこのフェーズでは含めない。
-- 現在の repo には `docs/copilot-studio/legacy-search` はあるが、`.copilot/`, `docs/sdlc/`, `reviews/`, `artifacts/`, `evals/` は未作成なので、ここを新設前提で計画する。
+- 現在の repo には `docs/claude-code/legacy-search` はあるが、`.copilot/`, `docs/sdlc/`, `reviews/`, `artifacts/`, `evals/` は未作成なので、ここを新設前提で計画する。
 
 ## Key Changes
 - 新しい SDLC トラックを 3 層で作る。

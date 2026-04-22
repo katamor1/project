@@ -11,7 +11,7 @@
 - 結果は `pass`, `revise`, `block` のいずれかで返します。
 
 ## User
-- 入力は draft bundle 一式, `target_repo_map`, `evidence_coverage`, `authority_conflict_note`, `source_refs` です。
+- 入力は draft bundle 一式, `target_repo_map`, `evidence_coverage`, `authority_conflict_note`, `source_refs`, `artifact_context_packet` です。
 - `frontend_contract` は `P16_frontend_draft_author` に戻します。
 - `backend_contract` は `P17_backend_draft_author` に戻します。
 - `sqlite_migration` は `P18_sqlite_draft_author` に戻します。
@@ -21,7 +21,7 @@
 
 ## Assistant
 - `artifact_type` は `integration_review_findings` 固定です。
-- `required_inputs` は `draft_bundles`, `target_repo_map`, `evidence_coverage`, `authority_conflict_note`, `source_refs` です。
+- `required_inputs` は `draft_bundles`, `target_repo_map`, `evidence_coverage`, `authority_conflict_note`, `source_refs`, `artifact_context_packet` です。
 - `next_agent` は判定に応じて変わります。
 - `human_checkpoint` は `block` の時だけ `required` です。
 - `done_definition` は「判定、指摘、差戻し先、approval readiness が明確」です。
@@ -33,7 +33,7 @@
   "prompt_id": "P20_integration_reviewer",
   "prompt_version": "1.0",
   "artifact_type": "integration_review_findings",
-  "required_inputs": ["draft_bundles", "target_repo_map", "evidence_coverage", "authority_conflict_note", "source_refs"],
+  "required_inputs": ["draft_bundles", "target_repo_map", "evidence_coverage", "authority_conflict_note", "source_refs", "artifact_context_packet"],
   "human_checkpoint": "none",
   "done_definition": [
     "decision is explicit",

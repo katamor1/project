@@ -8,7 +8,7 @@ artifact_type: detail_design
 status: draft
 prompt_id: P2_detail_design_author
 prompt_version: "1.0"
-model_id: copilot
+model_id: claude-code
 upstream_refs:
   - BASIC-REQ-XXXX
 review_record_refs: []

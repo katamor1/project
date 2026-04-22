@@ -8,7 +8,7 @@ artifact_type: review_summary
 status: draft
 prompt_id: REVIEWER_PROMPT_ID
 prompt_version: "1.0"
-model_id: copilot
+model_id: claude-code
 upstream_refs:
   - ARTIFACT-REQ-XXXX
 review_record_refs: []

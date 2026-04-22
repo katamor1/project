@@ -35,7 +35,7 @@
     "status": "draft",
     "prompt_id": "P1_scope",
     "prompt_version": "1.0",
-    "model_id": "copilot",
+    "model_id": "claude-code",
     "upstream_refs": ["REQ-EMAIL-NOTIFY-001"],
     "review_record_refs": [],
     "language": "ja"
@@ -61,7 +61,7 @@
     "status": "draft",
     "prompt_id": "P2_basic_design_author",
     "prompt_version": "1.0",
-    "model_id": "copilot",
+    "model_id": "claude-code",
     "upstream_refs": ["SCOPE-REQ-EMAIL-NOTIFY-001"],
     "review_record_refs": [],
     "language": "ja"
@@ -86,7 +86,7 @@ artifact_type: basic_design
 status: draft
 prompt_id: P2_basic_design_author
 prompt_version: "1.0"
-model_id: copilot
+model_id: claude-code
 upstream_refs:
   - SCOPE-REQ-EMAIL-NOTIFY-001
 review_record_refs: []
@@ -139,7 +139,7 @@ language: ja
     "status": "draft",
     "prompt_id": "P8_review_record",
     "prompt_version": "1.0",
-    "model_id": "copilot",
+    "model_id": "claude-code",
     "upstream_refs": ["RF-REQ-EMAIL-NOTIFY-001-BASIC"],
     "review_record_refs": [],
     "language": "ja"

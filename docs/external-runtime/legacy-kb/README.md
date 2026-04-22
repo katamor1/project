@@ -1,14 +1,14 @@
 <!-- docs/external-runtime/legacy-kb/README.md -->
-<!-- Explains the Azure-first external knowledge runtime that feeds evidence into the SDLC lanes. -->
-<!-- This exists so legacy document retrieval, diff, and context packing have a dedicated blueprint behind the Copilot custom engine bridge. -->
-<!-- RELEVANT FILES: docs/copilot-studio/custom-engine-bridge/README.md, docs/sdlc/README.md, .copilot/routing/legacy-kb-query-matrix.yaml -->
+<!-- Explains the Claude Code-connected external knowledge runtime that feeds evidence into the SDLC lanes. -->
+<!-- This exists so legacy document retrieval, diff, and context packing have a dedicated blueprint behind the Claude Code runtime bridge. -->
+<!-- RELEVANT FILES: docs/claude-code/runtime-bridge/README.md, docs/sdlc/README.md, .copilot/routing/legacy-kb-query-matrix.yaml -->
 # External Knowledge Runtime Blueprint
 
 このトラックは、`docs/sdlc` の `P*` レーンへ evidence を渡すための外部 runtime 設計です。
 
 役割は 3 つです。
 
-1. 旧アプリ文書を Azure-first の KB に正規化して蓄積する。
+1. 旧アプリ文書を汎用 legacy KB に正規化して蓄積する。
 
 2. query / diff ごとに必要最小限の `evidence_bundle` を作る。
 
@@ -21,7 +21,7 @@
 - app repo 実装トラックとは混ぜません。
 
 ## Connection To SDLC
-- `docs/copilot-studio/custom-engine-bridge` が front door です。
+- `docs/claude-code/runtime-bridge` が front door です。
 - `C3_dispatch_packet_author` から `K0_runtime_orchestrator` に入ります。
 - `K0-K9` は外部 runtime 側の prompt registry です。
 - `K7_artifact_context_packer` が `artifact_context_packet` を作り、既存 `P*` レーンへ handoff します。
@@ -30,7 +30,7 @@
 
 ## Directory Map
 - `architecture.md`: 論理責務の分離
-- `azure-topology.md`: Azure 配置と index 構成
+- `runtime-topology.md`: runtime 配置と index 構成
 - `data-pipeline.md`: ingest と増分更新
 - `query-diff-flow.md`: retrieval / diff / confidence gate
 - `security-acl.md`: ACL と block 条件
@@ -75,10 +75,10 @@
 - `run_trace`
 
 ## Current Default
-- storage: Azure Blob
-- search: Azure AI Search
+- storage: object storage
+- search: hybrid search
 - trace / eval metadata: app-managed store
-- front door: `docs/copilot-studio/custom-engine-bridge` の `C0-C5`
-- orchestration: Azure-hosted custom engine
+- front door: `docs/claude-code/runtime-bridge` の `C0-C5`
+- orchestration: external runtime orchestrator
 
 Source-backed generation の開始点は、このトラックで `artifact_context_packet` を作るところまでです。

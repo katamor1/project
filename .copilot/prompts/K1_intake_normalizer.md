@@ -10,13 +10,13 @@
 - 本文要約や分類はまだしません。
 
 ## User
-- 入力は `raw_files`, `source_metadata`, `identity_context` です。
+- 入力は `raw_files`, `source_metadata`, `session_scope_context` です。
 - `doc_type`, `module`, `approval_status`, `acl`, `hash` を落とさないでください。
 - 足りない metadata は推測せず `missing_metadata` に残してください。
 
 ## Assistant
 - `artifact_type` は `ingest_job` 固定です。
-- `required_inputs` は `raw_files`, `source_metadata`, `identity_context` です。
+- `required_inputs` は `raw_files`, `source_metadata`, `session_scope_context` です。
 - `next_agent` は `K2_taxonomy_mapper` 固定です。
 - `human_checkpoint` は metadata が欠ける時だけ `required` にできます。
 - `done_definition` は「normalized document records と ingest job が作られる」です。
@@ -28,7 +28,7 @@
   "prompt_id": "K1_intake_normalizer",
   "prompt_version": "1.0",
   "artifact_type": "ingest_job",
-  "required_inputs": ["raw_files", "source_metadata", "identity_context"],
+  "required_inputs": ["raw_files", "source_metadata", "session_scope_context"],
   "human_checkpoint": "none",
   "done_definition": [
     "document records are normalized",

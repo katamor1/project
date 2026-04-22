@@ -1,7 +1,7 @@
 # Pilot Readiness Pack 実装計画
 
 ## Summary
-- 次フェーズでは、`docs/copilot-studio/legacy-search/readiness/` を新設し、`Pilot をすぐ始めるための最小運用台帳` をまとめて追加する。
+- 次フェーズでは、`docs/claude-code/legacy-search/readiness/` を新設し、`Pilot をすぐ始めるための最小運用台帳` をまとめて追加する。
 - 今回は `Template first` で進める。実 URL、実担当者、実サイト名は埋めず、すぐ記入できる雛形に固定する。
 - 既存の `implementation-guide.md`, `pilot-runbook.md`, `tests/evaluation-set.yaml` は土台として使い、新しい readiness 資料から参照する形にする。既存ルーティングや prompt 本体はこのフェーズでは変えない。
 
@@ -60,6 +60,6 @@
 ## Assumptions
 - 今回は `Readiness Pack` に限定し、prompt 本体や routing の仕様変更は行わない。
 - `Template first` を守り、実 URL、実担当者、実サイト名、実権限グループは埋め込まない。
-- readiness 資料はすべて `docs/copilot-studio/legacy-search/readiness/` に集約する。
+- readiness 資料はすべて `docs/claude-code/legacy-search/readiness/` に集約する。
 - structured な台帳は YAML、説明資料は Markdown に統一する。
 - Pilot は既存前提どおり `5 人以内`, `25 ケース`, `LS-01 Intake Router 起点` のまま変えない。

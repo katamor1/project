@@ -8,7 +8,7 @@ artifact_type: eval_report
 status: draft
 prompt_id: P9_eval_monitor
 prompt_version: "1.0"
-model_id: copilot
+model_id: claude-code
 upstream_refs:
   - RR-REQ-XXXX
 review_record_refs:

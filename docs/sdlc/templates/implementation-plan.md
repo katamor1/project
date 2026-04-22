@@ -8,7 +8,7 @@ artifact_type: implementation_plan
 status: draft
 prompt_id: P4_implementation_planner
 prompt_version: "1.0"
-model_id: copilot
+model_id: claude-code
 upstream_refs:
   - DETAIL-REQ-XXXX
 review_record_refs: []

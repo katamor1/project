@@ -8,7 +8,7 @@ artifact_type: fullstack_slice
 status: draft
 prompt_id: P5_fullstack_slice_author
 prompt_version: "1.0"
-model_id: copilot
+model_id: claude-code
 upstream_refs:
   - IMPL-REQ-XXXX
 review_record_refs: []

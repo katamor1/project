@@ -1,7 +1,7 @@
 # Copilot Studio Prompt Pack v2 実装計画
 
 ## Summary
-- 既存の `docs/copilot-studio/legacy-search/` を `運用できる Prompt Pack v2` に引き上げる。
+- 既存の `docs/claude-code/legacy-search/` を `運用できる Prompt Pack v2` に引き上げる。
 - 変更対象は `README`, `shared-io-contract.yaml`, `routing-matrix.md`, `agents/` 配下の 8 prompt, `tests/evaluation-set.yaml`。新規追加は `implementation-guide.md` と `pilot-runbook.md` の 2 本に固定する。
 - v2 の主変更は `handoff_packet` の全 agent 必須化、`LS-01` から `LS-08` の実運用名への統一、最終系 4 agent の `chat_response + pm_copy_template` 対応、Pilot team 向け運用手順の文書化。
 - すべての Markdown / YAML ファイルは既存ルールに合わせて 4 行のヘッダーコメントを持たせ、1 ファイル 300 行未満を維持する。

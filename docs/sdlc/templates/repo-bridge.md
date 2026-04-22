@@ -8,7 +8,7 @@ artifact_type: repo_bridge
 status: draft
 prompt_id: MANUAL_BRIDGE_TEMPLATE
 prompt_version: "1.0"
-model_id: copilot
+model_id: claude-code
 upstream_refs:
   - SLICE-REQ-XXXX
 review_record_refs: []

@@ -24,9 +24,9 @@ agents:
     artifact_type: runtime_eval_note
     prompt_path: .copilot/prompts/K9_runtime_eval_monitor.md
 entry_conditions:
-  - source: raw_files
+  - source: runtime_roots
     when: ingest_requested
-  - source: changed_files
+  - source: changed_runtime_roots
     when: reindex_requested
 standard_route:
   - from: K0_runtime_orchestrator

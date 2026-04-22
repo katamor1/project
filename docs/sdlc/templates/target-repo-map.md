@@ -8,7 +8,7 @@ artifact_type: target_repo_map
 status: draft
 prompt_id: P10_execution_bundle_planner
 prompt_version: "1.0"
-model_id: copilot
+model_id: claude-code
 upstream_refs:
   - EXEC-BUNDLE-REQ-XXXX
 review_record_refs: []

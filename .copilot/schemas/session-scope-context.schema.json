@@ -1,0 +1,20 @@
+// .copilot/schemas/session-scope-context.schema.json
+// Defines the Claude Code session scope context schema used before runtime dispatch.
+// This exists so workspace, repo, connector scope, and allowed target checks use one stable contract.
+// RELEVANT FILES: .copilot/prompts/C2_session_scope_guard.md, .copilot/schemas/entry-human-checkpoint.schema.json, docs/claude-code/runtime-bridge/identity-scope.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "session-scope-context.schema.json",
+  "title": "Session Scope Context",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["user_principal", "workspace_roots", "repo_refs", "connector_scopes", "execution_surface", "allowed_targets"],
+  "properties": {
+    "user_principal": { "type": "string" },
+    "workspace_roots": { "type": "array", "items": { "type": "string" } },
+    "repo_refs": { "type": "array", "items": { "type": "string" } },
+    "connector_scopes": { "type": "array", "items": { "type": "string" } },
+    "execution_surface": { "type": "string" },
+    "allowed_targets": { "type": "array", "items": { "type": "string" } }
+  }
+}

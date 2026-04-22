@@ -16,7 +16,7 @@
     "status": "draft",
     "prompt_id": "MANUAL_BRIDGE_TEMPLATE",
     "prompt_version": "1.0",
-    "model_id": "copilot",
+    "model_id": "claude-code",
     "upstream_refs": ["SLICE-REQ-EMAIL-NOTIFY-001", "TEST-REQ-EMAIL-NOTIFY-001"],
     "review_record_refs": [],
     "language": "ja"
@@ -78,7 +78,7 @@
     "status": "draft",
     "prompt_id": "P11_frontend_codepack_author",
     "prompt_version": "1.0",
-    "model_id": "copilot",
+    "model_id": "claude-code",
     "upstream_refs": ["BRIDGE-REQ-EMAIL-NOTIFY-001"],
     "review_record_refs": [],
     "language": "ja"
@@ -121,7 +121,7 @@
     "status": "draft",
     "prompt_id": "P12_backend_codepack_author",
     "prompt_version": "1.0",
-    "model_id": "copilot",
+    "model_id": "claude-code",
     "upstream_refs": ["BRIDGE-REQ-EMAIL-NOTIFY-001", "FEPACK-REQ-EMAIL-NOTIFY-001"],
     "review_record_refs": [],
     "language": "ja"
@@ -153,7 +153,7 @@
     "status": "draft",
     "prompt_id": "P12_backend_codepack_author",
     "prompt_version": "1.0",
-    "model_id": "copilot",
+    "model_id": "claude-code",
     "upstream_refs": ["DB-CHANGE-NOTIFY-SETTINGS"],
     "review_record_refs": [],
     "language": "ja"
@@ -182,7 +182,7 @@
     "status": "draft",
     "prompt_id": "P13_test_codepack_author",
     "prompt_version": "1.0",
-    "model_id": "copilot",
+    "model_id": "claude-code",
     "upstream_refs": ["FEPACK-REQ-EMAIL-NOTIFY-001", "BEPACK-REQ-EMAIL-NOTIFY-001", "SQLPACK-REQ-EMAIL-NOTIFY-001"],
     "review_record_refs": [],
     "language": "ja"

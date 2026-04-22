@@ -45,7 +45,7 @@
       "status": "draft",
       "prompt_id": "P11_frontend_codepack_author",
       "prompt_version": "1.0",
-      "model_id": "copilot",
+      "model_id": "claude-code",
       "upstream_refs": ["BRIDGE-REQ-EMAIL-NOTIFY-001", "SLICE-REQ-EMAIL-NOTIFY-001"],
       "review_record_refs": [],
       "language": "ja"

@@ -15,7 +15,7 @@ artifact_type: detail_design
 status: approved
 prompt_id: P2_detail_design_author
 prompt_version: "1.0"
-model_id: copilot
+model_id: claude-code
 upstream_refs:
   - BASIC-REQ-EMAIL-NOTIFY-001
 review_record_refs:
@@ -59,7 +59,7 @@ language: ja
     "status": "draft",
     "prompt_id": "P5_fullstack_slice_author",
     "prompt_version": "1.0",
-    "model_id": "copilot",
+    "model_id": "claude-code",
     "upstream_refs": ["DETAIL-REQ-EMAIL-NOTIFY-001", "SLICE-EMAIL-NOTIFY-SETTINGS"],
     "review_record_refs": [],
     "language": "ja"
@@ -104,7 +104,7 @@ language: ja
     "status": "draft",
     "prompt_id": "P6_test_author",
     "prompt_version": "1.0",
-    "model_id": "copilot",
+    "model_id": "claude-code",
     "upstream_refs": ["SLICE-REQ-EMAIL-NOTIFY-001"],
     "review_record_refs": [],
     "language": "ja"
@@ -153,7 +153,7 @@ language: ja
     "status": "draft",
     "prompt_id": "MANUAL_BRIDGE_TEMPLATE",
     "prompt_version": "1.0",
-    "model_id": "copilot",
+    "model_id": "claude-code",
     "upstream_refs": ["SLICE-REQ-EMAIL-NOTIFY-001", "TEST-REQ-EMAIL-NOTIFY-001"],
     "review_record_refs": [],
     "language": "ja"

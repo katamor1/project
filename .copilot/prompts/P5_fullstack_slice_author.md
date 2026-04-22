@@ -45,7 +45,7 @@
       "status": "draft",
       "prompt_id": "P5_fullstack_slice_author",
       "prompt_version": "1.0",
-      "model_id": "copilot",
+      "model_id": "claude-code",
       "upstream_refs": ["DETAIL-REQ-EMAIL-NOTIFY-001", "SLICE-EMAIL-NOTIFY-SETTINGS"],
       "review_record_refs": [],
       "language": "ja"

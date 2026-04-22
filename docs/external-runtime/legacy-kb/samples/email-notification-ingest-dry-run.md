@@ -16,8 +16,9 @@
   "approval_status": "approved",
   "acl": {
     "users": [],
-    "groups": ["app-pm", "app-design"],
-    "tenant": "contoso"
+    "workspace_roots": ["workspace://project"],
+    "repo_refs": ["repo://project"],
+    "connector_scopes": ["sharepoint.read", "onedrive.read"]
   },
   "hash": "sha256:example"
 }

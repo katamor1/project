@@ -1,0 +1,56 @@
+# docs/claude-code/legacy-search/readiness/pilot-scorecard.yaml
+# This file defines the pilot scorecard for the 25 readiness cases.
+# This file exists to record route accuracy, abstain behavior, handoff integrity, and output usability in one place.
+# RELEVANT FILES: docs/claude-code/legacy-search/tests/evaluation-set.yaml, docs/claude-code/legacy-search/pilot-runbook.md, docs/claude-code/legacy-search/readiness/go-no-go-checklist.md
+version: 1
+
+required_run_keys:
+  - case_id
+  - case_type
+  - pilot_user
+  - used_route
+  - expected_route_or_behavior
+  - matched_expectation
+  - abstained_as_expected
+  - speculative_answer
+  - conflict_missed
+  - handoff_packet_ok
+  - final_output_ok
+  - template_usable
+  - notes
+
+allowed_case_types:
+  - acceptance
+  - operational
+
+allowed_three_value_flags:
+  - "yes"
+  - "no"
+  - "n/a"
+
+runs:
+  - { case_id: "Q01", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "Q02", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "Q03", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "Q04", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "Q05", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "Q06", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "Q07", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "Q08", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "Q09", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "Q10", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "Q11", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "Q12", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "Q13", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "Q14", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "Q15", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "Q16", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "Q17", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "Q18", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "Q19", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "Q20", case_type: "acceptance", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "O01", case_type: "operational", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "O02", case_type: "operational", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "O03", case_type: "operational", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "O04", case_type: "operational", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }
+  - { case_id: "O05", case_type: "operational", pilot_user: "", used_route: "", expected_route_or_behavior: "", matched_expectation: "n/a", abstained_as_expected: "n/a", speculative_answer: "n/a", conflict_missed: "n/a", handoff_packet_ok: "n/a", final_output_ok: "n/a", template_usable: "n/a", notes: "" }

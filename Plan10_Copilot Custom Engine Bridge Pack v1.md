@@ -1,29 +1,29 @@
 # Copilot Custom Engine Bridge Pack v1
 
 ## Summary
-- 次フェーズでは、`docs/copilot-studio` 側に `custom engine bridge` トラックを追加し、`Microsoft 365 Copilot -> external runtime -> existing P* lane` の入口設計を repo 資産として固める。
+- 次フェーズでは、`docs/claude-code` 側に `custom engine bridge` トラックを追加し、`Microsoft 365 Copilot -> external runtime -> existing P* lane` の入口設計を repo 資産として固める。
 - 主軸は `Custom Engine` に固定する。`MCP / plugin / OpenAPI action` は補助経路として文書化だけ行い、主実装トラックにはしない。
 - 今回は `Repo Assets` に限定する。追加するのは docs、schemas、prompts、routing、samples、pilot/runbook までで、実サービスコードや Copilot registration 実装は含めない。
 - bridge の標準フローは `C0 -> C1 -> C2 -> C3 -> K0 -> K8 -> C4 -> C5` に固定し、Copilot 側は薄い入口、runtime 側は既存 `K*` を再利用する。
 
 ## Key Changes
-- `docs/copilot-studio/custom-engine-bridge/` を新設する。
+- `docs/claude-code/runtime-bridge/` を新設する。
 - `README.md`: 全体像と `docs/external-runtime/legacy-kb` / `docs/sdlc` との接続
 - `entry-flow.md`: Copilot 入口から runtime dispatch までの段階
 - `identity-scope.md`: user principal, group, tenant, allowed scopes の扱い
-- `dispatch-contract.md`: `bridge_request_packet -> bridge_dispatch_packet -> runtime_request` の変換
+- `dispatch-contract.md`: `entry_request_packet -> entry_dispatch_packet -> runtime_request` の変換
 - `response-shaping.md`: runtime 結果を Copilot 向け応答へ戻す整形ルール
 - `fallback-policy.md`: custom engine 主軸、MCP / plugin は補助であることの整理
 - `pilot-runbook.md`: pilot 実施順、観測ポイント、block 条件
 - `samples/`: `email-notification-entry-dry-run.md`, `email-notification-diff-dry-run.md`, `email-notification-abstain-dry-run.md`
 
 - `.copilot/prompts/` に bridge 用の `C*` prompt を追加する。
-- `C0_copilot_entry_router`: Copilot 入口で request type を振り分ける
-- `C1_intent_packet_builder`: chat request を `bridge_request_packet` に正規化する
-- `C2_identity_scope_guard`: principal / tenant / allowed scope を確認する
-- `C3_dispatch_packet_author`: `bridge_dispatch_packet` を作り `K0_runtime_orchestrator` に渡す
-- `C4_bridge_response_shaper`: `K*` / `P*` 側の結果を Copilot 向け日本語応答に整形する
-- `C5_bridge_eval_monitor`: bridge 特有の routing / checkpoint / abstain 品質を監視する
+- `C0_entry_router`: Copilot 入口で request type を振り分ける
+- `C1_intent_packet_builder`: chat request を `entry_request_packet` に正規化する
+- `C2_session_scope_guard`: principal / tenant / allowed scope を確認する
+- `C3_dispatch_packet_author`: `entry_dispatch_packet` を作り `K0_runtime_orchestrator` に渡す
+- `C4_entry_response_shaper`: `K*` / `P*` 側の結果を Copilot 向け日本語応答に整形する
+- `C5_entry_eval_monitor`: bridge 特有の routing / checkpoint / abstain 品質を監視する
 
 - `.copilot/routing/` に `custom-engine-bridge-matrix.yaml` を追加する。
 - 標準ルートは `C0 -> C1 -> C2 -> C3 -> K0 -> C4 -> C5`
@@ -41,19 +41,19 @@
 - `bridge-human-checkpoint.schema.json`
 - `bridge-trace.schema.json`
 - 重要フィールドは固定する。
-- `bridge_request_packet`: `request_id`, `user_intent`, `requested_outcome`, `requested_lane`, `locale`, `conversation_context_ref`
-- `bridge_identity_context`: `user_principal`, `groups`, `tenant`, `copilot_surface`, `allowed_scopes`
-- `bridge_dispatch_packet`: `bridge_request_ref`, `identity_context_ref`, `runtime_target`, `runtime_task_type`, `callback_contract`, `next_agent`
-- `bridge_response`: `response_mode`, `user_message`, `downstream_target`, `handoff_state`, `human_checkpoint`, `citations_policy`
-- `bridge_human_checkpoint`: `reason`, `required_user_action`, `blocked_target`, `retry_entry`
-- `bridge_trace`: `request_id`, `copilot_surface`, `bridge_path`, `runtime_run_ref`, `checkpoint_flags`, `latency_ms`
+- `entry_request_packet`: `request_id`, `user_intent`, `requested_outcome`, `requested_lane`, `locale`, `session_context_ref`
+- `session_scope_context`: `user_principal`, `groups`, `tenant`, `execution_surface`, `allowed_scopes`
+- `entry_dispatch_packet`: `entry_request_ref`, `session_scope_ref`, `runtime_target`, `runtime_task_type`, `callback_contract`, `next_agent`
+- `entry_response`: `response_mode`, `user_message`, `downstream_target`, `handoff_state`, `human_checkpoint`, `citations_policy`
+- `entry_human_checkpoint`: `reason`, `required_user_action`, `blocked_target`, `retry_entry`
+- `entry_trace`: `request_id`, `execution_surface`, `bridge_path`, `runtime_run_ref`, `checkpoint_flags`, `latency_ms`
 
 - 既存トラックとの接続を明文化する。
-- `K0_runtime_orchestrator` の入力説明を `runtime_request` 単体から `bridge_dispatch_packet + runtime_request` 前提に広げる
+- `K0_runtime_orchestrator` の入力説明を `runtime_request` 単体から `entry_dispatch_packet + runtime_request` 前提に広げる
 - `K8_evidence_reviewer` は Copilot 側へ戻す `gate_result` を持てる前提にする
 - `docs/external-runtime/legacy-kb/README.md` と `api-spec.md` は front door として bridge を参照するよう更新する
 - `docs/sdlc/README.md` は source-backed generation の開始点を `Copilot bridge -> K* -> P*` に更新する
-- 新規 sample は `source_refs` 直渡しではなく、必ず `bridge_request_packet` と `artifact_context_packet` の両方を含める
+- 新規 sample は `source_refs` 直渡しではなく、必ず `entry_request_packet` と `artifact_context_packet` の両方を含める
 
 ## Test Plan
 - 静的確認を行う。
@@ -78,5 +78,5 @@
 ## Assumptions
 - 主経路は `Custom Engine` 固定とし、MCP / plugin / OpenAPI action は fallback documentation のみにとどめる。
 - 今回は repo 資産のみを追加し、Copilot registration、manifest、実サービスコード、connector 実装、IaC、CI は追加しない。
-- 既存の 3 トラック構成 `docs/copilot-studio`, `docs/external-runtime`, `docs/sdlc` は維持し、bridge は `docs/copilot-studio` 配下に置く。
+- 既存の 3 トラック構成 `docs/claude-code`, `docs/external-runtime`, `docs/sdlc` は維持し、bridge は `docs/claude-code` 配下に置く。
 - bridge は legacy 文書活用専用の入口とし、現段階では app repo 実装や deployment automation には接続しない。

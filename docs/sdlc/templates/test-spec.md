@@ -8,7 +8,7 @@ artifact_type: test_spec
 status: draft
 prompt_id: P6_test_author
 prompt_version: "1.0"
-model_id: copilot
+model_id: claude-code
 upstream_refs:
   - SLICE-REQ-XXXX
 review_record_refs: []

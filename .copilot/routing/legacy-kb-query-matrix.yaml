@@ -45,9 +45,9 @@ agents:
     artifact_type: eval_report
     prompt_path: .copilot/prompts/P9_eval_monitor.md
 entry_conditions:
-  - source: copilot_request
+  - source: entry_request
     when: source_backed_generation_requested
-  - source: copilot_request
+  - source: entry_request
     when: legacy_diff_requested
 standard_route:
   - from: K0_runtime_orchestrator

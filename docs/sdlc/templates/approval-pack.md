@@ -8,7 +8,7 @@ artifact_type: approval_pack
 status: draft
 prompt_id: P21_approval_pack_author
 prompt_version: "1.0"
-model_id: copilot
+model_id: claude-code
 upstream_refs:
   - IRF-REQ-XXXX
 review_record_refs: []

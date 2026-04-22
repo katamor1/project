@@ -1,0 +1,127 @@
+# docs/claude-code/legacy-search/shared-io-contract.yaml
+# This file defines the shared v2 input and output contract for the legacy search prompt pack.
+# This file exists so every Claude Code workflow step returns the same routing and handoff structure.
+# RELEVANT FILES: docs/claude-code/legacy-search/README.md, docs/claude-code/legacy-search/routing-matrix.md, docs/claude-code/legacy-search/implementation-guide.md
+version: 2
+
+language:
+  default: ja-JP
+  rule: "All user-facing answers must be written in concise Japanese."
+
+common_input:
+  required:
+    - question
+    - goal
+    - entities
+    - source_scope
+    - known_constraints
+  fields:
+    question: "The user's question in Japanese."
+    goal: "The immediate outcome the agent should produce."
+    entities: "Known business terms, screen names, API names, tables, or aliases."
+    source_scope: "Allowed search boundary inside SharePoint or OneDrive."
+    known_constraints: "Known limits, approved sources, date limits, or exclusions."
+
+common_rules:
+  - "Use only allowed SharePoint or OneDrive roots in v2."
+  - "Do not invent titles, sections, pages, or file paths."
+  - "If evidence is weak, conflicting, or missing, do not guess."
+  - "The only valid entry agent is LS-01 Intake Router."
+  - "Return next_agent on every run."
+  - "Return handoff_packet on every run."
+  - "Extra agent-specific fields are allowed, but the required fields must stay stable."
+
+candidate_source_schema:
+  required:
+    - title
+    - location
+    - section_or_page
+    - why_relevant
+    - authority
+    - freshness
+    - conflict_flag
+  field_notes:
+    title: "Human-readable document title."
+    location: "SharePoint or OneDrive location."
+    section_or_page: "Implementation-safe field name for the planned section/page value."
+    why_relevant: "One short sentence that explains relevance."
+    authority: "approved | working | unknown"
+    freshness: "current | stale | unknown"
+    conflict_flag: "true if another source disagrees or may disagree."
+
+handoff_packet_schema:
+  required:
+    - question
+    - goal
+    - entities
+    - source_scope
+    - known_constraints
+    - candidate_sources
+    - unknowns
+    - next_agent
+  field_notes:
+    question: "The current user question in Japanese."
+    goal: "The immediate outcome expected from the next agent."
+    entities: "Normalized business terms, screen names, APIs, tables, or aliases."
+    source_scope: "Allowed search boundary inside SharePoint or OneDrive."
+    known_constraints: "Known limits, approved sources, or exclusions."
+    candidate_sources: "May be an empty list for Router or Glossary."
+    unknowns: "Open items the next agent must keep visible."
+    next_agent: "The operational name of the next agent."
+
+router_output:
+  required:
+    - goal
+    - entities
+    - source_scope
+    - known_constraints
+    - candidate_sources
+    - unknowns
+    - next_agent
+    - handoff_packet
+  optional:
+    - decision_reason
+
+search_output:
+  required:
+    - candidate_sources
+    - confidence
+    - unknowns
+    - next_agent
+    - handoff_packet
+  optional:
+    - rejected_sources
+    - search_hints
+
+final_output:
+  required:
+    - chat_response
+    - pm_copy_template
+    - evidence
+    - confidence
+    - unknowns
+    - next_agent
+    - handoff_packet
+  field_notes:
+    evidence: "A subset of candidate sources used for the final answer."
+    chat_response: "Markdown string with four headings: 結論, 根拠, 不明点, 次アクション."
+    pm_copy_template: "Markdown string with five lines: 確認事項, 確認結果, 根拠資料, 未解決, 次に見る agent."
+
+confidence_scale:
+  allowed:
+    - high
+    - medium
+    - low
+
+next_agent_values:
+  allowed:
+    - LS-01 Intake Router
+    - LS-02 Glossary Normalizer
+    - LS-03 Document Locator
+    - LS-04 Evidence Verifier
+    - LS-05 Grounded Answerer
+    - LS-06 Gap Reporter
+    - LS-07 Renewal Impact Mapper
+    - LS-08 Change Diff Scout
+    - human_follow_up
+    - complete

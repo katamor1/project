@@ -1,7 +1,7 @@
 <!-- docs/external-runtime/legacy-kb/security-acl.md -->
 <!-- Describes the ACL and security checks for ingest, retrieval, and evidence handoff. -->
 <!-- This exists so the runtime can block unsafe evidence before it reaches generation or review lanes. -->
-<!-- RELEVANT FILES: docs/external-runtime/legacy-kb/azure-topology.md, .copilot/schemas/acl-principal-set.schema.json, .copilot/prompts/K8_evidence_reviewer.md -->
+<!-- RELEVANT FILES: docs/external-runtime/legacy-kb/runtime-topology.md, .copilot/schemas/acl-principal-set.schema.json, .copilot/prompts/K8_evidence_reviewer.md -->
 # Security And ACL
 
 ## Core Rules
@@ -11,8 +11,8 @@
 - downstream handoff 前に `K8` が最終確認する
 
 ## Query-Time Trim
-- principal set は user / group / tenant で受ける
-- Azure AI Search には security filter を渡す
+- principal set は user / workspace root / repo ref / connector scope で受ける
+- hybrid search には security filter を渡す
 - trim 後の doc だけ rerank する
 
 ## Evidence-Time Recheck

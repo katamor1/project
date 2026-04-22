@@ -2,7 +2,7 @@
 
 ## Summary
 - 次フェーズは、今ある `docs/sdlc` の `Copilot-only` 設計資産を、`Azure-first` の外部 `Knowledge / Retrieval / Orchestrator` 設計へ接続する。
-- 実装単位は新しい独立トラック `docs/external-runtime/legacy-kb/` とし、既存の `docs/copilot-studio` と `docs/sdlc` はそのまま残す。
+- 実装単位は新しい独立トラック `docs/external-runtime/legacy-kb/` とし、既存の `docs/claude-code` と `docs/sdlc` はそのまま残す。
 - 今回は `Full Blueprint` で切るが、まだ runnable service code、IaC、デプロイ実装は入れない。追加するのは docs、schemas、prompts、routing、samples、eval/runbook まで。
 - 既存の `P*` レーンは維持し、以後の source-backed generation は `source_refs` 直渡しではなく `evidence_bundle` / `artifact_context_packet` を優先入力にする。
 
@@ -108,5 +108,5 @@
 - 基盤は `Azure-first` とし、Azure AI Search、Azure Blob、Azure-hosted custom engine を前提にする。
 - Microsoft 365 Copilot は薄い入口のまま残し、重い retrieval / diff / generation orchestration は外部 runtime に寄せる。
 - このフェーズでは blueprint 資産だけを追加し、実サービスコード、IaC、index provisioning、connector 実装、CI 連携はまだ入れない。
-- repo 上の配置は `docs/copilot-studio`, `docs/sdlc`, `docs/external-runtime` の 3 トラックで固定する。
+- repo 上の配置は `docs/claude-code`, `docs/sdlc`, `docs/external-runtime` の 3 トラックで固定する。
 - 外部 knowledge track は legacy 文書活用専用とし、現段階では app repo 実装トラックと混ぜない。

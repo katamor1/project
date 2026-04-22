@@ -1,0 +1,20 @@
+// .copilot/schemas/entry-trace.schema.json
+// Defines the entry trace schema used to connect Claude Code routing with runtime and checkpoint behavior.
+// This exists so pilot runs can inspect the bridge path without reading raw response bodies.
+// RELEVANT FILES: .copilot/prompts/C5_entry_eval_monitor.md, docs/claude-code/runtime-bridge/pilot-runbook.md, .copilot/routing/entry-bridge-matrix.yaml
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "entry-trace.schema.json",
+  "title": "Entry Trace",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["request_id", "execution_surface", "entry_path", "runtime_run_ref", "checkpoint_flags", "latency_ms"],
+  "properties": {
+    "request_id": { "type": "string" },
+    "execution_surface": { "type": "string" },
+    "entry_path": { "type": "array", "items": { "type": "string" } },
+    "runtime_run_ref": { "type": "string" },
+    "checkpoint_flags": { "type": "array", "items": { "type": "string" } },
+    "latency_ms": { "type": "integer", "minimum": 0 }
+  }
+}

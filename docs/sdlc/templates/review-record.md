@@ -8,7 +8,7 @@ artifact_type: review_record
 status: draft
 prompt_id: P8_review_record
 prompt_version: "1.0"
-model_id: copilot
+model_id: claude-code
 upstream_refs:
   - RF-REQ-XXXX
 review_record_refs: []

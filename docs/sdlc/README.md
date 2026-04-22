@@ -1,12 +1,12 @@
 <!-- docs/sdlc/README.md -->
 <!-- Explains the SDLC prompt registry, schemas, templates, and manual handoff flow across design, test spec, implementation, execution, and integration lanes. -->
-<!-- This exists so the team can run upper SDLC and downstream prep lanes inside Copilot with one consistent structure and a custom-engine bridge entry. -->
-<!-- RELEVANT FILES: .copilot/routing/agent-matrix.yaml, .copilot/routing/custom-engine-bridge-matrix.yaml, docs/copilot-studio/custom-engine-bridge/README.md -->
+<!-- This exists so the team can run upper SDLC and downstream prep lanes inside Claude Code with one consistent structure and a runtime bridge entry. -->
+<!-- RELEVANT FILES: .copilot/routing/agent-matrix.yaml, .copilot/routing/entry-bridge-matrix.yaml, docs/claude-code/runtime-bridge/README.md -->
 # SDLC Design Assets
 
 このディレクトリは、`agent-research.md` を元にした SDLC 設計資産をまとめる場所です。
 
-今回は `Copilot 内で準備する` ことを優先しています。
+今回は `Claude Code 内で準備する` ことを優先しています。
 
 外部 runtime や自動実行基盤はまだ入れていません。
 
@@ -22,7 +22,7 @@
 - `.copilot/routing/`: design lane、test spec lane、implementation lane、execution lane、integration lane の routing
 - `docs/sdlc/templates/`: artifact template
 - `docs/sdlc/samples/`: dry-run sample
-- `docs/copilot-studio/custom-engine-bridge/`: Copilot 入口と external runtime の橋
+- `docs/claude-code/runtime-bridge/`: Claude Code 入口と external runtime の橋
 - `docs/external-runtime/legacy-kb/`: legacy evidence ingest / retrieval / diff / context packing
 - `reviews/spec/`, `reviews/code/`, `reviews/execution/`: review record placement
 - `reviews/integration/`: integration review placement
@@ -110,8 +110,8 @@
 ## How To Use
 1. `P0_orchestrator` で raw request を `request_packet` にします。
 2. `P1_scope` で対象と非対象を固定します。
-3. legacy 文書を根拠にする時は、先に `docs/copilot-studio/custom-engine-bridge` の `C0-C5` で入口を通します。
-4. bridge から `docs/external-runtime/legacy-kb` の `K0-K8` に入り、`artifact_context_packet` を作ります。
+3. legacy 文書を根拠にする時は、先に `docs/claude-code/runtime-bridge` の `C0-C5` で入口を通します。
+4. entry bridge から `docs/external-runtime/legacy-kb` の `K0-K8` に入り、`artifact_context_packet` を作ります。
 5. `P2_basic_design_author` 以降は `artifact_context_packet` を優先して使います。
 6. `P3_spec_reviewer` でレビューします。
 7. `detail_design` が通過したら、必要に応じて test spec lane と implementation lane に入ります。

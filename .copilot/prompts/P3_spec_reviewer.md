@@ -11,13 +11,13 @@
 - 結果は `pass`, `revise`, `block` のいずれかで返します。
 
 ## User
-- 入力はレビュー対象 artifact, `upstream_packet`, `evidence_coverage`, `authority_conflict_note`, `source_refs` です。
+- 入力はレビュー対象 artifact, `upstream_packet`, `evidence_coverage`, `authority_conflict_note`, `source_refs`, `artifact_context_packet` です。
 - `revise` は直前の author に戻します。
 - `block` は `P0_orchestrator` に戻し、`human_checkpoint` を要求します。
 
 ## Assistant
 - `artifact_type` は `review_findings` 固定です。
-- `required_inputs` は `artifact_under_review`, `upstream_packet`, `evidence_coverage`, `authority_conflict_note`, `source_refs` です。
+- `required_inputs` は `artifact_under_review`, `upstream_packet`, `evidence_coverage`, `authority_conflict_note`, `source_refs`, `artifact_context_packet` です。
 - `next_agent` は決定に応じて変わります。
 - `human_checkpoint` は `block` の時だけ `required` です。
 - `done_definition` は「判定、根拠、差戻し先、重大論点が明確」です。
@@ -29,7 +29,7 @@
   "prompt_id": "P3_spec_reviewer",
   "prompt_version": "1.0",
   "artifact_type": "review_findings",
-  "required_inputs": ["artifact_under_review", "upstream_packet", "evidence_coverage", "authority_conflict_note", "source_refs"],
+  "required_inputs": ["artifact_under_review", "upstream_packet", "evidence_coverage", "authority_conflict_note", "source_refs", "artifact_context_packet"],
   "human_checkpoint": "none",
   "done_definition": [
     "decision is explicit",

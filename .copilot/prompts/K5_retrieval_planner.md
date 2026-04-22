@@ -10,13 +10,13 @@
 - low confidence のまま downstream に渡しません。
 
 ## User
-- 入力は `artifact_request`, `identity_context`, `query_context` です。
+- 入力は `artifact_request`, `session_scope_context`, `query_context` です。
 - diff 要求なら `K6_legacy_diff_checker` に進めます。
 - 通常生成なら `K7_artifact_context_packer` に進めます。
 
 ## Assistant
 - `artifact_type` は `retrieval_plan` 固定です。
-- `required_inputs` は `artifact_request`, `identity_context`, `query_context` です。
+- `required_inputs` は `artifact_request`, `session_scope_context`, `query_context` です。
 - `next_agent` は `K6_legacy_diff_checker` または `K7_artifact_context_packer` です。
 - `human_checkpoint` は confidence 低下時だけ `required` にできます。
 - `done_definition` は「query plan、confidence band、次 agent が明確」です。
@@ -28,7 +28,7 @@
   "prompt_id": "K5_retrieval_planner",
   "prompt_version": "1.0",
   "artifact_type": "retrieval_plan",
-  "required_inputs": ["artifact_request", "identity_context", "query_context"],
+  "required_inputs": ["artifact_request", "session_scope_context", "query_context"],
   "human_checkpoint": "none",
   "done_definition": [
     "metadata filter exists",

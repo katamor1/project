@@ -16,7 +16,7 @@
     "status": "draft",
     "prompt_id": "P2_functional_spec_author",
     "prompt_version": "1.0",
-    "model_id": "copilot",
+    "model_id": "claude-code",
     "upstream_refs": ["DETAIL-REQ-EMAIL-NOTIFY-001"],
     "review_record_refs": [],
     "language": "ja"
@@ -74,7 +74,7 @@
     "status": "draft",
     "prompt_id": "P2_integration_spec_author",
     "prompt_version": "1.0",
-    "model_id": "copilot",
+    "model_id": "claude-code",
     "upstream_refs": ["DETAIL-REQ-EMAIL-NOTIFY-001"],
     "review_record_refs": [],
     "language": "ja"

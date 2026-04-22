@@ -8,7 +8,7 @@ artifact_type: sqlite_change_pack
 status: draft
 prompt_id: P12_backend_codepack_author
 prompt_version: "1.0"
-model_id: copilot
+model_id: claude-code
 upstream_refs:
   - EXEC-BUNDLE-REQ-XXXX
 review_record_refs: []

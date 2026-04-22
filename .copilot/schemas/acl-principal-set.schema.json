@@ -1,6 +1,6 @@
 // .copilot/schemas/acl-principal-set.schema.json
 // Defines the ACL principal set schema attached to documents, chunks, and query contexts.
-// This exists so query-time trim and evidence-time recheck use one stable identity contract.
+// This exists so query-time trim and evidence-time recheck use one stable session scope contract.
 // RELEVANT FILES: .copilot/schemas/document-record.schema.json, docs/external-runtime/legacy-kb/security-acl.md, .copilot/prompts/K8_evidence_reviewer.md
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -8,11 +8,12 @@
   "title": "ACL Principal Set",
   "type": "object",
   "additionalProperties": false,
-  "required": ["users", "groups", "tenant"],
+  "required": ["users", "workspace_roots", "repo_refs", "connector_scopes"],
   "properties": {
     "users": { "type": "array", "items": { "type": "string" } },
-    "groups": { "type": "array", "items": { "type": "string" } },
-    "tenant": { "type": "string" },
+    "workspace_roots": { "type": "array", "items": { "type": "string" } },
+    "repo_refs": { "type": "array", "items": { "type": "string" } },
+    "connector_scopes": { "type": "array", "items": { "type": "string" } },
     "sensitivity_label": { "type": "string" }
   }
 }
