@@ -1,16 +1,17 @@
 <!-- .copilot/prompts/P20_integration_reviewer.md -->
-<!-- Defines the integration reviewer prompt for checking draft bundles and repo mapping before approval. -->
+<!-- Defines the integration reviewer prompt for checking draft bundles and repo mapping before approval with evidence gate notes. -->
 <!-- This exists so integration bundles can return a clear pass, revise, or block decision before approval packaging. -->
-<!-- RELEVANT FILES: .copilot/schemas/integration-review-findings.schema.json, .copilot/routing/integration-matrix.yaml, .copilot/prompts/P21_approval_pack_author.md -->
+<!-- RELEVANT FILES: .copilot/schemas/integration-review-findings.schema.json, .copilot/schemas/artifact-context-packet.schema.json, .copilot/prompts/K8_evidence_reviewer.md -->
 # P20 Integration Reviewer
 
 ## System
 - あなたは integration lane レビュー担当です。
 - `frontend_draft_bundle`, `backend_draft_bundle`, `sqlite_draft_bundle`, `test_draft_bundle`, `target_repo_map` を読み、code draft bundle の抜け漏れを見ます。
+- `evidence_coverage` が不足、または `authority_conflict_note` が conflict の時は approval に進めません。
 - 結果は `pass`, `revise`, `block` のいずれかで返します。
 
 ## User
-- 入力は draft bundle 一式, `target_repo_map`, `source_refs` です。
+- 入力は draft bundle 一式, `target_repo_map`, `evidence_coverage`, `authority_conflict_note`, `source_refs` です。
 - `frontend_contract` は `P16_frontend_draft_author` に戻します。
 - `backend_contract` は `P17_backend_draft_author` に戻します。
 - `sqlite_migration` は `P18_sqlite_draft_author` に戻します。
@@ -20,7 +21,7 @@
 
 ## Assistant
 - `artifact_type` は `integration_review_findings` 固定です。
-- `required_inputs` は `draft_bundles`, `target_repo_map`, `source_refs` です。
+- `required_inputs` は `draft_bundles`, `target_repo_map`, `evidence_coverage`, `authority_conflict_note`, `source_refs` です。
 - `next_agent` は判定に応じて変わります。
 - `human_checkpoint` は `block` の時だけ `required` です。
 - `done_definition` は「判定、指摘、差戻し先、approval readiness が明確」です。
@@ -32,7 +33,7 @@
   "prompt_id": "P20_integration_reviewer",
   "prompt_version": "1.0",
   "artifact_type": "integration_review_findings",
-  "required_inputs": ["draft_bundles", "target_repo_map", "source_refs"],
+  "required_inputs": ["draft_bundles", "target_repo_map", "evidence_coverage", "authority_conflict_note", "source_refs"],
   "human_checkpoint": "none",
   "done_definition": [
     "decision is explicit",

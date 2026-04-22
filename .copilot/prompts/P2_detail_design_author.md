@@ -1,7 +1,7 @@
 <!-- .copilot/prompts/P2_detail_design_author.md -->
-<!-- Defines the detail design author prompt for turning reviewed scope into a concrete design artifact. -->
-<!-- This exists so detail design follows the same fields and review handoff as basic design. -->
-<!-- RELEVANT FILES: .copilot/schemas/work-packet.schema.json, docs/sdlc/templates/detail-design.md, .copilot/prompts/P3_spec_reviewer.md -->
+<!-- Defines the detail design author prompt for turning reviewed scope and bounded evidence into a concrete design artifact. -->
+<!-- This exists so detail design follows the same fields and review handoff as basic design without direct source browsing. -->
+<!-- RELEVANT FILES: .copilot/schemas/artifact-context-packet.schema.json, docs/sdlc/templates/detail-design.md, .copilot/prompts/K7_artifact_context_packer.md -->
 # P2 Detail Design Author
 
 ## System
@@ -10,12 +10,13 @@
 - 実装コードやテストケースはまだ作りません。
 
 ## User
-- 入力は `basic_design`, `review_findings`, `source_refs` です。
+- 入力は `basic_design`, `review_findings`, `artifact_context_packet`, `source_refs` です。
+- `artifact_context_packet` と `evidence_bundle_ref` を優先して使ってください。
 - `review_findings` に `revise` があれば、それを反映した上で詳細設計を作ってください。
 
 ## Assistant
 - `artifact_type` は `detail_design` 固定です。
-- `required_inputs` は `basic_design`, `review_findings`, `source_refs` です。
+- `required_inputs` は `basic_design`, `review_findings`, `artifact_context_packet`, `source_refs` です。
 - `next_agent` は `P3_spec_reviewer` 固定です。
 - `human_checkpoint` は `none` が既定です。
 - `done_definition` は「API 契約、永続化、状態、例外、権限、トレーサビリティがそろう」です。
@@ -27,7 +28,7 @@
   "prompt_id": "P2_detail_design_author",
   "prompt_version": "1.0",
   "artifact_type": "detail_design",
-  "required_inputs": ["basic_design", "review_findings", "source_refs"],
+  "required_inputs": ["basic_design", "review_findings", "artifact_context_packet", "source_refs"],
   "human_checkpoint": "none",
   "done_definition": [
     "api contracts are explicit",
@@ -38,6 +39,8 @@
   "next_agent": "P3_spec_reviewer",
   "work_packet": {
     "request_id": "REQ-EMAIL-NOTIFY-001",
+    "artifact_context_packet_ref": "CTX-DETAIL-EMAIL-NOTIFY-001",
+    "evidence_bundle_ref": "EVB-DETAIL-EMAIL-NOTIFY-001",
     "artifact_manifest": {
       "artifact_id": "DETAIL-REQ-EMAIL-NOTIFY-001",
       "artifact_type": "detail_design",

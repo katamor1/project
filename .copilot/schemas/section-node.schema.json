@@ -1,0 +1,22 @@
+// .copilot/schemas/section-node.schema.json
+// Defines the section node schema used for document maps and summary trees.
+// This exists so retrieval can traverse chapter and section structure before reading leaf chunks.
+// RELEVANT FILES: .copilot/prompts/K3_summary_tree_builder.md, .copilot/schemas/chunk-record.schema.json, docs/external-runtime/legacy-kb/data-pipeline.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "section-node.schema.json",
+  "title": "Section Node",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["section_id", "doc_id", "parent_id", "heading_path", "section_level", "page_or_sheet", "summary", "child_ids"],
+  "properties": {
+    "section_id": { "type": "string" },
+    "doc_id": { "type": "string" },
+    "parent_id": { "type": "string" },
+    "heading_path": { "type": "array", "items": { "type": "string" } },
+    "section_level": { "type": "integer", "minimum": 0 },
+    "page_or_sheet": { "type": "string" },
+    "summary": { "type": "string" },
+    "child_ids": { "type": "array", "items": { "type": "string" } }
+  }
+}

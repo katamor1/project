@@ -1,0 +1,62 @@
+# .copilot/routing/test-spec-matrix.yaml
+# Defines the standard routing and return rules for functional and integration specification work.
+# This exists so test spec handoffs stay explicit before runtime automation is added.
+# RELEVANT FILES: .copilot/prompts/P2_functional_spec_author.md, .copilot/prompts/P2_integration_spec_author.md, docs/sdlc/README.md
+version: 1
+flow_name: sdlc-test-spec
+agents:
+  - id: P3_spec_reviewer
+    artifact_type: review_findings
+    prompt_path: .copilot/prompts/P3_spec_reviewer.md
+  - id: P2_functional_spec_author
+    artifact_type: functional_spec
+    prompt_path: .copilot/prompts/P2_functional_spec_author.md
+  - id: P2_integration_spec_author
+    artifact_type: integration_spec
+    prompt_path: .copilot/prompts/P2_integration_spec_author.md
+  - id: P8_review_record
+    artifact_type: review_record
+    prompt_path: .copilot/prompts/P8_review_record.md
+  - id: P9_eval_monitor
+    artifact_type: eval_report
+    prompt_path: .copilot/prompts/P9_eval_monitor.md
+standard_route:
+  - from: P3_spec_reviewer
+    to: P2_functional_spec_author
+    when: functional_spec_requested
+  - from: P2_functional_spec_author
+    to: P3_spec_reviewer
+    when: functional_spec_ready
+  - from: P3_spec_reviewer
+    to: P8_review_record
+    when: functional_spec_passed
+  - from: P3_spec_reviewer
+    to: P2_integration_spec_author
+    when: integration_spec_requested
+  - from: P2_integration_spec_author
+    to: P3_spec_reviewer
+    when: integration_spec_ready
+  - from: P3_spec_reviewer
+    to: P8_review_record
+    when: integration_spec_passed
+  - from: P8_review_record
+    to: P9_eval_monitor
+    when: review_record_ready
+return_routes:
+  - reviewer: P3_spec_reviewer
+    decision: revise
+    return_to: P2_functional_spec_author
+    applies_to: functional_spec
+    note: 機能試験仕様の差戻しは functional spec author に戻す
+  - reviewer: P3_spec_reviewer
+    decision: revise
+    return_to: P2_integration_spec_author
+    applies_to: integration_spec
+    note: 結合試験仕様の差戻しは integration spec author に戻す
+  - reviewer: P3_spec_reviewer
+    decision: block
+    return_to: P0_orchestrator
+    note: human_checkpoint を要求して前提条件を見直す
+terminal_states:
+  - complete
+  - human_checkpoint_required

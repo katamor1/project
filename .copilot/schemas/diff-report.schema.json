@@ -1,0 +1,34 @@
+// .copilot/schemas/diff-report.schema.json
+// Defines the diff report schema for comparing new requirements or drafts against approved legacy evidence.
+// This exists so change, carry-over, and unknown decisions can be reviewed without free-form ambiguity.
+// RELEVANT FILES: .copilot/prompts/K6_legacy_diff_checker.md, docs/external-runtime/legacy-kb/query-diff-flow.md, docs/external-runtime/legacy-kb/samples/email-notification-diff-dry-run.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "diff-report.schema.json",
+  "title": "Diff Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["diff_items", "carry_over_items", "unknown_items", "impact_estimate", "next_agent"],
+  "properties": {
+    "diff_items": { "$ref": "#/$defs/report_items" },
+    "carry_over_items": { "$ref": "#/$defs/report_items" },
+    "unknown_items": { "$ref": "#/$defs/report_items" },
+    "impact_estimate": { "type": "string", "enum": ["low", "medium", "high"] },
+    "next_agent": { "type": "string", "const": "K8_evidence_reviewer" }
+  },
+  "$defs": {
+    "report_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["area", "summary"],
+        "properties": {
+          "area": { "type": "string" },
+          "summary": { "type": "string" },
+          "source_refs": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}

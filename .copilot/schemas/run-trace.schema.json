@@ -1,0 +1,30 @@
+// .copilot/schemas/run-trace.schema.json
+// Defines the runtime trace schema used for pilot review and operational debugging.
+// This exists so retrieval paths, decision flags, latency, and token usage can be inspected without raw content dumps.
+// RELEVANT FILES: .copilot/prompts/K9_runtime_eval_monitor.md, docs/external-runtime/legacy-kb/eval-ops.md, docs/external-runtime/legacy-kb/runbook.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "run-trace.schema.json",
+  "title": "Run Trace",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id", "agent_path", "tool_path", "retrieved_doc_ids", "decision_flags", "latency_ms", "token_usage"],
+  "properties": {
+    "run_id": { "type": "string" },
+    "agent_path": { "type": "array", "items": { "type": "string" } },
+    "tool_path": { "type": "array", "items": { "type": "string" } },
+    "retrieved_doc_ids": { "type": "array", "items": { "type": "string" } },
+    "decision_flags": { "type": "array", "items": { "type": "string" } },
+    "latency_ms": { "type": "integer", "minimum": 0 },
+    "token_usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["input", "output", "total"],
+      "properties": {
+        "input": { "type": "integer", "minimum": 0 },
+        "output": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

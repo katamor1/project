@@ -1,0 +1,33 @@
+// .copilot/schemas/evidence-bundle.schema.json
+// Defines the evidence bundle schema that gates all source-backed generation and diff work.
+// This exists so downstream lanes receive coverage, confidence, and risk information in one bounded packet.
+// RELEVANT FILES: .copilot/prompts/K5_retrieval_planner.md, .copilot/prompts/K7_artifact_context_packer.md, docs/external-runtime/legacy-kb/query-diff-flow.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "evidence-bundle.schema.json",
+  "title": "Evidence Bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task_id", "query_plan", "retrieved_items", "coverage_assessment", "confidence", "risk_flags", "next_agent"],
+  "properties": {
+    "task_id": { "type": "string" },
+    "query_plan": { "type": "string" },
+    "retrieved_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["doc_id", "chunk_id", "authority_score"],
+        "properties": {
+          "doc_id": { "type": "string" },
+          "chunk_id": { "type": "string" },
+          "authority_score": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    },
+    "coverage_assessment": { "type": "string" },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "risk_flags": { "type": "array", "items": { "type": "string" } },
+    "next_agent": { "type": "string", "enum": ["K6_legacy_diff_checker", "K7_artifact_context_packer", "K8_evidence_reviewer"] }
+  }
+}

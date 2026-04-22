@@ -1,0 +1,22 @@
+// .copilot/schemas/retrieval-plan.schema.json
+// Defines the staged retrieval plan schema used before evidence or diff generation.
+// This exists so metadata filters, limits, and fallback behavior stay explicit across all source-backed tasks.
+// RELEVANT FILES: .copilot/prompts/K5_retrieval_planner.md, .copilot/schemas/evidence-bundle.schema.json, docs/external-runtime/legacy-kb/query-diff-flow.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "retrieval-plan.schema.json",
+  "title": "Retrieval Plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task_id", "query", "metadata_filters", "retrieve_top_k", "rerank_top_k", "leaf_read_max", "fallback_strategy", "next_agent"],
+  "properties": {
+    "task_id": { "type": "string" },
+    "query": { "type": "string" },
+    "metadata_filters": { "type": "object" },
+    "retrieve_top_k": { "type": "integer", "minimum": 1 },
+    "rerank_top_k": { "type": "integer", "minimum": 1 },
+    "leaf_read_max": { "type": "integer", "minimum": 1 },
+    "fallback_strategy": { "type": "array", "items": { "type": "string" } },
+    "next_agent": { "type": "string", "enum": ["K6_legacy_diff_checker", "K7_artifact_context_packer"] }
+  }
+}

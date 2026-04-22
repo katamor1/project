@@ -1,0 +1,22 @@
+// .copilot/schemas/chunk-record.schema.json
+// Defines the searchable leaf chunk schema used by the hybrid retrieval index.
+// This exists so chunk identity, structure, and authority can be filtered before downstream evidence packing.
+// RELEVANT FILES: .copilot/prompts/K3_summary_tree_builder.md, .copilot/schemas/document-record.schema.json, docs/external-runtime/legacy-kb/query-diff-flow.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chunk-record.schema.json",
+  "title": "Chunk Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["chunk_id", "parent_id", "heading_path", "page_or_sheet", "authority_score", "embedding_model"],
+  "properties": {
+    "chunk_id": { "type": "string" },
+    "doc_id": { "type": "string" },
+    "parent_id": { "type": "string" },
+    "heading_path": { "type": "array", "items": { "type": "string" } },
+    "page_or_sheet": { "type": "string" },
+    "authority_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "embedding_model": { "type": "string" },
+    "hash": { "type": "string" }
+  }
+}

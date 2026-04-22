@@ -1,0 +1,30 @@
+// .copilot/schemas/artifact-context-packet.schema.json
+// Defines the downstream handoff packet schema that wraps evidence for the SDLC P-lanes.
+// This exists so source-backed generation can start from bounded assertions instead of direct source browsing.
+// RELEVANT FILES: .copilot/prompts/K7_artifact_context_packer.md, .copilot/prompts/P2_basic_design_author.md, docs/external-runtime/legacy-kb/samples/email-notification-query-dry-run.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "artifact-context-packet.schema.json",
+  "title": "Artifact Context Packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["artifact_request", "evidence_bundle_ref", "resolved_entities", "open_questions", "allowed_assertions", "evidence_coverage", "authority_conflict_note", "next_agent"],
+  "properties": {
+    "artifact_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_type", "target_agent"],
+      "properties": {
+        "artifact_type": { "type": "string" },
+        "target_agent": { "type": "string" }
+      }
+    },
+    "evidence_bundle_ref": { "type": "string" },
+    "resolved_entities": { "type": "array", "items": { "type": "string" } },
+    "open_questions": { "type": "array", "items": { "type": "string" } },
+    "allowed_assertions": { "type": "array", "items": { "type": "string" } },
+    "evidence_coverage": { "type": "string" },
+    "authority_conflict_note": { "type": "string" },
+    "next_agent": { "type": "string" }
+  }
+}

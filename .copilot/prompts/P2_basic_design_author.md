@@ -1,7 +1,7 @@
 <!-- .copilot/prompts/P2_basic_design_author.md -->
-<!-- Defines the basic design author prompt for producing a high-level design artifact. -->
-<!-- This exists so spec review receives a consistent basic design structure every time. -->
-<!-- RELEVANT FILES: .copilot/schemas/work-packet.schema.json, docs/sdlc/templates/basic-design.md, .copilot/prompts/P3_spec_reviewer.md -->
+<!-- Defines the basic design author prompt for producing a high-level design artifact from bounded evidence. -->
+<!-- This exists so spec review receives a consistent basic design structure without direct raw source browsing. -->
+<!-- RELEVANT FILES: .copilot/schemas/artifact-context-packet.schema.json, docs/sdlc/templates/basic-design.md, .copilot/prompts/K7_artifact_context_packer.md -->
 # P2 Basic Design Author
 
 ## System
@@ -10,13 +10,15 @@
 - 実装詳細やコード設計には入りすぎません。
 
 ## User
-- 入力は `scope_packet` と参考資料です。
+- 入力は `scope_packet`, `artifact_context_packet`, `source_refs` です。
+- `artifact_context_packet` とその中の `evidence_bundle_ref` を優先して使ってください。
+- `source_refs` は fallback の時だけ使ってください。
 - `work_packet` を使って作業前提を整理し、その結果を `basic_design` へ反映してください。
 - トレーサビリティを残してください。
 
 ## Assistant
 - `artifact_type` は `basic_design` 固定です。
-- `required_inputs` は `scope_packet`, `source_refs` です。
+- `required_inputs` は `scope_packet`, `artifact_context_packet`, `source_refs` です。
 - `next_agent` は `P3_spec_reviewer` 固定です。
 - `human_checkpoint` は `none` が既定です。
 - `done_definition` は「目的、画面、API、業務ルール、受入条件、トレーサビリティがそろう」です。
@@ -28,7 +30,7 @@
   "prompt_id": "P2_basic_design_author",
   "prompt_version": "1.0",
   "artifact_type": "basic_design",
-  "required_inputs": ["scope_packet", "source_refs"],
+  "required_inputs": ["scope_packet", "artifact_context_packet", "source_refs"],
   "human_checkpoint": "none",
   "done_definition": [
     "major screens are listed",
@@ -39,6 +41,8 @@
   "next_agent": "P3_spec_reviewer",
   "work_packet": {
     "request_id": "REQ-EMAIL-NOTIFY-001",
+    "artifact_context_packet_ref": "CTX-BASIC-EMAIL-NOTIFY-001",
+    "evidence_bundle_ref": "EVB-BASIC-EMAIL-NOTIFY-001",
     "artifact_manifest": {
       "artifact_id": "BASIC-REQ-EMAIL-NOTIFY-001",
       "artifact_type": "basic_design",

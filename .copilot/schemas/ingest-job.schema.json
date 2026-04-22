@@ -1,0 +1,20 @@
+// .copilot/schemas/ingest-job.schema.json
+// Defines the ingest job schema used for both full ingest and partial reindex runs.
+// This exists so runtime operations can track ingest status without relying on free-form logs.
+// RELEVANT FILES: .copilot/prompts/K1_intake_normalizer.md, docs/external-runtime/legacy-kb/runbook.md, docs/external-runtime/legacy-kb/samples/email-notification-ingest-dry-run.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ingest-job.schema.json",
+  "title": "Ingest Job",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["job_id", "status", "input_files", "created_document_ids", "reindex_mode", "next_agent"],
+  "properties": {
+    "job_id": { "type": "string" },
+    "status": { "type": "string", "enum": ["normalized", "indexed", "completed", "failed"] },
+    "input_files": { "type": "array", "items": { "type": "string" } },
+    "created_document_ids": { "type": "array", "items": { "type": "string" } },
+    "reindex_mode": { "type": "string", "enum": ["full", "partial"] },
+    "next_agent": { "type": "string", "enum": ["K2_taxonomy_mapper", "K9_runtime_eval_monitor"] }
+  }
+}
