@@ -1,0 +1,50 @@
+// ibm-bob/mode-pack/schemas/run-summary-packet.schema.json
+// Defines the end-of-run summary packet that records stage results, issues, and the next action.
+// This exists so blocked and completed IBM-Bob runs end with one consistent summary artifact.
+// RELEVANT FILES: ibm-bob/mode-pack/scripts/stage_packets.py, ibm-bob/mode-pack/scripts/packet_renderers.py, ibm-bob/mode-pack/scripts/evaluate_mode_pack.py
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "run-summary-packet.schema.json",
+  "title": "Run Summary Packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "stage_results",
+    "review_refs",
+    "workspace_copy_root",
+    "artifacts_root",
+    "open_issues",
+    "next_action",
+    "next_agent"
+  ],
+  "properties": {
+    "run_id": { "type": "string" },
+    "status": { "type": "string", "enum": ["completed", "blocked"] },
+    "stage_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["stage", "status"],
+        "properties": {
+          "stage": { "type": "string" },
+          "status": { "type": "string" },
+          "artifact_ref": { "type": "string" }
+        }
+      }
+    },
+    "review_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "workspace_copy_root": { "type": "string" },
+    "artifacts_root": { "type": "string" },
+    "open_issues": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "next_action": { "type": "string" },
+    "next_agent": { "type": "string", "const": "none" }
+  }
+}

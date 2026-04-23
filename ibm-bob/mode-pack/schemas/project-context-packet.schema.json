@@ -1,0 +1,86 @@
+// ibm-bob/mode-pack/schemas/project-context-packet.schema.json
+// Defines the document and source-code context packet gathered before detailed design starts.
+// This exists so downstream stages can cite the current system shape and impacted modules.
+// RELEVANT FILES: ibm-bob/mode-pack/scripts/context_builder.py, ibm-bob/mode-pack/schemas/detail-design-packet.schema.json, ibm-bob/mode-pack/scripts/packet_renderers.py
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "project-context-packet.schema.json",
+  "title": "Project Context Packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "existing_docs",
+    "existing_code_findings",
+    "impacted_modules",
+    "impact_risks",
+    "traceability",
+    "next_agent"
+  ],
+  "properties": {
+    "run_id": { "type": "string" },
+    "existing_docs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "summary"],
+        "properties": {
+          "path": { "type": "string" },
+          "summary": { "type": "string" }
+        }
+      }
+    },
+    "existing_code_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "summary"],
+        "properties": {
+          "path": { "type": "string" },
+          "summary": { "type": "string" },
+          "exports": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "impacted_modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["module", "reason", "candidate_files"],
+        "properties": {
+          "module": { "type": "string" },
+          "reason": { "type": "string" },
+          "candidate_files": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "impact_risks": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "traceability": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_ref", "target_ref"],
+        "properties": {
+          "source_ref": { "type": "string" },
+          "target_ref": { "type": "string" }
+        }
+      }
+    },
+    "next_agent": {
+      "type": "string",
+      "const": "ibmbob-detail-design"
+    }
+  }
+}

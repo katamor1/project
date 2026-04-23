@@ -1,0 +1,13 @@
+# Project-scoped Claude configuration for the IBM BOB baseline sample.
+# Profiles are supported by Claude config.toml.
+# Build/test commands themselves are documented in AGENTS.md and delegated to scripts.
+
+[profiles.ibm-bob-clang-win]
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+model_reasoning_effort = "medium"
+
+[profiles.ibm-bob-vc2026]
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+model_reasoning_effort = "medium"

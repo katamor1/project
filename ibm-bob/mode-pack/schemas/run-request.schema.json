@@ -1,0 +1,39 @@
+// ibm-bob/mode-pack/schemas/run-request.schema.json
+// Defines the packet that starts an IBM-Bob run against a copied project and a basic design document.
+// This exists so every stage can read the same run metadata and execution policy.
+// RELEVANT FILES: ibm-bob/mode-pack/scripts/workspace_run.py, ibm-bob/mode-pack/schemas/workspace-profile.schema.json, ibm-bob/mode-pack/scripts/evaluate_mode_pack.py
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "run-request.schema.json",
+  "title": "Run Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "project_root",
+    "input_basic_design_doc",
+    "workspace_profile_ref",
+    "run_policy",
+    "locale",
+    "eval_case_id"
+  ],
+  "properties": {
+    "run_id": { "type": "string" },
+    "project_root": { "type": "string" },
+    "input_basic_design_doc": { "type": "string" },
+    "workspace_profile_ref": { "type": "string" },
+    "run_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["execution_mode", "write_markdown", "stop_on_block"],
+      "properties": {
+        "execution_mode": { "type": "string", "enum": ["real", "simulate"] },
+        "write_markdown": { "type": "boolean" },
+        "stop_on_block": { "type": "boolean" }
+      }
+    },
+    "locale": { "type": "string", "const": "ja" },
+    "eval_case_id": { "type": "string" },
+    "workspace_copy_root": { "type": "string" },
+    "artifacts_root": { "type": "string" }
+  }
+}

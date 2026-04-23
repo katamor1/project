@@ -1,0 +1,55 @@
+// ibm-bob/mode-pack/routing/stage-flow.json
+// Defines the fixed IBM-Bob SDLC stage flow, pass routes, and revise routes.
+// This exists so Orchestrator and validation tests use one shared routing contract.
+// RELEVANT FILES: ibm-bob/mode-pack/modes/custom_modes.source.yaml, ibm-bob/mode-pack/scripts/validate_mode_pack.py, ibm-bob/mode-pack/rules/ibmbob-orchestrator/01-core.md
+{
+  "version": 1,
+  "entry_mode": "ibmbob-orchestrator",
+  "review_mode": "ibmbob-review-gate",
+  "stage_order": [
+    "intake",
+    "context_scout",
+    "detail_design",
+    "code_change",
+    "unit_test_pack",
+    "unit_test_run",
+    "functional_test_pack",
+    "run_summary"
+  ],
+  "routes": {
+    "detail_design": {
+      "author": "ibmbob-detail-design",
+      "on_pass": "ibmbob-code-author",
+      "on_revise": "ibmbob-detail-design",
+      "on_block": "human_checkpoint"
+    },
+    "code_change": {
+      "author": "ibmbob-code-author",
+      "on_pass": "ibmbob-unit-test-author",
+      "on_revise": "ibmbob-code-author",
+      "on_block": "human_checkpoint"
+    },
+    "unit_test_pack": {
+      "author": "ibmbob-unit-test-author",
+      "on_pass": "ibmbob-unit-test-executor",
+      "on_revise": "ibmbob-unit-test-author",
+      "on_block": "human_checkpoint"
+    },
+    "unit_test_run": {
+      "author": "ibmbob-unit-test-executor",
+      "on_pass": "ibmbob-functional-test-author",
+      "on_revise": {
+        "code": "ibmbob-code-author",
+        "unit_test": "ibmbob-unit-test-author",
+        "intake": "ibmbob-intake"
+      },
+      "on_block": "human_checkpoint"
+    },
+    "functional_test_pack": {
+      "author": "ibmbob-functional-test-author",
+      "on_pass": "ibmbob-run-summary",
+      "on_revise": "ibmbob-functional-test-author",
+      "on_block": "human_checkpoint"
+    }
+  }
+}

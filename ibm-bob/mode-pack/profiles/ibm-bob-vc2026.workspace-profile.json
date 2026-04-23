@@ -1,0 +1,21 @@
+// ibm-bob/mode-pack/profiles/ibm-bob-vc2026.workspace-profile.json
+// Defines the IBM-Bob sample workspace profile for VC2026 build and unit-test execution.
+// This exists so intake can select a concrete profile without inventing commands.
+// RELEVANT FILES: ibm-bob/samples/base/source/AGENTS.md, ibm-bob/mode-pack/schemas/workspace-profile.schema.json, ibm-bob/mode-pack/scripts/workspace_run.py
+{
+  "profile_id": "ibm-bob-vc2026",
+  "doc_globs": [
+    "docs/*.docx"
+  ],
+  "source_globs": [
+    "source/AGENTS.md",
+    "source/docs/*.md",
+    "source/inc/*.h",
+    "source/src/*.c",
+    "source/scripts/*.bat"
+  ],
+  "build_command": "cmd /c source\\scripts\\build_vc2026.bat",
+  "unit_test_command": "cmd /c source\\scripts\\test_vc2026.bat",
+  "command_timeout_sec": 120,
+  "artifact_root": "artifacts/ibm-bob"
+}
