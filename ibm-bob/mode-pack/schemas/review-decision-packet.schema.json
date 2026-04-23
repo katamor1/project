@@ -1,0 +1,46 @@
+// ibm-bob/mode-pack/schemas/review-decision-packet.schema.json
+// Defines the shared pass, revise, and block decision packet used across IBM-Bob stages.
+// This exists so routing decisions stay machine-readable and stage-specific reroutes remain explicit.
+// RELEVANT FILES: ibm-bob/mode-pack/routing/stage-flow.json, ibm-bob/mode-pack/scripts/stage_packets.py, ibm-bob/mode-pack/scripts/packet_renderers.py
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "review-decision-packet.schema.json",
+  "title": "Review Decision Packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "stage",
+    "decision",
+    "findings",
+    "revise_to",
+    "human_checkpoint",
+    "next_agent"
+  ],
+  "properties": {
+    "run_id": { "type": "string" },
+    "stage": {
+      "type": "string",
+      "enum": ["intake", "detail_design", "code_change", "unit_test_pack", "unit_test_run", "functional_test_pack"]
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["pass", "revise", "block"]
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "title", "detail"],
+        "properties": {
+          "severity": { "type": "string", "enum": ["low", "medium", "high"] },
+          "title": { "type": "string" },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "revise_to": { "type": "string" },
+    "human_checkpoint": { "type": "boolean" },
+    "next_agent": { "type": "string" }
+  }
+}

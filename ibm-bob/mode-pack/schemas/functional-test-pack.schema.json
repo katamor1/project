@@ -1,0 +1,54 @@
+// ibm-bob/mode-pack/schemas/functional-test-pack.schema.json
+// Defines the packet that stores authored functional test scenarios for the approved change.
+// This exists so IBM-Bob can stop at authored functional tests in v1 without executing them.
+// RELEVANT FILES: ibm-bob/mode-pack/scripts/stage_packets.py, ibm-bob/mode-pack/schemas/review-decision-packet.schema.json, ibm-bob/mode-pack/scripts/packet_renderers.py
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "functional-test-pack.schema.json",
+  "title": "Functional Test Pack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scenarios",
+    "preconditions",
+    "steps",
+    "expected_results",
+    "negative_cases",
+    "next_agent"
+  ],
+  "properties": {
+    "run_id": { "type": "string" },
+    "scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scenario_id", "title"],
+        "properties": {
+          "scenario_id": { "type": "string" },
+          "title": { "type": "string" }
+        }
+      }
+    },
+    "preconditions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "steps": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "expected_results": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "negative_cases": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "next_agent": {
+      "type": "string",
+      "const": "ibmbob-review-gate"
+    }
+  }
+}

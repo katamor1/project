@@ -1,0 +1,34 @@
+// ibm-bob/mode-pack/schemas/workspace-profile.schema.json
+// Defines the workspace profile that pins document globs and the exact build and unit-test commands.
+// This exists so intake and unit-test execution use explicit commands instead of guessing.
+// RELEVANT FILES: ibm-bob/mode-pack/profiles/ibm-bob-vc2026.workspace-profile.json, ibm-bob/mode-pack/profiles/ibm-bob-clanwin.workspace-profile.json, ibm-bob/mode-pack/scripts/workspace_run.py
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "workspace-profile.schema.json",
+  "title": "Workspace Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "doc_globs",
+    "source_globs",
+    "build_command",
+    "unit_test_command",
+    "command_timeout_sec",
+    "artifact_root"
+  ],
+  "properties": {
+    "profile_id": { "type": "string" },
+    "doc_globs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "source_globs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "build_command": { "type": "string" },
+    "unit_test_command": { "type": "string" },
+    "command_timeout_sec": { "type": "integer" },
+    "artifact_root": { "type": "string" }
+  }
+}

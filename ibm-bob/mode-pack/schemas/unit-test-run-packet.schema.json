@@ -1,0 +1,44 @@
+// ibm-bob/mode-pack/schemas/unit-test-run-packet.schema.json
+// Defines the packet that records build and unit-test execution results from the workspace profile.
+// This exists so review can reroute failures back to intake, code, or unit-test authoring.
+// RELEVANT FILES: ibm-bob/mode-pack/scripts/workspace_run.py, ibm-bob/mode-pack/schemas/review-decision-packet.schema.json, ibm-bob/mode-pack/routing/stage-flow.json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "unit-test-run-packet.schema.json",
+  "title": "Unit Test Run Packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "build_command",
+    "test_command",
+    "exit_code",
+    "status",
+    "log_refs",
+    "failed_cases",
+    "reroute_target",
+    "next_agent"
+  ],
+  "properties": {
+    "run_id": { "type": "string" },
+    "build_command": { "type": "string" },
+    "test_command": { "type": "string" },
+    "exit_code": { "type": "integer" },
+    "status": { "type": "string", "enum": ["pass", "fail", "skipped"] },
+    "log_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "failed_cases": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "reroute_target": {
+      "type": "string",
+      "enum": ["code", "unit_test", "intake", "none"]
+    },
+    "next_agent": {
+      "type": "string",
+      "const": "ibmbob-review-gate"
+    }
+  }
+}

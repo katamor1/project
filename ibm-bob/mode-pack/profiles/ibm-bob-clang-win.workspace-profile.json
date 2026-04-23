@@ -1,0 +1,21 @@
+// ibm-bob/mode-pack/profiles/ibm-bob-clang-win.workspace-profile.json
+// Defines the IBM-Bob sample workspace profile for clang-cl build and unit-test execution.
+// This exists so intake can select a concrete clang-based profile without inventing commands.
+// RELEVANT FILES: ibm-bob/samples/base/source/AGENTS.md, ibm-bob/mode-pack/schemas/workspace-profile.schema.json, ibm-bob/mode-pack/scripts/workspace_run.py
+{
+  "profile_id": "ibm-bob-clang-win",
+  "doc_globs": [
+    "docs/*.docx"
+  ],
+  "source_globs": [
+    "source/AGENTS.md",
+    "source/docs/*.md",
+    "source/inc/*.h",
+    "source/src/*.c",
+    "source/scripts/*.bat"
+  ],
+  "build_command": "cmd /c source\\scripts\\build_clang.bat",
+  "unit_test_command": "cmd /c source\\scripts\\test_clang.bat",
+  "command_timeout_sec": 120,
+  "artifact_root": "artifacts/ibm-bob"
+}

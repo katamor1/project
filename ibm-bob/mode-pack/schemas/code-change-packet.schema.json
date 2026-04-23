@@ -1,0 +1,51 @@
+// ibm-bob/mode-pack/schemas/code-change-packet.schema.json
+// Defines the code-change packet that records touched files and review targets for the copied workspace.
+// This exists so code review can judge the change scope without guessing which files matter.
+// RELEVANT FILES: ibm-bob/mode-pack/scripts/stage_packets.py, ibm-bob/mode-pack/schemas/review-decision-packet.schema.json, ibm-bob/mode-pack/scripts/packet_renderers.py
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "code-change-packet.schema.json",
+  "title": "Code Change Packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "touched_files",
+    "change_summary",
+    "design_refs",
+    "risk_flags",
+    "review_targets",
+    "next_agent"
+  ],
+  "properties": {
+    "run_id": { "type": "string" },
+    "touched_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "reason"],
+        "properties": {
+          "path": { "type": "string" },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "change_summary": { "type": "string" },
+    "design_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "risk_flags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "review_targets": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "next_agent": {
+      "type": "string",
+      "const": "ibmbob-review-gate"
+    }
+  }
+}

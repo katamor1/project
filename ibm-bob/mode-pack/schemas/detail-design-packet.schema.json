@@ -1,0 +1,86 @@
+// ibm-bob/mode-pack/schemas/detail-design-packet.schema.json
+// Defines the detail design packet derived from the input basic design and project context.
+// This exists so code authoring and review use the same explicit design contract.
+// RELEVANT FILES: ibm-bob/mode-pack/scripts/stage_packets.py, ibm-bob/mode-pack/schemas/review-decision-packet.schema.json, ibm-bob/mode-pack/scripts/packet_renderers.py
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "detail-design-packet.schema.json",
+  "title": "Detail Design Packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "design_summary",
+    "api_changes",
+    "shared_memory_changes",
+    "state_changes",
+    "threading_rules",
+    "error_rules",
+    "traceability",
+    "next_agent"
+  ],
+  "properties": {
+    "run_id": { "type": "string" },
+    "eval_case_id": { "type": "string" },
+    "design_summary": { "type": "string" },
+    "api_changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "change"],
+        "properties": {
+          "name": { "type": "string" },
+          "change": { "type": "string" }
+        }
+      }
+    },
+    "shared_memory_changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "change"],
+        "properties": {
+          "name": { "type": "string" },
+          "change": { "type": "string" }
+        }
+      }
+    },
+    "state_changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "change"],
+        "properties": {
+          "name": { "type": "string" },
+          "change": { "type": "string" }
+        }
+      }
+    },
+    "threading_rules": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "error_rules": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "traceability": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_ref", "target_ref"],
+        "properties": {
+          "source_ref": { "type": "string" },
+          "target_ref": { "type": "string" }
+        }
+      }
+    },
+    "next_agent": {
+      "type": "string",
+      "const": "ibmbob-review-gate"
+    }
+  }
+}

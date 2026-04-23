@@ -1,0 +1,52 @@
+// ibm-bob/mode-pack/schemas/unit-test-pack.schema.json
+// Defines the unit-test packet that records planned test files, cases, and coverage focus.
+// This exists so review and execution can use one shared test-intent contract.
+// RELEVANT FILES: ibm-bob/mode-pack/scripts/stage_packets.py, ibm-bob/mode-pack/schemas/unit-test-run-packet.schema.json, ibm-bob/mode-pack/scripts/packet_renderers.py
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "unit-test-pack.schema.json",
+  "title": "Unit Test Pack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "test_files",
+    "test_cases",
+    "fixtures",
+    "coverage_focus",
+    "commands_ref",
+    "next_agent"
+  ],
+  "properties": {
+    "run_id": { "type": "string" },
+    "test_files": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "test_cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["case_id", "title", "expected_result"],
+        "properties": {
+          "case_id": { "type": "string" },
+          "title": { "type": "string" },
+          "expected_result": { "type": "string" }
+        }
+      }
+    },
+    "fixtures": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "coverage_focus": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "commands_ref": { "type": "string" },
+    "next_agent": {
+      "type": "string",
+      "const": "ibmbob-review-gate"
+    }
+  }
+}
