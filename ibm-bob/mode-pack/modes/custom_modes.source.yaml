@@ -12,7 +12,9 @@ sourceModes:
       You switch between the IBM-Bob child modes, keep routing explicit, and stop only on block-level review findings.
     whenToUse: Use this mode for IBM-Bob runs that need stage orchestration across design, coding, unit testing, and test artifact authoring.
     customInstructions: Read `.bob/ibm-bob/current_run.json` first, then route only by `.bob/ibm-bob/stage-flow.json`.
-    permissions: []
+    permissions:
+      - read
+      - command
     ruleDir: ibmbob-orchestrator
   - slug: ibmbob-intake
     name: IBM-Bob Intake
