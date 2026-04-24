@@ -1,101 +1,83 @@
 <!-- ibm-bob/mode-pack/README.md -->
-<!-- Explains the IBM Bob custom mode pack that overlays the existing Copilot-oriented design assets. -->
-<!-- This exists so the team can run the same C, K, P, and LS workflows inside Bob without replacing the canonical source files. -->
-<!-- RELEVANT FILES: .bob/custom_modes.yaml, ibm-bob/mode-pack/mode-catalog.md, ibm-bob/mode-pack/routing-map.md -->
-<!-- Explains the IBM-Bob SDLC custom mode pack, its generated Bob assets, and the local validation scripts. -->
-<!-- This exists so the team can install, validate, and evaluate the mode pack without editing the sample originals. -->
-<!-- RELEVANT FILES: ibm-bob/mode-pack/modes/custom_modes.source.yaml, ibm-bob/mode-pack/scripts/install_mode_pack.py, ibm-bob/mode-pack/scripts/evaluate_mode_pack.py -->
+<!-- Explains the IBM Bob mode pack that keeps the old orchestrator family and the new direct-mode family side by side. -->
+<!-- This exists so the team can generate one Bob config from one source without forking the canonical C, K, P, and LS assets. -->
+<!-- RELEVANT FILES: ibm-bob/mode-pack/modes/custom_modes.source.yaml, ibm-bob/mode-pack/scripts/install_mode_pack.py, ibm-bob/mode-pack/routing/direct-mode-flow.json -->
 # IBM Bob Mode Pack
 
-このフォルダは、既存の `Copilot / Claude` 向け設計資産を `IBM Bob` の custom mode として使うための overlay です。
+このディレクトリが、IBM Bob 向け mode pack の source of truth です。
 
-canonical source は変えません。
+repo 直下の `.bob/` は source ではありません。
 
-`.copilot/prompts`, `.copilot/routing`, `.copilot/schemas`, `docs/copilot-studio`, `docs/external-runtime`, `docs/sdlc` はそのまま残します。
+`.bob/custom_modes.yaml` と `.bob/rules-{slug}/` は、ここから生成する output です。
 
-Bob 実運用の本体は `.bob/custom_modes.yaml` です。
+## Two Families
 
-cross-cutting rule は `.bob/rules/` に置きます。
+### `ibmbob-orchestrator` family
 
-## What This Pack Does
+これは既存 family です。
 
-- `C*` を Bob entry bridge mode に写します。
-- `K*` を legacy runtime mode に写します。
-- `P*` を SDLC authoring / review / handoff mode に写します。
-- `LS-*` を legacy search workflow mode に写します。
+copied workspace を作り、固定 stage flow で run を進めます。
 
-## What This Pack Does Not Do
+`routing/stage-flow.json` と既存 evaluator をそのまま使います。
 
-- canonical prompt や schema を置き換えません。
-- built-in `plan`, `code`, `advanced`, `orchestrator` を上書きしません。
-- app code や runtime service code の新実装は含みません。
+### `ibmbob` direct-mode family
 
-## Main Files
+これは新 family です。
 
-- `.bob/custom_modes.yaml`: Bob の custom mode 定義
-- `.bob/rules/`: 全 mode にかかる共通ルール
-- `mode-catalog.md`: 全 mode の一覧
-- `routing-map.md`: Bob 上での流れ
-- `tool-profile.md`: tool group と edit 制限
-- `handoff-contracts.md`: Bob 向け alias と canonical schema の対応
-- `legacy-search-guide.md`: `LS-*` の使い方
-- `sdlc-guide.md`: `P*` の使い方
-- `pilot-runbook.md`: manual pilot 手順
-- `samples/`: generation / diff / review / eval / legacy-search の dry-run
+`C / K / P / LS` を Bob custom mode に直接写します。
 
-## Default Operating Model
+legacy-search と source-backed authoring を、固定 run なしで扱います。
 
-- Bob built-in `Orchestrator` から custom mode を提案・切替します。
-- 各 custom mode は、対応する canonical prompt を最初に読みます。
-- mode の出力は canonical prompt の JSON contract に合わせます。
-- source-backed generation は `artifact_context_packet` を優先します。
+正本の flow は `routing/direct-mode-flow.json` です。
 
-# IBM-Bob SDLC Custom Mode Pack
+## Canonical Sources
 
-このディレクトリは、IBM Bob 向けの project custom mode 一式の source of truth です。
+Bob pack 自体は overlay です。
 
-Bob に読み込ませる `.bob/custom_modes.yaml` と `.bob/rules-{slug}/` は、ここから生成します。
+正本の設計資産は次のまま使います。
 
-## 目的
-- 基本設計書を起点にした SDLC オーケストレーションを、Bob の custom mode 群として標準化する。
-- 対象プロジェクトと入力基本設計書をワーク領域へ複製し、原本を直接変更しない。
-- JSON を正本、Markdown を閲覧用として残す。
+- `.copilot/prompts`
+- `.copilot/routing`
+- `.copilot/schemas`
+- `docs/copilot-studio`
+- `docs/external-runtime`
+- `docs/sdlc`
 
-## ディレクトリ構成
-- `modes/`: mode metadata の source of truth
-- `rules/`: 各 mode に対応する Bob rule source
-- `profiles/`: workspace profile の定義
-- `routing/`: 固定ルーティング定義
-- `schemas/`: packet schema
-- `scripts/`: installer、renderer、validator、evaluation harness
+## Main Source Files
 
-## 生成先
-- Bob mode 設定は copied workspace の `.bob/` に生成する
-- run artifact は `artifacts/ibm-bob/runs/<run-id>/`
-- workspace copy は `artifacts/ibm-bob/workspaces/<run-id>/project/`
+- `modes/custom_modes.source.yaml`: 全 mode の正本
+- `rules/`: 各 mode の rule source
+- `rules/shared/`: new family へ展開する共通 rule
+- `routing/stage-flow.json`: old family の固定 run
+- `routing/direct-mode-flow.json`: new family の direct flow
+- `scripts/install_mode_pack.py`: generated `.bob/` を作る installer
+- `scripts/validate_mode_pack.py`: 後方互換と静的整合を確認する validator
+- `scripts/evaluate_mode_pack.py`: old family の simulate / real evaluator
 
-## 主要コマンド
+## Generated Output
+
+installer は 1 つの `.bob/custom_modes.yaml` を生成します。
+
+その中に old family と new family の両方を入れます。
+
+同時に `.bob/rules-{slug}/` と `.bob/ibm-bob/*.json` を生成します。
+
+## Main Commands
+
 ```powershell
-py -3 ibm-bob/mode-pack/scripts/install_mode_pack.py --workspace <copied-workspace>
+py -3 ibm-bob/mode-pack/scripts/install_mode_pack.py --workspace <workspace>
 py -3 ibm-bob/mode-pack/scripts/validate_mode_pack.py
 py -3 ibm-bob/mode-pack/scripts/evaluate_mode_pack.py --case all --execution-mode simulate
-py -3 ibm-bob/mode-pack/scripts/evaluate_mode_pack.py --case 1 --execution-mode real
 ```
 
-## サンプル評価の前提
-- `ibm-bob/samples/base/` と `ibm-bob/samples/評価用基本設計書/` は read-only 扱いです。
-- `execution-mode simulate` は mode pack の構成評価用です。
-- `execution-mode real` は workspace profile の build/test command を実行します。
-- sample workspace の real 実行は `clang-cl.exe` の `PATH` 検出、Visual Studio LLVM install path の直接検出、または `Launch-VsDevShell.ps1` を使った bootstrap を前提にします。
-- real 実行では toolchain を自動導入しません。
+## Docs In This Pack
 
-## Bob mode の考え方
-- built-in `orchestrator` は override しません。
-- IBM-Bob 専用の entry mode として `ibmbob-orchestrator` を追加します。
-- 子 mode は `whenToUse` を明示し、Orchestrator に切り替え判断を委譲します。
-- review は `pass | revise | block` の 3 値です。
-- `block` のみ human checkpoint に進みます。
+- `mode-catalog.md`: old / new family の mode 一覧
+- `routing-map.md`: 2 family の flow 整理
+- `tool-profile.md`: permission と edit 制限
+- `handoff-contracts.md`: Bob alias と canonical contract の対応
+- `legacy-search-guide.md`: `ibmbob-legacy-search-*` の運用
+- `sdlc-guide.md`: `ibmbob-sdlc-*` の運用
+- `pilot-runbook.md`: manual pilot 手順
+- `samples/direct-modes/`: new family 用 dry-run
 
-## 参照した Bob docs
-- [Custom modes](https://bob.ibm.com/docs/ide/configuration/custom-modes)
-- [Modes](https://bob.ibm.com/docs/ide/features/modes)

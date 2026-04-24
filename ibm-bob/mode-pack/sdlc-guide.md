@@ -1,52 +1,57 @@
 <!-- ibm-bob/mode-pack/sdlc-guide.md -->
-<!-- Explains how to operate the P custom modes inside IBM Bob across design, test spec, implementation, execution, and integration lanes. -->
-<!-- This exists so the team can use Bob custom modes as a thin overlay on top of the canonical SDLC design assets. -->
-<!-- RELEVANT FILES: .bob/custom_modes.yaml, docs/sdlc/README.md, ibm-bob/mode-pack/handoff-contracts.md -->
+<!-- Explains how the old copied-workspace family and the new direct SDLC family coexist inside the Bob mode pack. -->
+<!-- This exists so the team can choose the right Bob family for source-backed authoring, review, and evaluation work. -->
+<!-- RELEVANT FILES: ibm-bob/mode-pack/routing/stage-flow.json, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/sdlc/README.md -->
 # SDLC Guide
 
-## Design Entry
+## Two Ways To Work
 
-純粋な設計依頼は `p0-orchestrator` から始めます。
+### Old family
 
-legacy 文書を根拠に使う時は、先に entry bridge と runtime を通します。
+`ibmbob-orchestrator` family は copied workspace を前提にした固定 run です。
 
-つまり開始点は 2 種です。
+実 build / test を含む run はこちらです。
 
-- 非 source-backed: `p0-orchestrator`
-- source-backed: `c0-entry-router`
+### New family
 
-## Upper Design Lane
+`ibmbob-sdlc-*` family は direct authoring overlay です。
 
-`p0 -> p1 -> p2-basic -> p3 -> p2-detail -> p3 -> p8 -> p9`
+設計資産、review、eval、source-backed generation を直接扱います。
 
-`p3` は `pass | revise | block` を返します。
+## Start Points
 
-## Test Spec Lane
+- 非 source-backed: `ibmbob-sdlc-request-orchestrator`
+- source-backed: `ibmbob-entry-router`
 
-`p3(detail pass) -> p2-functional or p2-integration -> p3 -> p8 -> p9`
+## Main Lanes
 
-## Implementation Lane
+### Upper Design
 
-`p3(detail pass) -> p4 -> p5 -> p6 -> p7 -> p8 -> p9`
+`ibmbob-sdlc-request-orchestrator -> ibmbob-sdlc-scope -> ibmbob-sdlc-basic-design-author -> ibmbob-sdlc-spec-reviewer -> ibmbob-sdlc-detail-design-author -> ibmbob-sdlc-spec-reviewer -> ibmbob-sdlc-review-record -> ibmbob-sdlc-eval-monitor`
 
-`p4` と `p6` は source-backed の時に `artifact_context_packet` を優先します。
+### Test Spec
 
-## Execution Pack Lane
+`ibmbob-sdlc-spec-reviewer -> ibmbob-sdlc-functional-spec-author or ibmbob-sdlc-integration-spec-author -> ibmbob-sdlc-spec-reviewer`
 
-`p7(pass) or repo_bridge_ready -> p10 -> p11 -> p12 -> p13 -> p14 -> p8 -> p9`
+### Implementation
 
-## Integration Lane
+`ibmbob-sdlc-implementation-planner -> ibmbob-sdlc-fullstack-slice-author -> ibmbob-sdlc-test-author -> ibmbob-sdlc-code-reviewer`
 
-`p14(pass) or execution_bundle_ready -> p15 -> p16 -> p17 -> p18 -> p19 -> p20 -> p21 -> p8 -> p9`
+### Execution Pack
 
-## Review / Eval Requests
+`ibmbob-sdlc-execution-bundle-planner -> ibmbob-sdlc-frontend-codepack-author -> ibmbob-sdlc-backend-codepack-author -> ibmbob-sdlc-test-codepack-author -> ibmbob-sdlc-execution-reviewer`
 
-review だけ欲しい時は `c0-entry-router` から入り、必要なら `p8-review-record` に流します。
+### Integration
 
-eval だけ欲しい時は `c0-entry-router` から入り、必要なら `p9-eval-monitor` に流します。
+`ibmbob-sdlc-integration-bundle-planner -> ibmbob-sdlc-frontend-draft-author -> ibmbob-sdlc-backend-draft-author -> ibmbob-sdlc-sqlite-draft-author -> ibmbob-sdlc-test-draft-author -> ibmbob-sdlc-integration-reviewer -> ibmbob-sdlc-approval-pack-author`
 
 ## Source-Backed Rule
 
-`artifact_context_packet` が無い時は、`p2`, `p4`, `p6` の source-backed generation を開始しません。
+`artifact_context_packet` が無い時は次を開始しません。
 
-この時は entry bridge 側に戻して evidence を先にそろえます。
+- `ibmbob-sdlc-basic-design-author`
+- `ibmbob-sdlc-implementation-planner`
+- `ibmbob-sdlc-test-author`
+
+この時は entry/runtime 側へ戻して evidence を先にそろえます。
+

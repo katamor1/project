@@ -1,55 +1,41 @@
 <!-- ibm-bob/mode-pack/legacy-search-guide.md -->
-<!-- Explains how to operate the LS custom modes inside IBM Bob using the existing legacy-search contracts. -->
-<!-- This exists so the team can run legacy document search in Bob without depending on Copilot Studio agent settings. -->
-<!-- RELEVANT FILES: .bob/custom_modes.yaml, docs/copilot-studio/legacy-search/README.md, docs/copilot-studio/legacy-search/shared-io-contract.yaml -->
+<!-- Explains how the new Bob direct-mode family runs the LS workflow while keeping the old orchestrator family unchanged. -->
+<!-- This exists so the team can operate legacy-search in Bob without confusing the generated overlay with the old copied-workspace flow. -->
+<!-- RELEVANT FILES: ibm-bob/mode-pack/routing/direct-mode-flow.json, ibm-bob/mode-pack/modes/custom_modes.source.yaml, docs/copilot-studio/legacy-search/shared-io-contract.yaml -->
 # Legacy Search Guide
+
+## Scope
+
+これは new direct-mode family の guide です。
+
+old `ibmbob-orchestrator` family には入りません。
 
 ## Entry Rule
 
-Bob では `ls-01-intake-router` が唯一の入口です。
+`ibmbob-legacy-search-intake-router` が唯一の入口です。
 
-`ls-02` 以降から始めないでください。
+途中 mode から始めません。
 
-## Operating Model
+## Main Route
 
-- 1 会話で 1 問に絞ります。
-- `handoff_packet` を明示的に次 mode へ渡します。
-- `candidate_sources` は `ls-03` 以降でだけ増やします。
-- 競合資料や根拠不足は `ls-06-gap-reporter` で止めます。
+`ibmbob-legacy-search-intake-router -> ibmbob-legacy-search-glossary-normalizer -> ibmbob-legacy-search-document-locator -> ibmbob-legacy-search-evidence-verifier -> ibmbob-legacy-search-grounded-answerer`
 
-## Recommended Routes
+## Safe Stop
 
-### 現行仕様の確認
+資料が弱い時や不足する時は次に落とします。
 
-`ls-01 -> ls-02 -> ls-03 -> ls-04 -> ls-05`
+`ibmbob-legacy-search-document-locator or ibmbob-legacy-search-evidence-verifier -> ibmbob-legacy-search-gap-reporter`
 
-### 刷新観点
+## Operating Rules
 
-`ls-01 -> ls-02 -> ls-03 -> ls-04 -> ls-07`
-
-### 新旧差分
-
-`ls-01 -> ls-02 -> ls-03 -> ls-04 -> ls-08`
-
-### 安全停止
-
-`ls-01 -> ls-06`
+- `handoff_packet` を毎段で維持する
+- `candidate_sources` は `document-locator` と `evidence-verifier` でだけ増減する
+- `chat_response` と `pm_copy_template` は最終系で返す
+- weak evidence は補完せず止まる
 
 ## Knowledge Boundary
 
-v1 では canonical docs の前提を維持します。
+canonical `legacy-search` docs の前提をそのまま使います。
 
-つまり、対象は `SharePoint / OneDrive` 相当の legacy 文書 root です。
+Bob 側ではこれを `allowed knowledge roots` の運用として扱います。
 
-Bob custom mode pack では、これを `allowed knowledge roots` として運用で固定します。
-
-## Output Discipline
-
-最終系の `ls-05`, `ls-06`, `ls-07`, `ls-08` は次を返します。
-
-- `chat_response`
-- `pm_copy_template`
-- `next_agent`
-- `handoff_packet`
-
-検索系の `ls-01` から `ls-04` は `handoff_packet` を省略しません。

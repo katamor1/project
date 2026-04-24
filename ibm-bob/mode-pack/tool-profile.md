@@ -1,53 +1,39 @@
 <!-- ibm-bob/mode-pack/tool-profile.md -->
-<!-- Defines the IBM Bob tool-group policy and edit restrictions for the custom mode pack. -->
-<!-- This exists so full-parity Bob modes stay powerful without being allowed to mutate application code. -->
-<!-- RELEVANT FILES: .bob/custom_modes.yaml, .bob/rules/04-command-safety.md, ibm-bob/mode-pack/pilot-runbook.md -->
+<!-- Defines the permission policy that applies across the old orchestrator family and the new direct-mode family. -->
+<!-- This exists so IBM Bob stays powerful for design assets without drifting into unrestricted application edits. -->
+<!-- RELEVANT FILES: ibm-bob/mode-pack/modes/custom_modes.source.yaml, ibm-bob/mode-pack/rules/shared/13-command-safety.md, ibm-bob/mode-pack/pilot-runbook.md -->
 # Tool Profile
 
-## Default Groups
+## Default Permission Set
 
-全 custom mode は次を持ちます。
+全 mode は次を持ちます。
 
 - `read`
 - `mcp`
 - `command`
 - `edit`
 
-この pack は `Power User` 方針です。
-
-ただし、無制限編集にはしません。
-
 ## Edit Restriction
 
-`edit` は次の設計資産ルートだけに制限します。
-
-- `.bob/`
-- `ibm-bob/`
-- `docs/`
-- `.copilot/`
-
-regex は次です。
+new family の `edit` は設計資産ルートに固定します。
 
 ```text
 ^(\.bob|ibm-bob|docs|\.copilot)/.*
 ```
 
-## Why This Restriction Exists
+これは generated `.bob/` を含みますが、source of truth は `ibm-bob/mode-pack/` です。
 
-- Bob custom mode pack の v1 は設計資産用です。
-- app code や runtime service code の実装は対象外です。
-- built-in `code` や `advanced` を残しているので、実装側と役割を分けられます。
+## Family Difference
 
-## Command Policy
+old family の copied-workspace edit 制限は変えません。
 
-`command` は全 mode にあります。
+new family だけが上の regex へ統一されます。
 
-ただし `.bob/rules/04-command-safety.md` を全 mode に適用します。
+## Command Safety
 
-特に destructive command は human checkpoint なしで進めません。
+destructive command は human checkpoint 必須です。
 
-## MCP Policy
+new family では shared rule から展開します。
 
-`mcp` は全 mode にあります。
+old family は既存 rule 挙動を維持します。
 
-source-backed generation, legacy runtime, review のどれでも evidence 参照が必要だからです。

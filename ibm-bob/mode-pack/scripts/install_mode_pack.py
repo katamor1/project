@@ -10,7 +10,21 @@ from pathlib import Path
 
 import yaml
 
-from runtime_common import MODES_SOURCE, PROFILES_ROOT, ROUTING_SOURCE, RULES_ROOT, ensure_dir, load_yaml_file
+from runtime_common import DIRECT_ROUTING_SOURCE, MODES_SOURCE, PROFILES_ROOT, ROUTING_SOURCE, RULES_ROOT, ensure_dir, load_yaml_file
+
+OLD_FAMILY_SLUGS = {
+    "ibmbob-orchestrator",
+    "ibmbob-intake",
+    "ibmbob-context-scout",
+    "ibmbob-detail-design",
+    "ibmbob-review-gate",
+    "ibmbob-code-author",
+    "ibmbob-unit-test-author",
+    "ibmbob-unit-test-executor",
+    "ibmbob-functional-test-author",
+    "ibmbob-run-summary",
+}
+SHARED_RULES_ROOT = RULES_ROOT / "shared"
 
 
 def _render_groups(permissions: list) -> list:
@@ -67,7 +81,11 @@ def install_to_workspace(workspace_root: Path, force: bool = False) -> dict:
         if dst.exists():
             continue
         shutil.copytree(src, dst)
+        if mode["slug"] not in OLD_FAMILY_SLUGS and SHARED_RULES_ROOT.exists():
+            for shared_rule in sorted(SHARED_RULES_ROOT.glob("*.md")):
+                shutil.copy2(shared_rule, dst / shared_rule.name)
     shutil.copy2(ROUTING_SOURCE, bundle_root / "stage-flow.json")
+    shutil.copy2(DIRECT_ROUTING_SOURCE, bundle_root / "direct-mode-flow.json")
     profiles_root = ensure_dir(bundle_root / "profiles")
     for path in PROFILES_ROOT.glob("*.json"):
         shutil.copy2(path, profiles_root / path.name)

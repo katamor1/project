@@ -24,6 +24,7 @@ RULES_ROOT = PACK_ROOT / "rules"
 SCHEMA_ROOT = PACK_ROOT / "schemas"
 PROFILES_ROOT = PACK_ROOT / "profiles"
 ROUTING_SOURCE = PACK_ROOT / "routing" / "stage-flow.json"
+DIRECT_ROUTING_SOURCE = PACK_ROOT / "routing" / "direct-mode-flow.json"
 
 
 def ensure_dir(path: Path) -> Path:

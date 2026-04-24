@@ -1,55 +1,57 @@
 <!-- ibm-bob/mode-pack/pilot-runbook.md -->
-<!-- Defines the manual pilot procedure for validating the IBM Bob custom mode pack against the existing design assets. -->
-<!-- This exists so the team can check routing, abstains, and handoff discipline before relying on the Bob pack in daily work. -->
-<!-- RELEVANT FILES: .bob/custom_modes.yaml, ibm-bob/mode-pack/routing-map.md, ibm-bob/mode-pack/samples/generation-dry-run.md -->
+<!-- Defines regression checks for the old Bob family and manual pilot checks for the new direct-mode family. -->
+<!-- This exists so the team can verify coexistence without turning generated Bob output into another source of truth. -->
+<!-- RELEVANT FILES: ibm-bob/mode-pack/scripts/validate_mode_pack.py, ibm-bob/mode-pack/routing/direct-mode-flow.json, ibm-bob/mode-pack/samples/direct-modes/generation-dry-run.md -->
 # Pilot Runbook
 
 ## Goal
 
-Bob custom mode pack が、既存の `C / K / P / LS` 設計と同じ流れで動くかを手動で確認します。
+old family を壊さずに、new direct-mode family を同じ generated `.bob/custom_modes.yaml` に共存させることを確認します。
 
 ## Pre-Check
 
-1. `.bob/custom_modes.yaml` を Bob が読める状態にする
-2. `.bob/rules/` が project-level rule として有効なことを確認する
-3. built-in mode を上書きしていないことを確認する
-4. `edit` 制限が `.bob/`, `ibm-bob/`, `docs/`, `.copilot/` だけに向いていることを確認する
+1. `py -3 ibm-bob/mode-pack/scripts/validate_mode_pack.py` を通す
+2. generated `.bob/custom_modes.yaml` に old + new family の両方が入ることを確認する
+3. generated `.bob/rules-{slug}/` が作られることを確認する
+4. `.bob/` は generated output であり、source of truth ではないことを確認する
 
-## Manual Pilot Flows
+## Old Family Regression
 
-### Legacy Search
+- old 10 slug が同じ順序で残っている
+- `routing/stage-flow.json` が未変更
+- `evaluate_mode_pack.py --execution-mode simulate` が従来どおり動く
 
-`ls-01-intake-router -> ls-02-glossary-normalizer -> ls-03-document-locator -> ls-04-evidence-verifier -> ls-05-grounded-answerer`
-
-### Diff
-
-`c0-entry-router -> c1-intent-packet-builder -> c2-identity-scope-guard -> c3-dispatch-packet-author -> k0-runtime-orchestrator -> k6-legacy-diff-checker -> k8-evidence-reviewer -> c4-entry-response-shaper`
+## New Family Manual Pilot
 
 ### Source-Backed Design
 
-`c0-entry-router -> c1-intent-packet-builder -> c2-identity-scope-guard -> c3-dispatch-packet-author -> k0-runtime-orchestrator -> k5-retrieval-planner -> k7-artifact-context-packer -> k8-evidence-reviewer -> p2-basic-design-author`
+`ibmbob-entry-router -> ibmbob-intent-packet-builder -> ibmbob-identity-scope-guard -> ibmbob-dispatch-packet-author -> ibmbob-runtime-orchestrator -> ibmbob-retrieval-planner -> ibmbob-artifact-context-packer -> ibmbob-evidence-reviewer -> ibmbob-sdlc-basic-design-author`
 
-### Review
+### Diff
 
-`c0-entry-router -> ... -> p8-review-record`
+`ibmbob-entry-router -> ibmbob-intent-packet-builder -> ibmbob-identity-scope-guard -> ibmbob-dispatch-packet-author -> ibmbob-runtime-orchestrator -> ibmbob-legacy-diff-checker -> ibmbob-evidence-reviewer -> ibmbob-entry-response-shaper`
 
-### Eval
+### Legacy Search
 
-`c0-entry-router -> ... -> p9-eval-monitor`
+`ibmbob-legacy-search-intake-router -> ibmbob-legacy-search-glossary-normalizer -> ibmbob-legacy-search-document-locator -> ibmbob-legacy-search-evidence-verifier -> ibmbob-legacy-search-grounded-answerer`
 
-## Expected Safety Behavior
+### Review / Eval
 
-- `low confidence`, `ACL mismatch`, `authoritative conflict` は `c4` の `abstain + next action` に落ちる
+`ibmbob-entry-router -> ... -> ibmbob-sdlc-review-record`
+
+`ibmbob-entry-router -> ... -> ibmbob-sdlc-eval-monitor`
+
+## Expected Safety
+
+- `low confidence`, `ACL mismatch`, `authoritative conflict` は `ibmbob-entry-response-shaper` の abstain に落ちる
 - destructive command は human checkpoint なしで進まない
-- `artifact_context_packet` がない source-backed generation は始まらない
+- `artifact_context_packet` が無い source-backed generation は始まらない
 
-## Record What Happened
+## Dry-Run References
 
-各 pilot で次を残します。
+- `samples/direct-modes/generation-dry-run.md`
+- `samples/direct-modes/diff-dry-run.md`
+- `samples/direct-modes/review-dry-run.md`
+- `samples/direct-modes/eval-dry-run.md`
+- `samples/direct-modes/legacy-search-dry-run.md`
 
-- 使った mode
-- 実際の route
-- expected route と一致したか
-- abstain が適切だったか
-- handoff が欠けなかったか
-- 次に直すべき rule または mode

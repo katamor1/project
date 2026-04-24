@@ -1,14 +1,14 @@
 <!-- ibm-bob/mode-pack/handoff-contracts.md -->
-<!-- Maps the IBM Bob user-facing handoff names to the canonical schema and artifact names already present in the repo. -->
-<!-- This exists so the Bob mode pack can use neutral names without forking the canonical contracts. -->
+<!-- Maps the Bob user-facing aliases to the unchanged canonical packet and schema names. -->
+<!-- This exists so the Bob docs stay readable without forking the canonical C, K, P, and LS contracts. -->
 <!-- RELEVANT FILES: .copilot/schemas/bridge-request-packet.schema.json, .copilot/schemas/artifact-context-packet.schema.json, docs/copilot-studio/legacy-search/shared-io-contract.yaml -->
 # Handoff Contracts
 
-## Rule
+Bob 向け docs では alias を使います。
 
-Bob 向け docs では user-facing の呼び方だけ中立化します。
+ただし canonical schema 名は変えません。
 
-canonical source は `.copilot/schemas/` と `docs/copilot-studio/legacy-search/shared-io-contract.yaml` のままです。
+正本は `.copilot/schemas/` と `docs/copilot-studio/legacy-search/shared-io-contract.yaml` のままです。
 
 ## Alias Table
 
@@ -21,12 +21,12 @@ canonical source は `.copilot/schemas/` と `docs/copilot-studio/legacy-search/
 | `entry_human_checkpoint` | `bridge_human_checkpoint` | `.copilot/schemas/bridge-human-checkpoint.schema.json` |
 | `entry_trace` | `bridge_trace` | `.copilot/schemas/bridge-trace.schema.json` |
 
-## Unchanged Canonical Names
+## Unchanged Names
 
-以下は alias を増やしません。
+次は alias を増やしません。
 
-- `evidence_bundle`
 - `artifact_context_packet`
+- `evidence_bundle`
 - `request_packet`
 - `scope_packet`
 - `implementation_packet`
@@ -37,20 +37,11 @@ canonical source は `.copilot/schemas/` と `docs/copilot-studio/legacy-search/
 - `handoff_packet`
 - `candidate_sources`
 
-## Legacy Search Contract
+## Operating Rule
 
-`LS-*` は canonical contract をそのまま使います。
+Bob docs では alias を使ってよいです。
 
-特に次は変えません。
+実際の返却 shape は canonical 名に合わせます。
 
-- `next_agent`
-- `handoff_packet`
-- `candidate_sources`
-- `chat_response`
-- `pm_copy_template`
+new family でも old family でも、このルールは同じです。
 
-## Bob Operating Rule
-
-Bob mode の説明では alias を使ってもよいです。
-
-ただし実際に返す JSON は canonical contract に合わせます。

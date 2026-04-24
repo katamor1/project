@@ -1,0 +1,9 @@
+# .gitignore
+# Ignores generated IBM Bob workspace settings and rule bundles that should not be tracked as source.
+# This exists so ibm-bob/mode-pack remains the single source of truth for generated Bob assets.
+# RELEVANT FILES: ibm-bob/mode-pack/modes/custom_modes.source.yaml, ibm-bob/mode-pack/scripts/install_mode_pack.py, ibm-bob/mode-pack/README.md
+.bob/custom_modes.yaml
+.bob/rules-*/
+.bob/ibm-bob/
+artifacts/ibm-bob/
+ibm-bob/mode-pack/scripts/__pycache__/

@@ -1,0 +1,128 @@
+// ibm-bob/mode-pack/routing/direct-mode-flow.json
+// Defines the direct-mode IBM Bob flow for entry bridge, legacy runtime, SDLC authoring, and legacy search.
+// This exists so the new direct-mode family can coexist with the copied-workspace orchestrator family without changing stage-flow.json.
+// RELEVANT FILES: ibm-bob/mode-pack/modes/custom_modes.source.yaml, ibm-bob/mode-pack/mode-catalog.md, ibm-bob/mode-pack/pilot-runbook.md
+{
+  "version": 1,
+  "families": {
+    "entry": [
+      "ibmbob-entry-router",
+      "ibmbob-intent-packet-builder",
+      "ibmbob-identity-scope-guard",
+      "ibmbob-dispatch-packet-author",
+      "ibmbob-entry-response-shaper",
+      "ibmbob-entry-eval-monitor"
+    ],
+    "runtime": [
+      "ibmbob-runtime-orchestrator",
+      "ibmbob-intake-normalizer",
+      "ibmbob-taxonomy-mapper",
+      "ibmbob-summary-tree-builder",
+      "ibmbob-relation-extractor",
+      "ibmbob-retrieval-planner",
+      "ibmbob-legacy-diff-checker",
+      "ibmbob-artifact-context-packer",
+      "ibmbob-evidence-reviewer",
+      "ibmbob-runtime-eval-monitor"
+    ],
+    "sdlc": [
+      "ibmbob-sdlc-request-orchestrator",
+      "ibmbob-sdlc-scope",
+      "ibmbob-sdlc-basic-design-author",
+      "ibmbob-sdlc-detail-design-author",
+      "ibmbob-sdlc-functional-spec-author",
+      "ibmbob-sdlc-integration-spec-author",
+      "ibmbob-sdlc-spec-reviewer",
+      "ibmbob-sdlc-implementation-planner",
+      "ibmbob-sdlc-fullstack-slice-author",
+      "ibmbob-sdlc-test-author",
+      "ibmbob-sdlc-code-reviewer",
+      "ibmbob-sdlc-review-record",
+      "ibmbob-sdlc-eval-monitor",
+      "ibmbob-sdlc-execution-bundle-planner",
+      "ibmbob-sdlc-frontend-codepack-author",
+      "ibmbob-sdlc-backend-codepack-author",
+      "ibmbob-sdlc-test-codepack-author",
+      "ibmbob-sdlc-execution-reviewer",
+      "ibmbob-sdlc-integration-bundle-planner",
+      "ibmbob-sdlc-frontend-draft-author",
+      "ibmbob-sdlc-backend-draft-author",
+      "ibmbob-sdlc-sqlite-draft-author",
+      "ibmbob-sdlc-test-draft-author",
+      "ibmbob-sdlc-integration-reviewer",
+      "ibmbob-sdlc-approval-pack-author"
+    ],
+    "legacy_search": [
+      "ibmbob-legacy-search-intake-router",
+      "ibmbob-legacy-search-glossary-normalizer",
+      "ibmbob-legacy-search-document-locator",
+      "ibmbob-legacy-search-evidence-verifier",
+      "ibmbob-legacy-search-grounded-answerer",
+      "ibmbob-legacy-search-gap-reporter",
+      "ibmbob-legacy-search-renewal-impact-mapper",
+      "ibmbob-legacy-search-change-diff-scout"
+    ]
+  },
+  "manual_pilot_flows": {
+    "source_backed_design": [
+      "ibmbob-entry-router",
+      "ibmbob-intent-packet-builder",
+      "ibmbob-identity-scope-guard",
+      "ibmbob-dispatch-packet-author",
+      "ibmbob-runtime-orchestrator",
+      "ibmbob-retrieval-planner",
+      "ibmbob-artifact-context-packer",
+      "ibmbob-evidence-reviewer",
+      "ibmbob-sdlc-basic-design-author"
+    ],
+    "diff": [
+      "ibmbob-entry-router",
+      "ibmbob-intent-packet-builder",
+      "ibmbob-identity-scope-guard",
+      "ibmbob-dispatch-packet-author",
+      "ibmbob-runtime-orchestrator",
+      "ibmbob-legacy-diff-checker",
+      "ibmbob-evidence-reviewer",
+      "ibmbob-entry-response-shaper"
+    ],
+    "legacy_search": [
+      "ibmbob-legacy-search-intake-router",
+      "ibmbob-legacy-search-glossary-normalizer",
+      "ibmbob-legacy-search-document-locator",
+      "ibmbob-legacy-search-evidence-verifier",
+      "ibmbob-legacy-search-grounded-answerer"
+    ],
+    "review": [
+      "ibmbob-entry-router",
+      "ibmbob-intent-packet-builder",
+      "ibmbob-identity-scope-guard",
+      "ibmbob-dispatch-packet-author",
+      "ibmbob-runtime-orchestrator",
+      "ibmbob-retrieval-planner",
+      "ibmbob-artifact-context-packer",
+      "ibmbob-evidence-reviewer",
+      "ibmbob-sdlc-review-record"
+    ],
+    "eval": [
+      "ibmbob-entry-router",
+      "ibmbob-intent-packet-builder",
+      "ibmbob-identity-scope-guard",
+      "ibmbob-dispatch-packet-author",
+      "ibmbob-runtime-orchestrator",
+      "ibmbob-retrieval-planner",
+      "ibmbob-artifact-context-packer",
+      "ibmbob-evidence-reviewer",
+      "ibmbob-sdlc-eval-monitor"
+    ]
+  },
+  "gate_rules": {
+    "entry_checkpoint": ["identity_missing", "tenant_mismatch", "scope_missing"],
+    "runtime_abstain": ["confidence_below_0_65", "acl_mismatch", "authoritative_conflict"],
+    "runtime_retry": ["confidence_between_0_65_and_0_78"],
+    "source_backed_requires_context_packet": [
+      "ibmbob-sdlc-basic-design-author",
+      "ibmbob-sdlc-implementation-planner",
+      "ibmbob-sdlc-test-author"
+    ]
+  }
+}
