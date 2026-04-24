@@ -1,7 +1,7 @@
 // .copilot/schemas/sqlite-change-pack.schema.json
 // Defines the SQLite change pack schema used to describe schema intent and migration draft notes.
 // This exists so DB responsibility stays explicit and separate from the backend codepack.
-// RELEVANT FILES: .copilot/prompts/P12_backend_codepack_author.md, docs/sdlc/templates/sqlite-change-pack.md, .copilot/schemas/backend-codepack.schema.json
+// RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-backend-codepack-author.md, docs/sdlc/templates/sqlite-change-pack.md, .copilot/schemas/backend-codepack.schema.json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "sqlite-change-pack.schema.json",
@@ -36,6 +36,7 @@
     "schema_changes": { "type": "array", "items": { "type": "string" } },
     "migration_draft": { "type": "string" },
     "rollback_notes": { "type": "string" },
-    "next_agent": { "type": "string", "const": "P13_test_codepack_author" }
+    "next_agent": { "type": "string", "const": "ibmbob-sdlc-test-codepack-author" }
   }
 }
+

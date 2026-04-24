@@ -1,7 +1,7 @@
 <!-- docs/external-runtime/legacy-kb/security-acl.md -->
 <!-- Describes the ACL and security checks for ingest, retrieval, and evidence handoff. -->
 <!-- This exists so the runtime can block unsafe evidence before it reaches generation or review lanes. -->
-<!-- RELEVANT FILES: docs/external-runtime/legacy-kb/azure-topology.md, .copilot/schemas/acl-principal-set.schema.json, .copilot/prompts/K8_evidence_reviewer.md -->
+<!-- RELEVANT FILES: docs/external-runtime/legacy-kb/azure-topology.md, .copilot/schemas/acl-principal-set.schema.json, .copilot/prompts/runtime/ibmbob-evidence-reviewer.md -->
 # Security And ACL
 
 ## Core Rules
@@ -30,3 +30,4 @@
 - trace には `retrieved_doc_ids` と decision flag を残す
 - 本文全文は長期保存しない
 - incident 時は `run_id` から query plan と ACL verdict を引けるようにする
+

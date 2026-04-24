@@ -13,7 +13,8 @@ old family を壊さずに、new direct-mode family を同じ generated `.bob/cu
 1. `py -3 ibm-bob/mode-pack/scripts/validate_mode_pack.py` を通す
 2. generated `.bob/custom_modes.yaml` に old + new family の両方が入ることを確認する
 3. generated `.bob/rules-{slug}/` が作られることを確認する
-4. `.bob/` は generated output であり、source of truth ではないことを確認する
+4. `.bob/ibm-bob/references/` が curated bundle だけで、source mirror ではないことを確認する
+5. `.bob/` は generated output であり、source of truth ではないことを確認する
 
 ## Old Family Regression
 
@@ -54,4 +55,3 @@ old family を壊さずに、new direct-mode family を同じ generated `.bob/cu
 - `samples/direct-modes/review-dry-run.md`
 - `samples/direct-modes/eval-dry-run.md`
 - `samples/direct-modes/legacy-search-dry-run.md`
-

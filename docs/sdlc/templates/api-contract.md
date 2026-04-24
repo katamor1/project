@@ -6,7 +6,7 @@
 artifact_id: API-CONTRACT-REQ-XXXX
 artifact_type: api_contract
 status: draft
-prompt_id: P5_fullstack_slice_author
+prompt_id: ibmbob-sdlc-fullstack-slice-author
 prompt_version: "1.0"
 model_id: copilot
 upstream_refs:
@@ -34,3 +34,4 @@ language: ja
 
 ## Source Refs
 - 根拠となる設計参照を書く
+

@@ -1,12 +1,12 @@
 <!-- docs/sdlc/templates/review-record.md -->
 <!-- Provides the review record template for storing design, implementation, execution, and integration review history. -->
 <!-- This exists so review activity remains traceable without adding a custom logging system. -->
-<!-- RELEVANT FILES: .copilot/prompts/P8_review_record.md, .copilot/schemas/review-record.schema.json, reviews/integration/README.md -->
+<!-- RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-review-record.md, .copilot/schemas/review-record.schema.json, reviews/integration/README.md -->
 ---
 artifact_id: RR-REQ-XXXX
 artifact_type: review_record
 status: draft
-prompt_id: P8_review_record
+prompt_id: ibmbob-sdlc-review-record
 prompt_version: "1.0"
 model_id: copilot
 upstream_refs:
@@ -31,3 +31,4 @@ language: ja
 
 ## 次工程メモ
 - 次工程で見るべき点を書く
+

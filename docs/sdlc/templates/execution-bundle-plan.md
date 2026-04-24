@@ -1,12 +1,12 @@
 <!-- docs/sdlc/templates/execution-bundle-plan.md -->
 <!-- Provides the execution bundle planning template used before generating near-code packs. -->
 <!-- This exists so execution prep can freeze bundle boundaries and target repo shape before pack authoring starts. -->
-<!-- RELEVANT FILES: .copilot/prompts/P10_execution_bundle_planner.md, .copilot/schemas/execution-bundle-packet.schema.json, docs/sdlc/templates/target-repo-map.md -->
+<!-- RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-execution-bundle-planner.md, .copilot/schemas/execution-bundle-packet.schema.json, docs/sdlc/templates/target-repo-map.md -->
 ---
 artifact_id: EXEC-BUNDLE-REQ-XXXX
 artifact_type: execution_bundle_packet
 status: draft
-prompt_id: P10_execution_bundle_planner
+prompt_id: ibmbob-sdlc-execution-bundle-planner
 prompt_version: "1.0"
 model_id: copilot
 upstream_refs:
@@ -34,3 +34,4 @@ language: ja
 
 ## Open Questions
 - 未解決事項を書く
+

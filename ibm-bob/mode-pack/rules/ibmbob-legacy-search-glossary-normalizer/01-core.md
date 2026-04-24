@@ -1,11 +1,11 @@
 <!-- ibm-bob/mode-pack/rules/ibmbob-legacy-search-glossary-normalizer/01-core.md -->
 <!-- Defines the direct-mode rule for IBM-Bob Legacy Search Glossary Normalizer. -->
 <!-- This exists so IBM-Bob can mirror the canonical direct flow without rewriting the canonical prompt and routing sources. -->
-<!-- RELEVANT FILES: docs/copilot-studio/legacy-search/agents/glossary-normalizer.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/copilot-studio/legacy-search/README.md -->
+<!-- RELEVANT FILES: .copilot/prompts/legacy-search/ibmbob-legacy-search-glossary-normalizer.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/copilot-studio/legacy-search/README.md -->
 # IBM-Bob Legacy Search Glossary Normalizer Rules
 
 ## Read First
-- `docs/copilot-studio/legacy-search/agents/glossary-normalizer.md`
+- `.copilot/prompts/legacy-search/ibmbob-legacy-search-glossary-normalizer.md`
 - `ibm-bob/mode-pack/routing/direct-mode-flow.json`
 - `docs/copilot-studio/legacy-search/README.md`
 
@@ -23,3 +23,4 @@
 ## Safety
 - direct flow の担当範囲を越える判断はしない。
 - 根拠が弱い時は先へ進めず、abstain か human checkpoint に落とす。
+

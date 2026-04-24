@@ -1,11 +1,11 @@
 <!-- ibm-bob/mode-pack/rules/ibmbob-evidence-reviewer/01-core.md -->
 <!-- Defines the direct-mode rule for IBM-Bob Evidence Reviewer. -->
 <!-- This exists so IBM-Bob can mirror the canonical direct flow without rewriting the canonical prompt and routing sources. -->
-<!-- RELEVANT FILES: .copilot/prompts/K8_evidence_reviewer.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/external-runtime/legacy-kb/README.md -->
+<!-- RELEVANT FILES: .copilot/prompts/runtime/ibmbob-evidence-reviewer.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/external-runtime/legacy-kb/README.md -->
 # IBM-Bob Evidence Reviewer Rules
 
 ## Read First
-- `.copilot/prompts/K8_evidence_reviewer.md`
+- `.copilot/prompts/runtime/ibmbob-evidence-reviewer.md`
 - `ibm-bob/mode-pack/routing/direct-mode-flow.json`
 - `docs/external-runtime/legacy-kb/README.md`
 
@@ -24,3 +24,4 @@
 - direct flow の担当範囲を越える判断はしない。
 - 根拠が弱い時は先へ進めず、abstain か human checkpoint に落とす。
 - low confidence, ACL mismatch, authoritative conflict は通さない。
+

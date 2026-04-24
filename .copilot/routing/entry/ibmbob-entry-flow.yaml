@@ -1,0 +1,179 @@
+# .copilot/routing/entry/ibmbob-entry-flow.yaml
+# Defines the entry bridge routing from entry classification through runtime dispatch and response shaping.
+# This exists so entry-facing routing, checkpoints, and abstains can be tracked separately from runtime and SDLC lanes.
+# RELEVANT FILES: .copilot/prompts/entry/ibmbob-entry-router.md, .copilot/prompts/entry/ibmbob-entry-response-shaper.md, docs/copilot-studio/custom-engine-bridge/README.md
+version: 1
+flow_name: ibmbob-entry-flow
+agents:
+  - id: ibmbob-entry-router
+    artifact_type: entry_route_decision
+    prompt_path: .copilot/prompts/entry/ibmbob-entry-router.md
+  - id: ibmbob-intent-packet-builder
+    artifact_type: entry_request_packet
+    prompt_path: .copilot/prompts/entry/ibmbob-intent-packet-builder.md
+  - id: ibmbob-identity-scope-guard
+    artifact_type: session_scope_gate
+    prompt_path: .copilot/prompts/entry/ibmbob-identity-scope-guard.md
+  - id: ibmbob-dispatch-packet-author
+    artifact_type: entry_dispatch_packet
+    prompt_path: .copilot/prompts/entry/ibmbob-dispatch-packet-author.md
+  - id: ibmbob-runtime-orchestrator
+    artifact_type: runtime_task_packet
+    prompt_path: .copilot/prompts/runtime/ibmbob-runtime-orchestrator.md
+  - id: ibmbob-retrieval-planner
+    artifact_type: retrieval_plan
+    prompt_path: .copilot/prompts/runtime/ibmbob-retrieval-planner.md
+  - id: ibmbob-legacy-diff-checker
+    artifact_type: diff_report
+    prompt_path: .copilot/prompts/runtime/ibmbob-legacy-diff-checker.md
+  - id: ibmbob-artifact-context-packer
+    artifact_type: artifact_context_packet
+    prompt_path: .copilot/prompts/runtime/ibmbob-artifact-context-packer.md
+  - id: ibmbob-evidence-reviewer
+    artifact_type: evidence_review
+    prompt_path: .copilot/prompts/runtime/ibmbob-evidence-reviewer.md
+  - id: ibmbob-sdlc-basic-design-author
+    artifact_type: basic_design
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-basic-design-author.md
+  - id: ibmbob-sdlc-detail-design-author
+    artifact_type: detail_design
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-detail-design-author.md
+  - id: ibmbob-sdlc-functional-spec-author
+    artifact_type: functional_spec
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-functional-spec-author.md
+  - id: ibmbob-sdlc-integration-spec-author
+    artifact_type: integration_spec
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-integration-spec-author.md
+  - id: ibmbob-sdlc-implementation-planner
+    artifact_type: implementation_packet
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-implementation-planner.md
+  - id: ibmbob-sdlc-test-author
+    artifact_type: test_pack
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-test-author.md
+  - id: ibmbob-sdlc-review-record
+    artifact_type: review_record
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-review-record.md
+  - id: ibmbob-sdlc-eval-monitor
+    artifact_type: eval_report
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-eval-monitor.md
+  - id: ibmbob-entry-response-shaper
+    artifact_type: entry_response
+    prompt_path: .copilot/prompts/entry/ibmbob-entry-response-shaper.md
+  - id: ibmbob-entry-eval-monitor
+    artifact_type: entry_eval_note
+    prompt_path: .copilot/prompts/entry/ibmbob-entry-eval-monitor.md
+entry_conditions:
+  - source: copilot_chat
+    when: entry_request_received
+standard_route:
+  - from: ibmbob-entry-router
+    to: ibmbob-intent-packet-builder
+    when: entry_route_ready
+  - from: ibmbob-intent-packet-builder
+    to: ibmbob-identity-scope-guard
+    when: entry_request_packet_ready
+  - from: ibmbob-identity-scope-guard
+    to: ibmbob-dispatch-packet-author
+    when: identity_scope_verified
+  - from: ibmbob-identity-scope-guard
+    to: ibmbob-entry-response-shaper
+    when: human_checkpoint_required
+  - from: ibmbob-dispatch-packet-author
+    to: ibmbob-runtime-orchestrator
+    when: entry_dispatch_packet_ready
+  - from: ibmbob-runtime-orchestrator
+    to: ibmbob-retrieval-planner
+    when: runtime_task_query_ready
+  - from: ibmbob-retrieval-planner
+    to: ibmbob-legacy-diff-checker
+    when: legacy_diff_requested
+  - from: ibmbob-retrieval-planner
+    to: ibmbob-artifact-context-packer
+    when: source_backed_generation_requested
+  - from: ibmbob-legacy-diff-checker
+    to: ibmbob-evidence-reviewer
+    when: diff_report_ready
+  - from: ibmbob-artifact-context-packer
+    to: ibmbob-evidence-reviewer
+    when: artifact_context_packet_ready
+  - from: ibmbob-evidence-reviewer
+    to: ibmbob-sdlc-basic-design-author
+    when: downstream_target_basic_design
+  - from: ibmbob-evidence-reviewer
+    to: ibmbob-sdlc-detail-design-author
+    when: downstream_target_detail_design
+  - from: ibmbob-evidence-reviewer
+    to: ibmbob-sdlc-functional-spec-author
+    when: downstream_target_functional_spec
+  - from: ibmbob-evidence-reviewer
+    to: ibmbob-sdlc-integration-spec-author
+    when: downstream_target_integration_spec
+  - from: ibmbob-evidence-reviewer
+    to: ibmbob-sdlc-implementation-planner
+    when: downstream_target_implementation
+  - from: ibmbob-evidence-reviewer
+    to: ibmbob-sdlc-test-author
+    when: downstream_target_test_pack
+  - from: ibmbob-evidence-reviewer
+    to: ibmbob-sdlc-review-record
+    when: downstream_target_review_record
+  - from: ibmbob-evidence-reviewer
+    to: ibmbob-sdlc-eval-monitor
+    when: downstream_target_eval
+  - from: ibmbob-evidence-reviewer
+    to: ibmbob-entry-response-shaper
+    when: entry_abstain_required
+  - from: ibmbob-sdlc-basic-design-author
+    to: ibmbob-entry-response-shaper
+    when: entry_callback_requested
+  - from: ibmbob-sdlc-detail-design-author
+    to: ibmbob-entry-response-shaper
+    when: entry_callback_requested
+  - from: ibmbob-sdlc-functional-spec-author
+    to: ibmbob-entry-response-shaper
+    when: entry_callback_requested
+  - from: ibmbob-sdlc-integration-spec-author
+    to: ibmbob-entry-response-shaper
+    when: entry_callback_requested
+  - from: ibmbob-sdlc-implementation-planner
+    to: ibmbob-entry-response-shaper
+    when: entry_callback_requested
+  - from: ibmbob-sdlc-test-author
+    to: ibmbob-entry-response-shaper
+    when: entry_callback_requested
+  - from: ibmbob-sdlc-review-record
+    to: ibmbob-entry-response-shaper
+    when: entry_callback_requested
+  - from: ibmbob-sdlc-eval-monitor
+    to: ibmbob-entry-response-shaper
+    when: entry_callback_requested
+  - from: ibmbob-entry-response-shaper
+    to: ibmbob-entry-eval-monitor
+    when: entry_response_ready
+gate_rules:
+  - condition: identity_missing
+    return_to: ibmbob-identity-scope-guard
+    result: human_checkpoint_required
+  - condition: tenant_mismatch
+    return_to: ibmbob-identity-scope-guard
+    result: human_checkpoint_required
+  - condition: scope_missing
+    return_to: ibmbob-identity-scope-guard
+    result: human_checkpoint_required
+  - condition: confidence_below_0_65
+    return_to: ibmbob-entry-response-shaper
+    result: abstain_next_action
+  - condition: acl_mismatch
+    return_to: ibmbob-entry-response-shaper
+    result: abstain_next_action
+  - condition: authoritative_conflict
+    return_to: ibmbob-entry-response-shaper
+    result: abstain_next_action
+  - condition: confidence_between_0_65_and_0_78
+    return_to: ibmbob-retrieval-planner
+    result: second_pass_required
+terminal_states:
+  - complete
+  - human_checkpoint_required
+
+

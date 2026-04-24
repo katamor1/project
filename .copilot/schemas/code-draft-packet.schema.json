@@ -1,7 +1,7 @@
 // .copilot/schemas/code-draft-packet.schema.json
 // Defines the code draft packet schema used to start the integration lane from execution bundles.
 // This exists so skeleton draft generation can begin with fixed targets, constraints, and repo references.
-// RELEVANT FILES: .copilot/prompts/P15_integration_bundle_planner.md, .copilot/schemas/draft-file.schema.json, docs/sdlc/templates/integration-bundle-plan.md
+// RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-integration-bundle-planner.md, .copilot/schemas/draft-file.schema.json, docs/sdlc/templates/integration-bundle-plan.md
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "code-draft-packet.schema.json",
@@ -26,6 +26,7 @@
     "draft_targets": { "type": "array", "items": { "type": "string" } },
     "constraints": { "type": "array", "items": { "type": "string" } },
     "done_criteria": { "type": "array", "items": { "type": "string" } },
-    "next_agent": { "type": "string", "const": "P16_frontend_draft_author" }
+    "next_agent": { "type": "string", "const": "ibmbob-sdlc-frontend-draft-author" }
   }
 }
+

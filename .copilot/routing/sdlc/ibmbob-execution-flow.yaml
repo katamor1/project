@@ -1,0 +1,91 @@
+# .copilot/routing/sdlc/ibmbob-execution-flow.yaml
+# Defines the execution pack routing from repo bridge or code review pass into near-code bundle review and recording.
+# This exists so execution packs can be tracked separately from design and implementation prep lanes.
+# RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-execution-bundle-planner.md, .copilot/prompts/sdlc/ibmbob-sdlc-execution-reviewer.md, docs/sdlc/README.md
+version: 1
+flow_name: sdlc-execution-pack-lane
+agents:
+  - id: ibmbob-sdlc-code-reviewer
+    artifact_type: code_review_findings
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-code-reviewer.md
+  - id: ibmbob-sdlc-execution-bundle-planner
+    artifact_type: execution_bundle_packet
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-execution-bundle-planner.md
+  - id: ibmbob-sdlc-frontend-codepack-author
+    artifact_type: frontend_codepack
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-frontend-codepack-author.md
+  - id: ibmbob-sdlc-backend-codepack-author
+    artifact_type: backend_codepack
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-backend-codepack-author.md
+  - id: ibmbob-sdlc-test-codepack-author
+    artifact_type: test_codepack
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-test-codepack-author.md
+  - id: ibmbob-sdlc-execution-reviewer
+    artifact_type: execution_review_findings
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-execution-reviewer.md
+  - id: ibmbob-sdlc-review-record
+    artifact_type: review_record
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-review-record.md
+  - id: ibmbob-sdlc-eval-monitor
+    artifact_type: eval_report
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-eval-monitor.md
+entry_conditions:
+  - source: ibmbob-sdlc-code-reviewer
+    when: code_review_passed
+    handoff_artifacts:
+      - repo_bridge
+      - fullstack_slice
+      - test_pack
+  - source: repo_bridge
+    when: repo_bridge_ready
+standard_route:
+  - from: ibmbob-sdlc-execution-bundle-planner
+    to: ibmbob-sdlc-frontend-codepack-author
+    when: execution_bundle_packet_ready
+  - from: ibmbob-sdlc-frontend-codepack-author
+    to: ibmbob-sdlc-backend-codepack-author
+    when: frontend_codepack_ready
+  - from: ibmbob-sdlc-backend-codepack-author
+    to: ibmbob-sdlc-test-codepack-author
+    when: backend_codepack_ready
+    handoff_artifacts:
+      - backend_codepack
+      - sqlite_change_pack
+  - from: ibmbob-sdlc-test-codepack-author
+    to: ibmbob-sdlc-execution-reviewer
+    when: test_codepack_ready
+  - from: ibmbob-sdlc-execution-reviewer
+    to: ibmbob-sdlc-review-record
+    when: execution_review_passed
+  - from: ibmbob-sdlc-review-record
+    to: ibmbob-sdlc-eval-monitor
+    when: review_record_ready
+return_routes:
+  - reviewer: ibmbob-sdlc-execution-reviewer
+    decision: revise
+    category: frontend_interface
+    return_to: ibmbob-sdlc-frontend-codepack-author
+  - reviewer: ibmbob-sdlc-execution-reviewer
+    decision: revise
+    category: backend_db_contract
+    return_to: ibmbob-sdlc-backend-codepack-author
+  - reviewer: ibmbob-sdlc-execution-reviewer
+    decision: revise
+    category: test_coverage
+    return_to: ibmbob-sdlc-test-codepack-author
+  - reviewer: ibmbob-sdlc-execution-reviewer
+    decision: revise
+    category: bundle_boundary
+    return_to: ibmbob-sdlc-execution-bundle-planner
+  - reviewer: ibmbob-sdlc-execution-reviewer
+    decision: revise
+    category: repo_mapping
+    return_to: ibmbob-sdlc-execution-bundle-planner
+  - reviewer: ibmbob-sdlc-execution-reviewer
+    decision: block
+    return_to: ibmbob-sdlc-request-orchestrator
+    note: human_checkpoint を要求して bundle 前提を見直す
+terminal_states:
+  - complete
+  - human_checkpoint_required
+

@@ -1,11 +1,11 @@
 <!-- ibm-bob/mode-pack/rules/ibmbob-entry-response-shaper/01-core.md -->
 <!-- Defines the direct-mode rule for IBM-Bob Entry Response Shaper. -->
 <!-- This exists so IBM-Bob can mirror the canonical direct flow without rewriting the canonical prompt and routing sources. -->
-<!-- RELEVANT FILES: .copilot/prompts/C4_bridge_response_shaper.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, ibm-bob/mode-pack/handoff-contracts.md -->
+<!-- RELEVANT FILES: .copilot/prompts/entry/ibmbob-entry-response-shaper.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, ibm-bob/mode-pack/handoff-contracts.md -->
 # IBM-Bob Entry Response Shaper Rules
 
 ## Read First
-- `.copilot/prompts/C4_bridge_response_shaper.md`
+- `.copilot/prompts/entry/ibmbob-entry-response-shaper.md`
 - `ibm-bob/mode-pack/routing/direct-mode-flow.json`
 - `ibm-bob/mode-pack/handoff-contracts.md`
 
@@ -24,3 +24,4 @@
 - direct flow の担当範囲を越える判断はしない。
 - 根拠が弱い時は先へ進めず、abstain か human checkpoint に落とす。
 - 返答は短い日本語にする。何が分かったか、何が足りないか、次に何をするかを入れる。
+

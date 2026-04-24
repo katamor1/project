@@ -1,7 +1,7 @@
 // .copilot/schemas/section-node.schema.json
 // Defines the section node schema used for document maps and summary trees.
 // This exists so retrieval can traverse chapter and section structure before reading leaf chunks.
-// RELEVANT FILES: .copilot/prompts/K3_summary_tree_builder.md, .copilot/schemas/chunk-record.schema.json, docs/external-runtime/legacy-kb/data-pipeline.md
+// RELEVANT FILES: .copilot/prompts/runtime/ibmbob-summary-tree-builder.md, .copilot/schemas/chunk-record.schema.json, docs/external-runtime/legacy-kb/data-pipeline.md
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "section-node.schema.json",
@@ -20,3 +20,4 @@
     "child_ids": { "type": "array", "items": { "type": "string" } }
   }
 }
+

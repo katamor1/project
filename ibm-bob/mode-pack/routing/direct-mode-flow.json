@@ -1,7 +1,7 @@
 // ibm-bob/mode-pack/routing/direct-mode-flow.json
 // Defines the direct-mode IBM Bob flow for entry bridge, legacy runtime, SDLC authoring, and legacy search.
 // This exists so the new direct-mode family can coexist with the copied-workspace orchestrator family without changing stage-flow.json.
-// RELEVANT FILES: ibm-bob/mode-pack/modes/custom_modes.source.yaml, ibm-bob/mode-pack/mode-catalog.md, ibm-bob/mode-pack/pilot-runbook.md
+// RELEVANT FILES: .copilot/routing/entry/ibmbob-entry-flow.yaml, .copilot/routing/runtime/ibmbob-runtime-query-flow.yaml, .copilot/routing/legacy-search/ibmbob-legacy-search-flow.yaml
 {
   "version": 1,
   "families": {

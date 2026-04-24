@@ -1,12 +1,12 @@
 <!-- docs/sdlc/templates/implementation-plan.md -->
 <!-- Provides the implementation planning template used to define one bounded full-stack slice. -->
 <!-- This exists so implementation prep can be handed off without writing code yet. -->
-<!-- RELEVANT FILES: .copilot/prompts/P4_implementation_planner.md, .copilot/schemas/implementation-packet.schema.json, docs/sdlc/templates/fullstack-slice.md -->
+<!-- RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-implementation-planner.md, .copilot/schemas/implementation-packet.schema.json, docs/sdlc/templates/fullstack-slice.md -->
 ---
 artifact_id: IMPL-REQ-XXXX
 artifact_type: implementation_plan
 status: draft
-prompt_id: P4_implementation_planner
+prompt_id: ibmbob-sdlc-implementation-planner
 prompt_version: "1.0"
 model_id: copilot
 upstream_refs:
@@ -40,3 +40,4 @@ language: ja
 
 ## Open Questions
 - 未解決事項を書く
+

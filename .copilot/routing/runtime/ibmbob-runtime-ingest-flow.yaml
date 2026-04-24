@@ -1,0 +1,57 @@
+# .copilot/routing/runtime/ibmbob-runtime-ingest-flow.yaml
+# Defines the ingest routing for turning raw legacy files into normalized map, chunk, and relation artifacts.
+# This exists so ingestion can be tracked separately from query and downstream SDLC generation.
+# RELEVANT FILES: .copilot/prompts/runtime/ibmbob-runtime-orchestrator.md, .copilot/prompts/runtime/ibmbob-relation-extractor.md, docs/external-runtime/legacy-kb/data-pipeline.md
+version: 1
+flow_name: legacy-kb-ingest
+agents:
+  - id: ibmbob-runtime-orchestrator
+    artifact_type: runtime_task_packet
+    prompt_path: .copilot/prompts/runtime/ibmbob-runtime-orchestrator.md
+  - id: ibmbob-intake-normalizer
+    artifact_type: ingest_job
+    prompt_path: .copilot/prompts/runtime/ibmbob-intake-normalizer.md
+  - id: ibmbob-taxonomy-mapper
+    artifact_type: document_taxonomy_bundle
+    prompt_path: .copilot/prompts/runtime/ibmbob-taxonomy-mapper.md
+  - id: ibmbob-summary-tree-builder
+    artifact_type: summary_tree_bundle
+    prompt_path: .copilot/prompts/runtime/ibmbob-summary-tree-builder.md
+  - id: ibmbob-relation-extractor
+    artifact_type: relation_edge_bundle
+    prompt_path: .copilot/prompts/runtime/ibmbob-relation-extractor.md
+  - id: ibmbob-runtime-eval-monitor
+    artifact_type: entry_eval_note
+    prompt_path: .copilot/prompts/runtime/ibmbob-runtime-eval-monitor.md
+entry_conditions:
+  - source: raw_files
+    when: ingest_requested
+  - source: changed_files
+    when: reindex_requested
+standard_route:
+  - from: ibmbob-runtime-orchestrator
+    to: ibmbob-intake-normalizer
+    when: ingest_task_ready
+  - from: ibmbob-intake-normalizer
+    to: ibmbob-taxonomy-mapper
+    when: normalized_documents_ready
+  - from: ibmbob-taxonomy-mapper
+    to: ibmbob-summary-tree-builder
+    when: taxonomy_bundle_ready
+  - from: ibmbob-summary-tree-builder
+    to: ibmbob-relation-extractor
+    when: summary_tree_ready
+  - from: ibmbob-relation-extractor
+    to: ibmbob-runtime-eval-monitor
+    when: relation_edges_ready
+gate_rules:
+  - condition: missing_required_metadata
+    return_to: ibmbob-runtime-orchestrator
+    result: human_checkpoint_required
+  - condition: acl_attach_failed
+    return_to: ibmbob-runtime-orchestrator
+    result: human_checkpoint_required
+terminal_states:
+  - complete
+  - human_checkpoint_required
+

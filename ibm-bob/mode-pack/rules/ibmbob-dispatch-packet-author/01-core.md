@@ -1,11 +1,11 @@
 <!-- ibm-bob/mode-pack/rules/ibmbob-dispatch-packet-author/01-core.md -->
 <!-- Defines the direct-mode rule for IBM-Bob Dispatch Packet Author. -->
 <!-- This exists so IBM-Bob can mirror the canonical direct flow without rewriting the canonical prompt and routing sources. -->
-<!-- RELEVANT FILES: .copilot/prompts/C3_dispatch_packet_author.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, ibm-bob/mode-pack/handoff-contracts.md -->
+<!-- RELEVANT FILES: .copilot/prompts/entry/ibmbob-dispatch-packet-author.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, ibm-bob/mode-pack/handoff-contracts.md -->
 # IBM-Bob Dispatch Packet Author Rules
 
 ## Read First
-- `.copilot/prompts/C3_dispatch_packet_author.md`
+- `.copilot/prompts/entry/ibmbob-dispatch-packet-author.md`
 - `ibm-bob/mode-pack/routing/direct-mode-flow.json`
 - `ibm-bob/mode-pack/handoff-contracts.md`
 
@@ -23,3 +23,4 @@
 ## Safety
 - direct flow の担当範囲を越える判断はしない。
 - 根拠が弱い時は先へ進めず、abstain か human checkpoint に落とす。
+

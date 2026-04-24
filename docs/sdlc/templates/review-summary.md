@@ -1,7 +1,7 @@
 <!-- docs/sdlc/templates/review-summary.md -->
 <!-- Provides the short review summary template used by spec, code, execution, and integration review. -->
 <!-- This exists so pass, revise, and block decisions are communicated in a consistent way across all lanes. -->
-<!-- RELEVANT FILES: .copilot/prompts/P3_spec_reviewer.md, .copilot/prompts/P20_integration_reviewer.md, docs/sdlc/templates/review-record.md -->
+<!-- RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-spec-reviewer.md, .copilot/prompts/sdlc/ibmbob-sdlc-integration-reviewer.md, docs/sdlc/templates/review-record.md -->
 ---
 artifact_id: REVIEW-SUMMARY-REQ-XXXX
 artifact_type: review_summary
@@ -28,3 +28,4 @@ language: ja
 
 ## 差戻し先
 - 戻す agent、次工程、または human checkpoint を書く
+

@@ -1,7 +1,7 @@
 <!-- docs/copilot-studio/custom-engine-bridge/identity-scope.md -->
-<!-- Defines how user identity, tenant, and allowed scopes are represented at the Copilot bridge boundary. -->
+<!-- Defines how user identity, tenant, and allowed scopes are represented at the entry bridge boundary. -->
 <!-- This exists so unsafe dispatch is blocked before the external runtime or SDLC lanes start. -->
-<!-- RELEVANT FILES: .copilot/schemas/bridge-identity-context.schema.json, docs/copilot-studio/custom-engine-bridge/pilot-runbook.md, docs/external-runtime/legacy-kb/security-acl.md -->
+<!-- RELEVANT FILES: .copilot/schemas/session-scope-context.schema.json, docs/copilot-studio/custom-engine-bridge/pilot-runbook.md, docs/external-runtime/legacy-kb/security-acl.md -->
 # Identity And Scope
 
 ## Required Identity Fields
@@ -30,5 +30,7 @@
 - scope は広げて推測しない
 
 ## Output
-- OK の時は `bridge_identity_context`
-- NG の時は `bridge_human_checkpoint`
+- OK の時は `session_scope_context`
+- NG の時は `entry_human_checkpoint`
+
+

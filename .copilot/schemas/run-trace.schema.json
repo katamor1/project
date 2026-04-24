@@ -1,7 +1,7 @@
 // .copilot/schemas/run-trace.schema.json
 // Defines the runtime trace schema used for pilot review and operational debugging.
 // This exists so retrieval paths, decision flags, latency, and token usage can be inspected without raw content dumps.
-// RELEVANT FILES: .copilot/prompts/K9_runtime_eval_monitor.md, docs/external-runtime/legacy-kb/eval-ops.md, docs/external-runtime/legacy-kb/runbook.md
+// RELEVANT FILES: .copilot/prompts/runtime/ibmbob-runtime-eval-monitor.md, docs/external-runtime/legacy-kb/eval-ops.md, docs/external-runtime/legacy-kb/runbook.md
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "run-trace.schema.json",
@@ -28,3 +28,4 @@
     }
   }
 }
+

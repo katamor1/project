@@ -1,12 +1,12 @@
 <!-- docs/sdlc/templates/frontend-codepack.md -->
 <!-- Provides the frontend near-code pack template for the canonical frontend roots. -->
 <!-- This exists so UI implementation can be handed off with fixed files, state flow, and API usage notes. -->
-<!-- RELEVANT FILES: .copilot/schemas/frontend-codepack.schema.json, .copilot/prompts/P11_frontend_codepack_author.md, docs/sdlc/templates/target-repo-map.md -->
+<!-- RELEVANT FILES: .copilot/schemas/frontend-codepack.schema.json, .copilot/prompts/sdlc/ibmbob-sdlc-frontend-codepack-author.md, docs/sdlc/templates/target-repo-map.md -->
 ---
 artifact_id: FEPACK-REQ-XXXX
 artifact_type: frontend_codepack
 status: draft
-prompt_id: P11_frontend_codepack_author
+prompt_id: ibmbob-sdlc-frontend-codepack-author
 prompt_version: "1.0"
 model_id: copilot
 upstream_refs:
@@ -31,3 +31,4 @@ language: ja
 
 ## Acceptance Refs
 - 対応する受入参照を書く
+

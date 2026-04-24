@@ -1,11 +1,11 @@
 <!-- ibm-bob/mode-pack/rules/ibmbob-entry-router/01-core.md -->
 <!-- Defines the direct-mode rule for IBM-Bob Entry Router. -->
 <!-- This exists so IBM-Bob can mirror the canonical direct flow without rewriting the canonical prompt and routing sources. -->
-<!-- RELEVANT FILES: .copilot/prompts/C0_copilot_entry_router.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, ibm-bob/mode-pack/handoff-contracts.md -->
+<!-- RELEVANT FILES: .copilot/prompts/entry/ibmbob-entry-router.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, ibm-bob/mode-pack/handoff-contracts.md -->
 # IBM-Bob Entry Router Rules
 
 ## Read First
-- `.copilot/prompts/C0_copilot_entry_router.md`
+- `.copilot/prompts/entry/ibmbob-entry-router.md`
 - `ibm-bob/mode-pack/routing/direct-mode-flow.json`
 - `ibm-bob/mode-pack/handoff-contracts.md`
 
@@ -23,3 +23,4 @@
 ## Safety
 - direct flow の担当範囲を越える判断はしない。
 - 根拠が弱い時は先へ進めず、abstain か human checkpoint に落とす。
+

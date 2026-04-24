@@ -1,7 +1,7 @@
 <!-- ibm-bob/mode-pack/samples/direct-modes/review-dry-run.md -->
 <!-- Shows a dry run for the new Bob direct review-record path. -->
 <!-- This exists so the team can validate review-only work without entering the old copied-workspace run. -->
-<!-- RELEVANT FILES: ibm-bob/mode-pack/sdlc-guide.md, ibm-bob/mode-pack/pilot-runbook.md, .copilot/prompts/P8_review_record.md -->
+<!-- RELEVANT FILES: ibm-bob/mode-pack/sdlc-guide.md, ibm-bob/mode-pack/pilot-runbook.md, .copilot/prompts/sdlc/ibmbob-sdlc-review-record.md -->
 # Review Dry Run
 
 ## User Intent
@@ -17,4 +17,5 @@
 - review record が unresolved risk を残せること
 - source-backed review でも handoff が欠けないこと
 - 余計な authoring lane に入らないこと
+
 

@@ -13,7 +13,7 @@
 artifact_id: DETAIL-REQ-EMAIL-NOTIFY-001
 artifact_type: detail_design
 status: approved
-prompt_id: P2_detail_design_author
+prompt_id: ibmbob-sdlc-detail-design-author
 prompt_version: "1.0"
 model_id: copilot
 upstream_refs:
@@ -46,7 +46,7 @@ language: ja
   "db_scope": ["user_notification_settings table"],
   "constraints": ["1 slice に閉じる", "既存 auth を使う"],
   "done_criteria": ["UI と API の責務が明確", "DB 変更が明確"],
-  "next_agent": "P5_fullstack_slice_author"
+  "next_agent": "ibmbob-sdlc-fullstack-slice-author"
 }
 ```
 
@@ -57,7 +57,7 @@ language: ja
     "artifact_id": "SLICE-REQ-EMAIL-NOTIFY-001",
     "artifact_type": "fullstack_slice",
     "status": "draft",
-    "prompt_id": "P5_fullstack_slice_author",
+    "prompt_id": "ibmbob-sdlc-fullstack-slice-author",
     "prompt_version": "1.0",
     "model_id": "copilot",
     "upstream_refs": ["DETAIL-REQ-EMAIL-NOTIFY-001", "SLICE-EMAIL-NOTIFY-SETTINGS"],
@@ -91,7 +91,7 @@ language: ja
   ],
   "contract_refs": ["API-CONTRACT-NOTIFY-UPDATE", "DB-CHANGE-NOTIFY-SETTINGS"],
   "risk_flags": ["既存 API path 命名を app repo 側で確認する"],
-  "next_agent": "P6_test_author"
+  "next_agent": "ibmbob-sdlc-test-author"
 }
 ```
 
@@ -102,7 +102,7 @@ language: ja
     "artifact_id": "TEST-REQ-EMAIL-NOTIFY-001",
     "artifact_type": "test_pack",
     "status": "draft",
-    "prompt_id": "P6_test_author",
+    "prompt_id": "ibmbob-sdlc-test-author",
     "prompt_version": "1.0",
     "model_id": "copilot",
     "upstream_refs": ["SLICE-REQ-EMAIL-NOTIFY-001"],
@@ -127,7 +127,7 @@ language: ja
   ],
   "fixtures": ["通知設定ありユーザー", "権限なしユーザー"],
   "coverage_focus": ["UI validation", "API authorization", "DB write integrity"],
-  "next_agent": "P7_code_reviewer"
+  "next_agent": "ibmbob-sdlc-code-reviewer"
 }
 ```
 
@@ -140,7 +140,7 @@ language: ja
   "findings": [],
   "revise_to": "none",
   "human_checkpoint": false,
-  "next_agent": "P8_review_record"
+  "next_agent": "ibmbob-sdlc-review-record"
 }
 ```
 
@@ -182,6 +182,7 @@ language: ja
     "API contract と DB change を app repo の命名に合わせて確認する"
   ],
   "open_questions": ["既存 API path の最終命名を app repo で確認する"],
-  "next_agent": "P8_review_record"
+  "next_agent": "ibmbob-sdlc-review-record"
 }
 ```
+

@@ -1,0 +1,32 @@
+// .copilot/schemas/entry-dispatch-packet.schema.json
+// Defines the entry dispatch packet schema used to hand entry requests into the external runtime.
+// This exists so runtime target, task type, and callback expectations are fixed before K0 starts.
+// RELEVANT FILES: .copilot/prompts/entry/ibmbob-dispatch-packet-author.md, .copilot/prompts/runtime/ibmbob-runtime-orchestrator.md, docs/copilot-studio/custom-engine-bridge/dispatch-contract.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "entry-dispatch-packet.schema.json",
+  "title": "Entry Dispatch Packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["entry_request_ref", "session_scope_context_ref", "runtime_target", "runtime_task_type", "callback_contract", "next_agent"],
+  "properties": {
+    "entry_request_ref": { "type": "string" },
+    "session_scope_context_ref": { "type": "string" },
+    "runtime_target": { "type": "string" },
+    "runtime_task_type": { "type": "string" },
+    "callback_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["response_agent", "expected_result_type", "context_ref", "locale"],
+      "properties": {
+        "response_agent": { "type": "string", "const": "ibmbob-entry-response-shaper" },
+        "expected_result_type": { "type": "string" },
+        "context_ref": { "type": "string" },
+        "locale": { "type": "string" }
+      }
+    },
+    "next_agent": { "type": "string", "const": "ibmbob-runtime-orchestrator" }
+  }
+}
+
+

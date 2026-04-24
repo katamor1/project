@@ -1,6 +1,6 @@
 # docs/copilot-studio/legacy-search/shared-io-contract.yaml
 # This file defines the shared v2 input and output contract for the legacy search prompt pack.
-# This file exists so every Copilot Studio agent returns the same routing and handoff structure.
+# This file exists so every IBM Bob agent returns the same routing and handoff structure.
 # RELEVANT FILES: docs/copilot-studio/legacy-search/README.md, docs/copilot-studio/legacy-search/routing-matrix.md, docs/copilot-studio/legacy-search/implementation-guide.md
 version: 2
 
@@ -26,7 +26,7 @@ common_rules:
   - "Use only SharePoint or OneDrive sources in v2."
   - "Do not invent titles, sections, pages, or file paths."
   - "If evidence is weak, conflicting, or missing, do not guess."
-  - "The only valid entry agent is LS-01 Intake Router."
+  - "The only valid entry agent is ibmbob-legacy-search-intake-router."
   - "Return next_agent on every run."
   - "Return handoff_packet on every run."
   - "Extra agent-specific fields are allowed, but the required fields must stay stable."
@@ -115,13 +115,14 @@ confidence_scale:
 
 next_agent_values:
   allowed:
-    - LS-01 Intake Router
-    - LS-02 Glossary Normalizer
-    - LS-03 Document Locator
-    - LS-04 Evidence Verifier
-    - LS-05 Grounded Answerer
-    - LS-06 Gap Reporter
-    - LS-07 Renewal Impact Mapper
-    - LS-08 Change Diff Scout
+    - ibmbob-legacy-search-intake-router
+    - ibmbob-legacy-search-glossary-normalizer
+    - ibmbob-legacy-search-document-locator
+    - ibmbob-legacy-search-evidence-verifier
+    - ibmbob-legacy-search-grounded-answerer
+    - ibmbob-legacy-search-gap-reporter
+    - ibmbob-legacy-search-renewal-impact-mapper
+    - ibmbob-legacy-search-change-diff-scout
     - human_follow_up
     - complete
+

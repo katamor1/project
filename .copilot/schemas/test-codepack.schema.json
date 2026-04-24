@@ -1,7 +1,7 @@
 // .copilot/schemas/test-codepack.schema.json
 // Defines the test codepack schema used to describe near-code unit, integration, and regression packs.
 // This exists so test intent can be reviewed as concrete targets before any test code is generated.
-// RELEVANT FILES: .copilot/prompts/P13_test_codepack_author.md, docs/sdlc/templates/test-codepack.md, .copilot/schemas/execution-review-findings.schema.json
+// RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-test-codepack-author.md, docs/sdlc/templates/test-codepack.md, .copilot/schemas/execution-review-findings.schema.json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "test-codepack.schema.json",
@@ -38,7 +38,7 @@
     "integration_cases": { "type": "array", "items": { "$ref": "#/$defs/testCase" } },
     "regression_cases": { "type": "array", "items": { "$ref": "#/$defs/testCase" } },
     "fixtures": { "type": "array", "items": { "type": "string" } },
-    "next_agent": { "type": "string", "const": "P14_execution_reviewer" }
+    "next_agent": { "type": "string", "const": "ibmbob-sdlc-execution-reviewer" }
   },
   "$defs": {
     "testCase": {
@@ -53,3 +53,4 @@
     }
   }
 }
+

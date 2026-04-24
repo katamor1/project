@@ -1,7 +1,7 @@
 // .copilot/schemas/scope-packet.schema.json
 // Defines the scope packet schema used between scope design and basic design.
 // This exists so in-scope, out-of-scope, and acceptance criteria stay explicit.
-// RELEVANT FILES: .copilot/prompts/P1_scope.md, docs/sdlc/templates/scope.md, .copilot/prompts/P2_basic_design_author.md
+// RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-scope.md, docs/sdlc/templates/scope.md, .copilot/prompts/sdlc/ibmbob-sdlc-basic-design-author.md
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "scope-packet.schema.json",
@@ -50,7 +50,8 @@
     },
     "next_agent": {
       "type": "string",
-      "const": "P2_basic_design_author"
+      "const": "ibmbob-sdlc-basic-design-author"
     }
   }
 }
+

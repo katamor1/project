@@ -1,11 +1,11 @@
 <!-- ibm-bob/mode-pack/rules/ibmbob-identity-scope-guard/01-core.md -->
 <!-- Defines the direct-mode rule for IBM-Bob Identity Scope Guard. -->
 <!-- This exists so IBM-Bob can mirror the canonical direct flow without rewriting the canonical prompt and routing sources. -->
-<!-- RELEVANT FILES: .copilot/prompts/C2_identity_scope_guard.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, ibm-bob/mode-pack/handoff-contracts.md -->
+<!-- RELEVANT FILES: .copilot/prompts/entry/ibmbob-identity-scope-guard.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, ibm-bob/mode-pack/handoff-contracts.md -->
 # IBM-Bob Identity Scope Guard Rules
 
 ## Read First
-- `.copilot/prompts/C2_identity_scope_guard.md`
+- `.copilot/prompts/entry/ibmbob-identity-scope-guard.md`
 - `ibm-bob/mode-pack/routing/direct-mode-flow.json`
 - `ibm-bob/mode-pack/handoff-contracts.md`
 
@@ -24,3 +24,4 @@
 - direct flow の担当範囲を越える判断はしない。
 - 根拠が弱い時は先へ進めず、abstain か human checkpoint に落とす。
 - tenant, scope, principal の不一致を見つけたら必ず checkpoint に止める。
+

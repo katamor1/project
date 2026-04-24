@@ -1,10 +1,10 @@
 <!-- docs/copilot-studio/custom-engine-bridge/samples/email-notification-abstain-dry-run.md -->
 <!-- Shows a minimal bridge flow where low confidence or access mismatch returns an abstain and checkpoint response. -->
 <!-- This exists so the team can verify user-facing abstain behavior before any downstream generation starts. -->
-<!-- RELEVANT FILES: .copilot/schemas/bridge-human-checkpoint.schema.json, .copilot/schemas/bridge-response.schema.json, .copilot/prompts/C4_bridge_response_shaper.md -->
+<!-- RELEVANT FILES: .copilot/schemas/entry-human-checkpoint.schema.json, .copilot/schemas/entry-response.schema.json, .copilot/prompts/entry/ibmbob-entry-response-shaper.md -->
 # Email Notification Abstain Dry Run
 
-## bridge_request_packet
+## entry_request_packet
 ```json
 {
   "request_id": "BRREQ-EMAIL-NOTIFY-ABSTAIN-001",
@@ -16,13 +16,13 @@
 }
 ```
 
-## bridge_human_checkpoint
+## entry_human_checkpoint
 ```json
 {
   "reason": "authoritative_conflict",
   "required_user_action": "承認済みの通知設定仕様書を 1 つに絞って指定してください。",
-  "blocked_target": "P2_detail_design_author",
-  "retry_entry": "C0_copilot_entry_router"
+  "blocked_target": "ibmbob-sdlc-detail-design-author",
+  "retry_entry": "ibmbob-entry-router"
 }
 ```
 
@@ -31,7 +31,7 @@
 null
 ```
 
-## bridge_response
+## entry_response
 ```json
 {
   "response_mode": "abstain",
@@ -41,9 +41,11 @@ null
   "human_checkpoint": {
     "reason": "authoritative_conflict",
     "required_user_action": "承認済みの通知設定仕様書を 1 つに絞って指定してください。",
-    "blocked_target": "P2_detail_design_author",
-    "retry_entry": "C0_copilot_entry_router"
+    "blocked_target": "ibmbob-sdlc-detail-design-author",
+    "retry_entry": "ibmbob-entry-router"
   },
   "citations_policy": "no citation on abstain"
 }
 ```
+
+

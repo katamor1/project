@@ -1,12 +1,12 @@
 <!-- docs/sdlc/templates/backend-draft-bundle.md -->
 <!-- Provides the template for the backend skeleton code bundle in the integration lane. -->
 <!-- This exists so route, service, and model drafts stay aligned before repo implementation. -->
-<!-- RELEVANT FILES: .copilot/prompts/P17_backend_draft_author.md, .copilot/schemas/backend-draft-bundle.schema.json, docs/sdlc/templates/sqlite-draft-bundle.md -->
+<!-- RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-backend-draft-author.md, .copilot/schemas/backend-draft-bundle.schema.json, docs/sdlc/templates/sqlite-draft-bundle.md -->
 ---
 artifact_id: BDRAFT-REQ-XXXX
 artifact_type: backend_draft_bundle
 status: draft
-prompt_id: P17_backend_draft_author
+prompt_id: ibmbob-sdlc-backend-draft-author
 prompt_version: "1.0"
 model_id: copilot
 upstream_refs:
@@ -28,3 +28,4 @@ language: ja
 
 ## Skeleton Code Notes
 - imports、signature、TODO body、未解決事項を書く
+

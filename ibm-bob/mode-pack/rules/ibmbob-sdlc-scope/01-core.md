@@ -1,11 +1,11 @@
 <!-- ibm-bob/mode-pack/rules/ibmbob-sdlc-scope/01-core.md -->
 <!-- Defines the direct-mode rule for IBM-Bob SDLC Scope. -->
 <!-- This exists so IBM-Bob can mirror the canonical direct flow without rewriting the canonical prompt and routing sources. -->
-<!-- RELEVANT FILES: .copilot/prompts/P1_scope.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/sdlc/README.md -->
+<!-- RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-scope.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/sdlc/README.md -->
 # IBM-Bob SDLC Scope Rules
 
 ## Read First
-- `.copilot/prompts/P1_scope.md`
+- `.copilot/prompts/sdlc/ibmbob-sdlc-scope.md`
 - `ibm-bob/mode-pack/routing/direct-mode-flow.json`
 - `docs/sdlc/README.md`
 
@@ -23,3 +23,4 @@
 ## Safety
 - direct flow の担当範囲を越える判断はしない。
 - 根拠が弱い時は先へ進めず、abstain か human checkpoint に落とす。
+

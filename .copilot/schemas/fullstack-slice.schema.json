@@ -1,7 +1,7 @@
 // .copilot/schemas/fullstack-slice.schema.json
 // Defines the full-stack slice schema used to describe frontend, backend, and DB implementation intent.
 // This exists so implementation prep stays traceable before any code or migrations are written.
-// RELEVANT FILES: .copilot/prompts/P5_fullstack_slice_author.md, .copilot/schemas/db-change.schema.json, docs/sdlc/templates/fullstack-slice.md
+// RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-fullstack-slice-author.md, .copilot/schemas/db-change.schema.json, docs/sdlc/templates/fullstack-slice.md
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "fullstack-slice.schema.json",
@@ -43,7 +43,7 @@
     },
     "next_agent": {
       "type": "string",
-      "const": "P6_test_author"
+      "const": "ibmbob-sdlc-test-author"
     }
   },
   "$defs": {
@@ -59,3 +59,4 @@
     }
   }
 }
+

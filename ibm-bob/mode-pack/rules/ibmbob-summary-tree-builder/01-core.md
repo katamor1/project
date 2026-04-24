@@ -1,11 +1,11 @@
 <!-- ibm-bob/mode-pack/rules/ibmbob-summary-tree-builder/01-core.md -->
 <!-- Defines the direct-mode rule for IBM-Bob Summary Tree Builder. -->
 <!-- This exists so IBM-Bob can mirror the canonical direct flow without rewriting the canonical prompt and routing sources. -->
-<!-- RELEVANT FILES: .copilot/prompts/K3_summary_tree_builder.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/external-runtime/legacy-kb/README.md -->
+<!-- RELEVANT FILES: .copilot/prompts/runtime/ibmbob-summary-tree-builder.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/external-runtime/legacy-kb/README.md -->
 # IBM-Bob Summary Tree Builder Rules
 
 ## Read First
-- `.copilot/prompts/K3_summary_tree_builder.md`
+- `.copilot/prompts/runtime/ibmbob-summary-tree-builder.md`
 - `ibm-bob/mode-pack/routing/direct-mode-flow.json`
 - `docs/external-runtime/legacy-kb/README.md`
 
@@ -23,3 +23,4 @@
 ## Safety
 - direct flow の担当範囲を越える判断はしない。
 - 根拠が弱い時は先へ進めず、abstain か human checkpoint に落とす。
+

@@ -1,7 +1,7 @@
 // .copilot/schemas/integration-review-findings.schema.json
 // Defines the integration review findings schema for pass, revise, and block decisions on draft bundles.
 // This exists so integration review can route back to the right draft author without free-text ambiguity.
-// RELEVANT FILES: .copilot/prompts/P20_integration_reviewer.md, .copilot/routing/integration-matrix.yaml, docs/sdlc/templates/review-summary.md
+// RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-integration-reviewer.md, .copilot/routing/sdlc/ibmbob-integration-flow.yaml, docs/sdlc/templates/review-summary.md
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "integration-review-findings.schema.json",
@@ -40,12 +40,12 @@
     "revise_to": {
       "type": "string",
       "enum": [
-        "P15_integration_bundle_planner",
-        "P16_frontend_draft_author",
-        "P17_backend_draft_author",
-        "P18_sqlite_draft_author",
-        "P19_test_draft_author",
-        "P0_orchestrator",
+        "ibmbob-sdlc-integration-bundle-planner",
+        "ibmbob-sdlc-frontend-draft-author",
+        "ibmbob-sdlc-backend-draft-author",
+        "ibmbob-sdlc-sqlite-draft-author",
+        "ibmbob-sdlc-test-draft-author",
+        "ibmbob-sdlc-request-orchestrator",
         "none"
       ]
     },
@@ -53,14 +53,15 @@
     "next_agent": {
       "type": "string",
       "enum": [
-        "P15_integration_bundle_planner",
-        "P16_frontend_draft_author",
-        "P17_backend_draft_author",
-        "P18_sqlite_draft_author",
-        "P19_test_draft_author",
-        "P21_approval_pack_author",
-        "P0_orchestrator"
+        "ibmbob-sdlc-integration-bundle-planner",
+        "ibmbob-sdlc-frontend-draft-author",
+        "ibmbob-sdlc-backend-draft-author",
+        "ibmbob-sdlc-sqlite-draft-author",
+        "ibmbob-sdlc-test-draft-author",
+        "ibmbob-sdlc-approval-pack-author",
+        "ibmbob-sdlc-request-orchestrator"
       ]
     }
   }
 }
+

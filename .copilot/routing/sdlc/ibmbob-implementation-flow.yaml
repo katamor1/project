@@ -1,0 +1,72 @@
+# .copilot/routing/sdlc/ibmbob-implementation-flow.yaml
+# Defines the implementation lane routing from approved detail design to review, bridge handoff, and evaluation.
+# This exists so the implementation SDLC can be tracked separately from the upper design lane.
+# RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-implementation-planner.md, .copilot/prompts/sdlc/ibmbob-sdlc-code-reviewer.md, docs/sdlc/README.md
+version: 1
+flow_name: sdlc-implementation-lane
+agents:
+  - id: ibmbob-sdlc-spec-reviewer
+    artifact_type: review_findings
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-spec-reviewer.md
+  - id: ibmbob-sdlc-implementation-planner
+    artifact_type: implementation_packet
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-implementation-planner.md
+  - id: ibmbob-sdlc-fullstack-slice-author
+    artifact_type: fullstack_slice
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-fullstack-slice-author.md
+  - id: ibmbob-sdlc-test-author
+    artifact_type: test_pack
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-test-author.md
+  - id: ibmbob-sdlc-code-reviewer
+    artifact_type: code_review_findings
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-code-reviewer.md
+  - id: ibmbob-sdlc-review-record
+    artifact_type: review_record
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-review-record.md
+  - id: ibmbob-sdlc-eval-monitor
+    artifact_type: eval_report
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-eval-monitor.md
+standard_route:
+  - from: ibmbob-sdlc-spec-reviewer
+    to: ibmbob-sdlc-implementation-planner
+    when: detail_design_passed
+  - from: ibmbob-sdlc-implementation-planner
+    to: ibmbob-sdlc-fullstack-slice-author
+    when: implementation_packet_ready
+  - from: ibmbob-sdlc-fullstack-slice-author
+    to: ibmbob-sdlc-test-author
+    when: fullstack_slice_ready
+  - from: ibmbob-sdlc-test-author
+    to: ibmbob-sdlc-code-reviewer
+    when: test_pack_ready
+  - from: ibmbob-sdlc-code-reviewer
+    to: ibmbob-sdlc-review-record
+    when: code_review_passed
+    handoff_artifacts:
+      - fullstack_slice
+      - test_pack
+      - repo_bridge
+  - from: ibmbob-sdlc-review-record
+    to: ibmbob-sdlc-eval-monitor
+    when: review_record_ready
+return_routes:
+  - reviewer: ibmbob-sdlc-code-reviewer
+    decision: revise
+    category: code_or_interface
+    return_to: ibmbob-sdlc-fullstack-slice-author
+  - reviewer: ibmbob-sdlc-code-reviewer
+    decision: revise
+    category: test_coverage
+    return_to: ibmbob-sdlc-test-author
+  - reviewer: ibmbob-sdlc-code-reviewer
+    decision: revise
+    category: slice_boundary
+    return_to: ibmbob-sdlc-implementation-planner
+  - reviewer: ibmbob-sdlc-code-reviewer
+    decision: block
+    return_to: ibmbob-sdlc-request-orchestrator
+    note: human_checkpoint を要求して前提を見直す
+terminal_states:
+  - complete
+  - human_checkpoint_required
+

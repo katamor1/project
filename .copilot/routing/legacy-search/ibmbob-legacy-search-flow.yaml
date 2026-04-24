@@ -1,0 +1,81 @@
+# .copilot/routing/legacy-search/ibmbob-legacy-search-flow.yaml
+# Defines the direct IBM Bob routing for legacy-search work from intake through answer or safe stop.
+# This exists so legacy-search can use Bob-native prompt names without relying on the old agent docs as routing source.
+# RELEVANT FILES: .copilot/prompts/legacy-search/ibmbob-legacy-search-intake-router.md, .copilot/prompts/legacy-search/ibmbob-legacy-search-evidence-verifier.md, docs/copilot-studio/legacy-search/routing-matrix.md
+version: 1
+flow_name: ibmbob-legacy-search-flow
+agents:
+  - id: ibmbob-legacy-search-intake-router
+    artifact_type: handoff_packet
+    prompt_path: .copilot/prompts/legacy-search/ibmbob-legacy-search-intake-router.md
+  - id: ibmbob-legacy-search-glossary-normalizer
+    artifact_type: handoff_packet
+    prompt_path: .copilot/prompts/legacy-search/ibmbob-legacy-search-glossary-normalizer.md
+  - id: ibmbob-legacy-search-document-locator
+    artifact_type: candidate_sources
+    prompt_path: .copilot/prompts/legacy-search/ibmbob-legacy-search-document-locator.md
+  - id: ibmbob-legacy-search-evidence-verifier
+    artifact_type: candidate_sources
+    prompt_path: .copilot/prompts/legacy-search/ibmbob-legacy-search-evidence-verifier.md
+  - id: ibmbob-legacy-search-grounded-answerer
+    artifact_type: final_output
+    prompt_path: .copilot/prompts/legacy-search/ibmbob-legacy-search-grounded-answerer.md
+  - id: ibmbob-legacy-search-gap-reporter
+    artifact_type: final_output
+    prompt_path: .copilot/prompts/legacy-search/ibmbob-legacy-search-gap-reporter.md
+  - id: ibmbob-legacy-search-renewal-impact-mapper
+    artifact_type: final_output
+    prompt_path: .copilot/prompts/legacy-search/ibmbob-legacy-search-renewal-impact-mapper.md
+  - id: ibmbob-legacy-search-change-diff-scout
+    artifact_type: final_output
+    prompt_path: .copilot/prompts/legacy-search/ibmbob-legacy-search-change-diff-scout.md
+entry_conditions:
+  - source: bob_chat
+    when: legacy_search_requested
+standard_route:
+  - from: ibmbob-legacy-search-intake-router
+    to: ibmbob-legacy-search-glossary-normalizer
+    when: glossary_normalization_needed
+  - from: ibmbob-legacy-search-intake-router
+    to: ibmbob-legacy-search-document-locator
+    when: document_lookup_ready
+  - from: ibmbob-legacy-search-intake-router
+    to: ibmbob-legacy-search-gap-reporter
+    when: out_of_scope_or_too_broad
+  - from: ibmbob-legacy-search-glossary-normalizer
+    to: ibmbob-legacy-search-document-locator
+    when: normalized_entities_ready
+  - from: ibmbob-legacy-search-glossary-normalizer
+    to: ibmbob-legacy-search-gap-reporter
+    when: ambiguous_terms_remain
+  - from: ibmbob-legacy-search-document-locator
+    to: ibmbob-legacy-search-evidence-verifier
+    when: candidate_sources_ready
+  - from: ibmbob-legacy-search-document-locator
+    to: ibmbob-legacy-search-gap-reporter
+    when: no_useful_candidate_sources
+  - from: ibmbob-legacy-search-evidence-verifier
+    to: ibmbob-legacy-search-grounded-answerer
+    when: verified_answer_ready
+  - from: ibmbob-legacy-search-evidence-verifier
+    to: ibmbob-legacy-search-renewal-impact-mapper
+    when: verified_renewal_impact_ready
+  - from: ibmbob-legacy-search-evidence-verifier
+    to: ibmbob-legacy-search-change-diff-scout
+    when: verified_change_diff_ready
+  - from: ibmbob-legacy-search-evidence-verifier
+    to: ibmbob-legacy-search-gap-reporter
+    when: evidence_missing_or_conflicting
+gate_rules:
+  - condition: handoff_packet_missing
+    return_to: ibmbob-legacy-search-intake-router
+    result: reroute_to_entry
+  - condition: evidence_conflict
+    return_to: ibmbob-legacy-search-gap-reporter
+    result: abstain_next_action
+  - condition: evidence_missing
+    return_to: ibmbob-legacy-search-gap-reporter
+    result: abstain_next_action
+terminal_states:
+  - complete
+  - human_follow_up

@@ -1,7 +1,7 @@
 // .copilot/schemas/artifact-context-packet.schema.json
 // Defines the downstream handoff packet schema that wraps evidence for the SDLC P-lanes.
 // This exists so source-backed generation can start from bounded assertions instead of direct source browsing.
-// RELEVANT FILES: .copilot/prompts/K7_artifact_context_packer.md, .copilot/prompts/P2_basic_design_author.md, docs/external-runtime/legacy-kb/samples/email-notification-query-dry-run.md
+// RELEVANT FILES: .copilot/prompts/runtime/ibmbob-artifact-context-packer.md, .copilot/prompts/sdlc/ibmbob-sdlc-basic-design-author.md, docs/external-runtime/legacy-kb/samples/email-notification-query-dry-run.md
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "artifact-context-packet.schema.json",
@@ -28,3 +28,4 @@
     "next_agent": { "type": "string" }
   }
 }
+

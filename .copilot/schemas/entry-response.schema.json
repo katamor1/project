@@ -1,0 +1,27 @@
+// .copilot/schemas/entry-response.schema.json
+// Defines the entry-facing entry response schema used for answers, abstains, handoffs, and checkpoints.
+// This exists so user-facing bridge replies stay short and structurally consistent across runtime outcomes.
+// RELEVANT FILES: .copilot/prompts/entry/ibmbob-entry-response-shaper.md, .copilot/schemas/entry-human-checkpoint.schema.json, docs/copilot-studio/custom-engine-bridge/response-shaping.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "entry-response.schema.json",
+  "title": "Entry Response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["response_mode", "user_message", "downstream_target", "handoff_state", "human_checkpoint", "citations_policy"],
+  "properties": {
+    "response_mode": { "type": "string", "enum": ["answer", "abstain", "handoff", "checkpoint"] },
+    "user_message": { "type": "string" },
+    "downstream_target": { "type": "string" },
+    "handoff_state": { "type": "string" },
+    "human_checkpoint": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "entry-human-checkpoint.schema.json" }
+      ]
+    },
+    "citations_policy": { "type": "string" }
+  }
+}
+
+

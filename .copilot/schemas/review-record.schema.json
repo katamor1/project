@@ -1,7 +1,7 @@
 // .copilot/schemas/review-record.schema.json
 // Defines the durable review record schema used after specification review.
 // This exists so review history can be carried into evaluation without custom storage.
-// RELEVANT FILES: .copilot/prompts/P8_review_record.md, docs/sdlc/templates/review-record.md, .copilot/prompts/P9_eval_monitor.md
+// RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-review-record.md, docs/sdlc/templates/review-record.md, .copilot/prompts/sdlc/ibmbob-sdlc-eval-monitor.md
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "review-record.schema.json",
@@ -46,7 +46,8 @@
     "approval_note": { "type": "string" },
     "next_agent": {
       "type": "string",
-      "const": "P9_eval_monitor"
+      "const": "ibmbob-sdlc-eval-monitor"
     }
   }
 }
+

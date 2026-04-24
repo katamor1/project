@@ -1,10 +1,10 @@
 <!-- docs/copilot-studio/custom-engine-bridge/samples/email-notification-diff-dry-run.md -->
 <!-- Shows a minimal bridge flow for a legacy diff request that returns a user-facing diff summary. -->
-<!-- This exists so the team can verify diff dispatch, gate review, and Copilot response shaping without starting a P-lane. -->
-<!-- RELEVANT FILES: .copilot/schemas/bridge-request-packet.schema.json, .copilot/schemas/bridge-response.schema.json, docs/external-runtime/legacy-kb/samples/email-notification-diff-dry-run.md -->
+<!-- This exists so the team can verify diff dispatch, gate review, and entry response shaping without starting a P-lane. -->
+<!-- RELEVANT FILES: .copilot/schemas/entry-request-packet.schema.json, .copilot/schemas/entry-response.schema.json, docs/external-runtime/legacy-kb/samples/email-notification-diff-dry-run.md -->
 # Email Notification Diff Dry Run
 
-## bridge_request_packet
+## entry_request_packet
 ```json
 {
   "request_id": "BRREQ-EMAIL-NOTIFY-DIFF-001",
@@ -16,20 +16,20 @@
 }
 ```
 
-## bridge_dispatch_packet
+## entry_dispatch_packet
 ```json
 {
-  "bridge_request_ref": "BRREQ-EMAIL-NOTIFY-DIFF-001",
-  "identity_context_ref": "BID-EMAIL-NOTIFY-001",
+  "entry_request_ref": "BRREQ-EMAIL-NOTIFY-DIFF-001",
+  "session_scope_context_ref": "BID-EMAIL-NOTIFY-001",
   "runtime_target": "legacy-kb-query",
   "runtime_task_type": "diff",
   "callback_contract": {
-    "response_agent": "C4_bridge_response_shaper",
+    "response_agent": "ibmbob-entry-response-shaper",
     "expected_result_type": "diff_report",
     "context_ref": "thread://email-notify-diff",
     "locale": "ja-JP"
   },
-  "next_agent": "K0_runtime_orchestrator"
+  "next_agent": "ibmbob-runtime-orchestrator"
 }
 ```
 
@@ -57,11 +57,11 @@ null
   ],
   "unknown_items": [],
   "impact_estimate": "medium",
-  "next_agent": "K8_evidence_reviewer"
+  "next_agent": "ibmbob-evidence-reviewer"
 }
 ```
 
-## bridge_response
+## entry_response
 ```json
 {
   "response_mode": "answer",
@@ -72,3 +72,5 @@ null
   "citations_policy": "source-backed summary only"
 }
 ```
+
+

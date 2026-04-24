@@ -1,11 +1,11 @@
 <!-- ibm-bob/mode-pack/rules/ibmbob-artifact-context-packer/01-core.md -->
 <!-- Defines the direct-mode rule for IBM-Bob Artifact Context Packer. -->
 <!-- This exists so IBM-Bob can mirror the canonical direct flow without rewriting the canonical prompt and routing sources. -->
-<!-- RELEVANT FILES: .copilot/prompts/K7_artifact_context_packer.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/external-runtime/legacy-kb/README.md -->
+<!-- RELEVANT FILES: .copilot/prompts/runtime/ibmbob-artifact-context-packer.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/external-runtime/legacy-kb/README.md -->
 # IBM-Bob Artifact Context Packer Rules
 
 ## Read First
-- `.copilot/prompts/K7_artifact_context_packer.md`
+- `.copilot/prompts/runtime/ibmbob-artifact-context-packer.md`
 - `ibm-bob/mode-pack/routing/direct-mode-flow.json`
 - `docs/external-runtime/legacy-kb/README.md`
 
@@ -24,3 +24,4 @@
 - direct flow の担当範囲を越える判断はしない。
 - 根拠が弱い時は先へ進めず、abstain か human checkpoint に落とす。
 - raw source link の丸投げで済ませず、allowed assertions と open questions を明示する。
+

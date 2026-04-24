@@ -7,7 +7,7 @@
 ## Fixed Services
 - Azure Blob: raw file と normalized export の保存
 - Azure AI Search: hybrid index と ACL-aware retrieval
-- Azure-hosted custom engine: `K0-K9` orchestration
+- Azure-hosted entry bridge: `K0-K9` orchestration
 - app-managed trace store: `run_trace`, eval result, incident metadata
 
 ## Index Layout
@@ -46,8 +46,8 @@
 - token usage
 
 ## Network / Trust Assumptions
-- Copilot から custom engine へ identity context を渡す
-- custom engine から Azure AI Search / Blob へ private access を前提にする
+- entry から entry bridge へ identity context を渡す
+- entry bridge から Azure AI Search / Blob へ private access を前提にする
 - app-managed trace store は本文全文を長期保存しない
 
 ## Default Search Shape
@@ -56,3 +56,4 @@
 - rerank top 10
 - leaf read max 6
 - relation expansion は second pass の時だけ
+

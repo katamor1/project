@@ -1,7 +1,7 @@
 // .copilot/schemas/repo-bridge.schema.json
 // Defines the repo bridge schema used to hand approved implementation assets into a future app repository.
 // This exists so manual handoff into a real codebase can be structured before any automation exists.
-// RELEVANT FILES: docs/sdlc/templates/repo-bridge.md, docs/sdlc/samples/email-notification-implementation-dry-run.md, .copilot/routing/implementation-matrix.yaml
+// RELEVANT FILES: docs/sdlc/templates/repo-bridge.md, docs/sdlc/samples/email-notification-implementation-dry-run.md, .copilot/routing/sdlc/ibmbob-implementation-flow.yaml
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "repo-bridge.schema.json",
@@ -50,7 +50,8 @@
     },
     "next_agent": {
       "type": "string",
-      "const": "P8_review_record"
+      "const": "ibmbob-sdlc-review-record"
     }
   }
 }
+

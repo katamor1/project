@@ -31,7 +31,7 @@
   "handoff_order": ["frontend", "backend", "db", "tests"],
   "manual_steps": ["path 規約を app repo で最終確認する"],
   "open_questions": [],
-  "next_agent": "P8_review_record"
+  "next_agent": "ibmbob-sdlc-review-record"
 }
 ```
 
@@ -51,7 +51,7 @@
   "bundle_targets": ["frontend_codepack", "backend_codepack", "sqlite_change_pack", "test_codepack"],
   "constraints": ["single app layout を守る", "path 規約は frontend/backend/db/tests に固定する"],
   "done_criteria": ["各 pack に target file がある", "path と ownership が一意", "test skeleton がある"],
-  "next_agent": "P11_frontend_codepack_author"
+  "next_agent": "ibmbob-sdlc-frontend-codepack-author"
 }
 ```
 
@@ -65,7 +65,7 @@
   "db_roots": ["db/schema", "db/migrations"],
   "test_roots": ["tests/unit", "tests/integration", "tests/regression"],
   "naming_rules": ["page file は kebab-case", "API file は snake_case"],
-  "next_agent": "P11_frontend_codepack_author"
+  "next_agent": "ibmbob-sdlc-frontend-codepack-author"
 }
 ```
 
@@ -76,7 +76,7 @@
     "artifact_id": "FEPACK-REQ-EMAIL-NOTIFY-001",
     "artifact_type": "frontend_codepack",
     "status": "draft",
-    "prompt_id": "P11_frontend_codepack_author",
+    "prompt_id": "ibmbob-sdlc-frontend-codepack-author",
     "prompt_version": "1.0",
     "model_id": "copilot",
     "upstream_refs": ["BRIDGE-REQ-EMAIL-NOTIFY-001"],
@@ -108,7 +108,7 @@
     { "client_name": "saveNotificationSettings", "endpoint": "POST /api/notification-settings", "usage": "persist toggle value" }
   ],
   "acceptance_refs": ["AC-01", "AC-02"],
-  "next_agent": "P12_backend_codepack_author"
+  "next_agent": "ibmbob-sdlc-backend-codepack-author"
 }
 ```
 
@@ -119,7 +119,7 @@
     "artifact_id": "BEPACK-REQ-EMAIL-NOTIFY-001",
     "artifact_type": "backend_codepack",
     "status": "draft",
-    "prompt_id": "P12_backend_codepack_author",
+    "prompt_id": "ibmbob-sdlc-backend-codepack-author",
     "prompt_version": "1.0",
     "model_id": "copilot",
     "upstream_refs": ["BRIDGE-REQ-EMAIL-NOTIFY-001", "FEPACK-REQ-EMAIL-NOTIFY-001"],
@@ -140,7 +140,7 @@
   "service_flow": ["authorize actor", "load current settings", "persist mail_opt_in", "return normalized payload"],
   "db_touchpoints": ["user_notification_settings.mail_opt_in", "user_notification_settings.updated_at"],
   "auth_rules": ["actor can update only own settings"],
-  "next_agent": "P13_test_codepack_author"
+  "next_agent": "ibmbob-sdlc-test-codepack-author"
 }
 ```
 
@@ -151,7 +151,7 @@
     "artifact_id": "SQLPACK-REQ-EMAIL-NOTIFY-001",
     "artifact_type": "sqlite_change_pack",
     "status": "draft",
-    "prompt_id": "P12_backend_codepack_author",
+    "prompt_id": "ibmbob-sdlc-backend-codepack-author",
     "prompt_version": "1.0",
     "model_id": "copilot",
     "upstream_refs": ["DB-CHANGE-NOTIFY-SETTINGS"],
@@ -169,7 +169,7 @@
   "schema_changes": ["add mail_opt_in boolean", "touch updated_at on save"],
   "migration_draft": "alter table user_notification_settings add column mail_opt_in integer default 0;",
   "rollback_notes": "ignore mail_opt_in in app layer and keep previous behavior",
-  "next_agent": "P13_test_codepack_author"
+  "next_agent": "ibmbob-sdlc-test-codepack-author"
 }
 ```
 
@@ -180,7 +180,7 @@
     "artifact_id": "TESTPACK-REQ-EMAIL-NOTIFY-001",
     "artifact_type": "test_codepack",
     "status": "draft",
-    "prompt_id": "P13_test_codepack_author",
+    "prompt_id": "ibmbob-sdlc-test-codepack-author",
     "prompt_version": "1.0",
     "model_id": "copilot",
     "upstream_refs": ["FEPACK-REQ-EMAIL-NOTIFY-001", "BEPACK-REQ-EMAIL-NOTIFY-001", "SQLPACK-REQ-EMAIL-NOTIFY-001"],
@@ -199,7 +199,7 @@
   "integration_cases": [{ "case_id": "IT-01", "title": "save endpoint persists value", "focus": "api + sqlite write" }],
   "regression_cases": [{ "case_id": "RG-01", "title": "settings page still loads", "focus": "legacy behavior" }],
   "fixtures": ["user with existing settings", "user without edit permission"],
-  "next_agent": "P14_execution_reviewer"
+  "next_agent": "ibmbob-sdlc-execution-reviewer"
 }
 ```
 
@@ -212,6 +212,7 @@
   "findings": [],
   "revise_to": "none",
   "human_checkpoint": false,
-  "next_agent": "P8_review_record"
+  "next_agent": "ibmbob-sdlc-review-record"
 }
 ```
+

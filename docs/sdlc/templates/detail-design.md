@@ -1,12 +1,12 @@
 <!-- docs/sdlc/templates/detail-design.md -->
 <!-- Provides the detail design artifact template used after basic design review. -->
 <!-- This exists so the team can turn approved basic design into concrete design decisions without writing code yet. -->
-<!-- RELEVANT FILES: .copilot/prompts/P2_detail_design_author.md, .copilot/schemas/artifact-manifest.schema.json, docs/sdlc/templates/basic-design.md -->
+<!-- RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-detail-design-author.md, .copilot/schemas/artifact-manifest.schema.json, docs/sdlc/templates/basic-design.md -->
 ---
 artifact_id: DETAIL-REQ-XXXX
 artifact_type: detail_design
 status: draft
-prompt_id: P2_detail_design_author
+prompt_id: ibmbob-sdlc-detail-design-author
 prompt_version: "1.0"
 model_id: copilot
 upstream_refs:
@@ -37,3 +37,4 @@ language: ja
 
 ## トレーサビリティ
 - 基本設計のどの項目をどう具体化したかを書く
+

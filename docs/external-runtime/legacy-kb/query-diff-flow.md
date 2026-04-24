@@ -1,7 +1,7 @@
 <!-- docs/external-runtime/legacy-kb/query-diff-flow.md -->
 <!-- Describes the staged retrieval and diff flow that gates downstream SDLC generation. -->
 <!-- This exists so evidence quality is checked before any design or implementation artifact is produced. -->
-<!-- RELEVANT FILES: .copilot/routing/legacy-kb-query-matrix.yaml, .copilot/schemas/evidence-bundle.schema.json, .copilot/schemas/diff-report.schema.json -->
+<!-- RELEVANT FILES: .copilot/routing/runtime/ibmbob-runtime-query-flow.yaml, .copilot/schemas/evidence-bundle.schema.json, .copilot/schemas/diff-report.schema.json -->
 # Query And Diff Flow
 
 ## Retrieval Flow
@@ -34,3 +34,4 @@
 - ACL mismatch
 - unsupported claim risk
 - evidence bundle が acceptance threshold 未満
+

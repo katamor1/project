@@ -1,11 +1,11 @@
 <!-- docs/external-runtime/legacy-kb/architecture.md -->
-<!-- Describes the logical component split between M365 Copilot, custom engine orchestration, and Azure knowledge services. -->
+<!-- Describes the logical component split between IBM Bob, entry bridge orchestration, and Azure knowledge services. -->
 <!-- This exists so the external runtime stays thin at the edge and explicit in its retrieval and generation responsibilities. -->
 <!-- RELEVANT FILES: docs/external-runtime/legacy-kb/azure-topology.md, docs/external-runtime/legacy-kb/query-diff-flow.md, docs/sdlc/README.md -->
 # Architecture
 
 ## Goal
-Microsoft 365 Copilot を薄い入口として残し、重い retrieval / diff / context packing は外部 custom engine に逃がします。
+Microsoft 365 entry を薄い入口として残し、重い retrieval / diff / context packing は外部 entry bridge に逃がします。
 
 ## Responsibility Split
 ### Microsoft 365 Copilot
@@ -27,7 +27,7 @@ Microsoft 365 Copilot を薄い入口として残し、重い retrieval / diff /
 - incremental reindex
 
 ## Component View
-- `Copilot Entry`: request capture と auth context 受け渡し
+- `entry bridge`: request capture と auth context 受け渡し
 - `Runtime Orchestrator`: `K0` 実行と lane 分岐
 - `Ingest Worker`: `K1-K4`
 - `Query Worker`: `K5-K8`
@@ -42,7 +42,9 @@ Microsoft 365 Copilot を薄い入口として残し、重い retrieval / diff /
 - low confidence, ACL mismatch, authoritative conflict は downstream に流さない
 
 ## Why This Split
-- Copilot 側の knowledge 制約を外せます。
+- entry 側の knowledge 制約を外せます。
 - retrieval と generation を別々に評価できます。
 - ACL と authority を generation 前に再確認できます。
 - `docs/sdlc` の `P*` レーンを壊さずに source-backed 化できます。
+
+

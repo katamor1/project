@@ -1,7 +1,7 @@
 <!-- docs/external-runtime/legacy-kb/samples/email-notification-query-dry-run.md -->
 <!-- Shows a minimal query dry run from retrieval planning to artifact context packing. -->
 <!-- This exists so the team can verify how evidence becomes a downstream SDLC handoff packet. -->
-<!-- RELEVANT FILES: .copilot/prompts/K5_retrieval_planner.md, .copilot/schemas/evidence-bundle.schema.json, .copilot/schemas/artifact-context-packet.schema.json -->
+<!-- RELEVANT FILES: .copilot/prompts/runtime/ibmbob-retrieval-planner.md, .copilot/schemas/evidence-bundle.schema.json, .copilot/schemas/artifact-context-packet.schema.json -->
 # Email Notification Query Dry Run
 
 ## retrieval_plan
@@ -17,7 +17,7 @@
   "rerank_top_k": 10,
   "leaf_read_max": 6,
   "fallback_strategy": ["query_rewrite", "relation_expand"],
-  "next_agent": "K7_artifact_context_packer"
+  "next_agent": "ibmbob-artifact-context-packer"
 }
 ```
 
@@ -36,7 +36,7 @@
   "coverage_assessment": "UI, API, DB の主要観点をカバー",
   "confidence": 0.84,
   "risk_flags": [],
-  "next_agent": "K7_artifact_context_packer"
+  "next_agent": "ibmbob-artifact-context-packer"
 }
 ```
 
@@ -45,7 +45,7 @@
 {
   "artifact_request": {
     "artifact_type": "basic_design",
-    "target_agent": "P2_basic_design_author"
+    "target_agent": "ibmbob-sdlc-basic-design-author"
   },
   "evidence_bundle_ref": "EVB-BASIC-EMAIL-NOTIFY-001",
   "resolved_entities": [
@@ -61,6 +61,7 @@
   ],
   "evidence_coverage": "approved legacy sources cover core scope",
   "authority_conflict_note": "no conflict",
-  "next_agent": "P2_basic_design_author"
+  "next_agent": "ibmbob-sdlc-basic-design-author"
 }
 ```
+

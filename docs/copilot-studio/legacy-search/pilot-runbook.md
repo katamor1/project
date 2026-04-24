@@ -8,19 +8,19 @@
 
 - `Maker`: agent 設定、knowledge 接続、publish を担当する
 - `Knowledge owner`: SharePoint / OneDrive の範囲、名称、説明文、権限を管理する
-- `Pilot user`: `LS-01 Intake Router` 起点で利用し、結果を記録する
+- `Pilot user`: `ibmbob-legacy-search-intake-router` 起点で利用し、結果を記録する
 
 ## Pilot Rules
 
 - Pilot は 5 人以内で始めます。
 - 各人 5 問で始めます。
-- 新規会話は必ず `LS-01 Intake Router` から始めます。
+- 新規会話は必ず `ibmbob-legacy-search-intake-router` から始めます。
 - 各ステップで `handoff_packet` を次 agent に貼り替えます。
 - 結果は `readiness/pilot-scorecard.yaml` へ転記します。
 
 ## Execution Order
 
-1. `LS-01 Intake Router` で開始する
+1. `ibmbob-legacy-search-intake-router` で開始する
 2. `handoff_packet` を次 agent に貼る
 3. 最終回答または停止回答まで進める
 4. `chat_response` と `pm_copy_template` を確認する
@@ -36,3 +36,4 @@
 - `競合見逃し 0`
 - `handoff_packet` 欠落 0
 - `pm_copy_template` が代表 10 ケースでそのまま転記可能
+

@@ -1,11 +1,11 @@
 <!-- ibm-bob/mode-pack/rules/ibmbob-intake-normalizer/01-core.md -->
 <!-- Defines the direct-mode rule for IBM-Bob Intake Normalizer. -->
 <!-- This exists so IBM-Bob can mirror the canonical direct flow without rewriting the canonical prompt and routing sources. -->
-<!-- RELEVANT FILES: .copilot/prompts/K1_intake_normalizer.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/external-runtime/legacy-kb/README.md -->
+<!-- RELEVANT FILES: .copilot/prompts/runtime/ibmbob-intake-normalizer.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/external-runtime/legacy-kb/README.md -->
 # IBM-Bob Intake Normalizer Rules
 
 ## Read First
-- `.copilot/prompts/K1_intake_normalizer.md`
+- `.copilot/prompts/runtime/ibmbob-intake-normalizer.md`
 - `ibm-bob/mode-pack/routing/direct-mode-flow.json`
 - `docs/external-runtime/legacy-kb/README.md`
 
@@ -23,3 +23,4 @@
 ## Safety
 - direct flow の担当範囲を越える判断はしない。
 - 根拠が弱い時は先へ進めず、abstain か human checkpoint に落とす。
+

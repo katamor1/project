@@ -1,7 +1,7 @@
 <!-- docs/sdlc/samples/email-notification-test-spec-dry-run.md -->
 <!-- Shows a minimal test spec lane dry run for the email notification setting example. -->
 <!-- This exists so the team can verify how reviewed design artifacts become functional and integration specs. -->
-<!-- RELEVANT FILES: .copilot/routing/test-spec-matrix.yaml, docs/sdlc/templates/functional-spec.md, docs/sdlc/templates/integration-spec.md -->
+<!-- RELEVANT FILES: .copilot/routing/sdlc/ibmbob-test-spec-flow.yaml, docs/sdlc/templates/functional-spec.md, docs/sdlc/templates/integration-spec.md -->
 # Email Notification Test Spec Dry Run
 
 この sample は、`detail_design` 通過後に `functional_spec` と `integration_spec` を作る最小構成です。
@@ -14,7 +14,7 @@
     "artifact_id": "FUNC-REQ-EMAIL-NOTIFY-001",
     "artifact_type": "functional_spec",
     "status": "draft",
-    "prompt_id": "P2_functional_spec_author",
+    "prompt_id": "ibmbob-sdlc-functional-spec-author",
     "prompt_version": "1.0",
     "model_id": "copilot",
     "upstream_refs": ["DETAIL-REQ-EMAIL-NOTIFY-001"],
@@ -23,7 +23,7 @@
   },
   "stage": "functional_spec",
   "objective": "通知設定変更の機能試験仕様を作る",
-  "next_agent": "P3_spec_reviewer"
+  "next_agent": "ibmbob-sdlc-spec-reviewer"
 }
 ```
 
@@ -58,9 +58,9 @@
   "review_decision": "pass",
   "summary": "主要シナリオと受入条件の対応が明確",
   "findings": [],
-  "revise_to": "P2_functional_spec_author",
+  "revise_to": "ibmbob-sdlc-functional-spec-author",
   "human_checkpoint": false,
-  "next_agent": "P8_review_record"
+  "next_agent": "ibmbob-sdlc-review-record"
 }
 ```
 
@@ -72,7 +72,7 @@
     "artifact_id": "INTSPEC-REQ-EMAIL-NOTIFY-001",
     "artifact_type": "integration_spec",
     "status": "draft",
-    "prompt_id": "P2_integration_spec_author",
+    "prompt_id": "ibmbob-sdlc-integration-spec-author",
     "prompt_version": "1.0",
     "model_id": "copilot",
     "upstream_refs": ["DETAIL-REQ-EMAIL-NOTIFY-001"],
@@ -81,7 +81,7 @@
   },
   "stage": "integration_spec",
   "objective": "通知設定変更の結合試験仕様を作る",
-  "next_agent": "P3_spec_reviewer"
+  "next_agent": "ibmbob-sdlc-spec-reviewer"
 }
 ```
 
@@ -116,8 +116,9 @@
   "review_decision": "pass",
   "summary": "API と DB の境界観点がそろっている",
   "findings": [],
-  "revise_to": "P2_integration_spec_author",
+  "revise_to": "ibmbob-sdlc-integration-spec-author",
   "human_checkpoint": false,
-  "next_agent": "P8_review_record"
+  "next_agent": "ibmbob-sdlc-review-record"
 }
 ```
+

@@ -1,12 +1,12 @@
 <!-- docs/sdlc/templates/test-draft-bundle.md -->
 <!-- Provides the template for test skeleton drafts in the integration lane. -->
 <!-- This exists so unit, integration, and regression test intent can be handed off before real test code exists. -->
-<!-- RELEVANT FILES: .copilot/prompts/P19_test_draft_author.md, .copilot/schemas/test-draft-bundle.schema.json, docs/sdlc/templates/frontend-draft-bundle.md -->
+<!-- RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-test-draft-author.md, .copilot/schemas/test-draft-bundle.schema.json, docs/sdlc/templates/frontend-draft-bundle.md -->
 ---
 artifact_id: TDRAFT-REQ-XXXX
 artifact_type: test_draft_bundle
 status: draft
-prompt_id: P19_test_draft_author
+prompt_id: ibmbob-sdlc-test-draft-author
 prompt_version: "1.0"
 model_id: copilot
 upstream_refs:
@@ -31,3 +31,4 @@ language: ja
 
 ## Skeleton Notes
 - fixture、TODO、未解決事項を書く
+

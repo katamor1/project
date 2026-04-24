@@ -1,7 +1,7 @@
 <!-- docs/external-runtime/legacy-kb/eval-ops.md -->
 <!-- Defines runtime evaluation, pilot metrics, and operational quality gates for the external knowledge track. -->
 <!-- This exists so retrieval and diff quality can be judged independently from downstream SDLC generation quality. -->
-<!-- RELEVANT FILES: docs/external-runtime/legacy-kb/runbook.md, docs/external-runtime/legacy-kb/samples/email-notification-query-dry-run.md, .copilot/prompts/K9_runtime_eval_monitor.md -->
+<!-- RELEVANT FILES: docs/external-runtime/legacy-kb/runbook.md, docs/external-runtime/legacy-kb/samples/email-notification-query-dry-run.md, .copilot/prompts/runtime/ibmbob-runtime-eval-monitor.md -->
 # Eval And Ops
 
 ## KPI
@@ -32,3 +32,4 @@
 - ingest, query, diff は別メトリクスで取る
 - query failure は retrieval 失敗と ACL block を分けて記録する
 - eval は runtime 側と `docs/sdlc` 側で分けて集計する
+

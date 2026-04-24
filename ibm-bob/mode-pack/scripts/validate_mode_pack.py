@@ -1,7 +1,7 @@
 # ibm-bob/mode-pack/scripts/validate_mode_pack.py
 # Runs static validation for the IBM-Bob mode-pack source, generated Bob config, routing, and simulated packets.
-# This exists so the repo can catch broken mode metadata or packet contracts before Bob uses them.
-# RELEVANT FILES: ibm-bob/mode-pack/scripts/install_mode_pack.py, ibm-bob/mode-pack/scripts/evaluate_mode_pack.py, ibm-bob/mode-pack/modes/custom_modes.source.yaml
+# This exists so the repo can catch broken coexistence or bad direct-mode install output before Bob uses it.
+# RELEVANT FILES: ibm-bob/mode-pack/scripts/install_mode_pack.py, ibm-bob/mode-pack/scripts/reference_manifest.py, ibm-bob/mode-pack/modes/custom_modes.source.yaml
 from __future__ import annotations
 
 import tempfile
@@ -11,6 +11,7 @@ import yaml
 
 from evaluate_mode_pack import run_case
 from install_mode_pack import install_to_workspace
+from reference_manifest import REFERENCE_MANIFEST
 from runtime_common import DIRECT_ROUTING_SOURCE, MODES_SOURCE, SCHEMA_ROOT, SAMPLES_ROOT, hash_tree, load_jsonc, load_yaml_file
 
 OLD_EXPECTED_SLUGS = [
@@ -78,13 +79,27 @@ DIRECT_EXPECTED_SLUGS = [
 ]
 
 
+def _assert_generated_reference_layout(workspace: Path) -> None:
+    references_root = workspace / ".bob" / "ibm-bob" / "references"
+    assert references_root.exists()
+    assert not any(references_root.rglob("rules"))
+    assert not any(references_root.rglob("rules-*"))
+    assert not any("mode-pack" in str(path).replace("\\", "/") for path in references_root.rglob("*"))
+    assert not any("/.copilot/" in str(path).replace("\\", "/") for path in references_root.rglob("*"))
+    for install_path in REFERENCE_MANIFEST.values():
+        if "/references/" in install_path:
+            assert (workspace / Path(install_path)).exists(), install_path
+
+
 def main() -> int:
     source = load_yaml_file(MODES_SOURCE)
     slugs = [mode["slug"] for mode in source["sourceModes"]]
     assert slugs[: len(OLD_EXPECTED_SLUGS)] == OLD_EXPECTED_SLUGS, slugs
     assert slugs[len(OLD_EXPECTED_SLUGS) :] == DIRECT_EXPECTED_SLUGS, slugs
+
     for schema_path in sorted(SCHEMA_ROOT.glob("*.json")):
         load_jsonc(schema_path)
+
     with tempfile.TemporaryDirectory() as temp_dir:
         workspace = Path(temp_dir) / "workspace"
         workspace.mkdir()
@@ -92,10 +107,22 @@ def main() -> int:
         generated = yaml.safe_load((workspace / ".bob" / "custom_modes.yaml").read_text(encoding="utf-8"))
         generated_slugs = [mode["slug"] for mode in generated["customModes"]]
         assert generated_slugs == OLD_EXPECTED_SLUGS + DIRECT_EXPECTED_SLUGS, generated_slugs
+
         for slug in OLD_EXPECTED_SLUGS + DIRECT_EXPECTED_SLUGS:
             assert (workspace / ".bob" / f"rules-{slug}" / "01-core.md").exists()
         assert not (workspace / ".bob" / "rules-ibmbob-orchestrator" / "10-response-style.md").exists()
         assert (workspace / ".bob" / "rules-ibmbob-entry-router" / "10-response-style.md").exists()
+
+        generated_entry_mode = next(mode for mode in generated["customModes"] if mode["slug"] == "ibmbob-entry-router")
+        assert ".bob/ibm-bob/references/entry/prompts/ibmbob-entry-router.md" in generated_entry_mode["customInstructions"]
+        assert ".bob/ibm-bob/references/shared/guides/direct-mode-flow.json" in generated_entry_mode["customInstructions"]
+        installed_entry_rule = (workspace / ".bob" / "rules-ibmbob-entry-router" / "01-core.md").read_text(encoding="utf-8")
+        assert ".bob/ibm-bob/references/entry/prompts/ibmbob-entry-router.md" in installed_entry_rule
+        assert ".bob/ibm-bob/references/shared/guides/direct-mode-flow.json" in installed_entry_rule
+        assert ".bob/ibm-bob/references/shared/guides/handoff-contracts.md" in installed_entry_rule
+        assert not (workspace / ".bob" / "ibmbob" / "direct-mode-flow.json").exists()
+        _assert_generated_reference_layout(workspace)
+
     routes = load_jsonc(Path(__file__).resolve().parent.parent / "routing" / "stage-flow.json")["routes"]
     assert routes["unit_test_run"]["on_revise"] == {
         "code": "ibmbob-code-author",
@@ -103,6 +130,7 @@ def main() -> int:
         "intake": "ibmbob-intake",
     }
     assert routes["functional_test_pack"]["on_pass"] == "ibmbob-run-summary"
+
     direct_routes = load_jsonc(DIRECT_ROUTING_SOURCE)
     direct_slugs = set()
     for family_slugs in direct_routes["families"].values():
@@ -110,6 +138,7 @@ def main() -> int:
     for flow in direct_routes["manual_pilot_flows"].values():
         direct_slugs.update(flow)
     assert direct_slugs <= set(DIRECT_EXPECTED_SLUGS), direct_slugs
+
     original_hash = hash_tree(SAMPLES_ROOT / "base")
     summary = run_case(next((SAMPLES_ROOT / "評価用基本設計書").glob("*.docx")), "simulate")
     assert summary["status"] == "completed"

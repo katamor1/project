@@ -1,12 +1,12 @@
 <!-- docs/sdlc/templates/integration-spec.md -->
 <!-- Provides the integration test specification template for API, DB, and dependency boundaries. -->
 <!-- This exists so integration verification intent is documented before executable tests are created. -->
-<!-- RELEVANT FILES: .copilot/prompts/P2_integration_spec_author.md, docs/sdlc/templates/functional-spec.md, docs/sdlc/templates/review-summary.md -->
+<!-- RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-integration-spec-author.md, docs/sdlc/templates/functional-spec.md, docs/sdlc/templates/review-summary.md -->
 ---
 artifact_id: INTSPEC-REQ-XXXX
 artifact_type: integration_spec
 status: draft
-prompt_id: P2_integration_spec_author
+prompt_id: ibmbob-sdlc-integration-spec-author
 prompt_version: "1.0"
 model_id: copilot
 upstream_refs:
@@ -31,3 +31,4 @@ language: ja
 
 ## トレーサビリティ
 - 詳細設計との対応を書く
+

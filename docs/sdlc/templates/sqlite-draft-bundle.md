@@ -1,12 +1,12 @@
 <!-- docs/sdlc/templates/sqlite-draft-bundle.md -->
 <!-- Provides the template for SQLite schema and migration draft artifacts in the integration lane. -->
 <!-- This exists so database change responsibility stays explicit and separate from backend code drafts. -->
-<!-- RELEVANT FILES: .copilot/prompts/P18_sqlite_draft_author.md, .copilot/schemas/sqlite-draft-bundle.schema.json, docs/sdlc/templates/backend-draft-bundle.md -->
+<!-- RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-sqlite-draft-author.md, .copilot/schemas/sqlite-draft-bundle.schema.json, docs/sdlc/templates/backend-draft-bundle.md -->
 ---
 artifact_id: SQLDRAFT-REQ-XXXX
 artifact_type: sqlite_draft_bundle
 status: draft
-prompt_id: P18_sqlite_draft_author
+prompt_id: ibmbob-sdlc-sqlite-draft-author
 prompt_version: "1.0"
 model_id: copilot
 upstream_refs:
@@ -28,3 +28,4 @@ language: ja
 
 ## Rollback Notes
 - rollback 方針と注意点を書く
+

@@ -1,7 +1,7 @@
 // .copilot/schemas/test-pack.schema.json
 // Defines the test pack schema used to describe non-executable implementation test intent.
 // This exists so code review can judge whether a slice has enough coverage before repo handoff.
-// RELEVANT FILES: .copilot/prompts/P6_test_author.md, .copilot/prompts/P7_code_reviewer.md, docs/sdlc/templates/test-spec.md
+// RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-test-author.md, .copilot/prompts/sdlc/ibmbob-sdlc-code-reviewer.md, docs/sdlc/templates/test-spec.md
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "test-pack.schema.json",
@@ -48,7 +48,8 @@
     },
     "next_agent": {
       "type": "string",
-      "const": "P7_code_reviewer"
+      "const": "ibmbob-sdlc-code-reviewer"
     }
   }
 }
+

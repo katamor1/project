@@ -1,0 +1,21 @@
+// .copilot/schemas/session-scope-context.schema.json
+// Defines the entry bridge identity context schema used before runtime dispatch.
+// This exists so principal, tenant, and allowed scope checks use one stable contract.
+// RELEVANT FILES: .copilot/prompts/entry/ibmbob-identity-scope-guard.md, .copilot/schemas/entry-human-checkpoint.schema.json, docs/copilot-studio/custom-engine-bridge/identity-scope.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "session-scope-context.schema.json",
+  "title": "Session Scope Context",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["user_principal", "groups", "tenant", "copilot_surface", "allowed_scopes"],
+  "properties": {
+    "user_principal": { "type": "string" },
+    "groups": { "type": "array", "items": { "type": "string" } },
+    "tenant": { "type": "string" },
+    "copilot_surface": { "type": "string" },
+    "allowed_scopes": { "type": "array", "items": { "type": "string" } }
+  }
+}
+
+

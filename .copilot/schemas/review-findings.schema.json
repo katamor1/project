@@ -1,7 +1,7 @@
 // .copilot/schemas/review-findings.schema.json
 // Defines the review findings schema for pass, revise, and block decisions.
 // This exists so review outcomes stay machine-readable before automation exists.
-// RELEVANT FILES: .copilot/prompts/P3_spec_reviewer.md, .copilot/routing/agent-matrix.yaml, docs/sdlc/samples/email-notification-dry-run.md
+// RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-spec-reviewer.md, .copilot/routing/sdlc/ibmbob-design-flow.yaml, docs/sdlc/samples/email-notification-dry-run.md
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "review-findings.schema.json",
@@ -47,7 +47,8 @@
     "human_checkpoint": { "type": "boolean" },
     "next_agent": {
       "type": "string",
-      "enum": ["P2_basic_design_author", "P2_detail_design_author", "P8_review_record", "P0_orchestrator"]
+      "enum": ["ibmbob-sdlc-basic-design-author", "ibmbob-sdlc-detail-design-author", "ibmbob-sdlc-review-record", "ibmbob-sdlc-request-orchestrator"]
     }
   }
 }
+

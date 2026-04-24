@@ -1,0 +1,108 @@
+# .copilot/routing/runtime/ibmbob-runtime-query-flow.yaml
+# Defines the retrieval, diff, evidence gate, and downstream handoff routing for legacy knowledge usage.
+# This exists so source-backed generation starts only after confidence, authority, and ACL checks pass.
+# RELEVANT FILES: .copilot/prompts/runtime/ibmbob-retrieval-planner.md, .copilot/prompts/runtime/ibmbob-evidence-reviewer.md, docs/external-runtime/legacy-kb/query-diff-flow.md
+version: 1
+flow_name: legacy-kb-query
+agents:
+  - id: ibmbob-runtime-orchestrator
+    artifact_type: runtime_task_packet
+    prompt_path: .copilot/prompts/runtime/ibmbob-runtime-orchestrator.md
+  - id: ibmbob-retrieval-planner
+    artifact_type: retrieval_plan
+    prompt_path: .copilot/prompts/runtime/ibmbob-retrieval-planner.md
+  - id: ibmbob-legacy-diff-checker
+    artifact_type: diff_report
+    prompt_path: .copilot/prompts/runtime/ibmbob-legacy-diff-checker.md
+  - id: ibmbob-artifact-context-packer
+    artifact_type: artifact_context_packet
+    prompt_path: .copilot/prompts/runtime/ibmbob-artifact-context-packer.md
+  - id: ibmbob-evidence-reviewer
+    artifact_type: evidence_review
+    prompt_path: .copilot/prompts/runtime/ibmbob-evidence-reviewer.md
+  - id: ibmbob-sdlc-basic-design-author
+    artifact_type: basic_design
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-basic-design-author.md
+  - id: ibmbob-sdlc-detail-design-author
+    artifact_type: detail_design
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-detail-design-author.md
+  - id: ibmbob-sdlc-functional-spec-author
+    artifact_type: functional_spec
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-functional-spec-author.md
+  - id: ibmbob-sdlc-integration-spec-author
+    artifact_type: integration_spec
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-integration-spec-author.md
+  - id: ibmbob-sdlc-implementation-planner
+    artifact_type: implementation_packet
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-implementation-planner.md
+  - id: ibmbob-sdlc-test-author
+    artifact_type: test_pack
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-test-author.md
+  - id: ibmbob-sdlc-review-record
+    artifact_type: review_record
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-review-record.md
+  - id: ibmbob-sdlc-eval-monitor
+    artifact_type: eval_report
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-eval-monitor.md
+entry_conditions:
+  - source: copilot_request
+    when: source_backed_generation_requested
+  - source: copilot_request
+    when: legacy_diff_requested
+standard_route:
+  - from: ibmbob-runtime-orchestrator
+    to: ibmbob-retrieval-planner
+    when: retrieval_task_ready
+  - from: ibmbob-retrieval-planner
+    to: ibmbob-legacy-diff-checker
+    when: diff_requested
+  - from: ibmbob-retrieval-planner
+    to: ibmbob-artifact-context-packer
+    when: evidence_bundle_ready
+  - from: ibmbob-legacy-diff-checker
+    to: ibmbob-evidence-reviewer
+    when: diff_report_ready
+  - from: ibmbob-artifact-context-packer
+    to: ibmbob-evidence-reviewer
+    when: artifact_context_packet_ready
+  - from: ibmbob-evidence-reviewer
+    to: ibmbob-sdlc-basic-design-author
+    when: downstream_target_basic_design
+  - from: ibmbob-evidence-reviewer
+    to: ibmbob-sdlc-detail-design-author
+    when: downstream_target_detail_design
+  - from: ibmbob-evidence-reviewer
+    to: ibmbob-sdlc-functional-spec-author
+    when: downstream_target_functional_spec
+  - from: ibmbob-evidence-reviewer
+    to: ibmbob-sdlc-integration-spec-author
+    when: downstream_target_integration_spec
+  - from: ibmbob-evidence-reviewer
+    to: ibmbob-sdlc-implementation-planner
+    when: downstream_target_implementation
+  - from: ibmbob-evidence-reviewer
+    to: ibmbob-sdlc-test-author
+    when: downstream_target_test_pack
+  - from: ibmbob-evidence-reviewer
+    to: ibmbob-sdlc-review-record
+    when: downstream_target_review_record
+  - from: ibmbob-evidence-reviewer
+    to: ibmbob-sdlc-eval-monitor
+    when: downstream_target_eval
+gate_rules:
+  - condition: confidence_below_0_65
+    return_to: ibmbob-runtime-orchestrator
+    result: human_checkpoint_required
+  - condition: confidence_between_0_65_and_0_78
+    return_to: ibmbob-retrieval-planner
+    result: query_rewrite_relation_expand_second_pass
+  - condition: acl_mismatch
+    return_to: ibmbob-runtime-orchestrator
+    result: human_checkpoint_required
+  - condition: conflicting_authoritative_sources
+    return_to: ibmbob-runtime-orchestrator
+    result: human_checkpoint_required
+terminal_states:
+  - complete
+  - human_checkpoint_required
+

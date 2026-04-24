@@ -1,7 +1,7 @@
 <!-- ibm-bob/mode-pack/samples/direct-modes/eval-dry-run.md -->
 <!-- Shows a dry run for the new Bob direct eval-only path. -->
 <!-- This exists so the team can validate evaluation work without mixing it with the old fixed-stage family. -->
-<!-- RELEVANT FILES: ibm-bob/mode-pack/sdlc-guide.md, ibm-bob/mode-pack/pilot-runbook.md, .copilot/prompts/P9_eval_monitor.md -->
+<!-- RELEVANT FILES: ibm-bob/mode-pack/sdlc-guide.md, ibm-bob/mode-pack/pilot-runbook.md, .copilot/prompts/sdlc/ibmbob-sdlc-eval-monitor.md -->
 # Eval Dry Run
 
 ## User Intent
@@ -17,4 +17,5 @@
 - `ibmbob-sdlc-eval-monitor` が coverage gap と next action を返すこと
 - 余計な authoring lane に入らないこと
 - source-backed 評価でも evidence gate を通ること
+
 

@@ -1,11 +1,11 @@
 <!-- docs/copilot-studio/custom-engine-bridge/dispatch-contract.md -->
-<!-- Defines how bridge packets are transformed from Copilot chat intent into external runtime dispatch packets. -->
-<!-- This exists so runtime entry stays stable even if Copilot prompt wording changes later. -->
-<!-- RELEVANT FILES: .copilot/schemas/bridge-request-packet.schema.json, .copilot/schemas/bridge-dispatch-packet.schema.json, docs/external-runtime/legacy-kb/api-spec.md -->
+<!-- Defines how bridge packets are transformed from entry chat intent into external runtime dispatch packets. -->
+<!-- This exists so runtime entry stays stable even if entry prompt wording changes later. -->
+<!-- RELEVANT FILES: .copilot/schemas/entry-request-packet.schema.json, .copilot/schemas/entry-dispatch-packet.schema.json, docs/external-runtime/legacy-kb/api-spec.md -->
 # Dispatch Contract
 
 ## Transform
-`chat request -> bridge_request_packet -> bridge_dispatch_packet -> runtime_request`
+`chat request -> entry_request_packet -> entry_dispatch_packet -> runtime_request`
 
 ## Mapping Rules
 - `user_intent` -> `runtime_task_type`
@@ -24,7 +24,7 @@
   `runtime_target = eval-lane`
 
 ## Callback Contract
-- `response_agent`: `C4_bridge_response_shaper`
+- `response_agent`: `ibmbob-entry-response-shaper`
 - `expected_result_type`
 - `context_ref`
 - `locale`
@@ -32,3 +32,5 @@
 ## No Guessing Rule
 - request が lane に落ちない時は dispatch しない
 - `C0` に戻して checkpoint にする
+
+

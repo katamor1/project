@@ -1,7 +1,7 @@
 <!-- docs/copilot-studio/custom-engine-bridge/response-shaping.md -->
-<!-- Defines how runtime outputs are turned into short Japanese Copilot-facing messages. -->
+<!-- Defines how runtime outputs are turned into short Japanese entry-facing messages. -->
 <!-- This exists so answer, abstain, checkpoint, and handoff states are presented consistently to users. -->
-<!-- RELEVANT FILES: .copilot/schemas/bridge-response.schema.json, .copilot/prompts/C4_bridge_response_shaper.md, docs/copilot-studio/custom-engine-bridge/samples/email-notification-abstain-dry-run.md -->
+<!-- RELEVANT FILES: .copilot/schemas/entry-response.schema.json, .copilot/prompts/entry/ibmbob-entry-response-shaper.md, docs/copilot-studio/custom-engine-bridge/samples/email-notification-abstain-dry-run.md -->
 # Response Shaping
 
 ## Response Modes
@@ -35,3 +35,5 @@
 ## Citation Policy
 - source-backed 応答だけ citation note を返す
 - weak evidence では citation を飾りに使わない
+
+

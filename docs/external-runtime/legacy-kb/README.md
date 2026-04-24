@@ -1,7 +1,7 @@
 <!-- docs/external-runtime/legacy-kb/README.md -->
 <!-- Explains the Azure-first external knowledge runtime that feeds evidence into the SDLC lanes. -->
-<!-- This exists so legacy document retrieval, diff, and context packing have a dedicated blueprint behind the Copilot custom engine bridge. -->
-<!-- RELEVANT FILES: docs/copilot-studio/custom-engine-bridge/README.md, docs/sdlc/README.md, .copilot/routing/legacy-kb-query-matrix.yaml -->
+<!-- This exists so legacy document retrieval, diff, and context packing have a dedicated blueprint behind the entry bridge. -->
+<!-- RELEVANT FILES: docs/copilot-studio/custom-engine-bridge/README.md, docs/sdlc/README.md, .copilot/routing/runtime/ibmbob-runtime-query-flow.yaml -->
 # External Knowledge Runtime Blueprint
 
 このトラックは、`docs/sdlc` の `P*` レーンへ evidence を渡すための外部 runtime 設計です。
@@ -22,10 +22,10 @@
 
 ## Connection To SDLC
 - `docs/copilot-studio/custom-engine-bridge` が front door です。
-- `C3_dispatch_packet_author` から `K0_runtime_orchestrator` に入ります。
+- `ibmbob-dispatch-packet-author` から `ibmbob-runtime-orchestrator` に入ります。
 - `K0-K9` は外部 runtime 側の prompt registry です。
-- `K7_artifact_context_packer` が `artifact_context_packet` を作り、既存 `P*` レーンへ handoff します。
-- `P2_basic_design_author`, `P2_detail_design_author`, `P2_functional_spec_author`, `P2_integration_spec_author`, `P4_implementation_planner`, `P6_test_author` は `artifact_context_packet` を優先入力にします。
+- `ibmbob-artifact-context-packer` が `artifact_context_packet` を作り、既存 `P*` レーンへ handoff します。
+- `ibmbob-sdlc-basic-design-author`, `ibmbob-sdlc-detail-design-author`, `ibmbob-sdlc-functional-spec-author`, `ibmbob-sdlc-integration-spec-author`, `ibmbob-sdlc-implementation-planner`, `ibmbob-sdlc-test-author` は `artifact_context_packet` を優先入力にします。
 - `source_refs` は fallback だけに残します。
 
 ## Directory Map
@@ -79,6 +79,9 @@
 - search: Azure AI Search
 - trace / eval metadata: app-managed store
 - front door: `docs/copilot-studio/custom-engine-bridge` の `C0-C5`
-- orchestration: Azure-hosted custom engine
+- orchestration: Azure-hosted entry bridge
 
 Source-backed generation の開始点は、このトラックで `artifact_context_packet` を作るところまでです。
+
+
+

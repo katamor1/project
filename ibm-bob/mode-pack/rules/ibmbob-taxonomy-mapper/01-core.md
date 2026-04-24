@@ -1,11 +1,11 @@
 <!-- ibm-bob/mode-pack/rules/ibmbob-taxonomy-mapper/01-core.md -->
 <!-- Defines the direct-mode rule for IBM-Bob Taxonomy Mapper. -->
 <!-- This exists so IBM-Bob can mirror the canonical direct flow without rewriting the canonical prompt and routing sources. -->
-<!-- RELEVANT FILES: .copilot/prompts/K2_taxonomy_mapper.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/external-runtime/legacy-kb/README.md -->
+<!-- RELEVANT FILES: .copilot/prompts/runtime/ibmbob-taxonomy-mapper.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/external-runtime/legacy-kb/README.md -->
 # IBM-Bob Taxonomy Mapper Rules
 
 ## Read First
-- `.copilot/prompts/K2_taxonomy_mapper.md`
+- `.copilot/prompts/runtime/ibmbob-taxonomy-mapper.md`
 - `ibm-bob/mode-pack/routing/direct-mode-flow.json`
 - `docs/external-runtime/legacy-kb/README.md`
 
@@ -23,3 +23,4 @@
 ## Safety
 - direct flow の担当範囲を越える判断はしない。
 - 根拠が弱い時は先へ進めず、abstain か human checkpoint に落とす。
+

@@ -1,7 +1,7 @@
 // .copilot/schemas/document-record.schema.json
 // Defines the normalized legacy document record schema used at the start of ingestion.
 // This exists so file identity, taxonomy, ACL, and approval state stay stable across reindex runs.
-// RELEVANT FILES: .copilot/prompts/K1_intake_normalizer.md, .copilot/schemas/acl-principal-set.schema.json, docs/external-runtime/legacy-kb/data-pipeline.md
+// RELEVANT FILES: .copilot/prompts/runtime/ibmbob-intake-normalizer.md, .copilot/schemas/acl-principal-set.schema.json, docs/external-runtime/legacy-kb/data-pipeline.md
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "document-record.schema.json",
@@ -21,3 +21,4 @@
     "hash": { "type": "string" }
   }
 }
+

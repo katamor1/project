@@ -1,7 +1,7 @@
 // .copilot/schemas/backend-codepack.schema.json
 // Defines the backend codepack schema used to describe route, service, DB touchpoints, and auth intent.
 // This exists so backend near-code intent can be handed off without locking the Python framework too early.
-// RELEVANT FILES: .copilot/prompts/P12_backend_codepack_author.md, docs/sdlc/templates/backend-codepack.md, .copilot/schemas/sqlite-change-pack.schema.json
+// RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-backend-codepack-author.md, docs/sdlc/templates/backend-codepack.md, .copilot/schemas/sqlite-change-pack.schema.json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "backend-codepack.schema.json",
@@ -41,7 +41,7 @@
     "service_flow": { "type": "array", "items": { "type": "string" } },
     "db_touchpoints": { "type": "array", "items": { "type": "string" } },
     "auth_rules": { "type": "array", "items": { "type": "string" } },
-    "next_agent": { "type": "string", "const": "P13_test_codepack_author" }
+    "next_agent": { "type": "string", "const": "ibmbob-sdlc-test-codepack-author" }
   },
   "$defs": {
     "targetFile": {
@@ -56,3 +56,4 @@
     }
   }
 }
+

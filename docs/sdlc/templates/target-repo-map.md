@@ -6,7 +6,7 @@
 artifact_id: TARGET-MAP-REQ-XXXX
 artifact_type: target_repo_map
 status: draft
-prompt_id: P10_execution_bundle_planner
+prompt_id: ibmbob-sdlc-execution-bundle-planner
 prompt_version: "1.0"
 model_id: copilot
 upstream_refs:
@@ -28,3 +28,4 @@ language: ja
 
 ## Handoff Order
 - 実装着手の順番を書く
+

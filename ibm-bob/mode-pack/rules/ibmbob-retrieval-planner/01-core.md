@@ -1,11 +1,11 @@
 <!-- ibm-bob/mode-pack/rules/ibmbob-retrieval-planner/01-core.md -->
 <!-- Defines the direct-mode rule for IBM-Bob Retrieval Planner. -->
 <!-- This exists so IBM-Bob can mirror the canonical direct flow without rewriting the canonical prompt and routing sources. -->
-<!-- RELEVANT FILES: .copilot/prompts/K5_retrieval_planner.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/external-runtime/legacy-kb/README.md -->
+<!-- RELEVANT FILES: .copilot/prompts/runtime/ibmbob-retrieval-planner.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/external-runtime/legacy-kb/README.md -->
 # IBM-Bob Retrieval Planner Rules
 
 ## Read First
-- `.copilot/prompts/K5_retrieval_planner.md`
+- `.copilot/prompts/runtime/ibmbob-retrieval-planner.md`
 - `ibm-bob/mode-pack/routing/direct-mode-flow.json`
 - `docs/external-runtime/legacy-kb/README.md`
 
@@ -24,3 +24,4 @@
 - direct flow の担当範囲を越える判断はしない。
 - 根拠が弱い時は先へ進めず、abstain か human checkpoint に落とす。
 - 0.65-0.78 の帯は second pass 前提で扱い、直接 authoring に流さない。
+

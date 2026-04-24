@@ -1,0 +1,23 @@
+// .copilot/schemas/entry-request-packet.schema.json
+// Defines the normalized entry request packet schema used before identity and dispatch checks.
+// This exists so chat phrasing can be stabilized before the bridge calls the external runtime.
+// RELEVANT FILES: .copilot/prompts/entry/ibmbob-intent-packet-builder.md, .copilot/schemas/entry-dispatch-packet.schema.json, docs/copilot-studio/custom-engine-bridge/dispatch-contract.md
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "entry-request-packet.schema.json",
+  "title": "Entry Request Packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["request_id", "user_intent", "requested_outcome", "requested_lane", "locale", "conversation_context_ref"],
+  "properties": {
+    "request_id": { "type": "string" },
+    "user_intent": { "type": "string" },
+    "requested_outcome": { "type": "string" },
+    "requested_lane": { "type": "string" },
+    "locale": { "type": "string" },
+    "conversation_context_ref": { "type": "string" }
+  }
+}
+
+
+

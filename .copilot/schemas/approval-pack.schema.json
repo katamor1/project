@@ -1,7 +1,7 @@
 // .copilot/schemas/approval-pack.schema.json
 // Defines the approval pack schema used to capture explicit implementation readiness after integration review.
 // This exists so repo handoff includes a clear approval decision, residual risks, and manual steps.
-// RELEVANT FILES: .copilot/prompts/P21_approval_pack_author.md, docs/sdlc/templates/approval-pack.md, .copilot/prompts/P8_review_record.md
+// RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-approval-pack-author.md, docs/sdlc/templates/approval-pack.md, .copilot/prompts/sdlc/ibmbob-sdlc-review-record.md
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "approval-pack.schema.json",
@@ -24,6 +24,7 @@
     "ready_for_repo": { "type": "boolean" },
     "manual_steps": { "type": "array", "items": { "type": "string" } },
     "residual_risks": { "type": "array", "items": { "type": "string" } },
-    "next_agent": { "type": "string", "const": "P8_review_record" }
+    "next_agent": { "type": "string", "const": "ibmbob-sdlc-review-record" }
   }
 }
+

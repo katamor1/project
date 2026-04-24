@@ -1,12 +1,12 @@
 <!-- docs/sdlc/README.md -->
 <!-- Explains the SDLC prompt registry, schemas, templates, and manual handoff flow across design, test spec, implementation, execution, and integration lanes. -->
-<!-- This exists so the team can run upper SDLC and downstream prep lanes inside Copilot with one consistent structure and a custom-engine bridge entry. -->
-<!-- RELEVANT FILES: .copilot/routing/agent-matrix.yaml, .copilot/routing/custom-engine-bridge-matrix.yaml, docs/copilot-studio/custom-engine-bridge/README.md -->
+<!-- This exists so the team can run upper SDLC and downstream prep lanes inside entry with one consistent structure and a custom-engine bridge entry. -->
+<!-- RELEVANT FILES: .copilot/routing/sdlc/ibmbob-design-flow.yaml, .copilot/routing/entry/ibmbob-entry-flow.yaml, docs/copilot-studio/custom-engine-bridge/README.md -->
 # SDLC Design Assets
 
 このディレクトリは、`agent-research.md` を元にした SDLC 設計資産をまとめる場所です。
 
-今回は `Copilot 内で準備する` ことを優先しています。
+今回は `entry 内で準備する` ことを優先しています。
 
 外部 runtime や自動実行基盤はまだ入れていません。
 
@@ -22,7 +22,7 @@
 - `.copilot/routing/`: design lane、test spec lane、implementation lane、execution lane、integration lane の routing
 - `docs/sdlc/templates/`: artifact template
 - `docs/sdlc/samples/`: dry-run sample
-- `docs/copilot-studio/custom-engine-bridge/`: Copilot 入口と external runtime の橋
+- `docs/copilot-studio/custom-engine-bridge/`: entry 入口と external runtime の橋
 - `docs/external-runtime/legacy-kb/`: legacy evidence ingest / retrieval / diff / context packing
 - `reviews/spec/`, `reviews/code/`, `reviews/execution/`: review record placement
 - `reviews/integration/`: integration review placement
@@ -30,92 +30,92 @@
 - `evals/`: future dataset and report placement
 
 ## Design Lane
-1. `P0_orchestrator`
-2. `P1_scope`
-3. `P2_basic_design_author`
-4. `P3_spec_reviewer`
-5. `P2_detail_design_author`
-6. `P3_spec_reviewer`
-7. `P8_review_record`
-8. `P9_eval_monitor`
+1. `ibmbob-sdlc-request-orchestrator`
+2. `ibmbob-sdlc-scope`
+3. `ibmbob-sdlc-basic-design-author`
+4. `ibmbob-sdlc-spec-reviewer`
+5. `ibmbob-sdlc-detail-design-author`
+6. `ibmbob-sdlc-spec-reviewer`
+7. `ibmbob-sdlc-review-record`
+8. `ibmbob-sdlc-eval-monitor`
 
-`P3_spec_reviewer` は `pass | revise | block` を返します。
+`ibmbob-sdlc-spec-reviewer` は `pass | revise | block` を返します。
 
 `revise` は直前の author に戻します。
 
-`block` は `P0_orchestrator` に戻して human checkpoint を要求します。
+`block` は `ibmbob-sdlc-request-orchestrator` に戻して human checkpoint を要求します。
 
 ## Test Spec Lane
-1. `P3_spec_reviewer` で `detail_design` が通過する
-2. `P2_functional_spec_author` または `P2_integration_spec_author`
-3. `P3_spec_reviewer`
-4. `P8_review_record`
-5. `P9_eval_monitor`
+1. `ibmbob-sdlc-spec-reviewer` で `detail_design` が通過する
+2. `ibmbob-sdlc-functional-spec-author` または `ibmbob-sdlc-integration-spec-author`
+3. `ibmbob-sdlc-spec-reviewer`
+4. `ibmbob-sdlc-review-record`
+5. `ibmbob-sdlc-eval-monitor`
 
 `functional_spec` は業務シナリオ、画面操作、期待結果を固めます。
 
 `integration_spec` は API、DB、依存境界、異常系、復旧観点を固めます。
 
-`P3_spec_reviewer` の `revise` は作成した spec author に戻します。
+`ibmbob-sdlc-spec-reviewer` の `revise` は作成した spec author に戻します。
 
 ## Implementation Lane
-1. `P3_spec_reviewer` で `detail_design` が通過する
-2. `P4_implementation_planner`
-3. `P5_fullstack_slice_author`
-4. `P6_test_author`
-5. `P7_code_reviewer`
-6. `P8_review_record`
-7. `P9_eval_monitor`
+1. `ibmbob-sdlc-spec-reviewer` で `detail_design` が通過する
+2. `ibmbob-sdlc-implementation-planner`
+3. `ibmbob-sdlc-fullstack-slice-author`
+4. `ibmbob-sdlc-test-author`
+5. `ibmbob-sdlc-code-reviewer`
+6. `ibmbob-sdlc-review-record`
+7. `ibmbob-sdlc-eval-monitor`
 
-`P7_code_reviewer` は `pass | revise | block` を返します。
+`ibmbob-sdlc-code-reviewer` は `pass | revise | block` を返します。
 
 `revise` は `P4`, `P5`, `P6` のどれかへ一意に戻します。
 
 `pass` の時は `repo_bridge` を handoff artifact としてまとめます。
 
 ## Execution Pack Lane
-1. `P7_code_reviewer` の通過、または `repo_bridge` 準備完了
-2. `P10_execution_bundle_planner`
-3. `P11_frontend_codepack_author`
-4. `P12_backend_codepack_author`
-5. `P13_test_codepack_author`
-6. `P14_execution_reviewer`
-7. `P8_review_record`
-8. `P9_eval_monitor`
+1. `ibmbob-sdlc-code-reviewer` の通過、または `repo_bridge` 準備完了
+2. `ibmbob-sdlc-execution-bundle-planner`
+3. `ibmbob-sdlc-frontend-codepack-author`
+4. `ibmbob-sdlc-backend-codepack-author`
+5. `ibmbob-sdlc-test-codepack-author`
+6. `ibmbob-sdlc-execution-reviewer`
+7. `ibmbob-sdlc-review-record`
+8. `ibmbob-sdlc-eval-monitor`
 
-`P14_execution_reviewer` は `pass | revise | block` を返します。
+`ibmbob-sdlc-execution-reviewer` は `pass | revise | block` を返します。
 
 `revise` は `P10`, `P11`, `P12`, `P13` のどれかへ一意に戻します。
 
 `pass` の時は near-code pack 一式を review record へ渡します。
 
 ## Integration Lane
-1. `P14_execution_reviewer` の通過、または `execution_bundle` 準備完了
-2. `P15_integration_bundle_planner`
-3. `P16_frontend_draft_author`
-4. `P17_backend_draft_author`
-5. `P18_sqlite_draft_author`
-6. `P19_test_draft_author`
-7. `P20_integration_reviewer`
-8. `P21_approval_pack_author`
-9. `P8_review_record`
-10. `P9_eval_monitor`
+1. `ibmbob-sdlc-execution-reviewer` の通過、または `execution_bundle` 準備完了
+2. `ibmbob-sdlc-integration-bundle-planner`
+3. `ibmbob-sdlc-frontend-draft-author`
+4. `ibmbob-sdlc-backend-draft-author`
+5. `ibmbob-sdlc-sqlite-draft-author`
+6. `ibmbob-sdlc-test-draft-author`
+7. `ibmbob-sdlc-integration-reviewer`
+8. `ibmbob-sdlc-approval-pack-author`
+9. `ibmbob-sdlc-review-record`
+10. `ibmbob-sdlc-eval-monitor`
 
-`P20_integration_reviewer` は `pass | revise | block` を返します。
+`ibmbob-sdlc-integration-reviewer` は `pass | revise | block` を返します。
 
 `revise` は `P15`, `P16`, `P17`, `P18`, `P19` のどれかへ一意に戻します。
 
 `pass` の時は `approval_pack` を作り、実装着手可否と残リスクを明示します。
 
 ## How To Use
-1. `P0_orchestrator` で raw request を `request_packet` にします。
-2. `P1_scope` で対象と非対象を固定します。
+1. `ibmbob-sdlc-request-orchestrator` で raw request を `request_packet` にします。
+2. `ibmbob-sdlc-scope` で対象と非対象を固定します。
 3. legacy 文書を根拠にする時は、先に `docs/copilot-studio/custom-engine-bridge` の `C0-C5` で入口を通します。
 4. bridge から `docs/external-runtime/legacy-kb` の `K0-K8` に入り、`artifact_context_packet` を作ります。
-5. `P2_basic_design_author` 以降は `artifact_context_packet` を優先して使います。
-6. `P3_spec_reviewer` でレビューします。
+5. `ibmbob-sdlc-basic-design-author` 以降は `artifact_context_packet` を優先して使います。
+6. `ibmbob-sdlc-spec-reviewer` でレビューします。
 7. `detail_design` が通過したら、必要に応じて test spec lane と implementation lane に入ります。
-8. `P2_functional_spec_author` と `P2_integration_spec_author` で spec を固めます。
+8. `ibmbob-sdlc-functional-spec-author` と `ibmbob-sdlc-integration-spec-author` で spec を固めます。
 9. `P4` から `P7` で full-stack slice と test pack を固めます。
 10. `repo_bridge` をまとめたら execution lane に進みます。
 11. `P10` から `P14` で near-code pack を固めます。
@@ -158,3 +158,5 @@
 - [email-notification-integration-dry-run.md](/C:/Users/stell/source/repos/project/docs/sdlc/samples/email-notification-integration-dry-run.md)
 
 すべての sample は、`agent-research.md` のメール通知設定例を最小構成でなぞるためのものです。
+
+

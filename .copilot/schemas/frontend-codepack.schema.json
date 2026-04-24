@@ -1,7 +1,7 @@
 // .copilot/schemas/frontend-codepack.schema.json
 // Defines the frontend codepack schema used to describe target files, component contracts, and state flow.
 // This exists so frontend near-code intent can be handed off without writing runnable TSX yet.
-// RELEVANT FILES: .copilot/prompts/P11_frontend_codepack_author.md, docs/sdlc/templates/frontend-codepack.md, .copilot/schemas/execution-review-findings.schema.json
+// RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-frontend-codepack-author.md, docs/sdlc/templates/frontend-codepack.md, .copilot/schemas/execution-review-findings.schema.json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "frontend-codepack.schema.json",
@@ -53,7 +53,7 @@
       }
     },
     "acceptance_refs": { "type": "array", "items": { "type": "string" } },
-    "next_agent": { "type": "string", "const": "P12_backend_codepack_author" }
+    "next_agent": { "type": "string", "const": "ibmbob-sdlc-backend-codepack-author" }
   },
   "$defs": {
     "targetFile": {
@@ -68,3 +68,4 @@
     }
   }
 }
+

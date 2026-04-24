@@ -1,12 +1,12 @@
 <!-- docs/sdlc/templates/approval-pack.md -->
 <!-- Provides the template for the explicit approval pack created after integration review. -->
 <!-- This exists so ready-for-repo decisions and residual risks are documented separately from reviewer verdicts. -->
-<!-- RELEVANT FILES: .copilot/prompts/P21_approval_pack_author.md, .copilot/schemas/approval-pack.schema.json, docs/sdlc/templates/review-summary.md -->
+<!-- RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-approval-pack-author.md, .copilot/schemas/approval-pack.schema.json, docs/sdlc/templates/review-summary.md -->
 ---
 artifact_id: APPROVAL-REQ-XXXX
 artifact_type: approval_pack
 status: draft
-prompt_id: P21_approval_pack_author
+prompt_id: ibmbob-sdlc-approval-pack-author
 prompt_version: "1.0"
 model_id: copilot
 upstream_refs:
@@ -31,3 +31,4 @@ language: ja
 
 ## Manual Steps
 - 人手で行う手順を書く
+

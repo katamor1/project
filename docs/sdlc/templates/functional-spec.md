@@ -1,12 +1,12 @@
 <!-- docs/sdlc/templates/functional-spec.md -->
 <!-- Provides the functional test specification template for business and UI scenarios. -->
 <!-- This exists so functional acceptance intent is documented before executable tests are created. -->
-<!-- RELEVANT FILES: .copilot/prompts/P2_functional_spec_author.md, docs/sdlc/templates/integration-spec.md, docs/sdlc/templates/review-summary.md -->
+<!-- RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-functional-spec-author.md, docs/sdlc/templates/integration-spec.md, docs/sdlc/templates/review-summary.md -->
 ---
 artifact_id: FUNC-REQ-XXXX
 artifact_type: functional_spec
 status: draft
-prompt_id: P2_functional_spec_author
+prompt_id: ibmbob-sdlc-functional-spec-author
 prompt_version: "1.0"
 model_id: copilot
 upstream_refs:
@@ -31,3 +31,4 @@ language: ja
 
 ## 受入条件トレーサビリティ
 - 受入条件とシナリオの対応を書く
+

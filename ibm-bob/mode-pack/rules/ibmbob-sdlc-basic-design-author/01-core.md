@@ -1,11 +1,11 @@
 <!-- ibm-bob/mode-pack/rules/ibmbob-sdlc-basic-design-author/01-core.md -->
 <!-- Defines the direct-mode rule for IBM-Bob SDLC Basic Design Author. -->
 <!-- This exists so IBM-Bob can mirror the canonical direct flow without rewriting the canonical prompt and routing sources. -->
-<!-- RELEVANT FILES: .copilot/prompts/P2_basic_design_author.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/sdlc/README.md -->
+<!-- RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-basic-design-author.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/sdlc/README.md -->
 # IBM-Bob SDLC Basic Design Author Rules
 
 ## Read First
-- `.copilot/prompts/P2_basic_design_author.md`
+- `.copilot/prompts/sdlc/ibmbob-sdlc-basic-design-author.md`
 - `ibm-bob/mode-pack/routing/direct-mode-flow.json`
 - `docs/sdlc/README.md`
 
@@ -24,3 +24,4 @@
 - direct flow の担当範囲を越える判断はしない。
 - 根拠が弱い時は先へ進めず、abstain か human checkpoint に落とす。
 - source-backed generation は artifact_context_packet が無い状態で始めない。
+

@@ -1,0 +1,63 @@
+# .copilot/routing/sdlc/ibmbob-design-flow.yaml
+# Defines the standard SDLC routing and return rules for the upper design flow.
+# This exists so prompt handoffs stay explicit before any runtime automation is added.
+# RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-request-orchestrator.md, .copilot/prompts/sdlc/ibmbob-sdlc-spec-reviewer.md, docs/sdlc/README.md
+version: 1
+flow_name: sdlc-upper-design
+agents:
+  - id: ibmbob-sdlc-request-orchestrator
+    artifact_type: request_packet
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-request-orchestrator.md
+  - id: ibmbob-sdlc-scope
+    artifact_type: scope_packet
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-scope.md
+  - id: ibmbob-sdlc-basic-design-author
+    artifact_type: basic_design
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-basic-design-author.md
+  - id: ibmbob-sdlc-detail-design-author
+    artifact_type: detail_design
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-detail-design-author.md
+  - id: ibmbob-sdlc-spec-reviewer
+    artifact_type: review_findings
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-spec-reviewer.md
+  - id: ibmbob-sdlc-review-record
+    artifact_type: review_record
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-review-record.md
+  - id: ibmbob-sdlc-eval-monitor
+    artifact_type: eval_report
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-eval-monitor.md
+standard_route:
+  - from: ibmbob-sdlc-request-orchestrator
+    to: ibmbob-sdlc-scope
+    when: request_packet_ready
+  - from: ibmbob-sdlc-scope
+    to: ibmbob-sdlc-basic-design-author
+    when: scope_packet_ready
+  - from: ibmbob-sdlc-basic-design-author
+    to: ibmbob-sdlc-spec-reviewer
+    when: basic_design_ready
+  - from: ibmbob-sdlc-spec-reviewer
+    to: ibmbob-sdlc-detail-design-author
+    when: basic_design_passed
+  - from: ibmbob-sdlc-detail-design-author
+    to: ibmbob-sdlc-spec-reviewer
+    when: detail_design_ready
+  - from: ibmbob-sdlc-spec-reviewer
+    to: ibmbob-sdlc-review-record
+    when: detail_design_passed
+  - from: ibmbob-sdlc-review-record
+    to: ibmbob-sdlc-eval-monitor
+    when: review_record_ready
+return_routes:
+  - reviewer: ibmbob-sdlc-spec-reviewer
+    decision: revise
+    return_to: previous_author
+    note: basic design は ibmbob-sdlc-basic-design-author, detail design は ibmbob-sdlc-detail-design-author に戻す
+  - reviewer: ibmbob-sdlc-spec-reviewer
+    decision: block
+    return_to: ibmbob-sdlc-request-orchestrator
+    note: human_checkpoint を要求して依頼条件を見直す
+terminal_states:
+  - complete
+  - human_checkpoint_required
+

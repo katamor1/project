@@ -1,13 +1,13 @@
 <!-- docs/external-runtime/legacy-kb/api-spec.md -->
 <!-- Defines the external runtime API surface for ingest, retrieval, diff, context packing, and eval replay. -->
-<!-- This exists so future service implementation can follow one fixed contract behind the Copilot custom engine bridge. -->
+<!-- This exists so future service implementation can follow one fixed contract behind the entry bridge. -->
 <!-- RELEVANT FILES: docs/copilot-studio/custom-engine-bridge/dispatch-contract.md, docs/external-runtime/legacy-kb/runbook.md, .copilot/schemas/artifact-context-packet.schema.json -->
 # API Spec
 
 ## Front Door
-- Copilot 側の入口は `docs/copilot-studio/custom-engine-bridge` です。
-- `bridge_request_packet -> bridge_dispatch_packet -> runtime_request` の変換は bridge 側で行います。
-- この API は custom engine の内側 contract です。
+- entry 側の入口は `docs/copilot-studio/custom-engine-bridge` です。
+- `entry_request_packet -> entry_dispatch_packet -> runtime_request` の変換は bridge 側で行います。
+- この API は entry bridge の内側 contract です。
 
 ## Endpoints
 | Method | Path | Purpose | Main Output |
@@ -27,10 +27,13 @@
 - `/kb/search`: `task_id`, query, metadata filters, principal set
 - `/diff/check`: new artifact ref, old evidence bundle ref, diff mode
 - `/context/pack`: artifact request, evidence bundle ref, downstream target
-- `runtime_request` は `bridge_dispatch_packet` の `runtime_target` と `runtime_task_type` から導出します
+- `runtime_request` は `entry_dispatch_packet` の `runtime_target` と `runtime_task_type` から導出します
 
 ## Response Shape Notes
 - `/kb/search` は `confidence` と `risk_flags` を必ず返す
 - `/diff/check` は `change`, `carry_over`, `unknown` を必ず返す
 - `/context/pack` は `allowed_assertions` と `open_questions` を必ず返す
 - `/run/{id}` は `agent_path`, `tool_path`, `latency_ms`, `token_usage` を返す
+
+
+

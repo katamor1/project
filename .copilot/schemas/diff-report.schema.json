@@ -1,7 +1,7 @@
 // .copilot/schemas/diff-report.schema.json
 // Defines the diff report schema for comparing new requirements or drafts against approved legacy evidence.
 // This exists so change, carry-over, and unknown decisions can be reviewed without free-form ambiguity.
-// RELEVANT FILES: .copilot/prompts/K6_legacy_diff_checker.md, docs/external-runtime/legacy-kb/query-diff-flow.md, docs/external-runtime/legacy-kb/samples/email-notification-diff-dry-run.md
+// RELEVANT FILES: .copilot/prompts/runtime/ibmbob-legacy-diff-checker.md, docs/external-runtime/legacy-kb/query-diff-flow.md, docs/external-runtime/legacy-kb/samples/email-notification-diff-dry-run.md
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "diff-report.schema.json",
@@ -14,7 +14,7 @@
     "carry_over_items": { "$ref": "#/$defs/report_items" },
     "unknown_items": { "$ref": "#/$defs/report_items" },
     "impact_estimate": { "type": "string", "enum": ["low", "medium", "high"] },
-    "next_agent": { "type": "string", "const": "K8_evidence_reviewer" }
+    "next_agent": { "type": "string", "const": "ibmbob-evidence-reviewer" }
   },
   "$defs": {
     "report_items": {
@@ -32,3 +32,4 @@
     }
   }
 }
+

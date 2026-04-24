@@ -1,12 +1,12 @@
 <!-- docs/sdlc/templates/test-codepack.md -->
 <!-- Provides the test near-code pack template for unit, integration, and regression targets. -->
 <!-- This exists so test implementation can be handed off with fixed files and case skeletons. -->
-<!-- RELEVANT FILES: .copilot/schemas/test-codepack.schema.json, .copilot/prompts/P13_test_codepack_author.md, docs/sdlc/templates/frontend-codepack.md -->
+<!-- RELEVANT FILES: .copilot/schemas/test-codepack.schema.json, .copilot/prompts/sdlc/ibmbob-sdlc-test-codepack-author.md, docs/sdlc/templates/frontend-codepack.md -->
 ---
 artifact_id: TESTPACK-REQ-XXXX
 artifact_type: test_codepack
 status: draft
-prompt_id: P13_test_codepack_author
+prompt_id: ibmbob-sdlc-test-codepack-author
 prompt_version: "1.0"
 model_id: copilot
 upstream_refs:
@@ -34,3 +34,4 @@ language: ja
 
 ## Execution Notes
 - 実行前に確認することを書く
+

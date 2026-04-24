@@ -1,0 +1,63 @@
+# .copilot/routing/sdlc/ibmbob-test-spec-flow.yaml
+# Defines the standard routing and return rules for functional and integration specification work.
+# This exists so test spec handoffs stay explicit before runtime automation is added.
+# RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-functional-spec-author.md, .copilot/prompts/sdlc/ibmbob-sdlc-integration-spec-author.md, docs/sdlc/README.md
+version: 1
+flow_name: sdlc-test-spec
+agents:
+  - id: ibmbob-sdlc-spec-reviewer
+    artifact_type: review_findings
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-spec-reviewer.md
+  - id: ibmbob-sdlc-functional-spec-author
+    artifact_type: functional_spec
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-functional-spec-author.md
+  - id: ibmbob-sdlc-integration-spec-author
+    artifact_type: integration_spec
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-integration-spec-author.md
+  - id: ibmbob-sdlc-review-record
+    artifact_type: review_record
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-review-record.md
+  - id: ibmbob-sdlc-eval-monitor
+    artifact_type: eval_report
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-eval-monitor.md
+standard_route:
+  - from: ibmbob-sdlc-spec-reviewer
+    to: ibmbob-sdlc-functional-spec-author
+    when: functional_spec_requested
+  - from: ibmbob-sdlc-functional-spec-author
+    to: ibmbob-sdlc-spec-reviewer
+    when: functional_spec_ready
+  - from: ibmbob-sdlc-spec-reviewer
+    to: ibmbob-sdlc-review-record
+    when: functional_spec_passed
+  - from: ibmbob-sdlc-spec-reviewer
+    to: ibmbob-sdlc-integration-spec-author
+    when: integration_spec_requested
+  - from: ibmbob-sdlc-integration-spec-author
+    to: ibmbob-sdlc-spec-reviewer
+    when: integration_spec_ready
+  - from: ibmbob-sdlc-spec-reviewer
+    to: ibmbob-sdlc-review-record
+    when: integration_spec_passed
+  - from: ibmbob-sdlc-review-record
+    to: ibmbob-sdlc-eval-monitor
+    when: review_record_ready
+return_routes:
+  - reviewer: ibmbob-sdlc-spec-reviewer
+    decision: revise
+    return_to: ibmbob-sdlc-functional-spec-author
+    applies_to: functional_spec
+    note: 機能試験仕様の差戻しは functional spec author に戻す
+  - reviewer: ibmbob-sdlc-spec-reviewer
+    decision: revise
+    return_to: ibmbob-sdlc-integration-spec-author
+    applies_to: integration_spec
+    note: 結合試験仕様の差戻しは integration spec author に戻す
+  - reviewer: ibmbob-sdlc-spec-reviewer
+    decision: block
+    return_to: ibmbob-sdlc-request-orchestrator
+    note: human_checkpoint を要求して前提条件を見直す
+terminal_states:
+  - complete
+  - human_checkpoint_required
+

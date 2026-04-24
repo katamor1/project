@@ -1,16 +1,18 @@
 # ibm-bob/mode-pack/scripts/install_mode_pack.py
 # Generates `.bob/custom_modes.yaml` and `.bob/rules-{slug}/` from the IBM-Bob mode-pack source files.
-# This exists so copied workspaces can load the same Bob custom modes in Shell and IDE.
-# RELEVANT FILES: ibm-bob/mode-pack/modes/custom_modes.source.yaml, ibm-bob/mode-pack/rules/ibmbob-orchestrator/01-core.md, ibm-bob/mode-pack/README.md
+# This exists so copied workspaces can load one generated Bob config without mirroring repo source trees.
+# RELEVANT FILES: ibm-bob/mode-pack/scripts/reference_manifest.py, ibm-bob/mode-pack/modes/custom_modes.source.yaml, ibm-bob/mode-pack/README.md
 from __future__ import annotations
 
 import argparse
+import re
 import shutil
 from pathlib import Path
 
 import yaml
 
-from runtime_common import DIRECT_ROUTING_SOURCE, MODES_SOURCE, PROFILES_ROOT, ROUTING_SOURCE, RULES_ROOT, ensure_dir, load_yaml_file
+from reference_manifest import REFERENCE_MANIFEST
+from runtime_common import MODES_SOURCE, PROFILES_ROOT, REPO_ROOT, ROUTING_SOURCE, RULES_ROOT, ensure_dir, load_yaml_file
 
 OLD_FAMILY_SLUGS = {
     "ibmbob-orchestrator",
@@ -25,6 +27,8 @@ OLD_FAMILY_SLUGS = {
     "ibmbob-run-summary",
 }
 SHARED_RULES_ROOT = RULES_ROOT / "shared"
+REPO_PATH_PATTERN = re.compile(r"(?:\.copilot|docs|ibm-bob/mode-pack)/[A-Za-z0-9._/\-]+")
+TEXT_SUFFIXES = {".md", ".json", ".yaml", ".yml"}
 
 
 def _render_groups(permissions: list) -> list:
@@ -46,7 +50,50 @@ def _render_groups(permissions: list) -> list:
     return groups
 
 
-def build_custom_modes() -> dict:
+def _installed_path_for_reference(repo_relative_path: str) -> str:
+    normalized = repo_relative_path.replace("\\", "/")
+    return REFERENCE_MANIFEST.get(normalized, normalized)
+
+
+def _rewrite_text_for_workspace(text: str, reference_paths: set[str]) -> str:
+    rewritten = text
+    matches = sorted(set(REPO_PATH_PATTERN.findall(text)), key=len, reverse=True)
+    for repo_relative_path in matches:
+        normalized = repo_relative_path.replace("\\", "/")
+        if normalized in REFERENCE_MANIFEST:
+            reference_paths.add(normalized)
+            rewritten = rewritten.replace(repo_relative_path, _installed_path_for_reference(normalized))
+    return rewritten
+
+
+def _copy_reference_files(reference_paths: set[str], workspace_root: Path) -> None:
+    pending = set(reference_paths)
+    copied: set[str] = set()
+    while pending:
+        repo_relative_path = sorted(pending)[0]
+        pending.remove(repo_relative_path)
+        if repo_relative_path in copied:
+            continue
+        source_path = REPO_ROOT / Path(repo_relative_path)
+        destination_path = workspace_root / Path(_installed_path_for_reference(repo_relative_path))
+        ensure_dir(destination_path.parent)
+        shutil.copy2(source_path, destination_path)
+        copied.add(repo_relative_path)
+        if destination_path.suffix in TEXT_SUFFIXES:
+            nested_paths: set[str] = set()
+            rewritten = _rewrite_text_for_workspace(destination_path.read_text(encoding="utf-8"), nested_paths)
+            destination_path.write_text(rewritten, encoding="utf-8")
+            pending.update(nested_paths - copied)
+
+
+def _rewrite_rule_bundle(rule_root: Path, reference_paths: set[str]) -> None:
+    for markdown_file in sorted(rule_root.glob("*.md")):
+        rewritten = _rewrite_text_for_workspace(markdown_file.read_text(encoding="utf-8"), reference_paths)
+        markdown_file.write_text(rewritten, encoding="utf-8")
+
+
+def build_custom_modes(reference_paths: set[str] | None = None) -> dict:
+    tracked_paths = reference_paths if reference_paths is not None else set()
     source = load_yaml_file(MODES_SOURCE)
     custom_modes = []
     for mode in source["sourceModes"]:
@@ -57,7 +104,7 @@ def build_custom_modes() -> dict:
                 "description": mode["description"],
                 "roleDefinition": mode["roleDefinition"],
                 "whenToUse": mode["whenToUse"],
-                "customInstructions": mode["customInstructions"],
+                "customInstructions": _rewrite_text_for_workspace(mode["customInstructions"], tracked_paths),
                 "groups": _render_groups(mode.get("permissions", [])),
             }
         )
@@ -67,11 +114,23 @@ def build_custom_modes() -> dict:
 def install_to_workspace(workspace_root: Path, force: bool = False) -> dict:
     bob_root = ensure_dir(workspace_root / ".bob")
     bundle_root = ensure_dir(bob_root / "ibm-bob")
-    mode_doc = build_custom_modes()
+
+    if force and (bundle_root / "references").exists():
+        shutil.rmtree(bundle_root / "references")
+    if force and (bundle_root / "direct-mode-flow.json").exists():
+        (bundle_root / "direct-mode-flow.json").unlink()
+
+    reference_paths: set[str] = {
+        source_path
+        for source_path, install_path in REFERENCE_MANIFEST.items()
+        if "/references/" in install_path
+    }
+    mode_doc = build_custom_modes(reference_paths)
     (bob_root / "custom_modes.yaml").write_text(
         yaml.safe_dump(mode_doc, allow_unicode=True, sort_keys=False),
         encoding="utf-8",
     )
+
     source = load_yaml_file(MODES_SOURCE)
     for mode in source["sourceModes"]:
         src = RULES_ROOT / mode["ruleDir"]
@@ -84,11 +143,15 @@ def install_to_workspace(workspace_root: Path, force: bool = False) -> dict:
         if mode["slug"] not in OLD_FAMILY_SLUGS and SHARED_RULES_ROOT.exists():
             for shared_rule in sorted(SHARED_RULES_ROOT.glob("*.md")):
                 shutil.copy2(shared_rule, dst / shared_rule.name)
+        _rewrite_rule_bundle(dst, reference_paths)
+
     shutil.copy2(ROUTING_SOURCE, bundle_root / "stage-flow.json")
-    shutil.copy2(DIRECT_ROUTING_SOURCE, bundle_root / "direct-mode-flow.json")
+    _copy_reference_files(reference_paths, workspace_root)
+
     profiles_root = ensure_dir(bundle_root / "profiles")
     for path in PROFILES_ROOT.glob("*.json"):
         shutil.copy2(path, profiles_root / path.name)
+
     return {
         "workspace_root": str(workspace_root),
         "custom_modes_path": str(bob_root / "custom_modes.yaml"),

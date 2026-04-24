@@ -1,7 +1,7 @@
 // .copilot/schemas/execution-review-findings.schema.json
 // Defines the execution review findings schema for pass, revise, and block decisions on near-code packs.
 // This exists so execution review can route back to the right pack author without free-text ambiguity.
-// RELEVANT FILES: .copilot/prompts/P14_execution_reviewer.md, .copilot/routing/execution-matrix.yaml, docs/sdlc/templates/review-summary.md
+// RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-execution-reviewer.md, .copilot/routing/sdlc/ibmbob-execution-flow.yaml, docs/sdlc/templates/review-summary.md
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "execution-review-findings.schema.json",
@@ -40,11 +40,11 @@
     "revise_to": {
       "type": "string",
       "enum": [
-        "P10_execution_bundle_planner",
-        "P11_frontend_codepack_author",
-        "P12_backend_codepack_author",
-        "P13_test_codepack_author",
-        "P0_orchestrator",
+        "ibmbob-sdlc-execution-bundle-planner",
+        "ibmbob-sdlc-frontend-codepack-author",
+        "ibmbob-sdlc-backend-codepack-author",
+        "ibmbob-sdlc-test-codepack-author",
+        "ibmbob-sdlc-request-orchestrator",
         "none"
       ]
     },
@@ -52,13 +52,14 @@
     "next_agent": {
       "type": "string",
       "enum": [
-        "P10_execution_bundle_planner",
-        "P11_frontend_codepack_author",
-        "P12_backend_codepack_author",
-        "P13_test_codepack_author",
-        "P8_review_record",
-        "P0_orchestrator"
+        "ibmbob-sdlc-execution-bundle-planner",
+        "ibmbob-sdlc-frontend-codepack-author",
+        "ibmbob-sdlc-backend-codepack-author",
+        "ibmbob-sdlc-test-codepack-author",
+        "ibmbob-sdlc-review-record",
+        "ibmbob-sdlc-request-orchestrator"
       ]
     }
   }
 }
+

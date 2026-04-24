@@ -1,11 +1,11 @@
 <!-- ibm-bob/mode-pack/rules/ibmbob-sdlc-implementation-planner/01-core.md -->
 <!-- Defines the direct-mode rule for IBM-Bob SDLC Implementation Planner. -->
 <!-- This exists so IBM-Bob can mirror the canonical direct flow without rewriting the canonical prompt and routing sources. -->
-<!-- RELEVANT FILES: .copilot/prompts/P4_implementation_planner.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/sdlc/README.md -->
+<!-- RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-implementation-planner.md, ibm-bob/mode-pack/routing/direct-mode-flow.json, docs/sdlc/README.md -->
 # IBM-Bob SDLC Implementation Planner Rules
 
 ## Read First
-- `.copilot/prompts/P4_implementation_planner.md`
+- `.copilot/prompts/sdlc/ibmbob-sdlc-implementation-planner.md`
 - `ibm-bob/mode-pack/routing/direct-mode-flow.json`
 - `docs/sdlc/README.md`
 
@@ -24,3 +24,4 @@
 - direct flow の担当範囲を越える判断はしない。
 - 根拠が弱い時は先へ進めず、abstain か human checkpoint に落とす。
 - source-backed generation は artifact_context_packet が無い状態で始めない。
+

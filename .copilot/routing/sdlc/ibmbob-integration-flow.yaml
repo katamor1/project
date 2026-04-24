@@ -1,0 +1,107 @@
+# .copilot/routing/sdlc/ibmbob-integration-flow.yaml
+# Defines the integration lane routing from execution packs into skeleton code draft bundles, review, and approval.
+# This exists so integration handoff can be tracked separately from execution prep and review recording.
+# RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-integration-bundle-planner.md, .copilot/prompts/sdlc/ibmbob-sdlc-integration-reviewer.md, docs/sdlc/README.md
+version: 1
+flow_name: sdlc-integration-lane
+agents:
+  - id: ibmbob-sdlc-execution-reviewer
+    artifact_type: execution_review_findings
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-execution-reviewer.md
+  - id: ibmbob-sdlc-integration-bundle-planner
+    artifact_type: code_draft_packet
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-integration-bundle-planner.md
+  - id: ibmbob-sdlc-frontend-draft-author
+    artifact_type: frontend_draft_bundle
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-frontend-draft-author.md
+  - id: ibmbob-sdlc-backend-draft-author
+    artifact_type: backend_draft_bundle
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-backend-draft-author.md
+  - id: ibmbob-sdlc-sqlite-draft-author
+    artifact_type: sqlite_draft_bundle
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-sqlite-draft-author.md
+  - id: ibmbob-sdlc-test-draft-author
+    artifact_type: test_draft_bundle
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-test-draft-author.md
+  - id: ibmbob-sdlc-integration-reviewer
+    artifact_type: integration_review_findings
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-integration-reviewer.md
+  - id: ibmbob-sdlc-approval-pack-author
+    artifact_type: approval_pack
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-approval-pack-author.md
+  - id: ibmbob-sdlc-review-record
+    artifact_type: review_record
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-review-record.md
+  - id: ibmbob-sdlc-eval-monitor
+    artifact_type: eval_report
+    prompt_path: .copilot/prompts/sdlc/ibmbob-sdlc-eval-monitor.md
+entry_conditions:
+  - source: ibmbob-sdlc-execution-reviewer
+    when: execution_review_passed
+    handoff_artifacts:
+      - execution_bundle_packet
+      - target_repo_map
+      - frontend_codepack
+      - backend_codepack
+      - sqlite_change_pack
+      - test_codepack
+  - source: execution_bundle_packet
+    when: execution_bundle_ready
+standard_route:
+  - from: ibmbob-sdlc-integration-bundle-planner
+    to: ibmbob-sdlc-frontend-draft-author
+    when: code_draft_packet_ready
+  - from: ibmbob-sdlc-frontend-draft-author
+    to: ibmbob-sdlc-backend-draft-author
+    when: frontend_draft_bundle_ready
+  - from: ibmbob-sdlc-backend-draft-author
+    to: ibmbob-sdlc-sqlite-draft-author
+    when: backend_draft_bundle_ready
+  - from: ibmbob-sdlc-sqlite-draft-author
+    to: ibmbob-sdlc-test-draft-author
+    when: sqlite_draft_bundle_ready
+  - from: ibmbob-sdlc-test-draft-author
+    to: ibmbob-sdlc-integration-reviewer
+    when: test_draft_bundle_ready
+  - from: ibmbob-sdlc-integration-reviewer
+    to: ibmbob-sdlc-approval-pack-author
+    when: integration_review_passed
+  - from: ibmbob-sdlc-approval-pack-author
+    to: ibmbob-sdlc-review-record
+    when: approval_pack_ready
+  - from: ibmbob-sdlc-review-record
+    to: ibmbob-sdlc-eval-monitor
+    when: review_record_ready
+return_routes:
+  - reviewer: ibmbob-sdlc-integration-reviewer
+    decision: revise
+    category: frontend_contract
+    return_to: ibmbob-sdlc-frontend-draft-author
+  - reviewer: ibmbob-sdlc-integration-reviewer
+    decision: revise
+    category: backend_contract
+    return_to: ibmbob-sdlc-backend-draft-author
+  - reviewer: ibmbob-sdlc-integration-reviewer
+    decision: revise
+    category: sqlite_migration
+    return_to: ibmbob-sdlc-sqlite-draft-author
+  - reviewer: ibmbob-sdlc-integration-reviewer
+    decision: revise
+    category: test_coverage
+    return_to: ibmbob-sdlc-test-draft-author
+  - reviewer: ibmbob-sdlc-integration-reviewer
+    decision: revise
+    category: bundle_boundary
+    return_to: ibmbob-sdlc-integration-bundle-planner
+  - reviewer: ibmbob-sdlc-integration-reviewer
+    decision: revise
+    category: repo_mapping
+    return_to: ibmbob-sdlc-integration-bundle-planner
+  - reviewer: ibmbob-sdlc-integration-reviewer
+    decision: block
+    return_to: ibmbob-sdlc-request-orchestrator
+    note: human_checkpoint を要求して integration 前提を見直す
+terminal_states:
+  - complete
+  - human_checkpoint_required
+

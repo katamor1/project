@@ -1,7 +1,7 @@
 <!-- docs/external-runtime/legacy-kb/samples/email-notification-diff-dry-run.md -->
 <!-- Shows a minimal diff dry run from evidence retrieval to diff classification and gate review. -->
 <!-- This exists so the team can verify how legacy comparison is grounded before downstream review or generation. -->
-<!-- RELEVANT FILES: .copilot/prompts/K6_legacy_diff_checker.md, .copilot/schemas/diff-report.schema.json, .copilot/prompts/K8_evidence_reviewer.md -->
+<!-- RELEVANT FILES: .copilot/prompts/runtime/ibmbob-legacy-diff-checker.md, .copilot/schemas/diff-report.schema.json, .copilot/prompts/runtime/ibmbob-evidence-reviewer.md -->
 # Email Notification Diff Dry Run
 
 ## retrieval_plan
@@ -17,7 +17,7 @@
   "rerank_top_k": 10,
   "leaf_read_max": 6,
   "fallback_strategy": ["query_rewrite", "relation_expand"],
-  "next_agent": "K6_legacy_diff_checker"
+  "next_agent": "ibmbob-legacy-diff-checker"
 }
 ```
 
@@ -45,7 +45,7 @@
     }
   ],
   "impact_estimate": "medium",
-  "next_agent": "K8_evidence_reviewer"
+  "next_agent": "ibmbob-evidence-reviewer"
 }
 ```
 
@@ -56,6 +56,7 @@
   "evidence_coverage": "UI と API は十分、ops は unknown を維持",
   "authority_conflict_note": "no conflict",
   "human_checkpoint": false,
-  "next_agent": "P8_review_record"
+  "next_agent": "ibmbob-sdlc-review-record"
 }
 ```
+

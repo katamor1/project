@@ -21,7 +21,7 @@
   "requested_by": "project-team",
   "language": "ja",
   "open_questions": [],
-  "next_agent": "P1_scope"
+  "next_agent": "ibmbob-sdlc-scope"
 }
 ```
 
@@ -33,7 +33,7 @@
     "artifact_id": "SCOPE-REQ-EMAIL-NOTIFY-001",
     "artifact_type": "scope",
     "status": "draft",
-    "prompt_id": "P1_scope",
+    "prompt_id": "ibmbob-sdlc-scope",
     "prompt_version": "1.0",
     "model_id": "copilot",
     "upstream_refs": ["REQ-EMAIL-NOTIFY-001"],
@@ -47,7 +47,7 @@
   "assumptions": ["送信処理は既存ジョブを利用"],
   "glossary": ["通知設定", "メール通知"],
   "open_questions": ["複数通知種別の優先順位は既存仕様を確認"],
-  "next_agent": "P2_basic_design_author"
+  "next_agent": "ibmbob-sdlc-basic-design-author"
 }
 ```
 
@@ -59,7 +59,7 @@
     "artifact_id": "BASIC-REQ-EMAIL-NOTIFY-001",
     "artifact_type": "basic_design",
     "status": "draft",
-    "prompt_id": "P2_basic_design_author",
+    "prompt_id": "ibmbob-sdlc-basic-design-author",
     "prompt_version": "1.0",
     "model_id": "copilot",
     "upstream_refs": ["SCOPE-REQ-EMAIL-NOTIFY-001"],
@@ -74,7 +74,7 @@
   "traceability": [
     { "source_id": "in_scope[0]", "target_section": "業務ルール" }
   ],
-  "next_agent": "P3_spec_reviewer"
+  "next_agent": "ibmbob-sdlc-spec-reviewer"
 }
 ```
 
@@ -84,7 +84,7 @@
 artifact_id: BASIC-REQ-EMAIL-NOTIFY-001
 artifact_type: basic_design
 status: draft
-prompt_id: P2_basic_design_author
+prompt_id: ibmbob-sdlc-basic-design-author
 prompt_version: "1.0"
 model_id: copilot
 upstream_refs:
@@ -123,9 +123,9 @@ language: ja
       "owner_section": "業務ルール"
     }
   ],
-  "revise_to": "P2_basic_design_author",
+  "revise_to": "ibmbob-sdlc-basic-design-author",
   "human_checkpoint": false,
-  "next_agent": "P2_basic_design_author"
+  "next_agent": "ibmbob-sdlc-basic-design-author"
 }
 ```
 
@@ -137,7 +137,7 @@ language: ja
     "artifact_id": "RR-REQ-EMAIL-NOTIFY-001",
     "artifact_type": "review_record",
     "status": "draft",
-    "prompt_id": "P8_review_record",
+    "prompt_id": "ibmbob-sdlc-review-record",
     "prompt_version": "1.0",
     "model_id": "copilot",
     "upstream_refs": ["RF-REQ-EMAIL-NOTIFY-001-BASIC"],
@@ -150,12 +150,13 @@ language: ja
       "artifact_type": "basic_design",
       "decision": "revise",
       "reviewed_at": "2026-04-22",
-      "reviewer_prompt_id": "P3_spec_reviewer",
+      "reviewer_prompt_id": "ibmbob-sdlc-spec-reviewer",
       "notes": "権限制御を追記して再レビュー"
     }
   ],
   "unresolved_risks": ["権限制御の未確定"],
   "approval_note": "再レビュー待ち",
-  "next_agent": "P9_eval_monitor"
+  "next_agent": "ibmbob-sdlc-eval-monitor"
 }
 ```
+

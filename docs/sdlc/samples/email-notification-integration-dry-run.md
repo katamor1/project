@@ -1,7 +1,7 @@
 <!-- docs/sdlc/samples/email-notification-integration-dry-run.md -->
 <!-- Shows a minimal integration lane dry run for the email notification setting example. -->
 <!-- This exists so the team can verify how execution artifacts become code draft bundles and an approval pack. -->
-<!-- RELEVANT FILES: .copilot/prompts/P15_integration_bundle_planner.md, .copilot/routing/integration-matrix.yaml, docs/sdlc/templates/approval-pack.md -->
+<!-- RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-integration-bundle-planner.md, .copilot/routing/sdlc/ibmbob-integration-flow.yaml, docs/sdlc/templates/approval-pack.md -->
 # Email Notification Integration Dry Run
 
 この sample は、`execution_bundle_packet` から `approval_pack` までを最小構成でつなぎます。
@@ -17,7 +17,7 @@
     "db": ["db/migrations/20260422_add_notification_setting.sql"],
     "tests": ["tests/integration/test_notification_settings.py"]
   },
-  "next_agent": "P15_integration_bundle_planner"
+  "next_agent": "ibmbob-sdlc-integration-bundle-planner"
 }
 ```
 
@@ -36,7 +36,7 @@
   ],
   "constraints": ["single app layout", "skeleton code only"],
   "done_criteria": ["draft bundles exist", "approval pack is explicit"],
-  "next_agent": "P16_frontend_draft_author"
+  "next_agent": "ibmbob-sdlc-frontend-draft-author"
 }
 ```
 
@@ -55,7 +55,7 @@
   ],
   "component_contracts": ["NotificationToggle accepts enabled and onChange"],
   "state_flow": ["load setting", "toggle local state", "submit update"],
-  "next_agent": "P17_backend_draft_author"
+  "next_agent": "ibmbob-sdlc-backend-draft-author"
 }
 ```
 
@@ -75,7 +75,7 @@
   "route_contracts": ["PATCH /notification-settings { enabled: boolean }"],
   "service_flow": ["validate request", "load user setting", "persist update"],
   "auth_rules": ["本人のみ更新可能"],
-  "next_agent": "P18_sqlite_draft_author"
+  "next_agent": "ibmbob-sdlc-sqlite-draft-author"
 }
 ```
 
@@ -95,7 +95,7 @@
   "schema_changes": ["user_settings.email_notifications_enabled を追加"],
   "migration_notes": ["default 1 で開始"],
   "rollback_notes": ["column drop 可否を SQLite 制約で再確認"],
-  "next_agent": "P19_test_draft_author"
+  "next_agent": "ibmbob-sdlc-test-draft-author"
 }
 ```
 
@@ -116,7 +116,7 @@
   "integration_cases": ["PATCH updates persisted setting"],
   "regression_cases": ["既存通知送信は disabled user に送られない"],
   "fixtures": ["seeded_user", "seeded_user_settings"],
-  "next_agent": "P20_integration_reviewer"
+  "next_agent": "ibmbob-sdlc-integration-reviewer"
 }
 ```
 
@@ -133,7 +133,7 @@
   "findings": [],
   "revise_to": null,
   "human_checkpoint": "none",
-  "next_agent": "P21_approval_pack_author"
+  "next_agent": "ibmbob-sdlc-approval-pack-author"
 }
 ```
 
@@ -154,6 +154,7 @@
     "draft bundle を app repo の対応 path に写す",
     "実装時に auth rule と fixture 前提を最終確認する"
   ],
-  "next_agent": "P8_review_record"
+  "next_agent": "ibmbob-sdlc-review-record"
 }
 ```
+

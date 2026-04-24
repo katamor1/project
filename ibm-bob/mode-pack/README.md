@@ -1,6 +1,6 @@
 <!-- ibm-bob/mode-pack/README.md -->
 <!-- Explains the IBM Bob mode pack that keeps the old orchestrator family and the new direct-mode family side by side. -->
-<!-- This exists so the team can generate one Bob config from one source without forking the canonical C, K, P, and LS assets. -->
+<!-- This exists so the team can generate one Bob config from one source without mirroring repo trees into `.bob/references`. -->
 <!-- RELEVANT FILES: ibm-bob/mode-pack/modes/custom_modes.source.yaml, ibm-bob/mode-pack/scripts/install_mode_pack.py, ibm-bob/mode-pack/routing/direct-mode-flow.json -->
 # IBM Bob Mode Pack
 
@@ -9,6 +9,10 @@
 repo 直下の `.bob/` は source ではありません。
 
 `.bob/custom_modes.yaml` と `.bob/rules-{slug}/` は、ここから生成する output です。
+
+`.bob/ibm-bob/references/` は curated bundle です。
+
+source tree の mirror ではありません。
 
 ## Two Families
 
@@ -43,6 +47,8 @@ Bob pack 自体は overlay です。
 - `docs/external-runtime`
 - `docs/sdlc`
 
+new direct-mode family の canonical naming は、Bob slug と Bob packet 名へ統一しています。
+
 ## Main Source Files
 
 - `modes/custom_modes.source.yaml`: 全 mode の正本
@@ -51,6 +57,7 @@ Bob pack 自体は overlay です。
 - `routing/stage-flow.json`: old family の固定 run
 - `routing/direct-mode-flow.json`: new family の direct flow
 - `scripts/install_mode_pack.py`: generated `.bob/` を作る installer
+- `scripts/reference_manifest.py`: curated reference install path の正本
 - `scripts/validate_mode_pack.py`: 後方互換と静的整合を確認する validator
 - `scripts/evaluate_mode_pack.py`: old family の simulate / real evaluator
 
@@ -60,7 +67,7 @@ installer は 1 つの `.bob/custom_modes.yaml` を生成します。
 
 その中に old family と new family の両方を入れます。
 
-同時に `.bob/rules-{slug}/` と `.bob/ibm-bob/*.json` を生成します。
+同時に `.bob/rules-{slug}/`、`.bob/ibm-bob/stage-flow.json`、`.bob/ibm-bob/references/**` を生成します。
 
 ## Main Commands
 
@@ -80,4 +87,3 @@ py -3 ibm-bob/mode-pack/scripts/evaluate_mode_pack.py --case all --execution-mod
 - `sdlc-guide.md`: `ibmbob-sdlc-*` の運用
 - `pilot-runbook.md`: manual pilot 手順
 - `samples/direct-modes/`: new family 用 dry-run
-

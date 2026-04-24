@@ -1,12 +1,12 @@
 <!-- docs/sdlc/templates/basic-design.md -->
 <!-- Provides the basic design artifact template for upper-level product and system design. -->
 <!-- This exists so basic design output stays compact, readable, and reviewable. -->
-<!-- RELEVANT FILES: .copilot/prompts/P2_basic_design_author.md, .copilot/schemas/artifact-manifest.schema.json, docs/sdlc/templates/detail-design.md -->
+<!-- RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-basic-design-author.md, .copilot/schemas/artifact-manifest.schema.json, docs/sdlc/templates/detail-design.md -->
 ---
 artifact_id: BASIC-REQ-XXXX
 artifact_type: basic_design
 status: draft
-prompt_id: P2_basic_design_author
+prompt_id: ibmbob-sdlc-basic-design-author
 prompt_version: "1.0"
 model_id: copilot
 upstream_refs:
@@ -37,3 +37,4 @@ language: ja
 
 ## トレーサビリティ
 - どの scope 項目をどの section に反映したかを書く
+

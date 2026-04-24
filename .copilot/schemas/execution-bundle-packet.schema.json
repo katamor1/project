@@ -1,7 +1,7 @@
 // .copilot/schemas/execution-bundle-packet.schema.json
 // Defines the execution bundle packet schema used to start a near-code execution pack.
 // This exists so repo bridge assets can hand off into a fixed single-repo bundle without losing path intent.
-// RELEVANT FILES: .copilot/prompts/P10_execution_bundle_planner.md, .copilot/schemas/target-repo-map.schema.json, docs/sdlc/templates/execution-bundle-plan.md
+// RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-execution-bundle-planner.md, .copilot/schemas/target-repo-map.schema.json, docs/sdlc/templates/execution-bundle-plan.md
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "execution-bundle-packet.schema.json",
@@ -49,6 +49,7 @@
       "type": "array",
       "items": { "type": "string" }
     },
-    "next_agent": { "type": "string", "const": "P11_frontend_codepack_author" }
+    "next_agent": { "type": "string", "const": "ibmbob-sdlc-frontend-codepack-author" }
   }
 }
+

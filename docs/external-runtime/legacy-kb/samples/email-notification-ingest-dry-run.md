@@ -1,7 +1,7 @@
 <!-- docs/external-runtime/legacy-kb/samples/email-notification-ingest-dry-run.md -->
 <!-- Shows a minimal ingest dry run for the email notification legacy document set. -->
 <!-- This exists so the team can verify how raw files become map, chunk, relation, and ingest job artifacts. -->
-<!-- RELEVANT FILES: .copilot/prompts/K1_intake_normalizer.md, .copilot/schemas/document-record.schema.json, .copilot/schemas/ingest-job.schema.json -->
+<!-- RELEVANT FILES: .copilot/prompts/runtime/ibmbob-intake-normalizer.md, .copilot/schemas/document-record.schema.json, .copilot/schemas/ingest-job.schema.json -->
 # Email Notification Ingest Dry Run
 
 ## document_record
@@ -71,6 +71,7 @@
   "input_files": ["email-setting-spec.docx"],
   "created_document_ids": ["DOC-EMAIL-NOTIFY-SPEC-001"],
   "reindex_mode": "full",
-  "next_agent": "K2_taxonomy_mapper"
+  "next_agent": "ibmbob-taxonomy-mapper"
 }
 ```
+

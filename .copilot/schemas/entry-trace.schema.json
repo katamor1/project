@@ -1,0 +1,23 @@
+// .copilot/schemas/entry-trace.schema.json
+// Defines the entry trace schema used to connect entry routing with runtime and checkpoint behavior.
+// This exists so pilot runs can inspect the bridge path without reading raw response bodies.
+// RELEVANT FILES: .copilot/prompts/entry/ibmbob-entry-eval-monitor.md, docs/copilot-studio/custom-engine-bridge/pilot-runbook.md, .copilot/routing/entry/ibmbob-entry-flow.yaml
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "entry-trace.schema.json",
+  "title": "Entry Trace",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["request_id", "copilot_surface", "entry_path", "runtime_run_ref", "checkpoint_flags", "latency_ms"],
+  "properties": {
+    "request_id": { "type": "string" },
+    "copilot_surface": { "type": "string" },
+    "entry_path": { "type": "array", "items": { "type": "string" } },
+    "runtime_run_ref": { "type": "string" },
+    "checkpoint_flags": { "type": "array", "items": { "type": "string" } },
+    "latency_ms": { "type": "integer", "minimum": 0 }
+  }
+}
+
+
+

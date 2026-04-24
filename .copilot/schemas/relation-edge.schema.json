@@ -1,7 +1,7 @@
 // .copilot/schemas/relation-edge.schema.json
 // Defines the relation edge schema used to connect screens, APIs, tables, errors, and batches.
 // This exists so retrieval can expand through trusted graph edges instead of reading unrelated chunks.
-// RELEVANT FILES: .copilot/prompts/K4_relation_extractor.md, .copilot/routing/legacy-kb-ingest-matrix.yaml, docs/external-runtime/legacy-kb/data-pipeline.md
+// RELEVANT FILES: .copilot/prompts/runtime/ibmbob-relation-extractor.md, .copilot/routing/runtime/ibmbob-runtime-ingest-flow.yaml, docs/external-runtime/legacy-kb/data-pipeline.md
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "relation-edge.schema.json",
@@ -18,3 +18,4 @@
     "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
   }
 }
+

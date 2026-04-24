@@ -1,12 +1,12 @@
 <!-- docs/sdlc/templates/backend-codepack.md -->
 <!-- Provides the backend near-code pack template for canonical API, service, and model roots. -->
 <!-- This exists so backend implementation can be handed off with route, service, and DB intent fixed. -->
-<!-- RELEVANT FILES: .copilot/schemas/backend-codepack.schema.json, .copilot/prompts/P12_backend_codepack_author.md, docs/sdlc/templates/sqlite-change-pack.md -->
+<!-- RELEVANT FILES: .copilot/schemas/backend-codepack.schema.json, .copilot/prompts/sdlc/ibmbob-sdlc-backend-codepack-author.md, docs/sdlc/templates/sqlite-change-pack.md -->
 ---
 artifact_id: BEPACK-REQ-XXXX
 artifact_type: backend_codepack
 status: draft
-prompt_id: P12_backend_codepack_author
+prompt_id: ibmbob-sdlc-backend-codepack-author
 prompt_version: "1.0"
 model_id: copilot
 upstream_refs:
@@ -31,3 +31,4 @@ language: ja
 
 ## Error Notes
 - 主な失敗ケースを書く
+
