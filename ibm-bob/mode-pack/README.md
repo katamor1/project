@@ -1,7 +1,55 @@
 <!-- ibm-bob/mode-pack/README.md -->
+<!-- Explains the IBM Bob custom mode pack that overlays the existing Copilot-oriented design assets. -->
+<!-- This exists so the team can run the same C, K, P, and LS workflows inside Bob without replacing the canonical source files. -->
+<!-- RELEVANT FILES: .bob/custom_modes.yaml, ibm-bob/mode-pack/mode-catalog.md, ibm-bob/mode-pack/routing-map.md -->
 <!-- Explains the IBM-Bob SDLC custom mode pack, its generated Bob assets, and the local validation scripts. -->
 <!-- This exists so the team can install, validate, and evaluate the mode pack without editing the sample originals. -->
 <!-- RELEVANT FILES: ibm-bob/mode-pack/modes/custom_modes.source.yaml, ibm-bob/mode-pack/scripts/install_mode_pack.py, ibm-bob/mode-pack/scripts/evaluate_mode_pack.py -->
+# IBM Bob Mode Pack
+
+このフォルダは、既存の `Copilot / Claude` 向け設計資産を `IBM Bob` の custom mode として使うための overlay です。
+
+canonical source は変えません。
+
+`.copilot/prompts`, `.copilot/routing`, `.copilot/schemas`, `docs/copilot-studio`, `docs/external-runtime`, `docs/sdlc` はそのまま残します。
+
+Bob 実運用の本体は `.bob/custom_modes.yaml` です。
+
+cross-cutting rule は `.bob/rules/` に置きます。
+
+## What This Pack Does
+
+- `C*` を Bob entry bridge mode に写します。
+- `K*` を legacy runtime mode に写します。
+- `P*` を SDLC authoring / review / handoff mode に写します。
+- `LS-*` を legacy search workflow mode に写します。
+
+## What This Pack Does Not Do
+
+- canonical prompt や schema を置き換えません。
+- built-in `plan`, `code`, `advanced`, `orchestrator` を上書きしません。
+- app code や runtime service code の新実装は含みません。
+
+## Main Files
+
+- `.bob/custom_modes.yaml`: Bob の custom mode 定義
+- `.bob/rules/`: 全 mode にかかる共通ルール
+- `mode-catalog.md`: 全 mode の一覧
+- `routing-map.md`: Bob 上での流れ
+- `tool-profile.md`: tool group と edit 制限
+- `handoff-contracts.md`: Bob 向け alias と canonical schema の対応
+- `legacy-search-guide.md`: `LS-*` の使い方
+- `sdlc-guide.md`: `P*` の使い方
+- `pilot-runbook.md`: manual pilot 手順
+- `samples/`: generation / diff / review / eval / legacy-search の dry-run
+
+## Default Operating Model
+
+- Bob built-in `Orchestrator` から custom mode を提案・切替します。
+- 各 custom mode は、対応する canonical prompt を最初に読みます。
+- mode の出力は canonical prompt の JSON contract に合わせます。
+- source-backed generation は `artifact_context_packet` を優先します。
+
 # IBM-Bob SDLC Custom Mode Pack
 
 このディレクトリは、IBM Bob 向けの project custom mode 一式の source of truth です。
