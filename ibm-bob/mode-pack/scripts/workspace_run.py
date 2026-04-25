@@ -1,7 +1,7 @@
 # ibm-bob/mode-pack/scripts/workspace_run.py
 # Prepares copied IBM-Bob workspaces, installs the mode pack, selects workspace profiles, and runs unit-test commands.
 # This exists so evaluation and validation can exercise the mode pack without touching the sample originals.
-# RELEVANT FILES: ibm-bob/mode-pack/scripts/install_mode_pack.py, ibm-bob/mode-pack/scripts/stage_packets.py, ibm-bob/samples/base/source/AGENTS.md
+# RELEVANT FILES: ibm-bob/mode-pack/scripts/install_mode_pack.py, ibm-bob/mode-pack/scripts/stage_packets.py, ibm-bob/mode-pack/profiles/ibm-bob-vc2026.workspace-profile.json
 from __future__ import annotations
 
 import re

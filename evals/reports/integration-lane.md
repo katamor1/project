@@ -1,7 +1,7 @@
 <!-- evals/reports/integration-lane.md -->
 <!-- Lists the reporting notes for evaluating integration lane outputs. -->
 <!-- This exists so manual review can judge whether code draft bundles are ready to hand off to an app repo. -->
-<!-- RELEVANT FILES: .copilot/prompts/P9_eval_monitor.md, evals/datasets/integration-lane.md, docs/sdlc/templates/review-summary.md -->
+<!-- RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-eval-monitor.md, evals/datasets/integration-lane.md, docs/sdlc/templates/review-summary.md -->
 # Integration Lane Report Notes
 
 ## Checkpoints

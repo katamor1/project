@@ -1,7 +1,7 @@
 <!-- evals/datasets/test-spec-lane.md -->
 <!-- Lists the dataset notes for checking functional and integration specification coverage. -->
 <!-- This exists so manual evaluation focuses on the minimum fields for the test spec lane. -->
-<!-- RELEVANT FILES: .copilot/prompts/P9_eval_monitor.md, docs/sdlc/templates/functional-spec.md, docs/sdlc/templates/integration-spec.md -->
+<!-- RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-eval-monitor.md, docs/sdlc/templates/functional-spec.md, docs/sdlc/templates/integration-spec.md -->
 # Test Spec Lane Dataset Notes
 
 ## Focus

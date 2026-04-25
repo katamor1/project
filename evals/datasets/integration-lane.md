@@ -1,7 +1,7 @@
 <!-- evals/datasets/integration-lane.md -->
 <!-- Lists the dataset notes for checking code draft bundle coverage in the integration lane. -->
 <!-- This exists so manual evaluation focuses on the minimum bundle fields before app repo handoff. -->
-<!-- RELEVANT FILES: .copilot/prompts/P9_eval_monitor.md, docs/sdlc/templates/approval-pack.md, docs/sdlc/samples/email-notification-integration-dry-run.md -->
+<!-- RELEVANT FILES: .copilot/prompts/sdlc/ibmbob-sdlc-eval-monitor.md, docs/sdlc/templates/approval-pack.md, docs/sdlc/samples/email-notification-integration-dry-run.md -->
 # Integration Lane Dataset Notes
 
 ## Focus

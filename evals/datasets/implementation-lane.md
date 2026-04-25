@@ -1,7 +1,7 @@
 <!-- evals/datasets/implementation-lane.md -->
 <!-- Lists the manual evaluation targets for the implementation SDLC lane. -->
 <!-- This exists so implementation prep can be checked consistently before touching a real app repo. -->
-<!-- RELEVANT FILES: .copilot/routing/implementation-matrix.yaml, docs/sdlc/templates/test-spec.md, evals/reports/implementation-lane.md -->
+<!-- RELEVANT FILES: .copilot/routing/sdlc/ibmbob-implementation-flow.yaml, docs/sdlc/templates/test-spec.md, evals/reports/implementation-lane.md -->
 # Implementation Lane Dataset Notes
 
 ## 評価対象

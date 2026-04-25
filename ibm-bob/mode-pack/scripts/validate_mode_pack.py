@@ -89,6 +89,22 @@ def _assert_generated_reference_layout(workspace: Path) -> None:
     for install_path in REFERENCE_MANIFEST.values():
         if "/references/" in install_path:
             assert (workspace / Path(install_path)).exists(), install_path
+    installed_text_files = workspace.joinpath(".bob").rglob("*")
+    for path in installed_text_files:
+        if path.suffix not in {".md", ".json", ".yaml", ".yml"} or not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8")
+        assert "docs/copilot-studio/" not in text, path
+        assert "docs/external-runtime/legacy-kb" not in text, path
+        assert "ibm-bob/samples/base/" not in text, path
+        assert "ibm-bob/samples/評価用基本設計書/" not in text, path
+        assert ".copilot/prompts/" not in text, path
+        assert ".copilot/schemas/" not in text, path
+        assert ".copilot/routing/" not in text, path
+        assert "docs/sdlc/templates/" not in text, path
+        assert "docs/sdlc/samples/" not in text, path
+        assert "reviews/integration/README.md" not in text, path
+        assert "artifacts/implementation/README.md" not in text, path
 
 
 def main() -> int:

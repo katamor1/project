@@ -1,7 +1,7 @@
 <!-- evals/reports/execution-lane.md -->
 <!-- Defines the manual report format for execution lane evaluation results. -->
 <!-- This exists so near-code pack quality can be tracked before real repository integration starts. -->
-<!-- RELEVANT FILES: evals/datasets/execution-lane.md, docs/sdlc/templates/eval-report.md, .copilot/prompts/P9_eval_monitor.md -->
+<!-- RELEVANT FILES: evals/datasets/execution-lane.md, docs/sdlc/templates/eval-report.md, .copilot/prompts/sdlc/ibmbob-sdlc-eval-monitor.md -->
 # Execution Lane Report Notes
 
 ## 見ること

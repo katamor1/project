@@ -31,7 +31,7 @@
 - `unit_test_run` の `revise` は `code`, `unit_test`, `intake` の 3 通りだけを許可する。
 
 ## Safety
-- 原本の `ibm-bob/samples/base/` と `ibm-bob/samples/評価用基本設計書/` を編集しない。
+- 評価用の原本サンプルと入力原本は編集しない。
 - copied workspace の `source/` と run artifact 以外は編集しない。
 - review packet のない stage jump をしない。
 

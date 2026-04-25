@@ -5,13 +5,12 @@
 from __future__ import annotations
 
 import argparse
-import re
 import shutil
 from pathlib import Path
 
 import yaml
 
-from reference_manifest import REFERENCE_MANIFEST
+from reference_manifest import REFERENCE_MANIFEST, REFERENCE_TARGETS
 from runtime_common import MODES_SOURCE, PROFILES_ROOT, REPO_ROOT, ROUTING_SOURCE, RULES_ROOT, ensure_dir, load_yaml_file
 
 OLD_FAMILY_SLUGS = {
@@ -27,7 +26,6 @@ OLD_FAMILY_SLUGS = {
     "ibmbob-run-summary",
 }
 SHARED_RULES_ROOT = RULES_ROOT / "shared"
-REPO_PATH_PATTERN = re.compile(r"(?:\.copilot|docs|ibm-bob/mode-pack)/[A-Za-z0-9._/\-]+")
 TEXT_SUFFIXES = {".md", ".json", ".yaml", ".yml"}
 
 
@@ -52,17 +50,32 @@ def _render_groups(permissions: list) -> list:
 
 def _installed_path_for_reference(repo_relative_path: str) -> str:
     normalized = repo_relative_path.replace("\\", "/")
-    return REFERENCE_MANIFEST.get(normalized, normalized)
+    return REFERENCE_TARGETS.get(normalized, normalized)
+
+
+def _reference_variants(repo_relative_path: str) -> list[str]:
+    normalized = repo_relative_path.replace("\\", "/")
+    absolute_posix = (REPO_ROOT / Path(normalized)).resolve().as_posix()
+    absolute_windows = str((REPO_ROOT / Path(normalized)).resolve())
+    return [
+        f"/{absolute_posix}",
+        absolute_posix,
+        absolute_windows,
+        normalized,
+    ]
 
 
 def _rewrite_text_for_workspace(text: str, reference_paths: set[str]) -> str:
     rewritten = text
-    matches = sorted(set(REPO_PATH_PATTERN.findall(text)), key=len, reverse=True)
-    for repo_relative_path in matches:
-        normalized = repo_relative_path.replace("\\", "/")
-        if normalized in REFERENCE_MANIFEST:
+    for normalized in sorted(REFERENCE_TARGETS, key=len, reverse=True):
+        installed_path = _installed_path_for_reference(normalized)
+        replaced = False
+        for source_variant in _reference_variants(normalized):
+            if source_variant in rewritten:
+                rewritten = rewritten.replace(source_variant, installed_path)
+                replaced = True
+        if replaced and normalized in REFERENCE_MANIFEST:
             reference_paths.add(normalized)
-            rewritten = rewritten.replace(repo_relative_path, _installed_path_for_reference(normalized))
     return rewritten
 
 
