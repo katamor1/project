@@ -1,0 +1,97 @@
+{
+  "schema_version": "ibm-bob-basic-design-v2.0",
+  "document": {
+    "document_id": "BD-SMP-005",
+    "title": "モーション指令ハンドシェイク監視・リトライ機能",
+    "document_type": "basic_design",
+    "created_date": "2026-04-27",
+    "status": "draft",
+    "source": "sample_feature_generation"
+  },
+  "feature": {
+    "name": "モーション指令ハンドシェイク監視・リトライ機能",
+    "summary": "モーションコントローラへの指令送信後、ACK応答を監視し、タイムアウト時に再送または異常化する。",
+    "purpose": "共有メモリ経由の指令/応答ハンドシェイク不一致を検出し、軽微な一時遅延はリトライで回復し、回復不能時は安全停止へ移行する。",
+    "scope": "モーション指令送信、ACK待ち、リトライ、タイムアウト異常、診断ログを対象とする。",
+    "estimated_new_steps": "100-500 C steps"
+  },
+  "architecture": {
+    "platform": "Windows / C language",
+    "thread_model": {
+      "RT": [
+        "指令シーケンス番号の発行",
+        "ACK応答監視",
+        "リトライ回数管理",
+        "異常時の安全停止要求"
+      ],
+      "TS": [
+        "タイムアウト履歴保存",
+        "診断スナップショット出力",
+        "UI通知"
+      ],
+      "API": [
+        "Api_GetMotionHandshakeDiag()で診断値を取得"
+      ]
+    },
+    "global_variables": [
+      {
+        "name": "g_motionHsCtrl",
+        "type": "MOTION_HS_CTRL",
+        "access": "RT更新/TS読取/API読取",
+        "description": "ハンドシェイク状態、リトライ回数、タイムアウト情報"
+      },
+      {
+        "name": "g_motionHsParam",
+        "type": "MOTION_HS_PARAM",
+        "access": "TS/API更新/RT読取",
+        "description": "タイムアウトtick、リトライ上限"
+      }
+    ],
+    "apis": [
+      {
+        "name": "Api_GetMotionHandshakeDiag",
+        "description": "現在状態、最後の指令番号、ACK待ちtick、累計リトライ数を取得する。"
+      }
+    ]
+  },
+  "behavior": {
+    "state_transition": "IDLE→SEND_CMD→WAIT_ACK→COMPLETE。タイムアウト時はRETRY_WAITへ遷移し、上限超過時はERROR_STOP_REQへ遷移する。",
+    "sequence": [
+      "指令発行時にシーケンス番号を更新する",
+      "共有メモリへ指令と番号を書き込む",
+      "ACK番号一致を監視する",
+      "タイムアウトした場合はリトライ可能なら再送する",
+      "リトライ上限超過時は安全停止要求を出す"
+    ],
+    "constraints": [
+      "指令再送は冪等性が保証される指令に限定する",
+      "安全停止要求はRT側で即時発行する",
+      "TS側ログ失敗は制御継続を阻害しない"
+    ]
+  },
+  "impact_analysis": {
+    "affected_modules": [
+      "motion_cmd.c",
+      "rt_main.c",
+      "shared_memory.h",
+      "alarm.c",
+      "public_api.h",
+      "timeshare_log.c"
+    ],
+    "build_profiles": [
+      "ibm-bob-vc2026",
+      "ibm-bob-clang-win"
+    ],
+    "test_commands": [
+      "cmd /c scripts\\test_vc2026.bat",
+      "cmd /c scripts\\test_clang.bat"
+    ]
+  },
+  "pre_review_hint": {
+    "known_risks": [
+      "再送可能指令/再送禁止指令の分類台帳を作成すること",
+      "ACK遅延と実行済み指令の二重実行防止条件を詳細設計で定義すること",
+      "ERROR_STOP_REQからの復帰条件を明確化すること"
+    ]
+  }
+}

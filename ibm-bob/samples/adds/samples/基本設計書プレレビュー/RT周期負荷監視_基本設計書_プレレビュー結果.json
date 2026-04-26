@@ -1,0 +1,185 @@
+{
+  "review_id": "PRV-RTMON-001",
+  "target_document_id": "BD-RTMON-001",
+  "target_json": "sample_feature_rtmon_basic_design.json",
+  "target_docx": "RT周期負荷監視_基本設計書_JSON生成版.docx",
+  "review_date": "2026/04/27",
+  "reviewer": "IBM-Bob Review Agent",
+  "overall_judgement": "条件付き合格",
+  "summary": "要件トレーサビリティ、RT/TS責務分離、API追加、状態遷移、影響調査、テスト観点は基本設計レベルで概ね充足している。詳細設計前に、tick計測分解能、共有データの更新順序、CSV保存頻度制御を具体化する必要がある。",
+  "metrics": {
+    "check_total": 18,
+    "pass": 14,
+    "warn": 4,
+    "fail": 0,
+    "na": 0
+  },
+  "check_results": [
+    {
+      "id": "BRC-A01",
+      "category": "要件",
+      "status": "PASS",
+      "json_path": "$.requirements",
+      "result": "全要件にsummary/design_policy/acceptanceが定義されている。"
+    },
+    {
+      "id": "BRC-A02",
+      "category": "RT制約",
+      "status": "PASS",
+      "json_path": "$.thread_allocation.allocation[0].prohibited",
+      "result": "RT禁止事項としてファイルI/O、文字列整形、Windows API、動的メモリ確保が明記されている。"
+    },
+    {
+      "id": "BRC-A03",
+      "category": "TS分離",
+      "status": "PASS",
+      "json_path": "$.thread_allocation.allocation[1]",
+      "result": "CSV保存とイベントログはTS側責務として明確に分離されている。"
+    },
+    {
+      "id": "BRC-A04",
+      "category": "共有データ",
+      "status": "WARN",
+      "json_path": "$.data_design.globals[0]",
+      "result": "所有者・読取元・書込元は明記されているが、API/TS/RTの3者が同一構造体へ書き込むため、詳細設計で更新順序と排他粒度の具体化が必要。"
+    },
+    {
+      "id": "BRC-A05",
+      "category": "API互換性",
+      "status": "PASS",
+      "json_path": "$.interfaces.public_api",
+      "result": "既存API変更ではなく新規API追加のみであり、公開ヘッダへの追加箇所も記載されている。"
+    },
+    {
+      "id": "BRC-A06",
+      "category": "状態遷移",
+      "status": "PASS",
+      "json_path": "$.state_machine",
+      "result": "保存要求から完了/エラーまでの状態と遷移が記載されている。"
+    },
+    {
+      "id": "BRC-A07",
+      "category": "シーケンス",
+      "status": "PASS",
+      "json_path": "$.sequence_design",
+      "result": "手動保存シーケンスに主体、処理、応答が記載されている。"
+    },
+    {
+      "id": "BRC-A08",
+      "category": "影響調査",
+      "status": "PASS",
+      "json_path": "$.impact_analysis.items",
+      "result": "ソース、ヘッダ、テスト、文書、ビルド観点が対象ファイル単位で列挙されている。"
+    },
+    {
+      "id": "BRC-A09",
+      "category": "ビルド/テスト",
+      "status": "PASS",
+      "json_path": "$.test_acceptance.build_test",
+      "result": "VC2026/clang Windows版のbuild/testコマンドが記載されている。"
+    },
+    {
+      "id": "BRC-A10",
+      "category": "性能",
+      "status": "WARN",
+      "json_path": "$.non_functional.performance",
+      "result": "RT追加処理10usec以下の目安はあるが、測定方法・対象CPU条件・閾値算出根拠は未確定。"
+    },
+    {
+      "id": "BRC-A11",
+      "category": "安全",
+      "status": "PASS",
+      "json_path": "$.error_safety_design.safe_behavior",
+      "result": "本機能異常時に機械制御出力を直接変更しない方針が明記されている。"
+    },
+    {
+      "id": "BRC-A12",
+      "category": "セキュリティ",
+      "status": "PASS",
+      "json_path": "$.security.path_validation",
+      "result": "保存先をログディレクトリ配下に限定し、上位参照を拒否する方針がある。"
+    },
+    {
+      "id": "BRC-A13",
+      "category": "未確定事項",
+      "status": "PASS",
+      "json_path": "$.implementation_plan.open_issues",
+      "result": "tick計測関数名と自動保存既定値が未確定事項として分離されている。"
+    },
+    {
+      "id": "BRC-A14",
+      "category": "ログ",
+      "status": "PASS",
+      "json_path": "$.logging_diagnostics.logs",
+      "result": "ログID、イベント、出力項目が定義されている。"
+    },
+    {
+      "id": "BRC-A15",
+      "category": "CSV仕様",
+      "status": "WARN",
+      "json_path": "$.logging_diagnostics.snapshot_csv_columns",
+      "result": "CSV列は定義されているが、ファイル名規則、文字コード、改行コード、保存失敗時の再試行有無が未定。"
+    },
+    {
+      "id": "BRC-A16",
+      "category": "自動保存",
+      "status": "WARN",
+      "json_path": "$.scenarios[1].exception",
+      "result": "pending_save_request方針はあるが、連続オーバラン時の保存頻度上限・保存抑止時間が未定。"
+    },
+    {
+      "id": "BRC-A17",
+      "category": "実装範囲",
+      "status": "PASS",
+      "json_path": "$.implementation_plan.modules",
+      "result": "追加モジュールと内容が基本設計レベルで整理されている。"
+    },
+    {
+      "id": "BRC-A18",
+      "category": "JSON相互変換",
+      "status": "PASS",
+      "json_path": "$.appendix.json_mapping_policy",
+      "result": "SECTION_IDとJSONパスを用いた双方向変換方針が明記されている。"
+    }
+  ],
+  "findings": [
+    {
+      "finding_id": "FND-RTMON-001",
+      "severity": "中",
+      "title": "共有構造体への複数書込元の更新順序が詳細設計課題",
+      "description": "g_rtCycleMonCtrlはRT/API/TSが書き込むため、save_request、save_busy、save_state、generation系の更新順序を詳細設計で固定しないと競合・古い結果参照のリスクがある。",
+      "recommendation": "詳細設計で、各フィールドの書込責務表、更新タイミング、世代番号の比較手順、API呼び出し中のbusy判定順序を明記する。",
+      "related_json_path": "$.data_design.globals[0]"
+    },
+    {
+      "finding_id": "FND-RTMON-002",
+      "severity": "中",
+      "title": "RT性能閾値の根拠が未確定",
+      "description": "RT側追加処理10usec以下の目安は記載されているが、計測関数の分解能、CPU条件、監視対象スレッド数上限時の見積が未確定である。",
+      "recommendation": "既存基盤のtick計測関数を調査し、RTMON_THREAD_MAX=8時の最悪ケース処理量を詳細設計または性能評価項目に追加する。",
+      "related_json_path": "$.non_functional.performance"
+    },
+    {
+      "finding_id": "FND-RTMON-003",
+      "severity": "低",
+      "title": "CSV保存仕様の細部不足",
+      "description": "CSV列は定義済みだが、ファイル名規則、文字コード、改行コード、上書き可否、保存失敗時の再試行方針が未記載である。",
+      "recommendation": "ログ設計章にファイル名規則、保存先、文字コード、改行コード、上書き禁止/連番付与を追記する。",
+      "related_json_path": "$.logging_diagnostics"
+    },
+    {
+      "finding_id": "FND-RTMON-004",
+      "severity": "低",
+      "title": "自動保存の連続発生抑止条件が未定",
+      "description": "連続オーバラン時に自動保存が連続要求される可能性があり、TS側ログ保存負荷が増える恐れがある。",
+      "recommendation": "自動保存は警告ラッチONの初回のみ、またはN秒/周期ごとに1回などの抑止条件を設ける。",
+      "related_json_path": "$.scenarios[1]"
+    }
+  ],
+  "recommended_next_actions": [
+    "FND-RTMON-001とFND-RTMON-002を詳細設計着手前の確認事項にする。",
+    "CSV保存仕様をログ台帳または外部IF台帳へ追記する。",
+    "自動保存の抑止条件を要件または基本設計の制御ルールへ追記する。",
+    "レビューJSONの結果をpre_review.findingsへ戻し、設計書改訂時に差分追跡できるようにする。"
+  ]
+}

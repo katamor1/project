@@ -1,0 +1,96 @@
+{
+  "schema_version": "ibm-bob-basic-design-v2.0",
+  "document": {
+    "document_id": "BD-SMP-002",
+    "title": "入力信号チャタリング抑止・診断カウンタ機能",
+    "document_type": "basic_design",
+    "created_date": "2026-04-27",
+    "status": "draft",
+    "source": "sample_feature_generation"
+  },
+  "feature": {
+    "name": "入力信号チャタリング抑止・診断カウンタ機能",
+    "summary": "入力信号の短周期揺らぎをRT側で安定化し、TS側で診断カウンタを保存する。",
+    "purpose": "ハードウェア入力信号のチャタリングや瞬間ノイズにより、状態遷移・インターロック判定が不安定になることを防止する。",
+    "scope": "共有メモリ入力信号読込直後のフィルタ処理、診断カウンタ、外部保守APIの参照IFを対象とする。",
+    "estimated_new_steps": "100-500 C steps"
+  },
+  "architecture": {
+    "platform": "Windows / C language",
+    "thread_model": {
+      "RT": [
+        "入力信号の生値読込",
+        "連続一致回数による確定値更新",
+        "チャタリング検出カウンタ更新",
+        "フィルタ後信号を既存判定へ提供"
+      ],
+      "TS": [
+        "診断カウンタの周期スナップショット",
+        "CSV保存",
+        "UI表示用の統計値生成"
+      ],
+      "API": [
+        "Api_GetInputFilterDiag()で診断値を取得"
+      ]
+    },
+    "global_variables": [
+      {
+        "name": "g_inputFilterCtrl",
+        "type": "INPUT_FILTER_CTRL[INPUT_SIGNAL_MAX]",
+        "access": "RT更新/TS読取/API読取",
+        "description": "入力信号ごとのフィルタ状態と診断カウンタ"
+      },
+      {
+        "name": "g_inputFilterParam",
+        "type": "INPUT_FILTER_PARAM",
+        "access": "API/TS更新/RT読取",
+        "description": "確定閾値、診断有効設定"
+      }
+    ],
+    "apis": [
+      {
+        "name": "Api_GetInputFilterDiag",
+        "description": "対象信号IDを指定し、確定値、チャタリング回数、最終変化tickを取得する。"
+      }
+    ]
+  },
+  "behavior": {
+    "state_transition": "状態遷移は持たず、各入力信号は RAW_CHANGE_DETECT、STABLE_WAIT、FIXED_VALUE_UPDATE の内部判定段階で処理する。",
+    "sequence": [
+      "生値を読み込む",
+      "前回生値と比較する",
+      "変化ありの場合は連続一致カウンタを初期化する",
+      "同一値が閾値回数継続した場合に確定値へ反映する",
+      "診断カウンタを更新する"
+    ],
+    "constraints": [
+      "RT側では除算・ファイルI/O・文字列生成を禁止する",
+      "入力信号数最大時でも1周期あたり追加10usec以下を目標とする",
+      "パラメータ更新はRT周期境界で反映する"
+    ]
+  },
+  "impact_analysis": {
+    "affected_modules": [
+      "input_scan.c",
+      "interlock.c",
+      "shared_memory.h",
+      "public_api.h",
+      "timeshare_log.c"
+    ],
+    "build_profiles": [
+      "ibm-bob-vc2026",
+      "ibm-bob-clang-win"
+    ],
+    "test_commands": [
+      "cmd /c scripts\\test_vc2026.bat",
+      "cmd /c scripts\\test_clang.bat"
+    ]
+  },
+  "pre_review_hint": {
+    "known_risks": [
+      "フィルタ閾値の初期値と信号種別ごとの妥当性を詳細設計で確定すること",
+      "API経由でパラメータ変更する場合の反映タイミングを明確化すること",
+      "診断カウンタのオーバーフロー時動作を詳細設計で定義すること"
+    ]
+  }
+}

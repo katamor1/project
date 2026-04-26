@@ -1,0 +1,166 @@
+{
+  "schema_version": "ibm-bob-basic-design/2.0",
+  "review_status": "draft",
+  "document_control": {
+    "document_id": "BD-XXXX",
+    "title": "{{機能名}} 基本設計書",
+    "target_version": "Ver.X.Y",
+    "created_at": "yyyy-mm-dd",
+    "author": "AIドラフト/担当者名",
+    "reviewer": "",
+    "approver": "",
+    "revision_history": []
+  },
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "summary": "",
+      "design_policy": "",
+      "acceptance": ""
+    }
+  ],
+  "feature": {
+    "feature_id": "FX-XXX",
+    "name": "",
+    "summary": "",
+    "actor": "",
+    "priority": "",
+    "related_requirement_ids": [
+      "REQ-001"
+    ],
+    "classification": {
+      "realtime_control": false,
+      "time_share_processing": false,
+      "api_change": false,
+      "global_variable_change": false,
+      "state_machine": false,
+      "sequence_control": false
+    }
+  },
+  "purpose_background": {
+    "purpose": "",
+    "background": "",
+    "problems": [],
+    "design_principles": [],
+    "expected_effects": []
+  },
+  "scope": {
+    "in_scope": [],
+    "out_of_scope": [],
+    "assumptions": [],
+    "constraints": []
+  },
+  "system_context": {
+    "system_name": "IBM-Bob baseline",
+    "environment": {
+      "os": "Windows",
+      "language": "C",
+      "compiler_candidates": [
+        "VC2026",
+        "clang Windows"
+      ]
+    },
+    "threads": {
+      "real_time": {
+        "role": ""
+      },
+      "time_share": {
+        "role": ""
+      }
+    },
+    "shared_memory": {
+      "policy": "構造体定義されたグローバル変数を公開ヘッダで共有"
+    },
+    "public_api": {
+      "policy": "外部連携APIは公開ヘッダに定義"
+    },
+    "constraints": [
+      "全リアルタイムスレッドの合計実行時間は1割込間隔を超えない"
+    ]
+  },
+  "functional_requirements": {
+    "normal": [],
+    "abnormal": [],
+    "boundary": []
+  },
+  "scenarios": [],
+  "state_machine": {
+    "applicable": false,
+    "states": [],
+    "initial_state": "",
+    "terminal_states": {
+      "normal": [],
+      "error": []
+    },
+    "reset_conditions": [],
+    "concurrent_request_policy": ""
+  },
+  "sequence_design": {
+    "applicable": false,
+    "steps": [],
+    "abort_policy": ""
+  },
+  "data_design": {
+    "items": [],
+    "structs": [],
+    "initialization_policy": "",
+    "compatibility_policy": ""
+  },
+  "interfaces": {
+    "apis": [],
+    "external_links": []
+  },
+  "thread_allocation": {
+    "tasks": [],
+    "rt": {},
+    "ts": {},
+    "api": {}
+  },
+  "non_functional": {
+    "realtime_performance": {
+      "interrupt_budget": "",
+      "rt_added_cost": "",
+      "ts_cost": "",
+      "sync_policy": "",
+      "concurrent_policy": ""
+    }
+  },
+  "error_safety_design": {
+    "errors": [],
+    "fail_safe_policy": "",
+    "stop_priority": "",
+    "request_policy_on_error": "",
+    "recovery_policy": ""
+  },
+  "logging_diagnostics": {
+    "logs": []
+  },
+  "security": {
+    "api_permissions": "",
+    "public_headers": "",
+    "log_confidentiality": "",
+    "misoperation_prevention": ""
+  },
+  "impact_analysis": {
+    "items": []
+  },
+  "test_acceptance": {
+    "cases": [],
+    "acceptance_criteria": []
+  },
+  "implementation_plan": {
+    "estimated_steps": "",
+    "modules": [],
+    "not_implemented": [],
+    "constraints": [],
+    "open_issues": [],
+    "to_detail_design": []
+  },
+  "appendix": {
+    "references": [],
+    "glossary": []
+  },
+  "pre_review": {
+    "results": []
+  }
+}

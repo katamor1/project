@@ -1,0 +1,100 @@
+{
+  "schema_version": "ibm-bob-basic-design-v2.0",
+  "document": {
+    "document_id": "BD-SMP-004",
+    "title": "工具寿命カウンタ・交換予告通知機能",
+    "document_type": "basic_design",
+    "created_date": "2026-04-27",
+    "status": "draft",
+    "source": "sample_feature_generation"
+  },
+  "feature": {
+    "name": "工具寿命カウンタ・交換予告通知機能",
+    "summary": "加工時間または加工回数をRT側で積算し、TS/APIで交換予告・履歴保存を行う。",
+    "purpose": "工具使用量を自動積算し、寿命到達前に交換予告を行うことで、加工品質低下や突発停止を防止する。",
+    "scope": "工具選択状態、加工中tick積算、寿命閾値、予告/寿命到達通知、外部APIを対象とする。",
+    "estimated_new_steps": "100-500 C steps"
+  },
+  "architecture": {
+    "platform": "Windows / C language",
+    "thread_model": {
+      "RT": [
+        "現在工具IDの参照",
+        "加工中tickの積算",
+        "予告/寿命到達フラグ更新",
+        "リセット要求の安全条件判定"
+      ],
+      "TS": [
+        "寿命カウンタの永続化",
+        "交換履歴CSV保存",
+        "UI通知文言生成"
+      ],
+      "API": [
+        "Api_GetToolLifeStatus()とApi_RequestToolLifeReset()を追加"
+      ]
+    },
+    "global_variables": [
+      {
+        "name": "g_toolLifeCtrl",
+        "type": "TOOL_LIFE_CTRL[TOOL_MAX]",
+        "access": "RT更新/TS読取/API読取",
+        "description": "工具別使用量、閾値、状態"
+      },
+      {
+        "name": "g_toolLifeRequest",
+        "type": "TOOL_LIFE_REQUEST",
+        "access": "API/TS書込/RT処理",
+        "description": "リセット・閾値変更要求"
+      }
+    ],
+    "apis": [
+      {
+        "name": "Api_GetToolLifeStatus",
+        "description": "工具IDを指定し、使用量、予告状態、寿命到達状態を取得する。"
+      },
+      {
+        "name": "Api_RequestToolLifeReset",
+        "description": "交換後の工具寿命カウンタリセットを要求する。"
+      }
+    ]
+  },
+  "behavior": {
+    "state_transition": "NORMAL→NOTICE→EXPIRED。リセット要求が安全条件を満たす場合のみRESETTINGを経由してNORMALへ戻す。",
+    "sequence": [
+      "加工中かつ工具ID有効の場合にtickを加算する",
+      "予告閾値到達でNOTICEへ遷移する",
+      "寿命閾値到達でEXPIREDへ遷移する",
+      "TSへ通知要求を出す",
+      "リセット要求時は加工停止中のみカウンタを初期化する"
+    ],
+    "constraints": [
+      "不揮発保存はTS側のみ実施する",
+      "RT側では現在値の加算と閾値比較のみ実施する",
+      "リセットは加工停止中かつ工具交換確認済みの場合のみ許可する"
+    ]
+  },
+  "impact_analysis": {
+    "affected_modules": [
+      "tool_select.c",
+      "machining_state.c",
+      "shared_memory.h",
+      "public_api.h",
+      "timeshare_persist.c"
+    ],
+    "build_profiles": [
+      "ibm-bob-vc2026",
+      "ibm-bob-clang-win"
+    ],
+    "test_commands": [
+      "cmd /c scripts\\test_vc2026.bat",
+      "cmd /c scripts\\test_clang.bat"
+    ]
+  },
+  "pre_review_hint": {
+    "known_risks": [
+      "加工時間基準と加工回数基準の併用条件を詳細設計で確定すること",
+      "停電/異常停止時の永続化タイミングを定義すること",
+      "リセットAPIの権限制御と監査ログ要件を明確化すること"
+    ]
+  }
+}

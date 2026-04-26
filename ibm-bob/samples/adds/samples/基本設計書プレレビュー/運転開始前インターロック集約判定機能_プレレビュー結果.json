@@ -1,0 +1,90 @@
+{
+  "feature_id": "BD-SMP-003",
+  "feature_name": "運転開始前インターロック集約判定機能",
+  "overall": "条件付き合格",
+  "summary": {
+    "PASS": 7,
+    "WARN": 6,
+    "FAIL": 0
+  },
+  "items": [
+    {
+      "check_id": "BRC-A01",
+      "category": "要件整合",
+      "status": "PASS",
+      "comment": "記載あり。基本設計レベルとして妥当。"
+    },
+    {
+      "check_id": "BRC-A02",
+      "category": "RT/TS分離",
+      "status": "PASS",
+      "comment": "記載あり。基本設計レベルとして妥当。"
+    },
+    {
+      "check_id": "BRC-A03",
+      "category": "共有データ",
+      "status": "WARN",
+      "comment": "共有グローバル変数の読取元/書込元はあるが、更新順序・排他不要条件は詳細設計で確定が必要。"
+    },
+    {
+      "check_id": "BRC-A04",
+      "category": "API",
+      "status": "PASS",
+      "comment": "記載あり。基本設計レベルとして妥当。"
+    },
+    {
+      "check_id": "BRC-A05",
+      "category": "状態遷移",
+      "status": "PASS",
+      "comment": "記載あり。基本設計レベルとして妥当。"
+    },
+    {
+      "check_id": "BRC-A06",
+      "category": "安全",
+      "status": "PASS",
+      "comment": "記載あり。基本設計レベルとして妥当。"
+    },
+    {
+      "check_id": "BRC-A07",
+      "category": "性能",
+      "status": "WARN",
+      "comment": "RT周期内の目標はあるが、最大件数時のワーストケース根拠は詳細設計で補足が必要。"
+    },
+    {
+      "check_id": "BRC-A08",
+      "category": "影響調査",
+      "status": "PASS",
+      "comment": "記載あり。基本設計レベルとして妥当。"
+    },
+    {
+      "check_id": "BRC-A09",
+      "category": "テスト",
+      "status": "WARN",
+      "comment": "build/testコマンドは記載あり。追加テストケースIDと期待値は詳細設計またはテスト仕様書で確定が必要。"
+    },
+    {
+      "check_id": "BRC-A10",
+      "category": "JSON相互変換",
+      "status": "PASS",
+      "comment": "記載あり。基本設計レベルとして妥当。"
+    },
+    {
+      "check_id": "BRC-WARN",
+      "category": "機能固有リスク",
+      "status": "WARN",
+      "comment": "マスク対象に安全上マスク不可の条件が混入しないよう定義を固定すること"
+    },
+    {
+      "check_id": "BRC-WARN",
+      "category": "機能固有リスク",
+      "status": "WARN",
+      "comment": "READYからBLOCKEDへ戻る条件の優先順位を詳細設計で定義すること"
+    },
+    {
+      "check_id": "BRC-WARN",
+      "category": "機能固有リスク",
+      "status": "WARN",
+      "comment": "禁止理由ビットの台帳管理とメッセージIDの対応を整備すること"
+    }
+  ]
+}

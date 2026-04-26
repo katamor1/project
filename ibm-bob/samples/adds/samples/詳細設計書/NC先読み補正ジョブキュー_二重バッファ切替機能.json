@@ -1,0 +1,861 @@
+{
+  "schema_version": "ibm-bob-detail-design/2.0",
+  "review_status": "draft",
+  "document_control": {
+    "document_id": "DD-SMP-104",
+    "title": "NC先読み補正ジョブキュー・二重バッファ切替機能 詳細設計書",
+    "target_system": "IBM-Bob baseline / Windows C realtime-control platform",
+    "target_version": "Ver.1.0",
+    "created_at": "2026-04-27",
+    "author": "IBM-Bob AI Agent Draft",
+    "reviewer": "AI pre-reviewer",
+    "approver": "",
+    "revision_history": [
+      {
+        "version": "0.1",
+        "date": "2026-04-27",
+        "description": "サンプル詳細設計書ドラフト生成",
+        "author": "AI"
+      }
+    ]
+  },
+  "source_basic_design": {
+    "basic_design_id": "BD-SMP-104",
+    "title": "NC先読み補正ジョブキュー・二重バッファ切替機能 基本設計書",
+    "version": "Ver.1.0",
+    "source_json_path": "NC先読み補正ジョブキュー_二重バッファ切替機能_basic_design.json",
+    "source_docx_path": "NC先読み補正ジョブキュー_二重バッファ切替機能_基本設計書.docx",
+    "accepted_warnings": []
+  },
+  "feature": {
+    "feature_id": "FX-DD-104",
+    "name": "NC先読み補正ジョブキュー・二重バッファ切替機能",
+    "summary": "RT側が必要区間の先読み補正ジョブを固定長キューへ登録し、TS側が計算した補正テーブルを二重バッファで安全に切り替える。",
+    "estimated_new_steps": "180-420 step",
+    "classification": {
+      "realtime_control": true,
+      "time_share_processing": true,
+      "api_change": false,
+      "global_variable_change": true,
+      "state_machine": false,
+      "sequence_control": false,
+      "shared_memory_public_header_change": true
+    }
+  },
+  "introduction": {
+    "purpose": "RT側が必要区間の先読み補正ジョブを固定長キューへ登録し、TS側が計算した補正テーブルを二重バッファで安全に切り替える。",
+    "scope": "include/system_shared.h、include/control_api.h、src/rt_control.c系、src/ts_service.c系、tests/ を対象とする。",
+    "out_of_scope": "PLC内部ラダー、モーションコントローラ内部ファーム、UI画面レイアウトの詳細は対象外。",
+    "assumptions": [
+      "RT周期は既存基盤の割込周期に従う",
+      "RT側でWindowsシステムコール、ファイルI/O、動的メモリ確保は行わない",
+      "共有メモリ構造体は固定長で拡張する"
+    ],
+    "design_granularity_policy": "関数、構造体、共有変数、処理順序、エラー条件まで具体化する。ソースコード全文は記載しない。"
+  },
+  "automation_policy": {
+    "generation_source": "basic_design_json_or_docx",
+    "roundtrip_policy": "SECTION_ID and JSON Path based extraction",
+    "pre_review_checklist": "ibm_bob_detail_design_pre_review_checklist.json"
+  },
+  "traceability": {
+    "requirements": [
+      {
+        "id": "REQ-RT-001",
+        "text": "RT周期内に制御判断を完了する"
+      },
+      {
+        "id": "REQ-TS-001",
+        "text": "ファイルI/Oおよび重い整形処理はTS側で実施する"
+      },
+      {
+        "id": "REQ-SHM-001",
+        "text": "スレッド間連携は共有メモリ上のグローバル変数で実施する"
+      }
+    ],
+    "basic_sections": [
+      {
+        "id": "BD-SMP-104-01",
+        "title": "機能概要"
+      },
+      {
+        "id": "BD-SMP-104-02",
+        "title": "スレッド配置"
+      },
+      {
+        "id": "BD-SMP-104-03",
+        "title": "追加グローバル変数"
+      }
+    ],
+    "matrix": [
+      {
+        "requirement_id": "REQ-RT-001",
+        "basic_section": "BD-RT",
+        "detail_section": "DD-10",
+        "functions": [
+          "RtPrefetchQueue_RequestNext",
+          "RtPrefetchQueue_GetActiveTable"
+        ],
+        "test_viewpoint": "RT周期内処理時間計測"
+      },
+      {
+        "requirement_id": "REQ-TS-001",
+        "basic_section": "BD-TS",
+        "detail_section": "DD-11",
+        "functions": [
+          "TsPrefetchWorker_ExecuteOne"
+        ],
+        "test_viewpoint": "TS処理中断安全性"
+      },
+      {
+        "requirement_id": "REQ-SHM-001",
+        "basic_section": "BD-DATA",
+        "detail_section": "DD-07",
+        "functions": [
+          "RtPrefetchQueue_RequestNext",
+          "RtPrefetchQueue_GetActiveTable",
+          "TsPrefetchWorker_ExecuteOne",
+          "PrefetchQueue_PushJob"
+        ],
+        "test_viewpoint": "共有メモリ整合性"
+      }
+    ]
+  },
+  "impact_analysis": {
+    "items": [
+      {
+        "target": "include/system_shared.h",
+        "impact": "あり",
+        "risk": "公開構造体サイズ変更の通信先影響",
+        "id": "IMP-001",
+        "target_type": "source_or_document",
+        "change_policy": "新規struct/extern宣言追加",
+        "evidence": "公開構造体サイズ変更の通信先影響"
+      },
+      {
+        "target": "src/system_shared.c",
+        "impact": "あり",
+        "risk": "初期化漏れ",
+        "id": "IMP-002",
+        "target_type": "source_or_document",
+        "change_policy": "グローバル変数定義と初期化追加",
+        "evidence": "初期化漏れ"
+      },
+      {
+        "target": "src/rt_control.c",
+        "impact": "あり",
+        "risk": "周期時間増加",
+        "id": "IMP-003",
+        "target_type": "source_or_document",
+        "change_policy": "RT周期処理呼出を追加",
+        "evidence": "周期時間増加"
+      },
+      {
+        "target": "src/ts_service.c",
+        "impact": "あり",
+        "risk": "TS中断時の途中更新",
+        "id": "IMP-004",
+        "target_type": "source_or_document",
+        "change_policy": "ログ/保存/重計算処理追加",
+        "evidence": "TS中断時の途中更新"
+      },
+      {
+        "target": "tests/",
+        "impact": "あり",
+        "risk": "テスト不足",
+        "id": "IMP-005",
+        "target_type": "source_or_document",
+        "change_policy": "単体・統合・性能テスト追加",
+        "evidence": "テスト不足"
+      }
+    ]
+  },
+  "source_changes": {
+    "files": [
+      {
+        "path": "include/system_shared.h",
+        "change": "modify",
+        "summary": "PREFETCH_JOB_QUEUE と extern 宣言を追加",
+        "id": "SRC-001",
+        "change_type": "変更",
+        "depends_on": [],
+        "review_focus": "変更内容と既存呼出順序の整合性"
+      },
+      {
+        "path": "src/system_shared.c",
+        "change": "modify",
+        "summary": "g_prefetchJobQueue 定義と初期値設定を追加",
+        "id": "SRC-002",
+        "change_type": "変更",
+        "depends_on": [],
+        "review_focus": "変更内容と既存呼出順序の整合性"
+      },
+      {
+        "path": "src/rt_control.c",
+        "change": "modify",
+        "summary": "RtDispatcher_ExecuteCycle からRT処理関数を呼出",
+        "id": "SRC-003",
+        "change_type": "変更",
+        "depends_on": [],
+        "review_focus": "変更内容と既存呼出順序の整合性"
+      },
+      {
+        "path": "src/ts_service.c",
+        "change": "modify",
+        "summary": "TsService_ExecuteSlice からTS処理関数を呼出",
+        "id": "SRC-004",
+        "change_type": "変更",
+        "depends_on": [],
+        "review_focus": "変更内容と既存呼出順序の整合性"
+      },
+      {
+        "path": "include/control_api.h",
+        "change": "none",
+        "summary": "公開API変更なし",
+        "id": "SRC-005",
+        "change_type": "参照のみ",
+        "depends_on": [],
+        "review_focus": "変更内容と既存呼出順序の整合性"
+      },
+      {
+        "path": "tests/test_NC先読み補正ジョブキュー_二重バッファ切替機能.c",
+        "change": "add",
+        "summary": "単体・境界・異常系テスト追加",
+        "id": "SRC-006",
+        "change_type": "追加",
+        "depends_on": [],
+        "review_focus": "変更内容と既存呼出順序の整合性"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "id": "M-PFQ-RT",
+      "name": "M-PFQ-RT",
+      "file": "src/rt_prefetch_queue.c",
+      "responsibility": "ジョブ発行、ready世代確認、補正利用",
+      "callers": [
+        "RtDispatcher_ExecuteCycle"
+      ],
+      "callees": [
+        "LogQueue_Push",
+        "SystemShared helpers"
+      ],
+      "execution_context": "RT_CONTROL"
+    },
+    {
+      "id": "M-PFQ-TS",
+      "name": "M-PFQ-TS",
+      "file": "src/ts_prefetch_worker.c",
+      "responsibility": "補正計算、非アクティブバッファ更新",
+      "callers": [
+        "TsService_ExecuteSlice"
+      ],
+      "callees": [
+        "LogQueue_Push",
+        "SystemShared helpers"
+      ],
+      "execution_context": "TS_SERVICE"
+    },
+    {
+      "id": "M-PFQ-COM",
+      "name": "M-PFQ-COM",
+      "file": "src/prefetch_common.c",
+      "responsibility": "キュー操作、世代番号ユーティリティ",
+      "callers": [
+        "External API caller"
+      ],
+      "callees": [
+        "LogQueue_Push",
+        "SystemShared helpers"
+      ],
+      "execution_context": "COMMON"
+    }
+  ],
+  "data_design": {
+    "constants": [
+      {
+        "name": "NC先読み補正ジョブキュー_二重_MAX",
+        "type": "#define",
+        "value": "機能別固定長",
+        "unit": "件",
+        "description": "固定長バッファ上限"
+      }
+    ],
+    "enums": [
+      {
+        "name": "NC先読み補正ジョブキュ_STATE",
+        "values": [
+          "LEVEL_NORMAL",
+          "LEVEL_NOTICE",
+          "LEVEL_WARN",
+          "LEVEL_ALARM"
+        ]
+      }
+    ],
+    "structs": [
+      {
+        "name": "PREFETCH_JOB_QUEUE",
+        "fields": [
+          {
+            "name": "state",
+            "type": "uint8_t",
+            "initial": "0",
+            "description": "状態または判定レベル"
+          },
+          {
+            "name": "request",
+            "type": "uint8_t",
+            "initial": "0",
+            "description": "API/RT/TS間要求フラグ"
+          },
+          {
+            "name": "busy",
+            "type": "uint8_t",
+            "initial": "0",
+            "description": "TS処理中フラグ"
+          },
+          {
+            "name": "generation",
+            "type": "uint16_t",
+            "initial": "0",
+            "description": "複数ワード更新の世代番号"
+          },
+          {
+            "name": "error_code",
+            "type": "int32_t",
+            "initial": "0",
+            "description": "最終エラーコード"
+          }
+        ]
+      }
+    ],
+    "items": []
+  },
+  "shared_memory_globals": [
+    {
+      "id": "GV-001",
+      "name": "g_prefetchJobQueue",
+      "type": "PREFETCH_JOB_QUEUE",
+      "defined_in": "include/system_shared.h / src/system_shared.c",
+      "owner": "RT_CONTROL",
+      "writers": [
+        "RT_CONTROL",
+        "TS_SERVICE"
+      ],
+      "readers": [
+        "RT_CONTROL",
+        "TS_SERVICE",
+        "API"
+      ],
+      "update_cycle": "RT周期またはAPI呼出時/TSスライス時",
+      "consistency_policy": "RTはOSロックを使用せず、request/busy/ready/state/generationを固定順序で更新する。複数ワード更新は最後にstateまたはgenerationを更新する。",
+      "initial_value": "SystemShared_Initialize()でゼロクリア後、state=IDLE相当、result=0を設定"
+    }
+  ],
+  "api_design": {
+    "changed": false,
+    "functions": []
+  },
+  "thread_design": {
+    "tasks": [
+      {
+        "name": "RT_INPUT/RT_CONTROL",
+        "cycle": "割込周期",
+        "trigger": "ハードウェア割込",
+        "responsibility": "入力読取、状態更新、出力要求生成"
+      },
+      {
+        "name": "TS_SERVICE",
+        "cycle": "タイムスライス",
+        "trigger": "RT休止中",
+        "responsibility": "ログ保存、CSV出力、UIスナップショット生成"
+      },
+      {
+        "name": "API caller",
+        "cycle": "随時",
+        "trigger": "外部アプリ呼出",
+        "responsibility": "要求登録またはスナップショット取得"
+      }
+    ],
+    "rt_budget_policy": "追加RT処理は目標10usec以下、全RT合計が1割込間隔を超えないこと。",
+    "ts_slice_policy": "ファイルI/Oおよび重計算はTS側で実施し、共有変数更新は短い区間に限定する。"
+  },
+  "rt_design": {
+    "steps": [
+      {
+        "no": 1,
+        "text": "次区間IDを算出する"
+      },
+      {
+        "no": 2,
+        "text": "未登録区間であれば固定長キューにジョブを追加する"
+      },
+      {
+        "no": 3,
+        "text": "ready_generationとactive_bufferを確認する"
+      },
+      {
+        "no": 4,
+        "text": "不一致の場合は補正なしで継続する"
+      },
+      {
+        "no": 5,
+        "text": "一致時のみ補正テーブルを参照する"
+      }
+    ],
+    "prohibited_operations": [
+      "Windowsシステムコール",
+      "ファイルI/O",
+      "動的メモリ確保",
+      "長時間ループ",
+      "ブロッキング待ち"
+    ],
+    "fallback_policy": "ready不成立、キュー満杯、条件未成立時は既存安全側動作を優先し、必要に応じてログキューへ投入する。"
+  },
+  "ts_design": {
+    "steps": [
+      {
+        "no": 1,
+        "text": "キューからジョブを1件取得する"
+      },
+      {
+        "no": 2,
+        "text": "非アクティブバッファへ補正テーブルを生成する"
+      },
+      {
+        "no": 3,
+        "text": "全要素書込み後にgenerationを更新する"
+      },
+      {
+        "no": 4,
+        "text": "active_bufferを最後に切り替えreadyをONにする"
+      }
+    ],
+    "io_policy": "CSV/ログ/ファイル保存はTS_SERVICEでのみ実行する。",
+    "interruption_policy": "RT割込により中断されても中間状態を公開しないよう、ローカルバッファ作成後にbusy/result/stateを固定順で更新する。"
+  },
+  "function_specs": [
+    {
+      "id": "FN-001",
+      "name": "RtPrefetchQueue_RequestNext",
+      "file": "src/rt_nc先読み補正ジ.c",
+      "callers": [
+        "RtDispatcher_ExecuteCycle"
+      ],
+      "inputs": [
+        {
+          "name": "共有メモリ状態",
+          "type": "value_or_shared",
+          "description": "共有メモリ状態"
+        },
+        {
+          "name": "RT周期入力/TSジョブ",
+          "type": "value_or_shared",
+          "description": "RT周期入力/TSジョブ"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "戻り値",
+          "type": "value_or_shared",
+          "description": "戻り値"
+        },
+        {
+          "name": "共有メモリ更新",
+          "type": "value_or_shared",
+          "description": "共有メモリ更新"
+        },
+        {
+          "name": "ログキュー更新",
+          "type": "value_or_shared",
+          "description": "ログキュー更新"
+        }
+      ],
+      "return_value": "0:正常 / 負値:エラー",
+      "side_effects": [
+        "g_prefetchJobQueue の更新",
+        "g_logQueueへのイベント投入"
+      ],
+      "error_conditions": [
+        {
+          "condition": "不正引数",
+          "action": "負値返却または安全側遷移"
+        },
+        {
+          "condition": "状態不一致",
+          "action": "負値返却または安全側遷移"
+        },
+        {
+          "condition": "バッファ満杯",
+          "action": "負値返却または安全側遷移"
+        },
+        {
+          "condition": "タイムアウト",
+          "action": "負値返却または安全側遷移"
+        }
+      ],
+      "pseudo_code": [
+        "RtPrefetchQueue_RequestNext: 入力値を検証する",
+        "現在状態を取得する",
+        "条件に応じて共有状態を更新する",
+        "必要に応じてログ/応答コードを設定する"
+      ]
+    },
+    {
+      "id": "FN-002",
+      "name": "RtPrefetchQueue_GetActiveTable",
+      "file": "src/rt_nc先読み補正ジ.c",
+      "callers": [
+        "RtDispatcher_ExecuteCycle"
+      ],
+      "inputs": [
+        {
+          "name": "共有メモリ状態",
+          "type": "value_or_shared",
+          "description": "共有メモリ状態"
+        },
+        {
+          "name": "RT周期入力/TSジョブ",
+          "type": "value_or_shared",
+          "description": "RT周期入力/TSジョブ"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "戻り値",
+          "type": "value_or_shared",
+          "description": "戻り値"
+        },
+        {
+          "name": "共有メモリ更新",
+          "type": "value_or_shared",
+          "description": "共有メモリ更新"
+        },
+        {
+          "name": "ログキュー更新",
+          "type": "value_or_shared",
+          "description": "ログキュー更新"
+        }
+      ],
+      "return_value": "0:正常 / 負値:エラー",
+      "side_effects": [
+        "g_prefetchJobQueue の更新",
+        "g_logQueueへのイベント投入"
+      ],
+      "error_conditions": [
+        {
+          "condition": "不正引数",
+          "action": "負値返却または安全側遷移"
+        },
+        {
+          "condition": "状態不一致",
+          "action": "負値返却または安全側遷移"
+        },
+        {
+          "condition": "バッファ満杯",
+          "action": "負値返却または安全側遷移"
+        },
+        {
+          "condition": "タイムアウト",
+          "action": "負値返却または安全側遷移"
+        }
+      ],
+      "pseudo_code": [
+        "RtPrefetchQueue_GetActiveTable: 入力値を検証する",
+        "現在状態を取得する",
+        "条件に応じて共有状態を更新する",
+        "必要に応じてログ/応答コードを設定する"
+      ]
+    },
+    {
+      "id": "FN-003",
+      "name": "TsPrefetchWorker_ExecuteOne",
+      "file": "src/ts_nc先読み補正ジ.c",
+      "callers": [
+        "TsService_ExecuteSlice"
+      ],
+      "inputs": [
+        {
+          "name": "共有メモリ状態",
+          "type": "value_or_shared",
+          "description": "共有メモリ状態"
+        },
+        {
+          "name": "RT周期入力/TSジョブ",
+          "type": "value_or_shared",
+          "description": "RT周期入力/TSジョブ"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "戻り値",
+          "type": "value_or_shared",
+          "description": "戻り値"
+        },
+        {
+          "name": "共有メモリ更新",
+          "type": "value_or_shared",
+          "description": "共有メモリ更新"
+        },
+        {
+          "name": "ログキュー更新",
+          "type": "value_or_shared",
+          "description": "ログキュー更新"
+        }
+      ],
+      "return_value": "0:正常 / 負値:エラー",
+      "side_effects": [
+        "g_prefetchJobQueue の更新",
+        "g_logQueueへのイベント投入"
+      ],
+      "error_conditions": [
+        {
+          "condition": "不正引数",
+          "action": "負値返却または安全側遷移"
+        },
+        {
+          "condition": "状態不一致",
+          "action": "負値返却または安全側遷移"
+        },
+        {
+          "condition": "バッファ満杯",
+          "action": "負値返却または安全側遷移"
+        },
+        {
+          "condition": "タイムアウト",
+          "action": "負値返却または安全側遷移"
+        }
+      ],
+      "pseudo_code": [
+        "TsPrefetchWorker_ExecuteOne: 入力値を検証する",
+        "現在状態を取得する",
+        "条件に応じて共有状態を更新する",
+        "必要に応じてログ/応答コードを設定する"
+      ]
+    },
+    {
+      "id": "FN-004",
+      "name": "PrefetchQueue_PushJob",
+      "file": "src/prefetch_common.c",
+      "callers": [
+        "External application/API caller"
+      ],
+      "inputs": [
+        {
+          "name": "共有メモリ状態",
+          "type": "value_or_shared",
+          "description": "共有メモリ状態"
+        },
+        {
+          "name": "RT周期入力/TSジョブ",
+          "type": "value_or_shared",
+          "description": "RT周期入力/TSジョブ"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "戻り値",
+          "type": "value_or_shared",
+          "description": "戻り値"
+        },
+        {
+          "name": "共有メモリ更新",
+          "type": "value_or_shared",
+          "description": "共有メモリ更新"
+        },
+        {
+          "name": "API応答コード",
+          "type": "value_or_shared",
+          "description": "API応答コード"
+        }
+      ],
+      "return_value": "0:正常 / 負値:エラー",
+      "side_effects": [
+        "g_prefetchJobQueue の更新",
+        "g_logQueueへのイベント投入"
+      ],
+      "error_conditions": [
+        {
+          "condition": "不正引数",
+          "action": "負値返却または安全側遷移"
+        },
+        {
+          "condition": "状態不一致",
+          "action": "負値返却または安全側遷移"
+        },
+        {
+          "condition": "バッファ満杯",
+          "action": "負値返却または安全側遷移"
+        },
+        {
+          "condition": "タイムアウト",
+          "action": "負値返却または安全側遷移"
+        }
+      ],
+      "pseudo_code": [
+        "PrefetchQueue_PushJob: 入力値を検証する",
+        "現在状態を取得する",
+        "条件に応じて共有状態を更新する",
+        "必要に応じてログ/応答コードを設定する"
+      ]
+    }
+  ],
+  "concurrency": {
+    "items": [
+      {
+        "resource": "g_prefetchJobQueue",
+        "writers": [
+          "RT_CONTROL",
+          "TS_SERVICE"
+        ],
+        "readers": [
+          "RT_CONTROL",
+          "TS_SERVICE",
+          "API"
+        ],
+        "policy": "RTはOSロックを使用せず、request/busy/ready/state/generationを固定順序で更新する。複数ワード更新は最後にstateまたはgenerationを更新する。"
+      }
+    ],
+    "lock_order": [
+      "RT側OSロックなし",
+      "TS側でファイルハンドルを扱う場合は file_lock -> local_buffer の順",
+      "共有メモリ更新中はロック保持しない"
+    ],
+    "memory_visibility_policy": "複数フィールド更新時はpayloadを書いてからgeneration/stateを最後に更新する。C実装時は必要に応じてInterlocked系またはC11 atomicを検討する。",
+    "multi_request_policy": "request=1中の新規要求はREJECTEDまたは最新値上書きのどちらかを機能別に固定する。本サンプルでは多重要求はREJECTEDとする。"
+  },
+  "error_safety": {
+    "errors": [
+      {
+        "code": "E_PARAM",
+        "condition": "API不正引数",
+        "action": "共有状態を変更せずPARAM_ERRORを返す"
+      },
+      {
+        "code": "E_TIMEOUT",
+        "condition": "状態待ちタイムアウト",
+        "action": "安全側状態へ遷移しログ投入"
+      },
+      {
+        "code": "E_BUSY",
+        "condition": "TS処理中または要求中",
+        "action": "多重要求を拒否"
+      }
+    ],
+    "fail_safe_policy": "異常時は出力停止、運転禁止、補正なし継続など既存基盤の安全側動作を優先する。",
+    "recovery_policy": "リセット要求または停止中確認後にIDLE相当へ復帰する。"
+  },
+  "performance_budget": {
+    "rt_total_budget": "既存RT合計 + 本機能追加分 が1割込間隔未満",
+    "measurement_method": "VC2026/clang Windows版の単体テストでRtDispatcher_ExecuteCycleを多数回実行し最大/平均時間を記録",
+    "items": [
+      {
+        "step": "RT入力読取/状態判定",
+        "target": "5-10 usec以内",
+        "risk": "軸数/バッファ長増加で悪化"
+      },
+      {
+        "step": "TSログ/CSV保存",
+        "target": "TSスライス内で分割実行",
+        "risk": "ファイルI/O遅延"
+      }
+    ]
+  },
+  "test_handoff": {
+    "viewpoints": [
+      {
+        "id": "UT-001",
+        "text": "正常系で状態/出力/応答コードが期待値になる"
+      },
+      {
+        "id": "UT-002",
+        "text": "境界値、タイムアウト、キュー満杯を検証する"
+      },
+      {
+        "id": "IT-001",
+        "text": "RT/TS/APIを組み合わせた共有メモリ整合性を確認する"
+      },
+      {
+        "id": "PF-001",
+        "text": "RT周期処理時間を測定する"
+      }
+    ],
+    "acceptance_criteria": [
+      {
+        "id": "AC-001",
+        "text": "FAIL=0でプレレビュー完了"
+      },
+      {
+        "id": "AC-002",
+        "text": "VC2026およびclang Windowsでビルド成功"
+      },
+      {
+        "id": "AC-003",
+        "text": "追加RT処理時間の測定結果が目標以内"
+      }
+    ],
+    "test_data": [
+      {
+        "id": "TD-001",
+        "text": "正常入力"
+      },
+      {
+        "id": "TD-002",
+        "text": "しきい値境界"
+      },
+      {
+        "id": "TD-003",
+        "text": "多重要求"
+      },
+      {
+        "id": "TD-004",
+        "text": "タイムアウト"
+      },
+      {
+        "id": "TD-005",
+        "text": "異常入力"
+      }
+    ]
+  },
+  "build_test_static_analysis": {
+    "vc2026": {
+      "build": "cmd /c scripts\\build_vc2026.bat",
+      "test": "cmd /c scripts\\test_vc2026.bat"
+    },
+    "clang_windows": {
+      "build": "cmd /c scripts\\build_clang.bat",
+      "test": "cmd /c scripts\\test_clang.bat"
+    },
+    "static_analysis": {
+      "check_items": [
+        "/W4相当警告確認",
+        "未初期化変数確認",
+        "配列境界確認",
+        "RT禁止API呼出のgrep確認"
+      ]
+    },
+    "workspace_profiles": [
+      {
+        "name": "ibm-bob-vc2026"
+      },
+      {
+        "name": "ibm-bob-clang-win"
+      }
+    ]
+  },
+  "open_issues": [
+    {
+      "id": "OI-001",
+      "text": "キュー満杯時のジョブ破棄か上書きかの運用判断が要確認",
+      "owner": "詳細設計レビュー",
+      "due": "実装着手前"
+    },
+    {
+      "id": "OI-002",
+      "text": "二重バッファ切替のメモリ可視性はC実装時にvolatileだけに依存しないこと",
+      "owner": "仕様担当",
+      "due": "単体テスト作成前"
+    }
+  ]
+}

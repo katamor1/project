@@ -1,0 +1,474 @@
+{
+  "schema_version": "ibm-bob-function-test-design/1.0",
+  "review_status": "draft",
+  "document_control": {
+    "document_id": "FT-402",
+    "title": "セーフティドア開閉デバウンス・運転禁止ラッチ機能 機能テスト設計書",
+    "target_system": "IBM-Bob baseline / Windows C realtime-control platform",
+    "target_version": "Eval-1.0",
+    "created_at": "2026-04-26",
+    "author": "AIドラフト（IBM-Bob評価用）",
+    "reviewer": "AIプレレビュー"
+  },
+  "source_documents": {
+    "basic_design_id": "BD-402",
+    "detail_design_id": "DD-402",
+    "requirement_doc_id": "RQ-402"
+  },
+  "feature": {
+    "feature_id": "FX-402",
+    "name": "セーフティドア開閉デバウンス・運転禁止ラッチ機能",
+    "summary": "セーフティドア入力をデバウンスし、開確定時に運転禁止ラッチと停止要求を制御する。",
+    "classification": {
+      "thread": "RT_INPUT/RT_CONTROL",
+      "risk": "安全インターロック"
+    }
+  },
+  "automation_policy": {
+    "generation_source": [
+      "basic_design_json",
+      "detail_design_json",
+      "basic_design_docx",
+      "detail_design_docx"
+    ],
+    "pre_review_checklist": "ibm_bob_function_test_pre_review_checklist.json",
+    "roundtrip_policy": "SECTION_IDとJSON Pathを双方向変換の正とする。"
+  },
+  "section_map": [
+    {
+      "section_id": "FT-01",
+      "title": "文書管理",
+      "json_path": "$.document_control"
+    },
+    {
+      "section_id": "FT-02",
+      "title": "トレーサビリティ",
+      "json_path": "$.traceability"
+    },
+    {
+      "section_id": "FT-03",
+      "title": "テスト対象",
+      "json_path": "$.feature_under_test"
+    },
+    {
+      "section_id": "FT-04",
+      "title": "テスト方針",
+      "json_path": "$.test_strategy"
+    },
+    {
+      "section_id": "FT-10",
+      "title": "テストケース",
+      "json_path": "$.test_cases"
+    }
+  ],
+  "introduction": {
+    "purpose": "セーフティドア開閉デバウンス・運転禁止ラッチ機能 が設計どおりに動作し、RT周期制約、共有メモリ整合性、異常安全、証跡取得の観点で受入可能であることを確認する。",
+    "scope": "シミュレータおよび共有メモリスタブを用いた機能テスト。",
+    "out_of_scope": "実機の加工精度、電気特性、長期耐久試験。",
+    "assumptions": [
+      "VC2026またはclang Windowsでビルド可能。",
+      "RT周期は評価用ディスパッチャで疑似実行可能。"
+    ]
+  },
+  "traceability": {
+    "basic_design": {
+      "id": "BD-402",
+      "sections": [
+        "機能要件",
+        "共有メモリ",
+        "安全設計"
+      ]
+    },
+    "detail_design": {
+      "id": "DD-402",
+      "sections": [
+        "関数仕様",
+        "状態遷移",
+        "エラー処理"
+      ]
+    },
+    "matrix": [
+      {
+        "source_id": "RQ-402-01",
+        "target_test_cases": [
+          "FTC-402-001",
+          "FTC-402-002"
+        ],
+        "coverage": "covered"
+      },
+      {
+        "source_id": "RQ-402-02",
+        "target_test_cases": [
+          "FTC-402-003",
+          "FTC-402-004"
+        ],
+        "coverage": "covered"
+      },
+      {
+        "source_id": "RQ-402-03",
+        "target_test_cases": [
+          "FTC-402-005",
+          "FTC-402-006"
+        ],
+        "coverage": "covered"
+      }
+    ]
+  },
+  "feature_under_test": {
+    "related_modules": [
+      {
+        "name": "src/rt_control.c",
+        "role": "入力安定化/ラッチ/停止要求"
+      },
+      {
+        "name": "src/control_api.c",
+        "role": "ラッチ解除API"
+      }
+    ],
+    "related_shared_memory": [
+      {
+        "name": "g_doorSafetyCtrl"
+      },
+      {
+        "name": "g_machineCtx"
+      }
+    ],
+    "related_apis": [
+      {
+        "name": "Api_GetDoorSafetyStatus"
+      },
+      {
+        "name": "Api_RequestDoorLatchReset"
+      }
+    ],
+    "related_states_sequences": [
+      {
+        "name": "DOOR_CLOSED -> DEBOUNCE_OPEN -> OPEN_LATCHED -> RESET_WAIT"
+      }
+    ]
+  },
+  "test_strategy": {
+    "normal_policy": "代表的な正常シーケンスを確認する。",
+    "abnormal_policy": "異常入力、タイムアウト、キュー満杯、停止要求を注入する。",
+    "boundary_policy": "閾値直前/直後、最大件数、保持tick境界を確認する。",
+    "rt_policy": "RTではファイルI/O、Windowsシステムコール、動的メモリ確保を行わない。",
+    "regression_policy": "既存の運転モード、ログ、API状態取得、RT周期監視を併走する。"
+  },
+  "test_environment": {
+    "os": "Windows 11 / Windows Server 評価環境",
+    "compiler": "VC2026 / clang Windows",
+    "workspace_profile": "ibm-bob-vc2026 / ibm-bob-clang-win",
+    "execution_target": "simulator + shared-memory stub"
+  },
+  "entry_exit_criteria": {
+    "items": [
+      {
+        "type": "entry",
+        "criteria": "build成功、共有メモリ初期値設定可能。"
+      },
+      {
+        "type": "exit",
+        "criteria": "Highテスト全件PASS、RT周期超過/安全不成立/証跡欠落のNGなし。"
+      }
+    ]
+  },
+  "test_viewpoints": [
+    {
+      "id": "FTV-402-01",
+      "category": "正常/境界",
+      "description": "正常値・境界値の受入確認",
+      "test_case_ids": [
+        "FTC-402-001",
+        "FTC-402-002"
+      ]
+    },
+    {
+      "id": "FTV-402-02",
+      "category": "異常安全/性能",
+      "description": "異常時の安全側遷移とRT周期制約",
+      "test_case_ids": [
+        "FTC-402-004",
+        "FTC-402-006"
+      ]
+    }
+  ],
+  "coverage_matrix": [
+    {
+      "id": "FCV-402-01",
+      "target_type": "requirement",
+      "target_id": "RQ-402-01",
+      "verification": "正常/境界ケースで確認",
+      "test_case_ids": [
+        "FTC-402-001",
+        "FTC-402-002"
+      ],
+      "coverage_status": "covered"
+    },
+    {
+      "id": "FCV-402-02",
+      "target_type": "shared_memory",
+      "target_id": "g_doorSafetyCtrl",
+      "verification": "共有メモリ/API/証跡で確認",
+      "test_case_ids": [
+        "FTC-402-003",
+        "FTC-402-005"
+      ],
+      "coverage_status": "covered"
+    }
+  ],
+  "test_data": [
+    {
+      "id": "TD-402-01",
+      "type": "shared_memory",
+      "item": "g_doorSafetyCtrl",
+      "value_pattern": "初期値/正常値/境界値/異常値",
+      "setup_method": "テストハーネスから周期前に設定"
+    },
+    {
+      "id": "TD-402-02",
+      "type": "timing",
+      "item": "疑似tick",
+      "value_pattern": "0, threshold-1, threshold, threshold+1",
+      "setup_method": "RT周期呼出し回数で制御"
+    }
+  ],
+  "test_cases": [
+    {
+      "id": "FTC-402-001",
+      "category": "正常系",
+      "title": "正常条件で期待状態になる",
+      "preconditions": "共有メモリ初期化、対象入力は正常値",
+      "steps": "RT周期を10回実行; APIで状態取得",
+      "expected_results": "異常なし、要求フラグなし、ログはINFOのみ",
+      "priority": "High"
+    },
+    {
+      "id": "FTC-402-002",
+      "category": "境界値",
+      "title": "閾値直前/閾値/閾値直後を確認",
+      "preconditions": "対象閾値を既定値に設定",
+      "steps": "境界値を順に入力; 共有メモリを確認",
+      "expected_results": "閾値未満は不成立、閾値以上で成立",
+      "priority": "High"
+    },
+    {
+      "id": "FTC-402-003",
+      "category": "状態/シーケンス",
+      "title": "状態遷移が設計順序どおり進む",
+      "preconditions": "開始要求を投入",
+      "steps": "RT周期を進める; 各状態を記録",
+      "expected_results": "許可された順序のみで遷移する",
+      "priority": "High"
+    },
+    {
+      "id": "FTC-402-004",
+      "category": "異常安全",
+      "title": "異常入力時に安全側へ遷移する",
+      "preconditions": "異常条件を注入",
+      "steps": "タイムアウト+1周期実行; 出力確認",
+      "expected_results": "ERROR/ABORT/安全出力が成立",
+      "priority": "High"
+    },
+    {
+      "id": "FTC-402-005",
+      "category": "API/証跡",
+      "title": "API応答と証跡ログを確認",
+      "preconditions": "ログ有効、APIスタブ有効",
+      "steps": "API実行; ログ/CSV/JSONを確認",
+      "expected_results": "応答コード、共有メモリ、証跡が一致",
+      "priority": "Medium"
+    },
+    {
+      "id": "FTC-402-006",
+      "category": "性能/回帰",
+      "title": "RT周期制約と既存回帰を確認",
+      "preconditions": "最大入力件数または長時間待機",
+      "steps": "1000周期実行; 既存回帰テスト実行",
+      "expected_results": "周期超過0、既存結果と一致",
+      "priority": "High"
+    }
+  ],
+  "state_sequence_tests": [
+    {
+      "id": "SEQ-402-01",
+      "sequence": "DOOR_CLOSED -> DEBOUNCE_OPEN -> OPEN_LATCHED -> RESET_WAIT",
+      "expected": "設計順序どおりに遷移する。"
+    }
+  ],
+  "shared_memory_tests": [
+    {
+      "id": "SM-402-01",
+      "target": "g_doorSafetyCtrl",
+      "verification": "RT更新後の値とAPI/TS参照値が一致する。"
+    }
+  ],
+  "api_integration_tests": [
+    {
+      "id": "API-402-01",
+      "target": "Api_GetDoorSafetyStatus",
+      "expected": "引数妥当性、戻り値、共有メモリ反映を確認。"
+    }
+  ],
+  "rt_performance_tests": [
+    {
+      "id": "RT-402-01",
+      "condition": "最大入力件数または長時間待機状態",
+      "expected": "周期超過0、RT内I/Oなし。"
+    }
+  ],
+  "fault_safety_tests": [
+    {
+      "id": "FS-402-01",
+      "fault": "異常入力またはタイムアウト",
+      "expected": "安全側出力、ERROR/ABORT/フォールバック、ログ要求が成立。"
+    }
+  ],
+  "evidence_logging": [
+    {
+      "id": "EV-402-01",
+      "type": "execution_log",
+      "file": "artifacts/function_test.log"
+    },
+    {
+      "id": "EV-402-02",
+      "type": "shared_memory_dump",
+      "file": "artifacts/FX-402_shared_memory.json"
+    },
+    {
+      "id": "EV-402-03",
+      "type": "rt_timing",
+      "file": "artifacts/FX-402_rt_cycle.csv"
+    }
+  ],
+  "regression_tests": [
+    {
+      "id": "RG-402-01",
+      "target": "既存運転モード変更API",
+      "expected": "既存結果と一致。"
+    },
+    {
+      "id": "RG-402-02",
+      "target": "既存ログキュー",
+      "expected": "head/tail不整合なし。"
+    }
+  ],
+  "execution_procedure": [
+    {
+      "step": 1,
+      "action": "workspace profileでbuildを実行",
+      "expected": "エラー0件。"
+    },
+    {
+      "step": 2,
+      "action": "共有メモリ初期化後にテストケース実行",
+      "expected": "期待結果と証跡が紐づく。"
+    },
+    {
+      "step": 3,
+      "action": "プレレビューJSONを生成",
+      "expected": "NG 0、WARNは未決事項へ登録。"
+    }
+  ],
+  "judgement_review": {
+    "criteria": [
+      "Highテストは全件PASS",
+      "RT周期超過はNG",
+      "安全側出力不成立はNG",
+      "証跡欠落はNG"
+    ],
+    "defect_policy": "NGはリリース不可。WARNは責任者、期限、後続確認工程を明記した場合のみ条件付き合格可。"
+  },
+  "build_test_commands": {
+    "vc2026": {
+      "build_command": "cmd /c scripts\\build_vc2026.bat",
+      "test_command": "cmd /c scripts\\test_vc2026.bat"
+    },
+    "clang_windows": {
+      "build_command": "cmd /c scripts\\build_clang.bat",
+      "test_command": "cmd /c scripts\\test_clang.bat"
+    },
+    "functional_test_command": "cmd /c scripts\\run_function_test.bat FX-402"
+  },
+  "open_issues": [
+    {
+      "id": "OI-402-01",
+      "category": "equipment/operation",
+      "description": "実機ドアスイッチの最大チャタリング時間を安全担当が確認する。",
+      "owner": "機能担当",
+      "status": "open"
+    }
+  ],
+  "ai_review": {
+    "summary": {
+      "OK": 6,
+      "WARN": 3,
+      "NG": 0
+    },
+    "results": [
+      {
+        "id": "FTR-001",
+        "category": "トレーサビリティ",
+        "judgement": "OK",
+        "finding": "基本/詳細/要件からテストケースへの紐づけあり",
+        "recommendation": ""
+      },
+      {
+        "id": "FTR-002",
+        "category": "テスト観点",
+        "judgement": "OK",
+        "finding": "正常、異常、境界、性能、証跡、回帰を含む",
+        "recommendation": ""
+      },
+      {
+        "id": "FTR-003",
+        "category": "共有メモリ/API",
+        "judgement": "OK",
+        "finding": "共有メモリとAPI確認を含む",
+        "recommendation": ""
+      },
+      {
+        "id": "FTR-004",
+        "category": "RT性能",
+        "judgement": "OK",
+        "finding": "周期超過0の確認を含む",
+        "recommendation": ""
+      },
+      {
+        "id": "FTR-005",
+        "category": "安全",
+        "judgement": "OK",
+        "finding": "異常注入時の安全側遷移を確認する",
+        "recommendation": ""
+      },
+      {
+        "id": "FTR-006",
+        "category": "Build/Test",
+        "judgement": "OK",
+        "finding": "VC2026/clangのbuild/test commandを記載",
+        "recommendation": ""
+      },
+      {
+        "id": "FTR-W01",
+        "category": "設備依存",
+        "judgement": "WARN",
+        "finding": "設備依存値が未決事項に残る",
+        "recommendation": "設備台帳で確定"
+      },
+      {
+        "id": "FTR-W02",
+        "category": "性能閾値",
+        "judgement": "WARN",
+        "finding": "機能別usec上限が未確定",
+        "recommendation": "性能要求台帳に追記"
+      },
+      {
+        "id": "FTR-W03",
+        "category": "証跡規約",
+        "judgement": "WARN",
+        "finding": "CSV/JSON命名と保存期間が共通規約依存",
+        "recommendation": "運用規約に追加"
+      }
+    ],
+    "overall_judgement": "条件付き合格"
+  }
+}

@@ -1,0 +1,144 @@
+{
+  "review_version": "ibm-bob-detail-design-pre-review/2.0",
+  "target_document_id": "DD-SMP-101",
+  "target_title": "軸過負荷予兆監視・段階減速要求機能 詳細設計書",
+  "reviewed_at": "2026-04-27",
+  "summary": {
+    "overall": "条件付き合格",
+    "ok": 13,
+    "warn": 3,
+    "ng": 0,
+    "na": 1
+  },
+  "items": [
+    {
+      "id": "DDR-A01",
+      "category": "構造化",
+      "result": "OK",
+      "severity": "minor",
+      "comment": "全必須章相当のJSONキーとDOCX章を生成済み。"
+    },
+    {
+      "id": "DDR-A02",
+      "category": "自動生成",
+      "result": "OK",
+      "severity": "minor",
+      "comment": "基本設計由来項目とAI補完方針をintroduction/traceabilityに記録。"
+    },
+    {
+      "id": "DDR-B01",
+      "category": "トレーサビリティ",
+      "result": "OK",
+      "severity": "minor",
+      "comment": "要件ID、基本設計ID、詳細設計章、関数、テスト観点をmatrix化。"
+    },
+    {
+      "id": "DDR-C01",
+      "category": "影響調査",
+      "result": "OK",
+      "severity": "minor",
+      "comment": "公開ヘッダ、RT/TS、API、testsへの影響を列挙。"
+    },
+    {
+      "id": "DDR-D02",
+      "category": "モジュール分割",
+      "result": "OK",
+      "severity": "minor",
+      "comment": "RT/TS/API/COMMONの責務を分離。"
+    },
+    {
+      "id": "DDR-E01",
+      "category": "データ設計",
+      "result": "OK",
+      "severity": "minor",
+      "comment": "定数、enum、struct、初期値を記載。"
+    },
+    {
+      "id": "DDR-F01",
+      "category": "共有データ",
+      "result": "OK",
+      "severity": "minor",
+      "comment": "所有者、書込元、読取元、更新周期を記載。"
+    },
+    {
+      "id": "DDR-F02",
+      "category": "共有データ整合性",
+      "result": "要確認",
+      "severity": "major",
+      "comment": "減速要求と既存フィードオーバライド要求が競合した場合の優先順位を詳細設計レビューで再確認"
+    },
+    {
+      "id": "DDR-G01",
+      "category": "API",
+      "result": "OK",
+      "severity": "minor",
+      "comment": "API変更ありの場合、関数名/引数/戻り値/副作用を記載。"
+    },
+    {
+      "id": "DDR-H01",
+      "category": "スレッド配置",
+      "result": "OK",
+      "severity": "minor",
+      "comment": "RT/TS/APIの処理配置とトリガを記載。"
+    },
+    {
+      "id": "DDR-H02",
+      "category": "RT禁止事項",
+      "result": "OK",
+      "severity": "minor",
+      "comment": "RT禁止操作を明示。"
+    },
+    {
+      "id": "DDR-I01",
+      "category": "RT処理時間",
+      "result": "要確認",
+      "severity": "major",
+      "comment": "軸数最大時の移動平均処理時間の実測根拠が未記載"
+    },
+    {
+      "id": "DDR-J01",
+      "category": "状態遷移/シーケンス",
+      "result": "N/A",
+      "severity": "info",
+      "comment": "状態遷移主体ではないためN/A。"
+    },
+    {
+      "id": "DDR-K01",
+      "category": "エラー安全",
+      "result": "OK",
+      "severity": "minor",
+      "comment": "タイムアウト、BUSY、不正引数、フェイルセーフ方針を記載。"
+    },
+    {
+      "id": "DDR-L01",
+      "category": "テスト連携",
+      "result": "OK",
+      "severity": "minor",
+      "comment": "単体/統合/性能テスト観点を記載。"
+    },
+    {
+      "id": "DDR-M01",
+      "category": "ビルド/静的解析",
+      "result": "OK",
+      "severity": "minor",
+      "comment": "VC2026/clang Windows版のbuild/test commandを記載。"
+    },
+    {
+      "id": "DDR-Z01",
+      "category": "未決事項",
+      "result": "要確認",
+      "severity": "major",
+      "comment": "負荷率入力のAD換算係数が機種依存のため台帳参照が必要"
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "REC-001",
+      "text": "要確認項目は詳細設計レビューまたは実装前チェックで決定し、JSONへ反映すること。"
+    },
+    {
+      "id": "REC-002",
+      "text": "実装後にVC2026/clang Windows版のbuild/test結果を詳細設計書末尾へ追記すること。"
+    }
+  ]
+}

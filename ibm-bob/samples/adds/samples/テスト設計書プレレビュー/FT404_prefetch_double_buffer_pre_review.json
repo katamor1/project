@@ -1,0 +1,77 @@
+{
+  "schema_version": "ibm-bob-function-test-pre-review/1.0",
+  "feature_id": "FX-404",
+  "feature_name": "NC先読み補正ジョブキュー・二重バッファ切替機能",
+  "reviewed_at": "2026-04-26",
+  "overall_judgement": "条件付き合格",
+  "summary": {
+    "OK": 6,
+    "WARN": 3,
+    "NG": 0
+  },
+  "results": [
+    {
+      "id": "FTR-001",
+      "category": "トレーサビリティ",
+      "judgement": "OK",
+      "finding": "基本/詳細/要件からテストケースへの紐づけあり",
+      "recommendation": ""
+    },
+    {
+      "id": "FTR-002",
+      "category": "テスト観点",
+      "judgement": "OK",
+      "finding": "正常、異常、境界、性能、証跡、回帰を含む",
+      "recommendation": ""
+    },
+    {
+      "id": "FTR-003",
+      "category": "共有メモリ/API",
+      "judgement": "OK",
+      "finding": "共有メモリとAPI確認を含む",
+      "recommendation": ""
+    },
+    {
+      "id": "FTR-004",
+      "category": "RT性能",
+      "judgement": "OK",
+      "finding": "周期超過0の確認を含む",
+      "recommendation": ""
+    },
+    {
+      "id": "FTR-005",
+      "category": "安全",
+      "judgement": "OK",
+      "finding": "異常注入時の安全側遷移を確認する",
+      "recommendation": ""
+    },
+    {
+      "id": "FTR-006",
+      "category": "Build/Test",
+      "judgement": "OK",
+      "finding": "VC2026/clangのbuild/test commandを記載",
+      "recommendation": ""
+    },
+    {
+      "id": "FTR-W01",
+      "category": "設備依存",
+      "judgement": "WARN",
+      "finding": "設備依存値が未決事項に残る",
+      "recommendation": "設備台帳で確定"
+    },
+    {
+      "id": "FTR-W02",
+      "category": "性能閾値",
+      "judgement": "WARN",
+      "finding": "機能別usec上限が未確定",
+      "recommendation": "性能要求台帳に追記"
+    },
+    {
+      "id": "FTR-W03",
+      "category": "証跡規約",
+      "judgement": "WARN",
+      "finding": "CSV/JSON命名と保存期間が共通規約依存",
+      "recommendation": "運用規約に追加"
+    }
+  ]
+}
