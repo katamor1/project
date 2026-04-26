@@ -1,0 +1,8 @@
+﻿# .agents/skills/legacy-basic-design-agent/agents/openai.yaml
+# Defines UI metadata for the legacy basic design agent skill.
+# This exists so Codex can show a concise skill label and starter prompt.
+# RELEVANT FILES: .agents/skills/legacy-basic-design-agent/SKILL.md, .agents/skills/legacy-basic-design-agent/scripts/build_kb.py, .agents/skills/legacy-basic-design-agent/scripts/query_kb.py
+interface:
+  display_name: "Legacy Basic Design Agent"
+  short_description: "Map legacy specs for basic design"
+  default_prompt: "Use $legacy-basic-design-agent to build a local KB and check existing design impact before drafting a basic design."

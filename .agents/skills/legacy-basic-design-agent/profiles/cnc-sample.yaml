@@ -1,0 +1,83 @@
+# .agents/skills/legacy-basic-design-agent/profiles/cnc-sample.yaml
+# Defines a sample CNC profile for the bundled IBM Bob test documents.
+# This exists as a replaceable example, not as production logic.
+# RELEVANT FILES: .agents/skills/legacy-basic-design-agent/profiles/default.yaml, .agents/skills/legacy-basic-design-agent/scripts/build_kb.py, .agents/skills/legacy-basic-design-agent/scripts/query_kb.py
+version: 1
+document_rules:
+  - path: "basic-design/**"
+    type: "basic-design"
+    role: "primary_design"
+    authority_score: 0.9
+    approval_status: "approved"
+    interference_reason: "Existing basic design may define behavior, parameters, or constraints for the new feature."
+  - path: "requirements/**"
+    type: "requirements"
+    role: "requirement"
+    authority_score: 0.75
+    approval_status: "approved"
+    interference_reason: "Requirement manual may constrain accepted behavior or terminology."
+  - path: "detail-design/**"
+    type: "detail-design"
+    role: "detail_design"
+    authority_score: 0.75
+    approval_status: "approved"
+    interference_reason: "Detail design may contain downstream constraints that should not be contradicted."
+  - path: "templates/**"
+    type: "templates"
+    role: "template"
+    authority_score: 0.4
+    approval_status: "unknown"
+    interference_reason: "Template may constrain artifact structure or required sections."
+heading_rules:
+  heading_aliases:
+    - "目的・概要"
+    - "インターフェース"
+    - "処理の流れ"
+    - "設計上の留意点"
+    - "設計上の留意事項"
+    - "パラメータ"
+    - "概要"
+    - "目的"
+    - "機能概要"
+entity_rules:
+  patterns:
+    - "\\b[GM]\\d+(?:\\.\\d+)?\\b"
+  max_entities: 8
+  terms:
+    - "サイクル"
+    - "補間"
+    - "座標"
+    - "工具"
+    - "主軸"
+    - "送り"
+    - "スキップ"
+    - "干渉"
+    - "制御"
+    - "軸"
+    - "復帰"
+    - "補正"
+    - "ねじ切り"
+    - "ドリル"
+    - "タップ"
+    - "安全"
+    - "粗削り"
+    - "仕上げ"
+    - "輪郭"
+    - "高精度"
+    - "速度"
+ranking:
+  role_weights:
+    primary_design: 2.0
+    requirement: 0.8
+    detail_design: 0.7
+    template: -0.5
+  base_term_weight: 3.0
+  expanded_term_weight: 0.15
+  title_match_bonus: 1.5
+  unusable_text_penalty: 1.0
+  minimum_confidence: 0.65
+  confidence_bonuses:
+    - roles:
+        - "primary_design"
+        - "requirement"
+      bonus: 0.08

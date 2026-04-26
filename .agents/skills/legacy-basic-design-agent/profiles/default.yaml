@@ -1,0 +1,45 @@
+# .agents/skills/legacy-basic-design-agent/profiles/default.yaml
+# Defines the generic KB profile with no sample-specific domain vocabulary.
+# This exists so production projects can start with neutral defaults.
+# RELEVANT FILES: .agents/skills/legacy-basic-design-agent/scripts/kb_profile.py, .agents/skills/legacy-basic-design-agent/scripts/build_kb.py, .agents/skills/legacy-basic-design-agent/profiles/cnc-sample.yaml
+version: 1
+document_rules: []
+heading_rules:
+  style_prefixes:
+    - "Heading"
+    - "見出し"
+  number_patterns:
+    - "^\\d+(\\.\\d+)*[.)]?\\s+"
+    - "^第.+[章節]\\s*"
+  heading_aliases: []
+  max_heading_length: 80
+  sentence_endings:
+    - "。"
+    - "."
+entity_rules:
+  patterns:
+    - "\\b[A-Z]{1,4}[-_]?\\d+(?:\\.\\d+)?\\b"
+  terms: []
+  auto_from_titles: true
+  auto_token_pattern: "[\\w\\u3040-\\u30ff\\u4e00-\\u9fff]{2,24}"
+  max_entities: 8
+ranking:
+  role_weights: {}
+  base_term_weight: 3.0
+  expanded_term_weight: 0.15
+  title_match_bonus: 1.5
+  unusable_text_penalty: 1.0
+  minimum_confidence: 0.65
+  confidence_bonuses: []
+output:
+  task_id: "LEGACY-KB-QUERY"
+  artifact_type: "basic_design"
+  target_agent: "legacy-basic-design-agent"
+  context_packer: "artifact-context-packer"
+  next_agent: "design-author"
+defaults:
+  type: "general"
+  role: "support"
+  authority_score: 0.5
+  approval_status: "unknown"
+  interference_reason: "This document may contain related legacy behavior or constraints."
