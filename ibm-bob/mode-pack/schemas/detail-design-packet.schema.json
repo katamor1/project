@@ -19,18 +19,31 @@
     "next_agent"
   ],
   "properties": {
-    "run_id": { "type": "string" },
-    "eval_case_id": { "type": "string" },
-    "design_summary": { "type": "string" },
+    "run_id": {
+      "type": "string"
+    },
+    "eval_case_id": {
+      "type": "string"
+    },
+    "design_summary": {
+      "type": "string"
+    },
     "api_changes": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "change"],
+        "required": [
+          "name",
+          "change"
+        ],
         "properties": {
-          "name": { "type": "string" },
-          "change": { "type": "string" }
+          "name": {
+            "type": "string"
+          },
+          "change": {
+            "type": "string"
+          }
         }
       }
     },
@@ -39,10 +52,17 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "change"],
+        "required": [
+          "name",
+          "change"
+        ],
         "properties": {
-          "name": { "type": "string" },
-          "change": { "type": "string" }
+          "name": {
+            "type": "string"
+          },
+          "change": {
+            "type": "string"
+          }
         }
       }
     },
@@ -51,36 +71,78 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "change"],
+        "required": [
+          "name",
+          "change"
+        ],
         "properties": {
-          "name": { "type": "string" },
-          "change": { "type": "string" }
+          "name": {
+            "type": "string"
+          },
+          "change": {
+            "type": "string"
+          }
         }
       }
     },
     "threading_rules": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "error_rules": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "traceability": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["source_ref", "target_ref"],
+        "required": [
+          "source_ref",
+          "target_ref"
+        ],
         "properties": {
-          "source_ref": { "type": "string" },
-          "target_ref": { "type": "string" }
+          "source_ref": {
+            "type": "string"
+          },
+          "target_ref": {
+            "type": "string"
+          }
         }
       }
     },
     "next_agent": {
       "type": "string",
       "const": "ibmbob-review-gate"
+    },
+    "structured_artifact_refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "artifact_kind": {
+          "type": "string"
+        },
+        "json_ref": {
+          "type": "string"
+        },
+        "docx_ref": {
+          "type": "string"
+        },
+        "schema_ref": {
+          "type": "string"
+        },
+        "template_ref": {
+          "type": "string"
+        },
+        "checklist_ref": {
+          "type": "string"
+        }
+      }
     }
   }
 }

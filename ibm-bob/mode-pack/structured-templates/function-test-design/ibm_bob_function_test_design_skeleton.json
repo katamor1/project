@@ -1,0 +1,149 @@
+{
+  "schema_version": "ibm-bob-function-test-design/1.0",
+  "review_status": "draft",
+  "document_control": {
+    "document_id": "FT-XXXX",
+    "title": "{{機能名}} 機能テスト設計書",
+    "target_system": "IBM-Bob baseline / Windows C realtime-control platform",
+    "target_version": "Ver.X.Y",
+    "created_at": "yyyy-mm-dd",
+    "author": "AIドラフト/担当者名",
+    "reviewer": "",
+    "approver": "",
+    "revision_history": []
+  },
+  "source_documents": {
+    "basic_design_id": "BD-XXXX",
+    "detail_design_id": "DD-XXXX",
+    "requirement_doc_id": "",
+    "basic_design_path": "",
+    "detail_design_path": ""
+  },
+  "feature": {
+    "feature_id": "FX-XXXX",
+    "name": "{{機能名}}",
+    "summary": "{{機能概要}}",
+    "classification": {}
+  },
+  "automation_policy": {
+    "generation_source": [
+      "basic_design_json",
+      "detail_design_json",
+      "basic_design_docx",
+      "detail_design_docx"
+    ],
+    "pre_review_checklist": "ibm_bob_function_test_pre_review_checklist.json",
+    "roundtrip_policy": "SECTION_ID and JSON Path are authoritative anchors."
+  },
+  "section_map": [],
+  "introduction": {
+    "purpose": "",
+    "scope": "",
+    "out_of_scope": "",
+    "assumptions": []
+  },
+  "traceability": {
+    "basic_design": {
+      "id": "",
+      "version": "",
+      "sections": [],
+      "expansion_policy": ""
+    },
+    "detail_design": {
+      "id": "",
+      "version": "",
+      "sections": [],
+      "expansion_policy": ""
+    },
+    "requirement_doc": {
+      "id": "",
+      "version": "",
+      "requirement_ids": [],
+      "expansion_policy": ""
+    },
+    "existing_test_doc": {
+      "id": "",
+      "version": "",
+      "sections": []
+    },
+    "matrix": []
+  },
+  "feature_under_test": {
+    "related_modules": [],
+    "related_shared_memory": [],
+    "related_apis": [],
+    "related_states_sequences": []
+  },
+  "test_strategy": {
+    "normal_policy": "",
+    "abnormal_policy": "",
+    "boundary_policy": "",
+    "timing_policy": "",
+    "rt_policy": "",
+    "regression_policy": ""
+  },
+  "test_environment": {
+    "os": "Windows",
+    "compiler": "VC2026 / clang Windows",
+    "workspace_profile": "",
+    "execution_target": "simulator",
+    "external_devices": [],
+    "evidence_tools": [],
+    "timing_tools": []
+  },
+  "entry_exit_criteria": {
+    "items": []
+  },
+  "test_viewpoints": [],
+  "coverage_matrix": [],
+  "test_data": [],
+  "test_cases": [],
+  "state_sequence_tests": [],
+  "shared_memory_tests": [],
+  "api_integration_tests": [],
+  "rt_performance_tests": [],
+  "fault_safety_tests": [],
+  "evidence_logging": [],
+  "regression_tests": [],
+  "execution_procedure": [],
+  "judgement_review": {
+    "criteria": [],
+    "defect_policy": "",
+    "conditional_pass_policy": ""
+  },
+  "build_test_commands": {
+    "vc2026": {
+      "build_command": "cmd /c scripts\\build_vc2026.bat",
+      "test_command": "cmd /c scripts\\test_vc2026.bat",
+      "build_log": "",
+      "test_log": "",
+      "failure_triage": ""
+    },
+    "clang_windows": {
+      "build_command": "cmd /c scripts\\build_clang.bat",
+      "test_command": "cmd /c scripts\\test_clang.bat",
+      "build_log": "",
+      "test_log": "",
+      "failure_triage": ""
+    },
+    "workspace_profiles": [
+      {
+        "name": "ibm-bob-vc2026"
+      },
+      {
+        "name": "ibm-bob-clang-win"
+      }
+    ],
+    "functional_test_command": "",
+    "functional_test_log": ""
+  },
+  "open_issues": [],
+  "ai_review": {
+    "summary": {},
+    "results": [],
+    "overall_judgement": ""
+  },
+  "appendix": {
+    "json_roundtrip_rules": []
+  }
+}

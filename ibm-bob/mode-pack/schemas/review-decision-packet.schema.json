@@ -17,30 +17,84 @@
     "next_agent"
   ],
   "properties": {
-    "run_id": { "type": "string" },
+    "run_id": {
+      "type": "string"
+    },
     "stage": {
       "type": "string",
-      "enum": ["intake", "detail_design", "code_change", "unit_test_pack", "unit_test_run", "functional_test_pack"]
+      "enum": [
+        "intake",
+        "detail_design",
+        "code_change",
+        "unit_test_pack",
+        "unit_test_run",
+        "functional_test_pack",
+        "basic_design",
+        "function_test_design"
+      ]
     },
     "decision": {
       "type": "string",
-      "enum": ["pass", "revise", "block"]
+      "enum": [
+        "pass",
+        "revise",
+        "block"
+      ]
     },
     "findings": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["severity", "title", "detail"],
+        "required": [
+          "severity",
+          "title",
+          "detail"
+        ],
         "properties": {
-          "severity": { "type": "string", "enum": ["low", "medium", "high"] },
-          "title": { "type": "string" },
-          "detail": { "type": "string" }
+          "severity": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
         }
       }
     },
-    "revise_to": { "type": "string" },
-    "human_checkpoint": { "type": "boolean" },
-    "next_agent": { "type": "string" }
+    "revise_to": {
+      "type": "string"
+    },
+    "human_checkpoint": {
+      "type": "boolean"
+    },
+    "next_agent": {
+      "type": "string"
+    },
+    "review_target_json": {
+      "type": "string"
+    },
+    "review_target_docx": {
+      "type": "string"
+    },
+    "checklist_ref": {
+      "type": "string"
+    },
+    "artifact_kind": {
+      "type": "string"
+    },
+    "open_issues": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
   }
 }

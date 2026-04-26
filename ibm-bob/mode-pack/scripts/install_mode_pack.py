@@ -11,7 +11,7 @@ from pathlib import Path
 import yaml
 
 from reference_manifest import REFERENCE_MANIFEST, REFERENCE_TARGETS
-from runtime_common import MODES_SOURCE, PROFILES_ROOT, REPO_ROOT, ROUTING_SOURCE, RULES_ROOT, ensure_dir, load_yaml_file
+from runtime_common import MODES_SOURCE, PACK_ROOT, PROFILES_ROOT, REPO_ROOT, ROUTING_SOURCE, RULES_ROOT, ensure_dir, load_yaml_file
 
 OLD_FAMILY_SLUGS = {
     "ibmbob-orchestrator",
@@ -88,6 +88,11 @@ def _copy_reference_files(reference_paths: set[str], workspace_root: Path) -> No
         if repo_relative_path in copied:
             continue
         source_path = REPO_ROOT / Path(repo_relative_path)
+        if not source_path.exists():
+            # Standalone mode-pack zips may not include the canonical repo references.
+            # Keep install usable and rely on curated in-pack structured templates when present.
+            print(f"warning: reference source missing, skipped: {repo_relative_path}")
+            continue
         destination_path = workspace_root / Path(_installed_path_for_reference(repo_relative_path))
         ensure_dir(destination_path.parent)
         shutil.copy2(source_path, destination_path)
@@ -103,6 +108,17 @@ def _rewrite_rule_bundle(rule_root: Path, reference_paths: set[str]) -> None:
     for markdown_file in sorted(rule_root.glob("*.md")):
         rewritten = _rewrite_text_for_workspace(markdown_file.read_text(encoding="utf-8"), reference_paths)
         markdown_file.write_text(rewritten, encoding="utf-8")
+
+
+
+def _copy_structured_templates(workspace_root: Path) -> None:
+    source_root = PACK_ROOT / "structured-templates"
+    if not source_root.exists():
+        return
+    destination_root = workspace_root / ".bob" / "ibm-bob" / "references" / "sdlc" / "structured-templates"
+    if destination_root.exists():
+        shutil.rmtree(destination_root)
+    shutil.copytree(source_root, destination_root)
 
 
 def build_custom_modes(reference_paths: set[str] | None = None) -> dict:
@@ -160,6 +176,7 @@ def install_to_workspace(workspace_root: Path, force: bool = False) -> dict:
 
     shutil.copy2(ROUTING_SOURCE, bundle_root / "stage-flow.json")
     _copy_reference_files(reference_paths, workspace_root)
+    _copy_structured_templates(workspace_root)
 
     profiles_root = ensure_dir(bundle_root / "profiles")
     for path in PROFILES_ROOT.glob("*.json"):

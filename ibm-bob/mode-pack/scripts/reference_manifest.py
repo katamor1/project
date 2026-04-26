@@ -255,6 +255,8 @@ REFERENCE_ALIASES = {
     "docs/external-runtime/legacy-kb/": ".bob/ibm-bob/references/shared/guides/runtime-blueprint.md",
     "docs/external-runtime/legacy-kb": ".bob/ibm-bob/references/shared/guides/runtime-blueprint.md",
     "docs/sdlc/templates/": ".bob/ibm-bob/references/sdlc/templates/",
+    "ibm-bob/mode-pack/structured-templates/": ".bob/ibm-bob/references/sdlc/structured-templates/",
+    "structured-templates/": ".bob/ibm-bob/references/sdlc/structured-templates/",
     "docs/sdlc/samples/": ".bob/ibm-bob/references/sdlc/samples/",
     "docs/sdlc/": ".bob/ibm-bob/references/shared/guides/sdlc-readme.md",
     "docs/sdlc": ".bob/ibm-bob/references/shared/guides/sdlc-readme.md",

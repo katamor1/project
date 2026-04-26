@@ -17,38 +17,79 @@
     "next_agent"
   ],
   "properties": {
-    "run_id": { "type": "string" },
+    "run_id": {
+      "type": "string"
+    },
     "scenarios": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["scenario_id", "title"],
+        "required": [
+          "scenario_id",
+          "title"
+        ],
         "properties": {
-          "scenario_id": { "type": "string" },
-          "title": { "type": "string" }
+          "scenario_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
         }
       }
     },
     "preconditions": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "steps": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "expected_results": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "negative_cases": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "next_agent": {
       "type": "string",
       "const": "ibmbob-review-gate"
+    },
+    "structured_artifact_refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "artifact_kind": {
+          "type": "string"
+        },
+        "json_ref": {
+          "type": "string"
+        },
+        "docx_ref": {
+          "type": "string"
+        },
+        "schema_ref": {
+          "type": "string"
+        },
+        "template_ref": {
+          "type": "string"
+        },
+        "checklist_ref": {
+          "type": "string"
+        }
+      }
     }
   }
 }

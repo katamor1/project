@@ -87,3 +87,16 @@ py -3 ibm-bob/mode-pack/scripts/evaluate_mode_pack.py --case all --execution-mod
 - `sdlc-guide.md`: `ibmbob-sdlc-*` の運用
 - `pilot-runbook.md`: manual pilot 手順
 - `samples/direct-modes/`: new family 用 dry-run
+
+
+## Structured Specification Templates
+
+This pack now includes IBM-Bob structured specification assets under `structured-templates/`.
+
+- Basic design: Word template, JSON schema, skeleton JSON, and pre-review checklist.
+- Detail design: Word template, JSON schema, skeleton JSON, and pre-review checklist.
+- Function test design: Word template, JSON schema, skeleton JSON, and pre-review checklist.
+
+The installer copies these files to `.bob/ibm-bob/references/sdlc/structured-templates/` so author and reviewer modes can use intermediate JSON and human-reviewable DOCX artifacts in the same run.
+
+See `structured-artifact-workflow.md` for the author/reviewer contract and `scripts/structured_artifact_tools.py` for local validation/render/extraction helpers.

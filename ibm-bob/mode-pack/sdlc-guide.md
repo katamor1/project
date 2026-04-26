@@ -55,3 +55,23 @@
 
 この時は entry/runtime 側へ戻して evidence を先にそろえます。
 
+
+
+## IBM-Bob Structured Specification Artifacts
+
+For design and test-spec lanes, IBM-Bob treats each specification as a JSON/DOCX pair.
+
+- Author modes create the intermediate JSON first.
+- The JSON is validated against the artifact-kind schema.
+- The DOCX is generated or filled from the artifact-kind Word template.
+- Reviewer modes use the artifact-kind checklist and review JSON/DOCX consistency before human review.
+
+Artifact kinds:
+
+| Lane | artifact_kind | Author | Reviewer |
+|---|---|---|---|
+| Basic design | `basic_design` | `ibmbob-sdlc-basic-design-author` | `ibmbob-sdlc-spec-reviewer` |
+| Detail design | `detail_design` | `ibmbob-sdlc-detail-design-author` / old `ibmbob-detail-design` | `ibmbob-sdlc-spec-reviewer` / old `ibmbob-review-gate` |
+| Function test design | `function_test_design` | `ibmbob-sdlc-functional-spec-author` / old `ibmbob-functional-test-author` | `ibmbob-sdlc-spec-reviewer` / old `ibmbob-review-gate` |
+
+Installed templates live in `.bob/ibm-bob/references/sdlc/structured-templates/`.

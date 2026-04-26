@@ -95,3 +95,18 @@
 | `ibmbob-legacy-search-change-diff-scout` | `.copilot/prompts/legacy-search/ibmbob-legacy-search-change-diff-scout.md` |
 
 
+
+
+## Structured Artifact Support
+
+The following modes are template/JSON aware.
+
+| Mode | Added behavior |
+|---|---|
+| `ibmbob-sdlc-basic-design-author` | Creates `basic_design` JSON and DOCX from the IBM-Bob basic design template. |
+| `ibmbob-sdlc-detail-design-author` | Creates `detail_design` JSON and DOCX from the IBM-Bob detail design template. |
+| `ibmbob-sdlc-functional-spec-author` | Creates `function_test_design` JSON and DOCX from the IBM-Bob function test design template. |
+| `ibmbob-sdlc-spec-reviewer` | Reviews JSON/DOCX pairs using the matching pre-review checklist. |
+| `ibmbob-detail-design` | Old-family detail design mode can also emit structured detail design JSON/DOCX. |
+| `ibmbob-functional-test-author` | Old-family functional test mode can also emit structured function test design JSON/DOCX. |
+| `ibmbob-review-gate` | Old-family review gate can review structured JSON/DOCX pairs. |

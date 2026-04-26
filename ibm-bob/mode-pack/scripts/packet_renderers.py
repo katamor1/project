@@ -50,6 +50,9 @@ def render_packet(packet_type: str, data: dict, output_path: Path) -> str:
         lines += _bullets(data["threading_rules"])
         lines += ["", "## Error Rules", ""]
         lines += _bullets(data["error_rules"])
+        if data.get("structured_artifact_refs"):
+            lines += ["", "## Structured Artifact Refs", ""]
+            lines += [f"- `{key}`: {value}" for key, value in data["structured_artifact_refs"].items()]
     elif packet_type == "code-change-packet":
         lines += ["", data["change_summary"], "", "## Touched Files", ""]
         lines += [f"- `{item['path']}`: {item['reason']}" for item in data["touched_files"]]
@@ -76,6 +79,9 @@ def render_packet(packet_type: str, data: dict, output_path: Path) -> str:
         lines += [f"- `{item['scenario_id']}`: {item['title']}" for item in data["scenarios"]]
         lines += ["", "## Negative Cases", ""]
         lines += _bullets(data["negative_cases"])
+        if data.get("structured_artifact_refs"):
+            lines += ["", "## Structured Artifact Refs", ""]
+            lines += [f"- `{key}`: {value}" for key, value in data["structured_artifact_refs"].items()]
     elif packet_type == "review-decision-packet":
         lines += [
             "",
@@ -83,6 +89,14 @@ def render_packet(packet_type: str, data: dict, output_path: Path) -> str:
             f"- decision: `{data['decision']}`",
             f"- revise_to: `{data['revise_to']}`",
             f"- next_agent: `{data['next_agent']}`",
+        ]
+        if data.get("review_target_json") or data.get("review_target_docx"):
+            lines += [
+                f"- review_target_json: `{data.get('review_target_json', '')}`",
+                f"- review_target_docx: `{data.get('review_target_docx', '')}`",
+                f"- checklist_ref: `{data.get('checklist_ref', '')}`",
+            ]
+        lines += [
             "",
             "## Findings",
             "",
