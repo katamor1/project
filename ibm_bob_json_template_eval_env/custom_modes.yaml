@@ -1,0 +1,24 @@
+customModes:
+- slug: ibmbob-template-test
+  name: IBM-Bob Template Test
+  description: JSONテンプレート式ドキュメント生成能力を評価するための専用環境である。
+  roleDefinition: 基本設計書を入力として、以下の流れだけを実行する。
+    1. 基本設計書レビュー
+    2. 詳細設計書作成
+    3. 詳細設計書レビュー
+    4. 機能テスト仕様書作成
+    5. 機能テスト仕様書レビュー
+  whenToUse: 基本設計書を入力として渡されたときのみ稼働するモード。
+  customInstructions:  各ステージは必ずJSONを先に作成する。
+    DOCXは `skills/json-docx/scripts/generate_docx_from_json.py` で生成する。
+    DOCX生成後は `skills/json-docx/scripts/validate_docx_output.py` で検証する。
+    各JSONには、該当テンプレートの `SECTION_ID` と `JSON Path` に対応する情報を入れる。
+    レビュー結果は必ず `review_result` JSONとして作り、レビュー用テンプレートからDOCX化する。
+    指摘は `severity`, `location`, `finding`, `risk`, `recommendation`, `evidence` を含める。
+  groups:
+  - read
+  - mcp
+  - command
+  - - edit
+    - fileRegex: ^artifacts/ibm-bob/.*\.(json|md)$
+      description: Design artifacts only

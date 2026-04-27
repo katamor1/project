@@ -1,0 +1,94 @@
+{
+  "version": "json-template-eval-v1",
+  "name": "IBM-Bob JSON template evaluation only flow",
+  "entry_input": [
+    "basic_design.docx",
+    "optional basic_design.json"
+  ],
+  "allowed_stages": [
+    {
+      "id": "01_basic_design_review",
+      "role": "ibmbob-sdlc-spec-reviewer",
+      "input": [
+        "input/basic_design.docx",
+        "input/basic_design.json optional"
+      ],
+      "output": [
+        "review_result.json",
+        "review_result.docx"
+      ],
+      "template": "templates/review_result_template_v1.docx",
+      "schema": "schemas/review_result.schema.json"
+    },
+    {
+      "id": "02_detail_design_author",
+      "role": "ibmbob-sdlc-detail-design-author",
+      "input": [
+        "input/basic_design.docx",
+        "01_basic_design_review/review_result.json"
+      ],
+      "output": [
+        "detail_design.json",
+        "detail_design.docx"
+      ],
+      "template": "templates/detail_design_template_v2.docx",
+      "schema": "schemas/detail_design.schema.json"
+    },
+    {
+      "id": "03_detail_design_review",
+      "role": "ibmbob-sdlc-spec-reviewer",
+      "input": [
+        "02_detail_design_author/detail_design.json",
+        "02_detail_design_author/detail_design.docx",
+        "input/basic_design.docx"
+      ],
+      "output": [
+        "review_result.json",
+        "review_result.docx"
+      ],
+      "template": "templates/review_result_template_v1.docx",
+      "schema": "schemas/review_result.schema.json"
+    },
+    {
+      "id": "04_function_test_design_author",
+      "role": "ibmbob-sdlc-functional-spec-author",
+      "input": [
+        "input/basic_design.docx",
+        "02_detail_design_author/detail_design.json",
+        "03_detail_design_review/review_result.json"
+      ],
+      "output": [
+        "function_test_design.json",
+        "function_test_design.docx"
+      ],
+      "template": "templates/function_test_design_template_v1.docx",
+      "schema": "schemas/function_test_design.schema.json"
+    },
+    {
+      "id": "05_function_test_review",
+      "role": "ibmbob-sdlc-spec-reviewer",
+      "input": [
+        "04_function_test_design_author/function_test_design.json",
+        "04_function_test_design_author/function_test_design.docx",
+        "input/basic_design.docx",
+        "02_detail_design_author/detail_design.json"
+      ],
+      "output": [
+        "review_result.json",
+        "review_result.docx"
+      ],
+      "template": "templates/review_result_template_v1.docx",
+      "schema": "schemas/review_result.schema.json"
+    }
+  ],
+  "forbidden_stages": [
+    "code_change",
+    "code_review",
+    "unit_test_pack",
+    "unit_test_run",
+    "implementation",
+    "build_execution"
+  ],
+  "docx_generation": "skills/json-docx/scripts/generate_docx_from_json.py",
+  "docx_validation": "skills/json-docx/scripts/validate_docx_output.py"
+}

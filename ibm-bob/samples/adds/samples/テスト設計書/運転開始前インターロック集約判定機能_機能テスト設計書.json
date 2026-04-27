@@ -1,0 +1,849 @@
+{
+  "schema_version": "ibm-bob-function-test-design-v1.0",
+  "document": {
+    "document_id": "FT-ILK-START-001",
+    "document_name": "運転開始前インターロック集約判定機能 機能テスト設計書",
+    "document_type": "function_test_design",
+    "version": "1.0",
+    "created_date": "2026-04-27",
+    "author": "IBM-Bob AI Agent",
+    "status": "draft",
+    "feature_id": "BD-ILK-START-001",
+    "feature_name": "運転開始前インターロック集約判定機能"
+  },
+  "source_documents": [
+    {
+      "type": "basic_design",
+      "document_id": "BD-ILK-START-001",
+      "document_name": "運転開始前インターロック集約判定機能_基本設計書.docx",
+      "usage": "機能要件、対象範囲、外部公開情報、基本レビュー指摘の確認"
+    },
+    {
+      "type": "detail_design",
+      "document_id": "DD-ILK-START-001",
+      "document_name": "運転開始前インターロック集約判定機能_詳細設計書_JSON生成版.docx",
+      "usage": "関数設計、共有メモリ、状態遷移、API、RT/TS分離、異常安全条件の確認"
+    },
+    {
+      "type": "baseline_design",
+      "document_name": "IBM-Bob 基盤システム 基本設計書/詳細設計書",
+      "usage": "RT/TSスレッド、共有メモリ、既存運転開始処理、ログ、API公開方針の前提確認"
+    }
+  ],
+  "test_policy": {
+    "purpose": "自動運転開始前に複数の開始禁止条件を集約判定し、開始許可/開始禁止、禁止理由、代表理由、判定結果ログ、API参照結果が基本設計・詳細設計通りに動作することを、機能テストレベルで確認する。",
+    "scope": [
+      "自動運転開始要求時の開始可否集約判定",
+      "非常停止、安全ドア、サーボ準備、原点復帰、既存アラーム、モーション動作中、保守モード、空圧低下の禁止理由判定",
+      "複数NG条件の理由ビットマスク合成と代表理由優先順位",
+      "入力安定確認、判定タイムアウト、要求解除後のIDLE復帰",
+      "外部UI/APIによる判定状態参照",
+      "TS側ログ/メッセージ生成"
+    ],
+    "out_of_scope": [
+      "安全PLCや安全回路そのものの単体保証",
+      "個別センサの電気的診断精度",
+      "UI画面レイアウトの目視デザイン確認",
+      "モーションコントローラ内部のサーボ制御性能評価"
+    ],
+    "test_level": "機能テスト",
+    "test_type": [
+      "正常系",
+      "異常系",
+      "境界値",
+      "状態遷移",
+      "API参照",
+      "ログ/証跡",
+      "回帰"
+    ],
+    "pass_criteria_summary": "開始許可条件では既定RT周期内にALLOWEDとなり開始許可が公開されること。各NG条件ではBLOCKEDまたはTIMEOUTとなり、設計で定義した禁止理由ビット、代表理由、ログ、API参照結果が一致すること。RT側で重い処理やWindows API呼出しを行わないこと。"
+  },
+  "test_environment": {
+    "platform": "Windows",
+    "language": "C",
+    "build_profiles": [
+      "VC2026",
+      "clang Windows版"
+    ],
+    "build_commands": [
+      "cmd /c scripts\\build_vc2026.bat",
+      "cmd /c scripts\\build_clang.bat"
+    ],
+    "test_commands": [
+      "cmd /c scripts\\test_vc2026.bat",
+      "cmd /c scripts\\test_clang.bat"
+    ],
+    "hardware_mode": "評価用スタブ/シミュレータ。実機確認時は安全PLC入力とモーション状態を実I/Oへ接続する。",
+    "simulated_inputs": [
+      "g_hwInput.emergency_stop",
+      "g_hwInput.safety_door_open",
+      "g_hwInput.air_pressure_ok",
+      "g_motionStatus.servo_ready_mask",
+      "g_motionStatus.origin_complete_mask",
+      "g_motionStatus.busy",
+      "g_alarmStatus.active",
+      "g_runModeCtrl.current_mode"
+    ],
+    "observable_outputs": [
+      "g_startInterlockCtrl.state",
+      "g_startInterlockCtrl.allowed",
+      "g_startInterlockCtrl.blocked",
+      "g_startInterlockCtrl.reason_mask",
+      "g_startInterlockCtrl.primary_reason",
+      "g_startInterlockCtrl.ts_log_request",
+      "Api_GetStartInterlockStatus戻り値/出力構造体",
+      "TSイベントログ",
+      "UI向けメッセージID"
+    ],
+    "preconditions": [
+      "評価用ビルドにStartInterlock_RtStep/StartInterlock_TsStep/Api_GetStartInterlockStatusが組み込まれていること",
+      "RT周期を任意tick数だけ進められるテストハーネスがあること",
+      "共有メモリ入力値をテストケースごとに設定できること",
+      "イベントログ出力を捕捉またはモック化できること"
+    ]
+  },
+  "traceability": [
+    {
+      "requirement_id": "REQ-ILK-001",
+      "requirement": "自動運転開始要求時に開始可否を集約判定する。",
+      "test_cases": [
+        "FT-ILK-001",
+        "FT-ILK-002",
+        "FT-ILK-010",
+        "FT-ILK-014"
+      ]
+    },
+    {
+      "requirement_id": "REQ-ILK-002",
+      "requirement": "判定NG時は禁止理由ビットマスクと代表理由コードを公開する。",
+      "test_cases": [
+        "FT-ILK-003",
+        "FT-ILK-004",
+        "FT-ILK-005",
+        "FT-ILK-006",
+        "FT-ILK-007",
+        "FT-ILK-008",
+        "FT-ILK-009",
+        "FT-ILK-011"
+      ]
+    },
+    {
+      "requirement_id": "REQ-ILK-003",
+      "requirement": "RT側は重い処理を避け、ログやメッセージ生成はTS側に分離する。",
+      "test_cases": [
+        "FT-ILK-012",
+        "FT-ILK-016"
+      ]
+    },
+    {
+      "requirement_id": "REQ-ILK-004",
+      "requirement": "外部UI/APIから判定状態を参照できる。",
+      "test_cases": [
+        "FT-ILK-013",
+        "FT-ILK-015"
+      ]
+    }
+  ],
+  "test_data": {
+    "common_normal_input": {
+      "emergency_stop": 0,
+      "safety_door_open": 0,
+      "servo_ready_mask": "REQUIRED_AXIS_MASK",
+      "origin_complete_mask": "REQUIRED_AXIS_MASK",
+      "alarm_active": 0,
+      "motion_busy": 0,
+      "run_mode": "RUN_MODE_AUTO_READY",
+      "air_pressure_ok": 1
+    },
+    "reason_priority": [
+      "EMG_STOP",
+      "DOOR_OPEN",
+      "SERVO_NOT_READY",
+      "AXIS_NOT_ORIGIN",
+      "ALARM_ACTIVE",
+      "MOTION_BUSY",
+      "MAINT_MODE",
+      "AIR_PRESSURE_LOW",
+      "TIMEOUT"
+    ],
+    "timing_parameters": {
+      "START_ILK_STABLE_TICK": 3,
+      "START_ILK_TIMEOUT_TICK": 200,
+      "rt_step_budget": "10usec以下 / RT周期"
+    }
+  },
+  "test_cases": [
+    {
+      "test_case_id": "FT-ILK-001",
+      "name": "全条件正常時に開始許可となる",
+      "category": "正常系",
+      "objective": "すべての開始前条件が正常な場合、入力安定確認後にALLOWEDとなり開始許可が公開されることを確認する。",
+      "preconditions": [
+        "StartInterlock_Init実行済み",
+        "g_startInterlockCtrl.state=START_ILK_IDLE",
+        "request=0",
+        "テスト開始前にログモックをクリア"
+      ],
+      "steps": [
+        "共通正常入力を設定する。",
+        "自動運転開始要求をONにする。",
+        "RT stepをSTART_ILK_STABLE_TICK+2周期実行する。",
+        "TS stepを1回実行する。",
+        "APIで状態を取得する。"
+      ],
+      "expected_results": [
+        "state=START_ILK_ALLOWED",
+        "allowed=1",
+        "blocked=0",
+        "reason_mask=0",
+        "primary_reason=0またはNONE",
+        "API戻り値=BOB_OK",
+        "TSログに開始許可イベントが1件出力される"
+      ],
+      "evidence": [
+        "共有メモリダンプ",
+        "APIレスポンスJSON",
+        "イベントログ"
+      ],
+      "related_requirements": [
+        "REQ-ILK-001",
+        "REQ-ILK-004"
+      ],
+      "automation_hint": "テストハーネスで共有メモリ入力を設定し、RT/TS stepを明示的に進め、出力構造体・ログ・API戻り値をJSON証跡へ保存する。"
+    },
+    {
+      "test_case_id": "FT-ILK-002",
+      "name": "開始要求解除後にIDLEへ復帰し直近結果を保持する",
+      "category": "状態遷移",
+      "objective": "ALLOWED/BLOCKED/TIMEOUT確定後、request解除でIDLEへ戻り、直近結果参照が可能であることを確認する。",
+      "preconditions": [
+        "StartInterlock_Init実行済み",
+        "g_startInterlockCtrl.state=START_ILK_IDLE",
+        "request=0",
+        "テスト開始前にログモックをクリア"
+      ],
+      "steps": [
+        "FT-ILK-001と同じ手順でALLOWEDにする。",
+        "requestを0にする。",
+        "RT stepを1周期実行する。",
+        "APIで状態を取得する。"
+      ],
+      "expected_results": [
+        "state=START_ILK_IDLE",
+        "last_allowed=1または直近結果としてallowed=1が保持される",
+        "generationが更新済みでAPI取得可能"
+      ],
+      "evidence": [
+        "状態遷移ログ",
+        "APIレスポンスJSON"
+      ],
+      "related_requirements": [
+        "REQ-ILK-001"
+      ],
+      "automation_hint": "テストハーネスで共有メモリ入力を設定し、RT/TS stepを明示的に進め、出力構造体・ログ・API戻り値をJSON証跡へ保存する。"
+    },
+    {
+      "test_case_id": "FT-ILK-003",
+      "name": "非常停止ON時に開始禁止となる",
+      "category": "異常系",
+      "objective": "非常停止入力ON時、最優先禁止理由として非常停止が公開されることを確認する。",
+      "preconditions": [
+        "StartInterlock_Init実行済み",
+        "g_startInterlockCtrl.state=START_ILK_IDLE",
+        "request=0",
+        "テスト開始前にログモックをクリア"
+      ],
+      "steps": [
+        "共通正常入力からemergency_stop=1に変更する。",
+        "requestを1にする。",
+        "RT stepをSTART_ILK_STABLE_TICK+2周期実行する。",
+        "APIで状態を取得する。"
+      ],
+      "expected_results": [
+        "state=START_ILK_BLOCKED",
+        "allowed=0",
+        "blocked=1",
+        "reason_maskにSTART_ILK_R_EMG_STOPが含まれる",
+        "primary_reason=EMG_STOP",
+        "UI向けメッセージIDが非常停止理由を示す"
+      ],
+      "evidence": [
+        "共有メモリダンプ",
+        "APIレスポンスJSON",
+        "UIメッセージIDログ"
+      ],
+      "related_requirements": [
+        "REQ-ILK-002"
+      ],
+      "automation_hint": "テストハーネスで共有メモリ入力を設定し、RT/TS stepを明示的に進め、出力構造体・ログ・API戻り値をJSON証跡へ保存する。"
+    },
+    {
+      "test_case_id": "FT-ILK-004",
+      "name": "安全ドア開時に開始禁止となる",
+      "category": "異常系",
+      "objective": "安全ドア開状態で開始要求した場合、DOOR_OPEN理由で開始禁止となることを確認する。",
+      "preconditions": [
+        "StartInterlock_Init実行済み",
+        "g_startInterlockCtrl.state=START_ILK_IDLE",
+        "request=0",
+        "テスト開始前にログモックをクリア"
+      ],
+      "steps": [
+        "共通正常入力からsafety_door_open=1に変更する。",
+        "requestを1にする。",
+        "RT stepをSTART_ILK_STABLE_TICK+2周期実行する。"
+      ],
+      "expected_results": [
+        "state=START_ILK_BLOCKED",
+        "reason_maskにSTART_ILK_R_DOOR_OPENが含まれる",
+        "primary_reason=DOOR_OPEN"
+      ],
+      "evidence": [
+        "共有メモリダンプ",
+        "イベントログ"
+      ],
+      "related_requirements": [
+        "REQ-ILK-002"
+      ],
+      "automation_hint": "テストハーネスで共有メモリ入力を設定し、RT/TS stepを明示的に進め、出力構造体・ログ・API戻り値をJSON証跡へ保存する。"
+    },
+    {
+      "test_case_id": "FT-ILK-005",
+      "name": "サーボ未準備時に開始禁止となる",
+      "category": "異常系",
+      "objective": "必須軸サーボ準備ビットが不足する場合、SERVO_NOT_READY理由で開始禁止となることを確認する。",
+      "preconditions": [
+        "StartInterlock_Init実行済み",
+        "g_startInterlockCtrl.state=START_ILK_IDLE",
+        "request=0",
+        "テスト開始前にログモックをクリア"
+      ],
+      "steps": [
+        "servo_ready_maskから必須軸1つをOFFにする。",
+        "requestを1にする。",
+        "RT stepをSTART_ILK_STABLE_TICK+2周期実行する。"
+      ],
+      "expected_results": [
+        "state=START_ILK_BLOCKED",
+        "reason_maskにSTART_ILK_R_SERVO_NOT_READYが含まれる",
+        "primary_reason=SERVO_NOT_READY"
+      ],
+      "evidence": [
+        "共有メモリダンプ"
+      ],
+      "related_requirements": [
+        "REQ-ILK-002"
+      ],
+      "automation_hint": "テストハーネスで共有メモリ入力を設定し、RT/TS stepを明示的に進め、出力構造体・ログ・API戻り値をJSON証跡へ保存する。"
+    },
+    {
+      "test_case_id": "FT-ILK-006",
+      "name": "原点復帰未完了軸ありで開始禁止となる",
+      "category": "異常系",
+      "objective": "必須軸原点復帰完了ビットが不足する場合、AXIS_NOT_ORIGIN理由で開始禁止となることを確認する。",
+      "preconditions": [
+        "StartInterlock_Init実行済み",
+        "g_startInterlockCtrl.state=START_ILK_IDLE",
+        "request=0",
+        "テスト開始前にログモックをクリア"
+      ],
+      "steps": [
+        "origin_complete_maskから必須軸1つをOFFにする。",
+        "requestを1にする。",
+        "RT stepをSTART_ILK_STABLE_TICK+2周期実行する。"
+      ],
+      "expected_results": [
+        "state=START_ILK_BLOCKED",
+        "reason_maskにSTART_ILK_R_AXIS_NOT_ORIGINが含まれる",
+        "primary_reason=AXIS_NOT_ORIGIN"
+      ],
+      "evidence": [
+        "共有メモリダンプ"
+      ],
+      "related_requirements": [
+        "REQ-ILK-002"
+      ],
+      "automation_hint": "テストハーネスで共有メモリ入力を設定し、RT/TS stepを明示的に進め、出力構造体・ログ・API戻り値をJSON証跡へ保存する。"
+    },
+    {
+      "test_case_id": "FT-ILK-007",
+      "name": "既存アラーム発生中に開始禁止となる",
+      "category": "異常系",
+      "objective": "既存アラームアクティブ時、ALARM_ACTIVE理由で開始禁止となることを確認する。",
+      "preconditions": [
+        "StartInterlock_Init実行済み",
+        "g_startInterlockCtrl.state=START_ILK_IDLE",
+        "request=0",
+        "テスト開始前にログモックをクリア"
+      ],
+      "steps": [
+        "alarm_active=1に設定する。",
+        "requestを1にする。",
+        "RT stepをSTART_ILK_STABLE_TICK+2周期実行する。"
+      ],
+      "expected_results": [
+        "state=START_ILK_BLOCKED",
+        "reason_maskにSTART_ILK_R_ALARM_ACTIVEが含まれる",
+        "primary_reason=ALARM_ACTIVE"
+      ],
+      "evidence": [
+        "共有メモリダンプ",
+        "イベントログ"
+      ],
+      "related_requirements": [
+        "REQ-ILK-002"
+      ],
+      "automation_hint": "テストハーネスで共有メモリ入力を設定し、RT/TS stepを明示的に進め、出力構造体・ログ・API戻り値をJSON証跡へ保存する。"
+    },
+    {
+      "test_case_id": "FT-ILK-008",
+      "name": "モーション動作中に開始禁止となる",
+      "category": "異常系",
+      "objective": "既存モーションがbusyの場合、MOTION_BUSY理由で開始禁止となることを確認する。",
+      "preconditions": [
+        "StartInterlock_Init実行済み",
+        "g_startInterlockCtrl.state=START_ILK_IDLE",
+        "request=0",
+        "テスト開始前にログモックをクリア"
+      ],
+      "steps": [
+        "motion_busy=1に設定する。",
+        "requestを1にする。",
+        "RT stepをSTART_ILK_STABLE_TICK+2周期実行する。"
+      ],
+      "expected_results": [
+        "state=START_ILK_BLOCKED",
+        "reason_maskにSTART_ILK_R_MOTION_BUSYが含まれる",
+        "primary_reason=MOTION_BUSY"
+      ],
+      "evidence": [
+        "共有メモリダンプ"
+      ],
+      "related_requirements": [
+        "REQ-ILK-002"
+      ],
+      "automation_hint": "テストハーネスで共有メモリ入力を設定し、RT/TS stepを明示的に進め、出力構造体・ログ・API戻り値をJSON証跡へ保存する。"
+    },
+    {
+      "test_case_id": "FT-ILK-009",
+      "name": "保守モード中に開始禁止となる",
+      "category": "異常系",
+      "objective": "運転モードが保守モードの場合、MAINT_MODE理由で開始禁止となることを確認する。",
+      "preconditions": [
+        "StartInterlock_Init実行済み",
+        "g_startInterlockCtrl.state=START_ILK_IDLE",
+        "request=0",
+        "テスト開始前にログモックをクリア"
+      ],
+      "steps": [
+        "run_mode=RUN_MODE_MAINTに設定する。",
+        "requestを1にする。",
+        "RT stepをSTART_ILK_STABLE_TICK+2周期実行する。"
+      ],
+      "expected_results": [
+        "state=START_ILK_BLOCKED",
+        "reason_maskにSTART_ILK_R_MAINT_MODEが含まれる",
+        "primary_reason=MAINT_MODE"
+      ],
+      "evidence": [
+        "共有メモリダンプ"
+      ],
+      "related_requirements": [
+        "REQ-ILK-002"
+      ],
+      "automation_hint": "テストハーネスで共有メモリ入力を設定し、RT/TS stepを明示的に進め、出力構造体・ログ・API戻り値をJSON証跡へ保存する。"
+    },
+    {
+      "test_case_id": "FT-ILK-010",
+      "name": "空圧低下時に開始禁止となる",
+      "category": "異常系",
+      "objective": "空圧正常入力がOFFの場合、AIR_PRESSURE_LOW理由で開始禁止となることを確認する。",
+      "preconditions": [
+        "StartInterlock_Init実行済み",
+        "g_startInterlockCtrl.state=START_ILK_IDLE",
+        "request=0",
+        "テスト開始前にログモックをクリア"
+      ],
+      "steps": [
+        "air_pressure_ok=0に設定する。",
+        "requestを1にする。",
+        "RT stepをSTART_ILK_STABLE_TICK+2周期実行する。"
+      ],
+      "expected_results": [
+        "state=START_ILK_BLOCKED",
+        "reason_maskにSTART_ILK_R_AIR_PRESSURE_LOWが含まれる",
+        "primary_reason=AIR_PRESSURE_LOW"
+      ],
+      "evidence": [
+        "共有メモリダンプ"
+      ],
+      "related_requirements": [
+        "REQ-ILK-001",
+        "REQ-ILK-002"
+      ],
+      "automation_hint": "テストハーネスで共有メモリ入力を設定し、RT/TS stepを明示的に進め、出力構造体・ログ・API戻り値をJSON証跡へ保存する。"
+    },
+    {
+      "test_case_id": "FT-ILK-011",
+      "name": "複数NG条件時に理由ビットがOR合成され代表理由は優先順位最上位となる",
+      "category": "異常系/境界値",
+      "objective": "複数禁止理由が同時成立した場合、reason_maskがOR合成され、primary_reasonは優先順位表に従うことを確認する。",
+      "preconditions": [
+        "StartInterlock_Init実行済み",
+        "g_startInterlockCtrl.state=START_ILK_IDLE",
+        "request=0",
+        "テスト開始前にログモックをクリア"
+      ],
+      "steps": [
+        "door_open=1, servo_ready_mask不足, air_pressure_ok=0を同時設定する。",
+        "requestを1にする。",
+        "RT stepをSTART_ILK_STABLE_TICK+2周期実行する。",
+        "APIで状態を取得する。"
+      ],
+      "expected_results": [
+        "reason_maskにDOOR_OPEN, SERVO_NOT_READY, AIR_PRESSURE_LOWがすべて含まれる",
+        "primary_reason=DOOR_OPEN",
+        "blocked=1",
+        "ログに代表理由とmaskが記録される"
+      ],
+      "evidence": [
+        "共有メモリダンプ",
+        "APIレスポンスJSON",
+        "イベントログ"
+      ],
+      "related_requirements": [
+        "REQ-ILK-002"
+      ],
+      "automation_hint": "テストハーネスで共有メモリ入力を設定し、RT/TS stepを明示的に進め、出力構造体・ログ・API戻り値をJSON証跡へ保存する。"
+    },
+    {
+      "test_case_id": "FT-ILK-012",
+      "name": "入力が安定するまでEVALUATINGへ進まない",
+      "category": "状態遷移/境界値",
+      "objective": "SAMPLING中に入力値が変化する場合、stable_countがリセットされ、安定tick到達まで判定確定しないことを確認する。",
+      "preconditions": [
+        "StartInterlock_Init実行済み",
+        "g_startInterlockCtrl.state=START_ILK_IDLE",
+        "request=0",
+        "テスト開始前にログモックをクリア"
+      ],
+      "steps": [
+        "requestを1にする。",
+        "RT step 1周期目はdoor_open=0。",
+        "RT step 2周期目はdoor_open=1。",
+        "RT step 3周期目はdoor_open=0。",
+        "以降はdoor_open=0でSTART_ILK_STABLE_TICK周期継続する。"
+      ],
+      "expected_results": [
+        "入力変化ごとにstable_countがリセットされる",
+        "安定するまでstate=START_ILK_SAMPLING",
+        "安定後にEVALUATINGを経由してALLOWEDとなる"
+      ],
+      "evidence": [
+        "状態遷移ログ",
+        "stable_countトレース"
+      ],
+      "related_requirements": [
+        "REQ-ILK-003"
+      ],
+      "automation_hint": "テストハーネスで共有メモリ入力を設定し、RT/TS stepを明示的に進め、出力構造体・ログ・API戻り値をJSON証跡へ保存する。"
+    },
+    {
+      "test_case_id": "FT-ILK-013",
+      "name": "判定タイムアウト時に開始禁止となる",
+      "category": "異常系/タイムアウト",
+      "objective": "入力が安定せずSTART_ILK_TIMEOUT_TICKに到達した場合、TIMEOUT状態かつ開始禁止に倒れることを確認する。",
+      "preconditions": [
+        "StartInterlock_Init実行済み",
+        "g_startInterlockCtrl.state=START_ILK_IDLE",
+        "request=0",
+        "テスト開始前にログモックをクリア"
+      ],
+      "steps": [
+        "requestを1にする。",
+        "door_openを周期ごとに0/1交互に変更する。",
+        "RT stepをSTART_ILK_TIMEOUT_TICK+1周期実行する。",
+        "APIで状態を取得する。"
+      ],
+      "expected_results": [
+        "state=START_ILK_TIMEOUT",
+        "allowed=0",
+        "blocked=1",
+        "primary_reason=TIMEOUT",
+        "reason_maskまたは代表理由にタイムアウトが反映される"
+      ],
+      "evidence": [
+        "状態遷移ログ",
+        "APIレスポンスJSON"
+      ],
+      "related_requirements": [
+        "REQ-ILK-004"
+      ],
+      "automation_hint": "テストハーネスで共有メモリ入力を設定し、RT/TS stepを明示的に進め、出力構造体・ログ・API戻り値をJSON証跡へ保存する。"
+    },
+    {
+      "test_case_id": "FT-ILK-014",
+      "name": "APIで安定スナップショットを取得できる",
+      "category": "API",
+      "objective": "Api_GetStartInterlockStatusが確定済み状態を安定コピーし、BOB_OKを返すことを確認する。",
+      "preconditions": [
+        "StartInterlock_Init実行済み",
+        "g_startInterlockCtrl.state=START_ILK_IDLE",
+        "request=0",
+        "テスト開始前にログモックをクリア"
+      ],
+      "steps": [
+        "FT-ILK-003でBLOCKED状態を作る。",
+        "Api_GetStartInterlockStatusを呼び出す。"
+      ],
+      "expected_results": [
+        "戻り値=BOB_OK",
+        "出力構造体のstate/allowed/blocked/reason_mask/primary_reason/generationが共有メモリと一致する"
+      ],
+      "evidence": [
+        "APIレスポンスJSON",
+        "共有メモリダンプ"
+      ],
+      "related_requirements": [
+        "REQ-ILK-001",
+        "REQ-ILK-004"
+      ],
+      "automation_hint": "テストハーネスで共有メモリ入力を設定し、RT/TS stepを明示的に進め、出力構造体・ログ・API戻り値をJSON証跡へ保存する。"
+    },
+    {
+      "test_case_id": "FT-ILK-015",
+      "name": "RT更新中のAPI参照はBUSYまたは安定値再取得となる",
+      "category": "API/排他",
+      "objective": "generation奇数または更新中相当の状態でAPI参照した場合、設計通りBOB_ERR_BUSYを返すことを確認する。",
+      "preconditions": [
+        "StartInterlock_Init実行済み",
+        "g_startInterlockCtrl.state=START_ILK_IDLE",
+        "request=0",
+        "テスト開始前にログモックをクリア"
+      ],
+      "steps": [
+        "テスト用フックでgenerationを更新中相当の奇数へ設定する。",
+        "Api_GetStartInterlockStatusを呼び出す。",
+        "generationを偶数へ戻し再度APIを呼び出す。"
+      ],
+      "expected_results": [
+        "更新中はBOB_ERR_BUSY",
+        "安定後はBOB_OK",
+        "API側から共有状態を書き換えない"
+      ],
+      "evidence": [
+        "APIレスポンスJSON",
+        "generationトレース"
+      ],
+      "related_requirements": [
+        "REQ-ILK-004"
+      ],
+      "automation_hint": "テストハーネスで共有メモリ入力を設定し、RT/TS stepを明示的に進め、出力構造体・ログ・API戻り値をJSON証跡へ保存する。"
+    },
+    {
+      "test_case_id": "FT-ILK-016",
+      "name": "TSログ失敗時もRT判定結果は変更されない",
+      "category": "異常系/ログ",
+      "objective": "TS側ログ出力が失敗しても、RTが確定した開始可否結果を変更しないことを確認する。",
+      "preconditions": [
+        "StartInterlock_Init実行済み",
+        "g_startInterlockCtrl.state=START_ILK_IDLE",
+        "request=0",
+        "テスト開始前にログモックをクリア"
+      ],
+      "steps": [
+        "FT-ILK-004でBLOCKED状態を作る。",
+        "ログモックを失敗応答に設定する。",
+        "TS stepを1回実行する。",
+        "APIで状態を取得する。"
+      ],
+      "expected_results": [
+        "RT判定結果はBLOCKEDのまま",
+        "ログ異常カウンタのみ増加",
+        "RT側のallowed/blocked/reason_maskは変更されない"
+      ],
+      "evidence": [
+        "イベントログモック結果",
+        "APIレスポンスJSON"
+      ],
+      "related_requirements": [
+        "REQ-ILK-003"
+      ],
+      "automation_hint": "テストハーネスで共有メモリ入力を設定し、RT/TS stepを明示的に進め、出力構造体・ログ・API戻り値をJSON証跡へ保存する。"
+    }
+  ],
+  "coverage_matrix": [
+    {
+      "viewpoint": "開始許可正常系",
+      "covered_by": [
+        "FT-ILK-001",
+        "FT-ILK-002"
+      ],
+      "status": "covered"
+    },
+    {
+      "viewpoint": "各禁止理由単独",
+      "covered_by": [
+        "FT-ILK-003",
+        "FT-ILK-004",
+        "FT-ILK-005",
+        "FT-ILK-006",
+        "FT-ILK-007",
+        "FT-ILK-008",
+        "FT-ILK-009",
+        "FT-ILK-010"
+      ],
+      "status": "covered"
+    },
+    {
+      "viewpoint": "複数禁止理由合成",
+      "covered_by": [
+        "FT-ILK-011"
+      ],
+      "status": "covered"
+    },
+    {
+      "viewpoint": "入力安定/タイムアウト",
+      "covered_by": [
+        "FT-ILK-012",
+        "FT-ILK-013"
+      ],
+      "status": "covered"
+    },
+    {
+      "viewpoint": "API安定コピー/排他",
+      "covered_by": [
+        "FT-ILK-014",
+        "FT-ILK-015"
+      ],
+      "status": "covered"
+    },
+    {
+      "viewpoint": "TSログ/RT結果保護",
+      "covered_by": [
+        "FT-ILK-016"
+      ],
+      "status": "covered"
+    },
+    {
+      "viewpoint": "実機I/O電気特性",
+      "covered_by": [],
+      "status": "out_of_scope"
+    }
+  ],
+  "execution_procedure": [
+    "テスト環境をVC2026 profileでビルドする。",
+    "共通初期化を実施し、共有メモリとログモックをクリアする。",
+    "各テストケースの入力条件をテストハーネスで設定する。",
+    "必要tick数だけRT stepを実行する。",
+    "必要に応じてTS stepとAPI呼出しを実行する。",
+    "共有メモリ、APIレスポンス、イベントログを証跡JSONとして保存する。",
+    "同一テストセットをclang Windows版でも実行する。",
+    "VC2026/clangで結果差異がある場合は差異分析票を作成する。"
+  ],
+  "evidence_design": {
+    "evidence_files": [
+      "evidence/FT-ILK-xxx_shared_memory.json",
+      "evidence/FT-ILK-xxx_api_response.json",
+      "evidence/FT-ILK-xxx_event_log.csv",
+      "evidence/FT-ILK-xxx_rt_trace.csv",
+      "evidence/build_vc2026.log",
+      "evidence/build_clang.log",
+      "evidence/test_vc2026.log",
+      "evidence/test_clang.log"
+    ],
+    "required_fields": [
+      "test_case_id",
+      "build_profile",
+      "rt_tick",
+      "input_snapshot",
+      "state",
+      "allowed",
+      "blocked",
+      "reason_mask",
+      "primary_reason",
+      "generation",
+      "api_return_code",
+      "log_result",
+      "judgement"
+    ],
+    "retention_note": "評価用サンプルのため保存期間は未設定。実プロジェクトでは共通テスト証跡保管規約に従う。"
+  },
+  "entry_exit_criteria": {
+    "entry": [
+      "基本設計書と詳細設計書のドラフトが作成済みであること",
+      "新規モジュールとAPIがビルド対象に含まれていること",
+      "テストハーネスから共有メモリ入力を制御できること",
+      "RT step/TS step/API呼出しの証跡取得が可能であること"
+    ],
+    "exit": [
+      "全テストケースがVC2026/clangの両profileでPASSまたは承認済み条件付きPASSとなること",
+      "開始禁止条件で安全側に倒れることが全ケースで確認済みであること",
+      "FAILが残る場合は不具合票または仕様未確定票に紐付いていること",
+      "レビューAIがチェックリスト上の致命的NGを検出しないこと"
+    ]
+  },
+  "review_checklist": [
+    {
+      "id": "FTR-ILK-001",
+      "check": "基本設計の要件REQ-ILK-001〜004がテストケースへ紐付いているか",
+      "status": "OK"
+    },
+    {
+      "id": "FTR-ILK-002",
+      "check": "単独NG条件、複数NG条件、正常許可が網羅されているか",
+      "status": "OK"
+    },
+    {
+      "id": "FTR-ILK-003",
+      "check": "状態遷移、タイムアウト、要求解除後IDLE復帰が確認対象になっているか",
+      "status": "OK"
+    },
+    {
+      "id": "FTR-ILK-004",
+      "check": "API参照時の安定コピーとBUSY系が確認対象になっているか",
+      "status": "OK"
+    },
+    {
+      "id": "FTR-ILK-005",
+      "check": "RT/TS分離、ログ失敗時のRT結果保護が確認対象になっているか",
+      "status": "OK"
+    },
+    {
+      "id": "FTR-ILK-006",
+      "check": "VC2026/clang Windows版の両build/test profileが明記されているか",
+      "status": "OK"
+    },
+    {
+      "id": "FTR-ILK-007",
+      "check": "RT周期内処理時間の実測テストが機能テスト範囲か性能テスト範囲か整理されているか",
+      "status": "WARN",
+      "note": "本書では機能テスト証跡に実行時間項目を含めるが、厳密な性能保証は別途性能テストで扱う。"
+    },
+    {
+      "id": "FTR-ILK-008",
+      "check": "実機安全回路の電気的評価を本機能テストの範囲外として明記しているか",
+      "status": "OK"
+    }
+  ],
+  "open_issues": [
+    {
+      "id": "FT-ILK-OPN-001",
+      "item": "実機接続時の安全PLC入力名と評価用スタブ名の対応表",
+      "owner": "テスト設計担当",
+      "due": "実機テスト前"
+    },
+    {
+      "id": "FT-ILK-OPN-002",
+      "item": "RT step実行時間の合格閾値を機能テストで参考値扱いにするか、性能テストで正式判定するか",
+      "owner": "性能評価担当",
+      "due": "レビュー時"
+    },
+    {
+      "id": "FT-ILK-OPN-003",
+      "item": "イベントログCSVの文字コード、改行コード、保存期間",
+      "owner": "運用設計担当",
+      "due": "リリース前"
+    }
+  ]
+}

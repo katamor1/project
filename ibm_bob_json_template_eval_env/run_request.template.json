@@ -1,0 +1,26 @@
+{
+  "run_id": "ILK001",
+  "flow": "json-template-eval-only",
+  "input": {
+    "basic_design_docx": "input/basic_design.docx",
+    "basic_design_json": "input/basic_design.json"
+  },
+  "stages": [
+    "01_basic_design_review",
+    "02_detail_design_author",
+    "03_detail_design_review",
+    "04_function_test_design_author",
+    "05_function_test_review"
+  ],
+  "forbidden": [
+    "code_change",
+    "unit_test_pack",
+    "unit_test_run",
+    "build_execution"
+  ],
+  "output_policy": {
+    "json_first": true,
+    "docx_generated_by_script": true,
+    "validate_docx": true
+  }
+}

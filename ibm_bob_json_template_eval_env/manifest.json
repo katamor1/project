@@ -1,0 +1,19 @@
+{
+  "name": "ibm_bob_json_template_eval_env",
+  "version": "1.0.0",
+  "created_for": "JSON template evaluation flow only",
+  "source_mode_pack": "mode-pack.zip",
+  "allowed_flow": [
+    "basic_design_review",
+    "detail_design_author",
+    "detail_design_review",
+    "function_test_design_author",
+    "function_test_review"
+  ],
+  "forbidden": [
+    "code_change",
+    "unit_test_pack",
+    "unit_test_run",
+    "build_execution"
+  ]
+}

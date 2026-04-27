@@ -1,0 +1,10 @@
+[profiles.ibm-bob-json-template-eval]
+# Evaluation-only profile. Do not run implementation/build/test stages.
+model_reasoning_effort = "high"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[profiles.ibm-bob-json-template-eval.env]
+IBM_BOB_FLOW = "json-template-eval-only"
+IBM_BOB_FORBID_CODE = "1"
+IBM_BOB_DOCX_RENDERER = "skills/json-docx/scripts/generate_docx_from_json.py"

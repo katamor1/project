@@ -1,0 +1,352 @@
+{
+  "review": {
+    "review_id": "RVR-ILK-DD-001",
+    "review_type": "AIプレレビュー",
+    "review_date": "2026/04/28",
+    "target": {
+      "document_type": "detail_design",
+      "document_name": "運転開始前インターロック集約判定機能_詳細設計書.docx",
+      "feature_id": "BD-ILK-START-001",
+      "feature_name": "運転開始前インターロック集約判定機能",
+      "version": "1.0"
+    },
+    "decision": "条件付き合格",
+    "inputs": [
+      [
+        "IN-001",
+        "詳細設計書",
+        "/mnt/data/運転開始前インターロック集約判定機能_詳細設計書.docx",
+        "1.0",
+        "詳細設計レビュー対象",
+        "Yes",
+        ""
+      ],
+      [
+        "IN-002",
+        "詳細設計JSON",
+        "/mnt/data/運転開始前インターロック集約判定機能_詳細設計書.json",
+        "1.0",
+        "関数・構造体・状態遷移確認",
+        "Yes",
+        ""
+      ],
+      [
+        "IN-003",
+        "基本設計書",
+        "/mnt/data/運転開始前インターロック集約判定機能_基本設計書.docx",
+        "1.0",
+        "トレーサビリティ確認",
+        "Yes",
+        ""
+      ],
+      [
+        "IN-004",
+        "レビュー用テンプレート",
+        "IBM-Bob_レビュー用テンプレート_v1.docx",
+        "1.0",
+        "章立て・チェックID・判定基準",
+        "Yes",
+        ""
+      ]
+    ],
+    "scope_note": "本レビューは、提供された対象Word/JSONおよびIBM-Bob基盤前提に基づくプレレビューである。コード実装・実機I/O・build/test実行ログは未提供のため、該当項目はN/AまたはWARNとして扱う。",
+    "summary": {
+      "ok_count": 12,
+      "warn_count": 5,
+      "ng_count": 0,
+      "na_count": 1,
+      "unchecked_count": 0,
+      "ok_topics": "トレーサビリティ、関数設計、データ設計、API、フェイルセーフ、build/test",
+      "warn_topics": "メモリバリア、requestハンドシェイク、IDLE復帰、TIMEOUT理由、性能証跡",
+      "ng_topics": "致命的NGなし",
+      "na_topics": "機能テスト設計レビュー",
+      "unchecked_topics": "未確認項目なし",
+      "ok_comment": "主要な設計意図とIBM-Bob固有観点は概ね記載済み。",
+      "warn_comment": "実装前または後続工程で確定すべき事項がある。",
+      "ng_comment": "レビュー時点で次工程を阻害する致命的欠陥は検出していない。",
+      "na_comment": "対象文書外のコード/テスト実装レビューは除外。",
+      "unchecked_comment": "なし。"
+    },
+    "check_results": [
+      {
+        "check_id": "RVR-CMN-001",
+        "category": "共通",
+        "viewpoint": "目的・範囲・対象外が明確か",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "DD-01",
+        "comment": "適用範囲と対象外が明確。"
+      },
+      {
+        "check_id": "RVR-CMN-002",
+        "category": "共通",
+        "viewpoint": "基本設計とのトレーサビリティがあるか",
+        "status": "OK",
+        "severity": "High",
+        "evidence": "DD-02",
+        "comment": "REQ-ILK-001〜004とDD章の対応がある。"
+      },
+      {
+        "check_id": "RVR-DD-001",
+        "category": "詳細設計",
+        "viewpoint": "影響ファイルが具体名で示されているか",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "DD-03",
+        "comment": "新規/変更ファイル、既存仕様書の確認対象が具体的。"
+      },
+      {
+        "check_id": "RVR-DD-002",
+        "category": "詳細設計",
+        "viewpoint": "関数・モジュール責務が具体化されているか",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "DD-04, DD-10",
+        "comment": "RT/TS/APIの関数単位設計と擬似コードが記載されている。"
+      },
+      {
+        "check_id": "RVR-DD-003",
+        "category": "詳細設計",
+        "viewpoint": "RT/TS/APIの責務分離が明確か",
+        "status": "OK",
+        "severity": "Critical",
+        "evidence": "DD-05",
+        "comment": "RT禁止事項、TSは副次処理、APIは参照専用と整理されている。"
+      },
+      {
+        "check_id": "RVR-DD-004",
+        "category": "詳細設計",
+        "viewpoint": "データ構造・enum・定数が定義されているか",
+        "status": "OK",
+        "severity": "High",
+        "evidence": "DD-06",
+        "comment": "START_INTERLOCK_CTRL、状態、理由ビットが定義されている。"
+      },
+      {
+        "check_id": "RVR-DD-005",
+        "category": "詳細設計",
+        "viewpoint": "共有メモリ整合性方針が具体的か",
+        "status": "WARN",
+        "severity": "High",
+        "evidence": "DD-08",
+        "comment": "generation方式は妥当だが、実コードで使うvolatile/メモリバリア/既存アクセスマクロ名が未確定。"
+      },
+      {
+        "check_id": "RVR-DD-006",
+        "category": "詳細設計",
+        "viewpoint": "複数書込元の所有権が明確か",
+        "status": "WARN",
+        "severity": "High",
+        "evidence": "DD-08",
+        "comment": "requestは既存開始要求処理が1、RTが0に戻す設計。lost request防止のハンドシェイク条件を詳細化すべき。"
+      },
+      {
+        "check_id": "RVR-DD-007",
+        "category": "詳細設計",
+        "viewpoint": "状態遷移の復帰条件が明確か",
+        "status": "WARN",
+        "severity": "Medium",
+        "evidence": "DD-09",
+        "comment": "ALLOWED/BLOCKED/TIMEOUT→IDLE条件の「結果参照完了」が具体フラグ未定義。"
+      },
+      {
+        "check_id": "RVR-DD-008",
+        "category": "詳細設計",
+        "viewpoint": "APIの引数・戻り値・エラー条件が定義されているか",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "DD-11",
+        "comment": "NULL、BUSY、正常戻りが定義されている。"
+      },
+      {
+        "check_id": "RVR-DD-009",
+        "category": "詳細設計",
+        "viewpoint": "フェイルセーフ方針が明確か",
+        "status": "OK",
+        "severity": "Critical",
+        "evidence": "DD-12",
+        "comment": "判定不能、入力不安定、未知状態、タイムアウトは開始禁止。"
+      },
+      {
+        "check_id": "RVR-DD-010",
+        "category": "詳細設計",
+        "viewpoint": "性能設計と測定計画があるか",
+        "status": "WARN",
+        "severity": "Medium",
+        "evidence": "DD-13",
+        "comment": "10usec目標と測定計画はあるが、合否判定の証跡様式は未確定。"
+      },
+      {
+        "check_id": "RVR-DD-011",
+        "category": "詳細設計",
+        "viewpoint": "単体テスト観点が定義されているか",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "DD-14",
+        "comment": "正常、非常停止、複数NG、安定待ち、タイムアウト、API安定コピーがある。"
+      },
+      {
+        "check_id": "RVR-DD-012",
+        "category": "詳細設計",
+        "viewpoint": "代表理由の優先順位が完全か",
+        "status": "WARN",
+        "severity": "Medium",
+        "evidence": "DD-06, DD-10",
+        "comment": "理由ビットは8種定義済みだが、TIMEOUT代表理由の値・優先順位台帳との対応が未確定。"
+      },
+      {
+        "check_id": "RVR-IBM-001",
+        "category": "IBM-Bob固有",
+        "viewpoint": "RT内禁止操作が明記されているか",
+        "status": "OK",
+        "severity": "Critical",
+        "evidence": "DD-05",
+        "comment": "ファイルI/O、malloc/free、文字列整形、Wait系API、Windows APIは禁止。"
+      },
+      {
+        "check_id": "RVR-IBM-002",
+        "category": "IBM-Bob固有",
+        "viewpoint": "公開ヘッダ互換性・構造体アラインメント確認があるか",
+        "status": "OK",
+        "severity": "High",
+        "evidence": "DD-03, DD-14",
+        "comment": "共有構造体サイズとアラインメント確認が静的確認に含まれる。"
+      },
+      {
+        "check_id": "RVR-BT-001",
+        "category": "Build/Test",
+        "viewpoint": "VC2026/clangのbuild/testが明記されているか",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "DD-14",
+        "comment": "両profileのbuild/testコマンドがある。"
+      },
+      {
+        "check_id": "RVR-FT-001",
+        "category": "機能テスト",
+        "viewpoint": "機能テスト設計レビュー観点",
+        "status": "N/A",
+        "severity": "Low",
+        "evidence": "機能テスト設計は別文書",
+        "comment": "本レビュー対象は詳細設計書。"
+      }
+    ],
+    "issues": [
+      {
+        "issue_id": "ISS-DD-001",
+        "source": "AI",
+        "location": "DD-08 / 整合性・排他設計",
+        "severity": "High",
+        "category": "共有メモリ",
+        "description": "generation方式は設計されているが、既存共有メモリアクセスマクロの正式名称とメモリバリア保証が未確定。",
+        "evidence": "DD-08でBobMemory_Read16/BobMemory_Write16等の既存抽象化を優先と記載。",
+        "recommendation": "実コード調査で正式マクロ、volatile/atomic/barrier方針を確定し、関数擬似コードへ反映する。",
+        "owner": "実装担当",
+        "due_date": "コーディング前",
+        "status": "Open"
+      },
+      {
+        "issue_id": "ISS-DD-002",
+        "source": "AI",
+        "location": "DD-08 / request",
+        "severity": "High",
+        "category": "排他/状態遷移",
+        "description": "requestは既存開始要求処理とRTの2者が書き込むため、連続要求・同一周期再要求時にlost requestが起こらない条件が必要。",
+        "evidence": "requestは既存開始要求処理が1を設定、RTが0に戻すと記載。",
+        "recommendation": "request/ackまたはgeneration付き要求IDを追加するか、既存開始要求処理の再発行条件を明文化する。",
+        "owner": "詳細設計担当",
+        "due_date": "コーディング前",
+        "status": "Open"
+      },
+      {
+        "issue_id": "ISS-DD-003",
+        "source": "AI",
+        "location": "DD-09 / ALLOWED/BLOCKED/TIMEOUT→IDLE",
+        "severity": "Medium",
+        "category": "状態遷移",
+        "description": "IDLE復帰条件の「結果参照完了」が具体的に定義されていない。",
+        "evidence": "遷移条件にrequest==0かつ結果参照完了と記載。",
+        "recommendation": "参照完了フラグを設けるか、request解除のみでIDLE復帰し直近結果を保持する方針に統一する。",
+        "owner": "詳細設計担当",
+        "due_date": "詳細設計改訂時",
+        "status": "Open"
+      },
+      {
+        "issue_id": "ISS-DD-004",
+        "source": "AI",
+        "location": "DD-06/DD-10 / primary_reason",
+        "severity": "Medium",
+        "category": "データ定義",
+        "description": "理由ビット8種とTIMEOUTの代表理由の値・優先順位が同一台帳として定義されていない。",
+        "evidence": "START_ILK_REASON_BITにTIMEOUTがない一方、エラー設計・テストではTIMEOUTをprimary_reasonとして扱う。",
+        "recommendation": "START_ILK_PRIMARY_REASON enumを別定義し、理由ビットとの対応表を追加する。",
+        "owner": "詳細設計担当",
+        "due_date": "単体テスト設計前",
+        "status": "Open"
+      },
+      {
+        "issue_id": "ISS-DD-005",
+        "source": "AI",
+        "location": "DD-13/DD-14 / 性能測定",
+        "severity": "Medium",
+        "category": "性能/証跡",
+        "description": "RT処理時間10usec以下の測定計画はあるが、合否判定証跡と測定ツールが未定義。",
+        "evidence": "DD-13に測定計画、DD-14にテストコマンドがある。",
+        "recommendation": "単体テストまたは性能テストに測定ログ形式、最小/最大/平均、測定ビルド条件を追加する。",
+        "owner": "性能評価担当",
+        "due_date": "テスト実装前",
+        "status": "Open"
+      }
+    ],
+    "ibm_bob_findings": [
+      {
+        "id": "F-DD-001",
+        "status": "OK",
+        "title": "関数設計",
+        "finding": "StartInterlock_RtStep/Evaluate/TsStep/APIまで分解され、擬似コードがある。",
+        "recommendation": "実装時は擬似コードを関数コメントへ対応させる。"
+      },
+      {
+        "id": "F-DD-002",
+        "status": "WARN",
+        "title": "共有メモリ整合性",
+        "finding": "generation方式はあるが、既存アクセスマクロとメモリ順序保証が未確定。",
+        "recommendation": "VC2026/clangの最適化で順序が崩れないことを確認する。"
+      },
+      {
+        "id": "F-DD-003",
+        "status": "WARN",
+        "title": "requestハンドシェイク",
+        "finding": "既存開始要求処理とRTの複数書込により、要求消失の設計検討が必要。",
+        "recommendation": "request_id/ack_idまたは既存処理側の再要求条件を定義する。"
+      }
+    ],
+    "evidence_summary": [
+      [
+        "Build",
+        "未実施",
+        "cmd /c scripts\\build_vc2026.bat / cmd /c scripts\\build_clang.bat",
+        "設計書上は記載あり。実行ログ未提供。"
+      ],
+      [
+        "Test",
+        "未実施",
+        "cmd /c scripts\\test_vc2026.bat / cmd /c scripts\\test_clang.bat",
+        "設計書上は記載あり。実行ログ未提供。"
+      ],
+      [
+        "静的解析",
+        "未実施",
+        "RT禁止API検索、構造体アラインメント確認",
+        "コード未提供または未レビューのため未実施。"
+      ],
+      [
+        "文書構造",
+        "確認済み",
+        "SECTION_ID / JSON Path",
+        "対象文書に章IDとJSON構造対応がある。"
+      ]
+    ],
+    "json_file": "/mnt/data/ibm_bob_review_results_interlock/RVR-ILK-DD-001_review_result.json"
+  }
+}

@@ -1,0 +1,953 @@
+{
+  "schema_version": "ibm-bob-detail-design-v2.0",
+  "document": {
+    "document_id": "DD-ILK-START-001",
+    "document_name": "運転開始前インターロック集約判定機能 詳細設計書",
+    "document_type": "detail_design",
+    "version": "1.0",
+    "created_date": "2026-04-27",
+    "author": "IBM-Bob AI Agent",
+    "status": "draft",
+    "source_basic_design": {
+      "feature_id": "BD-ILK-START-001",
+      "feature_name": "運転開始前インターロック集約判定機能",
+      "source_document_name": "運転開始前インターロック集約判定機能_基本設計書.docx",
+      "derivation_note": "追加4件サンプル機能の基本設計書から、RT/TS分離、共有メモリ、状態遷移、API経由参照、ログ出力の観点を詳細設計へ展開する。"
+    }
+  },
+  "target_system": {
+    "system_name": "IBM-Bob 基盤システム",
+    "platform": "Windows / C言語",
+    "thread_model": "ハードウェア割込で周期実行するリアルタイムスレッドと、空き時間にタイムスライス駆動するタイムシェアスレッドで構成する。",
+    "compiler_profiles": [
+      "VC2026",
+      "clang Windows版"
+    ]
+  },
+  "design_policy": {
+    "purpose": "自動運転開始要求の直前に、既存の複数インターロック条件を1か所で集約判定し、開始可否、禁止理由、最初に検出されたNG理由、判定スナップショットを共有メモリへ公開する。",
+    "scope": [
+      "リアルタイムスレッドでのインターロック条件サンプリングと判定",
+      "タイムシェアスレッドでの判定結果ログ出力とUI向けメッセージ生成",
+      "外部UI/APIからの現在判定結果参照",
+      "既存運転開始処理への開始許可ゲート追加"
+    ],
+    "out_of_scope": [
+      "個別センサ異常判定ロジックそのものの変更",
+      "安全PLC側の安全回路設計変更",
+      "UI画面レイアウトの詳細設計",
+      "既存アラームコード体系の全面変更"
+    ],
+    "realtime_constraints": [
+      "RT側でファイルI/O、メモリ確保、文字列整形、Windows API呼び出しを行わない。",
+      "RT側追加処理は最大監視項目数16点時に10usec以下を目標とし、詳細実装後に実測する。",
+      "複数フィールド更新は世代番号を用いた順序制御で読取側の不整合を抑止する。"
+    ]
+  },
+  "traceability": {
+    "requirements": [
+      {
+        "id": "REQ-ILK-001",
+        "text": "自動運転開始要求時に開始可否を集約判定する。",
+        "dd_sections": [
+          "DD-07",
+          "DD-09",
+          "DD-10"
+        ]
+      },
+      {
+        "id": "REQ-ILK-002",
+        "text": "判定NG時は禁止理由ビットマスクと代表理由コードを公開する。",
+        "dd_sections": [
+          "DD-06",
+          "DD-08",
+          "DD-11"
+        ]
+      },
+      {
+        "id": "REQ-ILK-003",
+        "text": "RT側は重い処理を避け、ログやメッセージ生成はTS側に分離する。",
+        "dd_sections": [
+          "DD-05",
+          "DD-12",
+          "DD-14"
+        ]
+      },
+      {
+        "id": "REQ-ILK-004",
+        "text": "外部UI/APIから判定状態を参照できる。",
+        "dd_sections": [
+          "DD-13"
+        ]
+      }
+    ],
+    "basic_design_review_warnings_resolved_by_detail": [
+      "RT周期内処理時間のワーストケース根拠をDD-15に見積条件として記載する。",
+      "複数スレッド書込があるグローバル変数の更新順序をDD-08に固定する。",
+      "API経由の変更とRT更新の整合性をDD-13に参照専用APIとして整理する。",
+      "状態遷移のキャンセル・タイムアウト復帰条件をDD-09に定義する。"
+    ]
+  },
+  "impacted_assets": {
+    "new_files": [
+      {
+        "path": "src/interlock/start_interlock.c",
+        "purpose": "開始前インターロック集約判定のRT/TS処理本体"
+      },
+      {
+        "path": "include/interlock/start_interlock.h",
+        "purpose": "内部構造体、列挙体、関数プロトタイプ定義"
+      },
+      {
+        "path": "tests/test_start_interlock.c",
+        "purpose": "単体テストコード"
+      }
+    ],
+    "modified_files": [
+      {
+        "path": "include/shared_memory.h",
+        "change": "START_INTERLOCK_CTRLのグローバル宣言追加"
+      },
+      {
+        "path": "src/rt/rt_main_loop.c",
+        "change": "RT周期内でStartInterlock_RtStepを呼び出す"
+      },
+      {
+        "path": "src/ts/ts_main_loop.c",
+        "change": "TS周期内でStartInterlock_TsStepを呼び出す"
+      },
+      {
+        "path": "include/api/bob_api.h",
+        "change": "Api_GetStartInterlockStatusの公開宣言追加"
+      },
+      {
+        "path": "src/api/bob_api.c",
+        "change": "API実装追加"
+      },
+      {
+        "path": "scripts/build_vc2026.bat",
+        "change": "新規Cファイルをビルド対象へ追加"
+      },
+      {
+        "path": "scripts/build_clang.bat",
+        "change": "新規Cファイルをビルド対象へ追加"
+      }
+    ],
+    "existing_specs_to_check": [
+      "基盤システム_基本設計書: 運転モード、主状態、インターロック、共有メモリ",
+      "基盤システム_詳細設計書: RTメインループ、TSメインループ、公開API、ログ処理",
+      "共有メモリ公開ヘッダ仕様: 構造体追加時の互換性とアラインメント",
+      "単体テスト仕様書: RT周期内分岐、API境界値、ログイベント"
+    ]
+  },
+  "module_design": {
+    "modules": [
+      {
+        "module_id": "MILK-RT",
+        "name": "StartInterlock_RtStep",
+        "thread": "RT",
+        "file": "src/interlock/start_interlock.c",
+        "responsibility": "周期ごとに条件をサンプリングし、開始要求時に集約判定を進める。"
+      },
+      {
+        "module_id": "MILK-EVAL",
+        "name": "StartInterlock_Evaluate",
+        "thread": "RT",
+        "file": "src/interlock/start_interlock.c",
+        "responsibility": "入力スナップショットから禁止理由ビットマスクと代表理由を算出する。"
+      },
+      {
+        "module_id": "MILK-TS",
+        "name": "StartInterlock_TsStep",
+        "thread": "TS",
+        "file": "src/interlock/start_interlock.c",
+        "responsibility": "判定結果変化時のログ出力とUI向けメッセージID生成を行う。"
+      },
+      {
+        "module_id": "MILK-API",
+        "name": "Api_GetStartInterlockStatus",
+        "thread": "API caller",
+        "file": "src/api/bob_api.c",
+        "responsibility": "外部アプリから参照可能な判定状態をコピー返却する。"
+      }
+    ],
+    "call_flow": [
+      "rt_main_loop.c: RtMainLoop() -> StartInterlock_RtStep()",
+      "StartInterlock_RtStep() -> StartInterlock_UpdateSnapshot()",
+      "StartInterlock_RtStep() -> StartInterlock_Evaluate()",
+      "ts_main_loop.c: TsMainLoop() -> StartInterlock_TsStep()",
+      "bob_api.c: Api_GetStartInterlockStatus() -> StartInterlock_CopyStatusStable()"
+    ]
+  },
+  "data_design": {
+    "constants": [
+      {
+        "name": "START_ILK_MAX_REASON",
+        "value": "16",
+        "description": "禁止理由ビット数の上限"
+      },
+      {
+        "name": "START_ILK_STABLE_TICK",
+        "value": "3",
+        "description": "入力安定確認に必要な連続RT周期数"
+      },
+      {
+        "name": "START_ILK_TIMEOUT_TICK",
+        "value": "200",
+        "description": "判定中状態のタイムアウト周期数"
+      }
+    ],
+    "enums": [
+      {
+        "name": "START_ILK_STATE",
+        "values": [
+          {
+            "name": "START_ILK_IDLE",
+            "value": 0,
+            "meaning": "待機中"
+          },
+          {
+            "name": "START_ILK_REQUESTED",
+            "value": 1,
+            "meaning": "開始要求受付済み"
+          },
+          {
+            "name": "START_ILK_SAMPLING",
+            "value": 2,
+            "meaning": "入力安定確認中"
+          },
+          {
+            "name": "START_ILK_EVALUATING",
+            "value": 3,
+            "meaning": "集約判定中"
+          },
+          {
+            "name": "START_ILK_ALLOWED",
+            "value": 4,
+            "meaning": "開始許可"
+          },
+          {
+            "name": "START_ILK_BLOCKED",
+            "value": 5,
+            "meaning": "開始禁止"
+          },
+          {
+            "name": "START_ILK_TIMEOUT",
+            "value": 6,
+            "meaning": "判定タイムアウト"
+          }
+        ]
+      },
+      {
+        "name": "START_ILK_REASON_BIT",
+        "values": [
+          {
+            "name": "START_ILK_R_EMG_STOP",
+            "value": "0x00000001",
+            "meaning": "非常停止入力ON"
+          },
+          {
+            "name": "START_ILK_R_DOOR_OPEN",
+            "value": "0x00000002",
+            "meaning": "安全ドア開"
+          },
+          {
+            "name": "START_ILK_R_SERVO_NOT_READY",
+            "value": "0x00000004",
+            "meaning": "サーボ未準備"
+          },
+          {
+            "name": "START_ILK_R_AXIS_NOT_ORIGIN",
+            "value": "0x00000008",
+            "meaning": "原点復帰未完了軸あり"
+          },
+          {
+            "name": "START_ILK_R_ALARM_ACTIVE",
+            "value": "0x00000010",
+            "meaning": "既存アラーム発生中"
+          },
+          {
+            "name": "START_ILK_R_MOTION_BUSY",
+            "value": "0x00000020",
+            "meaning": "モーションコントローラ動作中"
+          },
+          {
+            "name": "START_ILK_R_MAINT_MODE",
+            "value": "0x00000040",
+            "meaning": "保守モード中"
+          },
+          {
+            "name": "START_ILK_R_AIR_PRESSURE_LOW",
+            "value": "0x00000080",
+            "meaning": "空圧低下"
+          }
+        ]
+      }
+    ],
+    "structs": [
+      {
+        "name": "START_INTERLOCK_SNAPSHOT",
+        "fields": [
+          {
+            "name": "emergency_stop",
+            "type": "uint8_t",
+            "description": "非常停止入力"
+          },
+          {
+            "name": "door_open",
+            "type": "uint8_t",
+            "description": "安全ドア開状態"
+          },
+          {
+            "name": "servo_ready",
+            "type": "uint8_t",
+            "description": "全サーボ準備完了"
+          },
+          {
+            "name": "origin_complete_mask",
+            "type": "uint32_t",
+            "description": "原点復帰完了軸ビット"
+          },
+          {
+            "name": "alarm_active",
+            "type": "uint8_t",
+            "description": "既存アラーム発生中"
+          },
+          {
+            "name": "motion_busy",
+            "type": "uint8_t",
+            "description": "モーションコントローラ動作中"
+          },
+          {
+            "name": "run_mode",
+            "type": "uint8_t",
+            "description": "現在運転モード"
+          },
+          {
+            "name": "air_pressure_ok",
+            "type": "uint8_t",
+            "description": "空圧正常"
+          }
+        ]
+      },
+      {
+        "name": "START_INTERLOCK_CTRL",
+        "fields": [
+          {
+            "name": "request",
+            "type": "uint8_t",
+            "description": "開始判定要求。既存開始処理が1を設定、RTが消費する。"
+          },
+          {
+            "name": "state",
+            "type": "uint8_t",
+            "description": "START_ILK_STATE"
+          },
+          {
+            "name": "allowed",
+            "type": "uint8_t",
+            "description": "開始許可結果"
+          },
+          {
+            "name": "blocked",
+            "type": "uint8_t",
+            "description": "開始禁止結果"
+          },
+          {
+            "name": "stable_count",
+            "type": "uint8_t",
+            "description": "入力安定確認カウンタ"
+          },
+          {
+            "name": "timeout_count",
+            "type": "uint16_t",
+            "description": "判定タイムアウト監視カウンタ"
+          },
+          {
+            "name": "reason_mask",
+            "type": "uint32_t",
+            "description": "禁止理由ビットマスク"
+          },
+          {
+            "name": "primary_reason",
+            "type": "uint16_t",
+            "description": "代表禁止理由コード"
+          },
+          {
+            "name": "generation",
+            "type": "uint16_t",
+            "description": "更新世代番号。偶数が安定、奇数が更新中。"
+          },
+          {
+            "name": "last_result_tick",
+            "type": "uint32_t",
+            "description": "最後に結果確定したRT tick"
+          },
+          {
+            "name": "snapshot",
+            "type": "START_INTERLOCK_SNAPSHOT",
+            "description": "判定時の入力スナップショット"
+          },
+          {
+            "name": "ts_log_request",
+            "type": "uint8_t",
+            "description": "TSログ要求"
+          },
+          {
+            "name": "ts_log_done_generation",
+            "type": "uint16_t",
+            "description": "TSログ出力済み世代"
+          }
+        ]
+      }
+    ],
+    "globals": [
+      {
+        "name": "g_startInterlockCtrl",
+        "type": "START_INTERLOCK_CTRL",
+        "owner": "RT",
+        "writers": [
+          "RT",
+          "既存開始要求処理"
+        ],
+        "readers": [
+          "RT",
+          "TS",
+          "API"
+        ],
+        "update_cycle": "RT周期 / API参照時",
+        "consistency": "generation奇数化 -> 複数フィールド更新 -> generation偶数化の順で公開する。APIとTSは偶数世代を2回読んで一致した場合のみ有効値として扱う。"
+      }
+    ]
+  },
+  "thread_design": {
+    "rt_thread": {
+      "entry": "StartInterlock_RtStep(uint32_t rtTick)",
+      "period": "既存RT周期に従う",
+      "responsibilities": [
+        "開始判定要求受付",
+        "入力スナップショット取得",
+        "入力安定確認",
+        "禁止理由集約",
+        "開始許可/禁止結果公開"
+      ],
+      "forbidden_operations": [
+        "ファイルI/O",
+        "malloc/free",
+        "printf/sprintf等の重い文字列整形",
+        "Sleep/Wait系API",
+        "Windowsシステムコール"
+      ]
+    },
+    "ts_thread": {
+      "entry": "StartInterlock_TsStep(void)",
+      "responsibilities": [
+        "ts_log_request監視",
+        "判定結果ログ出力",
+        "UI向けメッセージID生成",
+        "ログ済み世代更新"
+      ],
+      "notes": "TS側は判定結果を変更しない。RTが確定した結果の副次処理のみ実行する。"
+    },
+    "api_thread": {
+      "entry": "Api_GetStartInterlockStatus(START_INTERLOCK_STATUS* pStatus)",
+      "responsibilities": [
+        "外部アプリへの安定スナップショット返却"
+      ],
+      "notes": "APIは参照専用とし、開始判定要求の書込みは既存開始処理に集約する。"
+    }
+  },
+  "state_machine": {
+    "initial_state": "START_ILK_IDLE",
+    "transitions": [
+      {
+        "from": "IDLE",
+        "event": "request==1",
+        "to": "REQUESTED",
+        "action": "結果フラグとカウンタ初期化"
+      },
+      {
+        "from": "REQUESTED",
+        "event": "次RT周期",
+        "to": "SAMPLING",
+        "action": "入力スナップショット取得開始"
+      },
+      {
+        "from": "SAMPLING",
+        "event": "同一スナップショットがSTART_ILK_STABLE_TICK継続",
+        "to": "EVALUATING",
+        "action": "安定入力を判定対象として確定"
+      },
+      {
+        "from": "SAMPLING",
+        "event": "スナップショット変化",
+        "to": "SAMPLING",
+        "action": "stable_count=0"
+      },
+      {
+        "from": "EVALUATING",
+        "event": "reason_mask==0",
+        "to": "ALLOWED",
+        "action": "allowed=1, blocked=0, ts_log_request=1"
+      },
+      {
+        "from": "EVALUATING",
+        "event": "reason_mask!=0",
+        "to": "BLOCKED",
+        "action": "allowed=0, blocked=1, primary_reason設定, ts_log_request=1"
+      },
+      {
+        "from": "SAMPLING/EVALUATING",
+        "event": "timeout_count>=START_ILK_TIMEOUT_TICK",
+        "to": "TIMEOUT",
+        "action": "blocked=1, primary_reason=判定タイムアウト"
+      },
+      {
+        "from": "ALLOWED/BLOCKED/TIMEOUT",
+        "event": "request==0かつ結果参照完了",
+        "to": "IDLE",
+        "action": "状態のみIDLEへ戻す。直近結果は保持する。"
+      }
+    ]
+  },
+  "processing_details": {
+    "functions": [
+      {
+        "name": "StartInterlock_Init",
+        "prototype": "void StartInterlock_Init(void);",
+        "file": "src/interlock/start_interlock.c",
+        "thread": "起動初期化",
+        "inputs": [],
+        "outputs": [
+          "g_startInterlockCtrl初期化"
+        ],
+        "side_effects": [
+          "共有メモリ初期値設定"
+        ],
+        "errors": [],
+        "pseudo_code": [
+          "memset(&g_startInterlockCtrl, 0, sizeof(g_startInterlockCtrl));",
+          "g_startInterlockCtrl.state = START_ILK_IDLE;",
+          "g_startInterlockCtrl.generation = 0;"
+        ]
+      },
+      {
+        "name": "StartInterlock_RtStep",
+        "prototype": "void StartInterlock_RtStep(uint32_t rtTick);",
+        "file": "src/interlock/start_interlock.c",
+        "thread": "RT",
+        "inputs": [
+          "rtTick",
+          "既存共有メモリのI/O状態",
+          "g_startInterlockCtrl.request"
+        ],
+        "outputs": [
+          "state",
+          "allowed",
+          "blocked",
+          "reason_mask",
+          "primary_reason",
+          "snapshot"
+        ],
+        "side_effects": [
+          "ts_log_request設定"
+        ],
+        "errors": [
+          "判定タイムアウト時はSTART_ILK_TIMEOUTへ遷移"
+        ],
+        "pseudo_code": [
+          "switch (state) {",
+          "case IDLE: if (request) enter REQUESTED; break;",
+          "case REQUESTED: clear_result(); enter SAMPLING; break;",
+          "case SAMPLING: update_snapshot(); if stable then enter EVALUATING; else timeout_check(); break;",
+          "case EVALUATING: mask = Evaluate(snapshot); publish_result(mask); break;",
+          "case ALLOWED/BLOCKED/TIMEOUT: if (!request) state = IDLE; break;",
+          "}"
+        ]
+      },
+      {
+        "name": "StartInterlock_UpdateSnapshot",
+        "prototype": "static void StartInterlock_UpdateSnapshot(START_INTERLOCK_SNAPSHOT* pOut);",
+        "file": "src/interlock/start_interlock.c",
+        "thread": "RT",
+        "inputs": [
+          "g_hwInput",
+          "g_motionStatus",
+          "g_runModeCtrl",
+          "g_alarmStatus"
+        ],
+        "outputs": [
+          "START_INTERLOCK_SNAPSHOT"
+        ],
+        "side_effects": [],
+        "errors": [],
+        "pseudo_code": [
+          "pOut->emergency_stop = g_hwInput.emergency_stop;",
+          "pOut->door_open = g_hwInput.safety_door_open;",
+          "pOut->servo_ready = Motion_IsAllServoReady();",
+          "pOut->origin_complete_mask = g_motionStatus.origin_complete_mask;",
+          "pOut->alarm_active = Alarm_IsActive();"
+        ]
+      },
+      {
+        "name": "StartInterlock_Evaluate",
+        "prototype": "static uint32_t StartInterlock_Evaluate(const START_INTERLOCK_SNAPSHOT* pSnap, uint16_t* pPrimaryReason);",
+        "file": "src/interlock/start_interlock.c",
+        "thread": "RT",
+        "inputs": [
+          "判定スナップショット"
+        ],
+        "outputs": [
+          "禁止理由マスク",
+          "代表理由"
+        ],
+        "side_effects": [],
+        "errors": [],
+        "pseudo_code": [
+          "mask = 0;",
+          "if (pSnap->emergency_stop) mask |= START_ILK_R_EMG_STOP;",
+          "if (pSnap->door_open) mask |= START_ILK_R_DOOR_OPEN;",
+          "if (!pSnap->servo_ready) mask |= START_ILK_R_SERVO_NOT_READY;",
+          "if ((pSnap->origin_complete_mask & REQUIRED_AXIS_MASK) != REQUIRED_AXIS_MASK) mask |= START_ILK_R_AXIS_NOT_ORIGIN;",
+          "*pPrimaryReason = StartInterlock_SelectPrimaryReason(mask);",
+          "return mask;"
+        ]
+      },
+      {
+        "name": "StartInterlock_PublishResult",
+        "prototype": "static void StartInterlock_PublishResult(uint32_t mask, uint16_t primaryReason, uint32_t rtTick);",
+        "file": "src/interlock/start_interlock.c",
+        "thread": "RT",
+        "inputs": [
+          "mask",
+          "primaryReason",
+          "rtTick"
+        ],
+        "outputs": [
+          "g_startInterlockCtrl"
+        ],
+        "side_effects": [
+          "generation更新",
+          "ts_log_request設定"
+        ],
+        "errors": [],
+        "pseudo_code": [
+          "generation++ ; // odd",
+          "reason_mask = mask; primary_reason = primaryReason;",
+          "allowed = (mask == 0); blocked = (mask != 0);",
+          "state = allowed ? START_ILK_ALLOWED : START_ILK_BLOCKED;",
+          "last_result_tick = rtTick; ts_log_request = 1;",
+          "generation++ ; // even"
+        ]
+      },
+      {
+        "name": "StartInterlock_TsStep",
+        "prototype": "void StartInterlock_TsStep(void);",
+        "file": "src/interlock/start_interlock.c",
+        "thread": "TS",
+        "inputs": [
+          "g_startInterlockCtrl"
+        ],
+        "outputs": [
+          "ログ",
+          "UIメッセージキュー"
+        ],
+        "side_effects": [
+          "ts_log_done_generation更新"
+        ],
+        "errors": [
+          "ログ出力失敗時は既存ログ異常カウンタに反映"
+        ],
+        "pseudo_code": [
+          "status = CopyStatusStable();",
+          "if (status.ts_log_request && status.generation != ts_log_done_generation) {",
+          "  Log_WriteStartInterlock(status);",
+          "  UiMessage_Post(ConvertReasonToMessageId(status.primary_reason));",
+          "  g_startInterlockCtrl.ts_log_done_generation = status.generation;",
+          "}"
+        ]
+      },
+      {
+        "name": "Api_GetStartInterlockStatus",
+        "prototype": "int32_t Api_GetStartInterlockStatus(START_INTERLOCK_STATUS* pStatus);",
+        "file": "src/api/bob_api.c",
+        "thread": "API caller",
+        "inputs": [
+          "pStatus"
+        ],
+        "outputs": [
+          "START_INTERLOCK_STATUS"
+        ],
+        "side_effects": [],
+        "errors": [
+          "pStatus==NULL: BOB_ERR_INVALID_ARG",
+          "安定世代取得失敗: BOB_ERR_BUSY"
+        ],
+        "pseudo_code": [
+          "if (pStatus == NULL) return BOB_ERR_INVALID_ARG;",
+          "for retry in 0..2: read gen1; copy fields; read gen2; if gen1==gen2 && even return OK;",
+          "return BOB_ERR_BUSY;"
+        ]
+      }
+    ]
+  },
+  "api_design": {
+    "public_header": "include/api/bob_api.h",
+    "apis": [
+      {
+        "name": "Api_GetStartInterlockStatus",
+        "prototype": "int32_t Api_GetStartInterlockStatus(START_INTERLOCK_STATUS* pStatus);",
+        "description": "外部UIが現在の開始前インターロック判定状態を取得する。",
+        "arguments": [
+          {
+            "name": "pStatus",
+            "direction": "out",
+            "type": "START_INTERLOCK_STATUS*",
+            "description": "判定状態出力バッファ"
+          }
+        ],
+        "returns": [
+          {
+            "code": "BOB_OK",
+            "meaning": "正常"
+          },
+          {
+            "code": "BOB_ERR_INVALID_ARG",
+            "meaning": "NULLポインタ"
+          },
+          {
+            "code": "BOB_ERR_BUSY",
+            "meaning": "RT更新中で安定値取得不可"
+          }
+        ],
+        "thread_safety": "世代番号による安定コピー。API側から共有状態を変更しない。"
+      }
+    ]
+  },
+  "io_mapping": {
+    "inputs": [
+      {
+        "source": "g_hwInput.emergency_stop",
+        "type": "DI",
+        "meaning": "非常停止",
+        "ng_condition": "1"
+      },
+      {
+        "source": "g_hwInput.safety_door_open",
+        "type": "DI",
+        "meaning": "安全ドア",
+        "ng_condition": "1"
+      },
+      {
+        "source": "g_motionStatus.servo_ready_mask",
+        "type": "内部状態",
+        "meaning": "サーボ準備",
+        "ng_condition": "必須軸マスク未充足"
+      },
+      {
+        "source": "g_motionStatus.origin_complete_mask",
+        "type": "内部状態",
+        "meaning": "原点復帰",
+        "ng_condition": "必須軸マスク未充足"
+      },
+      {
+        "source": "g_alarmStatus.active",
+        "type": "内部状態",
+        "meaning": "異常発生",
+        "ng_condition": "1"
+      },
+      {
+        "source": "g_motionStatus.busy",
+        "type": "内部状態",
+        "meaning": "既存モーション動作中",
+        "ng_condition": "1"
+      },
+      {
+        "source": "g_runModeCtrl.current_mode",
+        "type": "内部状態",
+        "meaning": "運転モード",
+        "ng_condition": "保守モード"
+      },
+      {
+        "source": "g_hwInput.air_pressure_ok",
+        "type": "DI",
+        "meaning": "空圧正常",
+        "ng_condition": "0"
+      }
+    ],
+    "outputs": [
+      {
+        "target": "g_startInterlockCtrl.allowed",
+        "meaning": "開始許可"
+      },
+      {
+        "target": "g_startInterlockCtrl.blocked",
+        "meaning": "開始禁止"
+      },
+      {
+        "target": "g_startInterlockCtrl.reason_mask",
+        "meaning": "禁止理由マスク"
+      },
+      {
+        "target": "g_startInterlockCtrl.primary_reason",
+        "meaning": "代表理由"
+      },
+      {
+        "target": "UI message queue",
+        "meaning": "開始不可理由表示"
+      },
+      {
+        "target": "event log",
+        "meaning": "開始判定結果ログ"
+      }
+    ]
+  },
+  "consistency_and_concurrency": {
+    "update_order": [
+      "RTがgenerationを奇数へ更新し、更新中を示す。",
+      "RTがsnapshot、reason_mask、primary_reason、allowed、blocked、state、last_result_tickを更新する。",
+      "RTがts_log_requestを設定する。",
+      "RTがgenerationを偶数へ更新し、安定公開を示す。",
+      "TS/APIはgenerationを前後2回読み、一致かつ偶数の場合のみ値を採用する。"
+    ],
+    "multi_writer_policy": [
+      "requestは既存開始要求処理のみが1を設定し、RTが0に戻す。",
+      "ts_log_done_generationのみTSが書き込む。",
+      "判定結果フィールドはRTのみが書き込む。",
+      "APIは全フィールド参照専用とする。"
+    ],
+    "memory_barrier_policy": "Windows/VC2026/clangの最適化でフィールド読書き順序が崩れる場合に備え、共有構造体のgenerationはvolatile相当の既存共有メモリアクセスマクロを使用する。詳細実装ではBobMemory_Read16/BobMemory_Write16などの既存抽象化を優先する。"
+  },
+  "error_safety_design": {
+    "error_cases": [
+      {
+        "case": "判定タイムアウト",
+        "detection": "timeout_count >= START_ILK_TIMEOUT_TICK",
+        "action": "blocked=1, primary_reason=TIMEOUT, state=TIMEOUT",
+        "safe_state": "開始禁止"
+      },
+      {
+        "case": "更新中にAPI参照",
+        "detection": "generation不一致または奇数",
+        "action": "BOB_ERR_BUSYを返す",
+        "safe_state": "外部UIは直近表示維持"
+      },
+      {
+        "case": "TSログ失敗",
+        "detection": "Log_WriteStartInterlock戻り値異常",
+        "action": "既存ログ異常カウンタをインクリメント",
+        "safe_state": "RT判定結果は変更しない"
+      },
+      {
+        "case": "未知状態値",
+        "detection": "stateがenum範囲外",
+        "action": "state=TIMEOUT, blocked=1",
+        "safe_state": "開始禁止"
+      }
+    ],
+    "fail_safe_policy": "判定不能、入力不安定、未知状態、タイムアウトはいずれも開始禁止側に倒す。"
+  },
+  "performance_design": {
+    "rt_budget": "10usec以下 / RT周期、監視項目16点、必須軸最大8軸を想定",
+    "complexity": "O(N) where N=監視項目数。ただしNは定数上限16。",
+    "measurement_plan": [
+      "VC2026 Debug/ReleaseでStartInterlock_RtStep単体の最大/平均実行時間を測定する。",
+      "clang Windows版で同一テストを実施する。",
+      "最大監視項目ON、スナップショット変動、タイムアウト遷移時をワーストケースとして測定する。"
+    ]
+  },
+  "build_and_test": {
+    "build_commands": [
+      "cmd /c scripts\\build_vc2026.bat",
+      "cmd /c scripts\\build_clang.bat"
+    ],
+    "test_commands": [
+      "cmd /c scripts\\test_vc2026.bat",
+      "cmd /c scripts\\test_clang.bat"
+    ],
+    "unit_tests": [
+      {
+        "id": "UT-ILK-001",
+        "name": "全条件正常時にALLOWEDとなる",
+        "inputs": "全DI正常、サーボ準備、原点復帰完了、アラームなし",
+        "expected": "allowed=1, reason_mask=0"
+      },
+      {
+        "id": "UT-ILK-002",
+        "name": "非常停止ON時にBLOCKEDとなる",
+        "inputs": "emergency_stop=1",
+        "expected": "reason_maskにSTART_ILK_R_EMG_STOP、primary_reason=非常停止"
+      },
+      {
+        "id": "UT-ILK-003",
+        "name": "複数NG時にビットマスクが合成される",
+        "inputs": "door_open=1, servo_ready=0",
+        "expected": "2理由のOR、代表理由は優先順位最上位"
+      },
+      {
+        "id": "UT-ILK-004",
+        "name": "入力が安定するまでEVALUATINGへ進まない",
+        "inputs": "SAMPLING中に入力を変動",
+        "expected": "stable_countリセット"
+      },
+      {
+        "id": "UT-ILK-005",
+        "name": "判定タイムアウトで開始禁止",
+        "inputs": "入力変動継続",
+        "expected": "state=TIMEOUT, blocked=1"
+      },
+      {
+        "id": "UT-ILK-006",
+        "name": "API安定コピー",
+        "inputs": "generation偶数/奇数/不一致",
+        "expected": "偶数一致はOK、奇数または不一致はBUSY"
+      }
+    ],
+    "static_checks": [
+      "共有構造体サイズとアラインメント確認",
+      "enum値と理由マスク重複確認",
+      "RT関数内の禁止API呼び出し検索",
+      "新規ファイルのVC2026/clangビルド対象追加確認"
+    ]
+  },
+  "pre_review_self_check": {
+    "result": "conditional_pass",
+    "checks": [
+      {
+        "id": "DDR-001",
+        "status": "OK",
+        "item": "基本設計から詳細設計へのトレーサビリティがある"
+      },
+      {
+        "id": "DDR-002",
+        "status": "OK",
+        "item": "RT/TS/APIの責務分離が明確"
+      },
+      {
+        "id": "DDR-003",
+        "status": "OK",
+        "item": "共有メモリの所有者、書込元、読取元を定義"
+      },
+      {
+        "id": "DDR-004",
+        "status": "WARN",
+        "item": "RT処理時間10usec以下は実装後の実測で確定が必要"
+      },
+      {
+        "id": "DDR-005",
+        "status": "WARN",
+        "item": "既存共有メモリアクセスマクロ名は実コード確認が必要"
+      },
+      {
+        "id": "DDR-006",
+        "status": "OK",
+        "item": "状態遷移、タイムアウト、フェイルセーフが定義済み"
+      },
+      {
+        "id": "DDR-007",
+        "status": "OK",
+        "item": "VC2026/clangのbuild/testコマンドを記載"
+      }
+    ]
+  }
+}

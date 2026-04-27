@@ -1,0 +1,41 @@
+{
+  "schema_version": "ibm-bob-function-test-design-v1.0",
+  "document": {
+    "document_id": "FT-SAMPLE-001",
+    "document_name": "運転開始前インターロック集約判定機能 機能テスト設計書",
+    "document_type": "function_test_design",
+    "version": "1.0",
+    "created_date": "2026-04-27",
+    "author": "IBM-Bob AI Agent",
+    "status": "draft"
+  },
+  "test_policy": {
+    "purpose": "自動運転開始前に複数の開始禁止条件を集約判定し、開始許可/禁止理由/API参照結果が仕様通りに動作することを確認する。",
+    "scope": [
+      "全条件正常時の開始許可",
+      "非常停止・安全ドア・サーボ未準備時の開始禁止",
+      "複数NG条件時の理由ビット合成",
+      "APIによる安定スナップショット取得"
+    ]
+  },
+  "test_cases": [
+    {
+      "test_id": "FT-ILK-001",
+      "condition": "全インターロック条件が正常で開始要求ON",
+      "expected_result": "開始許可がONになり、禁止理由ビットは0になる。"
+    },
+    {
+      "test_id": "FT-ILK-002",
+      "condition": "非常停止入力ONで開始要求ON",
+      "expected_result": "開始禁止となり、非常停止の理由ビットがONになる。"
+    },
+    {
+      "test_id": "FT-ILK-003",
+      "condition": "安全ドア開、サーボ未準備が同時発生",
+      "expected_result": "両方の理由ビットがOR合成され、代表理由は優先順位通りになる。"
+    }
+  ],
+  "open_issues": [
+    "設備別の空圧低下しきい値は実機側パラメータ台帳で確定する。"
+  ]
+}

@@ -1,0 +1,352 @@
+{
+  "review": {
+    "review_id": "RVR-ILK-FT-001",
+    "review_type": "AIプレレビュー",
+    "review_date": "2026/04/28",
+    "target": {
+      "document_type": "function_test",
+      "document_name": "運転開始前インターロック集約判定機能_機能テスト設計書.docx",
+      "feature_id": "BD-ILK-START-001",
+      "feature_name": "運転開始前インターロック集約判定機能",
+      "version": "1.0"
+    },
+    "decision": "条件付き合格",
+    "inputs": [
+      [
+        "IN-001",
+        "機能テスト設計書",
+        "/mnt/data/運転開始前インターロック集約判定機能_機能テスト設計書.docx",
+        "1.0",
+        "機能テスト設計レビュー対象",
+        "Yes",
+        ""
+      ],
+      [
+        "IN-002",
+        "機能テスト設計JSON",
+        "/mnt/data/運転開始前インターロック集約判定機能_機能テスト設計書.json",
+        "1.0",
+        "テストケース・カバレッジ確認",
+        "Yes",
+        ""
+      ],
+      [
+        "IN-003",
+        "基本設計書",
+        "/mnt/data/運転開始前インターロック集約判定機能_基本設計書.docx",
+        "1.0",
+        "要件・機能範囲確認",
+        "Yes",
+        ""
+      ],
+      [
+        "IN-004",
+        "詳細設計書",
+        "/mnt/data/運転開始前インターロック集約判定機能_詳細設計書.docx",
+        "1.0",
+        "関数・状態・API確認",
+        "Yes",
+        ""
+      ],
+      [
+        "IN-005",
+        "レビュー用テンプレート",
+        "IBM-Bob_レビュー用テンプレート_v1.docx",
+        "1.0",
+        "章立て・チェックID・判定基準",
+        "Yes",
+        ""
+      ]
+    ],
+    "scope_note": "本レビューは、提供された対象Word/JSONおよびIBM-Bob基盤前提に基づくプレレビューである。コード実装・実機I/O・build/test実行ログは未提供のため、該当項目はN/AまたはWARNとして扱う。",
+    "summary": {
+      "ok_count": 11,
+      "warn_count": 5,
+      "ng_count": 0,
+      "na_count": 1,
+      "unchecked_count": 0,
+      "ok_topics": "テスト方針、環境、NG条件網羅、状態遷移、API/ログ、証跡設計、出口条件",
+      "warn_topics": "REQ-004対応漏れ、ハーネスI/F、run_mode enum、性能範囲、テストフック管理",
+      "ng_topics": "致命的NGなし",
+      "na_topics": "詳細設計単体レビュー",
+      "unchecked_topics": "未確認項目なし",
+      "ok_comment": "主要な設計意図とIBM-Bob固有観点は概ね記載済み。",
+      "warn_comment": "実装前または後続工程で確定すべき事項がある。",
+      "ng_comment": "レビュー時点で次工程を阻害する致命的欠陥は検出していない。",
+      "na_comment": "対象文書外のコード/テスト実装レビューは除外。",
+      "unchecked_comment": "なし。"
+    },
+    "check_results": [
+      {
+        "check_id": "RVR-CMN-001",
+        "category": "共通",
+        "viewpoint": "目的・範囲・対象外が明確か",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "FT-03",
+        "comment": "機能テスト目的、対象範囲、対象外が整理されている。"
+      },
+      {
+        "check_id": "RVR-CMN-002",
+        "category": "共通",
+        "viewpoint": "基本/詳細設計を参照しているか",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "FT-02",
+        "comment": "basic_design、detail_design、baseline_designの参照用途が記載されている。"
+      },
+      {
+        "check_id": "RVR-FT-001",
+        "category": "機能テスト",
+        "viewpoint": "テスト方針・合格判定が明確か",
+        "status": "OK",
+        "severity": "High",
+        "evidence": "FT-03",
+        "comment": "開始許可/禁止、理由、API、ログが合格判定に含まれる。"
+      },
+      {
+        "check_id": "RVR-FT-002",
+        "category": "機能テスト",
+        "viewpoint": "テスト環境・ビルド/テストコマンドが定義されているか",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "FT-04",
+        "comment": "VC2026/clangのbuild/testコマンド、制御入力、観測出力が記載されている。"
+      },
+      {
+        "check_id": "RVR-FT-003",
+        "category": "機能テスト",
+        "viewpoint": "テストハーネス前提が具体的か",
+        "status": "WARN",
+        "severity": "Medium",
+        "evidence": "FT-04",
+        "comment": "RT/TS step制御やログモックの前提はあるが、ハーネスI/F仕様とモック失敗注入方法は未定義。"
+      },
+      {
+        "check_id": "RVR-FT-004",
+        "category": "機能テスト",
+        "viewpoint": "テストデータ・理由優先順位が定義されているか",
+        "status": "WARN",
+        "severity": "Medium",
+        "evidence": "FT-05",
+        "comment": "RUN_MODE_AUTO_READYが詳細設計のenum/既存run_mode定義と一致するか確認が必要。"
+      },
+      {
+        "check_id": "RVR-FT-005",
+        "category": "機能テスト",
+        "viewpoint": "単独NG条件と複数NG条件が網羅されているか",
+        "status": "OK",
+        "severity": "High",
+        "evidence": "FT-06, FT-07",
+        "comment": "非常停止、安全ドア、サーボ、原点、アラーム、モーション、保守、空圧、複数NGを網羅。"
+      },
+      {
+        "check_id": "RVR-FT-006",
+        "category": "機能テスト",
+        "viewpoint": "状態遷移・タイムアウト・要求解除を確認しているか",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "FT-ILK-002, 012, 013",
+        "comment": "IDLE復帰、入力安定、タイムアウトを確認対象としている。"
+      },
+      {
+        "check_id": "RVR-FT-007",
+        "category": "機能テスト",
+        "viewpoint": "API参照の正常・排他系が確認対象か",
+        "status": "WARN",
+        "severity": "High",
+        "evidence": "FT-02, FT-06, FT-ILK-014, 015",
+        "comment": "FT-ILK-014はAPI安定スナップショットだが、FT-02のREQ-ILK-004対応にFT-ILK-014が抜けている。"
+      },
+      {
+        "check_id": "RVR-FT-008",
+        "category": "機能テスト",
+        "viewpoint": "RT/TS分離とログ失敗時の保護が確認対象か",
+        "status": "OK",
+        "severity": "High",
+        "evidence": "FT-ILK-016",
+        "comment": "TSログ失敗時にRT結果が変わらない確認がある。"
+      },
+      {
+        "check_id": "RVR-FT-009",
+        "category": "機能テスト",
+        "viewpoint": "証跡設計が自動化に適しているか",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "FT-10",
+        "comment": "共有メモリ、APIレスポンス、RT trace、build/test logの証跡設計がある。"
+      },
+      {
+        "check_id": "RVR-FT-010",
+        "category": "機能テスト",
+        "viewpoint": "開始・終了条件が定義されているか",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "FT-11",
+        "comment": "入口条件と出口条件が整理されている。"
+      },
+      {
+        "check_id": "RVR-FT-011",
+        "category": "機能テスト",
+        "viewpoint": "性能評価範囲が整理されているか",
+        "status": "WARN",
+        "severity": "Medium",
+        "evidence": "FT-12, FT-13",
+        "comment": "RT実行時間を機能テスト参考値か性能テスト正式判定か未確定として扱っている。"
+      },
+      {
+        "check_id": "RVR-FT-012",
+        "category": "機能テスト",
+        "viewpoint": "テスト専用フックの扱いが安全か",
+        "status": "WARN",
+        "severity": "Medium",
+        "evidence": "FT-ILK-015",
+        "comment": "generation奇数化のテスト用フックは本番ビルド混入防止策が必要。"
+      },
+      {
+        "check_id": "RVR-IBM-001",
+        "category": "IBM-Bob固有",
+        "viewpoint": "安全回路そのものを範囲外として明記しているか",
+        "status": "OK",
+        "severity": "Critical",
+        "evidence": "FT-03, FT-12",
+        "comment": "安全PLCや安全回路の単体保証は対象外。"
+      },
+      {
+        "check_id": "RVR-IBM-002",
+        "category": "IBM-Bob固有",
+        "viewpoint": "VC2026/clang両profileで差異確認するか",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "FT-09",
+        "comment": "同一テストセットを両profileで実行し差異分析する手順がある。"
+      },
+      {
+        "check_id": "RVR-DD-001",
+        "category": "詳細設計",
+        "viewpoint": "詳細設計レビュー観点",
+        "status": "N/A",
+        "severity": "Low",
+        "evidence": "詳細設計レビューは別文書",
+        "comment": "本レビュー対象は機能テスト設計書。"
+      }
+    ],
+    "issues": [
+      {
+        "issue_id": "ISS-FT-001",
+        "source": "AI",
+        "location": "FT-02 / Traceability",
+        "severity": "High",
+        "category": "トレーサビリティ",
+        "description": "REQ-ILK-004の対応テストケース一覧に、API正常取得を扱うFT-ILK-014が含まれていない。",
+        "evidence": "FT-02ではREQ-ILK-004→FT-ILK-013, FT-ILK-015。一方FT-06/FT-ILK-014はAPIで安定スナップショットを取得しREQ-ILK-004に関連。",
+        "recommendation": "REQ-ILK-004の対応テストケースにFT-ILK-014を追加し、必要に応じてFT-ILK-013の要件紐付けを見直す。",
+        "owner": "テスト設計担当",
+        "due_date": "レビュー指摘対応時",
+        "status": "Open"
+      },
+      {
+        "issue_id": "ISS-FT-002",
+        "source": "AI",
+        "location": "FT-04 / テストハーネス",
+        "severity": "Medium",
+        "category": "テスト環境",
+        "description": "RT/TS step制御、共有メモリ入力、ログモックの前提はあるが、ハーネスI/F仕様が未定義。",
+        "evidence": "FT-04に前提条件として記載されている。",
+        "recommendation": "テストハーネスAPI、初期化順序、ログ失敗注入方法を付録または単体テスト仕様へ追加する。",
+        "owner": "テスト実装担当",
+        "due_date": "テストコード実装前",
+        "status": "Open"
+      },
+      {
+        "issue_id": "ISS-FT-003",
+        "source": "AI",
+        "location": "FT-05 / run_mode",
+        "severity": "Medium",
+        "category": "データ整合",
+        "description": "正常値RUN_MODE_AUTO_READYが詳細設計や既存運転モードenumと一致するか未確認。",
+        "evidence": "詳細設計ではg_runModeCtrl.current_modeのNG条件を保守モードとしているが、RUN_MODE_AUTO_READYの定義は確認できない。",
+        "recommendation": "既存run_mode定義と照合し、テストデータ名を実コードのenum名に合わせる。",
+        "owner": "テスト設計担当",
+        "due_date": "テスト実装前",
+        "status": "Open"
+      },
+      {
+        "issue_id": "ISS-FT-004",
+        "source": "AI",
+        "location": "FT-12/FT-13 / 性能範囲",
+        "severity": "Medium",
+        "category": "性能",
+        "description": "RT処理時間を機能テストで参考値扱いにするか性能テストで正式判定するか未確定。",
+        "evidence": "FTR-ILK-007とFT-ILK-OPN-002がWARN/未確定。",
+        "recommendation": "機能テストでは実行時間を証跡収集のみとし、正式合否は性能テスト設計へ分離する等の方針を決める。",
+        "owner": "性能評価担当",
+        "due_date": "レビュー時",
+        "status": "Open"
+      },
+      {
+        "issue_id": "ISS-FT-005",
+        "source": "AI",
+        "location": "FT-ILK-015 / テスト用フック",
+        "severity": "Medium",
+        "category": "テスト安全",
+        "description": "generationを奇数へ設定するテスト用フックについて、本番ビルド混入防止策が未記載。",
+        "evidence": "FT-ILK-015でテスト用フックを使用。",
+        "recommendation": "#ifdef TEST_BUILD等のガード、リンク分離、レビュー観点をテスト実装規約に追加する。",
+        "owner": "テスト実装担当",
+        "due_date": "テストコード実装前",
+        "status": "Open"
+      }
+    ],
+    "ibm_bob_findings": [
+      {
+        "id": "F-FT-001",
+        "status": "OK",
+        "title": "機能網羅性",
+        "finding": "正常、単独NG、複数NG、状態遷移、API、ログ失敗まで16件で網羅している。",
+        "recommendation": "テスト実装時に証跡JSON形式を固定する。"
+      },
+      {
+        "id": "F-FT-002",
+        "status": "WARN",
+        "title": "トレーサビリティ漏れ",
+        "finding": "API正常取得ケースFT-ILK-014がREQ-ILK-004の一覧から漏れている。",
+        "recommendation": "トレーサビリティ表を修正してレビューAIの自動判定と一致させる。"
+      },
+      {
+        "id": "F-FT-003",
+        "status": "WARN",
+        "title": "テストハーネス",
+        "finding": "ハーネスが存在する前提だがI/F仕様がない。",
+        "recommendation": "RT tick駆動、TS step、API呼出し、ログモックの関数名と引数を補足する。"
+      }
+    ],
+    "evidence_summary": [
+      [
+        "Build",
+        "未実施",
+        "cmd /c scripts\\build_vc2026.bat / cmd /c scripts\\build_clang.bat",
+        "設計書上は記載あり。実行ログ未提供。"
+      ],
+      [
+        "Test",
+        "未実施",
+        "cmd /c scripts\\test_vc2026.bat / cmd /c scripts\\test_clang.bat",
+        "設計書上は記載あり。実行ログ未提供。"
+      ],
+      [
+        "静的解析",
+        "未実施",
+        "RT禁止API検索、構造体アラインメント確認",
+        "コード未提供または未レビューのため未実施。"
+      ],
+      [
+        "文書構造",
+        "確認済み",
+        "SECTION_ID / JSON Path",
+        "対象文書に章IDとJSON構造対応がある。"
+      ]
+    ],
+    "json_file": "/mnt/data/ibm_bob_review_results_interlock/RVR-ILK-FT-001_review_result.json"
+  }
+}

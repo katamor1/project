@@ -1,0 +1,352 @@
+{
+  "review": {
+    "review_id": "RVR-ILK-BD-001",
+    "review_type": "AIプレレビュー",
+    "review_date": "2026/04/28",
+    "target": {
+      "document_type": "basic_design",
+      "document_name": "運転開始前インターロック集約判定機能_基本設計書.docx",
+      "feature_id": "BD-SMP-003",
+      "feature_name": "運転開始前インターロック集約判定機能",
+      "version": "1.0"
+    },
+    "decision": "条件付き合格",
+    "inputs": [
+      [
+        "IN-001",
+        "基本設計書",
+        "/mnt/data/運転開始前インターロック集約判定機能_基本設計書.docx",
+        "1.0",
+        "基本設計レビュー対象",
+        "Yes",
+        ""
+      ],
+      [
+        "IN-002",
+        "基本設計JSON",
+        "/mnt/data/運転開始前インターロック集約判定機能.json",
+        "1.0",
+        "構造化項目確認",
+        "Yes",
+        ""
+      ],
+      [
+        "IN-003",
+        "レビュー用テンプレート",
+        "IBM-Bob_レビュー用テンプレート_v1.docx",
+        "1.0",
+        "章立て・チェックID・判定基準",
+        "Yes",
+        ""
+      ],
+      [
+        "IN-004",
+        "基盤設計書",
+        "IBM-Bob基盤システム基本/詳細設計書",
+        "-",
+        "RT/TS・共有メモリ前提確認",
+        "参照",
+        ""
+      ]
+    ],
+    "scope_note": "本レビューは、提供された対象Word/JSONおよびIBM-Bob基盤前提に基づくプレレビューである。コード実装・実機I/O・build/test実行ログは未提供のため、該当項目はN/AまたはWARNとして扱う。",
+    "summary": {
+      "ok_count": 11,
+      "warn_count": 5,
+      "ng_count": 0,
+      "na_count": 2,
+      "unchecked_count": 0,
+      "ok_topics": "目的、RT/TS分離、共有メモリ概要、影響調査、テスト方針",
+      "warn_topics": "マスク保護、状態名整合、API詳細、RT性能予算、理由台帳",
+      "ng_topics": "致命的NGなし",
+      "na_topics": "コード/単体テスト実装レビュー",
+      "unchecked_topics": "未確認項目なし",
+      "ok_comment": "主要な設計意図とIBM-Bob固有観点は概ね記載済み。",
+      "warn_comment": "実装前または後続工程で確定すべき事項がある。",
+      "ng_comment": "レビュー時点で次工程を阻害する致命的欠陥は検出していない。",
+      "na_comment": "対象文書外のコード/テスト実装レビューは除外。",
+      "unchecked_comment": "なし。"
+    },
+    "check_results": [
+      {
+        "check_id": "RVR-CMN-001",
+        "category": "共通",
+        "viewpoint": "目的・対象範囲・対象外が明確か",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "BD-01, BD-03",
+        "comment": "目的、対象範囲、機能概要は明確。"
+      },
+      {
+        "check_id": "RVR-CMN-002",
+        "category": "共通",
+        "viewpoint": "文書内の章IDとJSON項目が追跡可能か",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "文書ヘッダ, 各SECTION_ID",
+        "comment": "JSONパスとSECTION_IDが確認できる。"
+      },
+      {
+        "check_id": "RVR-CMN-003",
+        "category": "共通",
+        "viewpoint": "未確定事項が明示されているか",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "BD-11",
+        "comment": "マスク可能条件、優先順位、台帳管理の未確定事項が記録されている。"
+      },
+      {
+        "check_id": "RVR-BD-001",
+        "category": "基本設計",
+        "viewpoint": "機能目的、入出力、対象範囲が基本設計レベルで明確か",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "BD-01〜BD-03",
+        "comment": "運転開始前の集約判定と共有メモリ公開が明確。"
+      },
+      {
+        "check_id": "RVR-BD-002",
+        "category": "基本設計",
+        "viewpoint": "詳細設計へ委譲する粒度が適切か",
+        "status": "OK",
+        "severity": "Low",
+        "evidence": "BD-05, BD-06",
+        "comment": "更新順序やAPI戻り値は詳細設計で確定する方針。"
+      },
+      {
+        "check_id": "RVR-BD-003",
+        "category": "基本設計",
+        "viewpoint": "RT/TS責務分離が基本設計で表現されているか",
+        "status": "OK",
+        "severity": "High",
+        "evidence": "BD-04, BD-08",
+        "comment": "RTは判定、TSは文言化・ログ・UI通知に分離されている。"
+      },
+      {
+        "check_id": "RVR-BD-004",
+        "category": "基本設計",
+        "viewpoint": "共有メモリ/グローバル変数の読取・書込元が示されているか",
+        "status": "WARN",
+        "severity": "High",
+        "evidence": "BD-05",
+        "comment": "g_startInterlockMaskはTS/API更新・RT読取だが、更新権限、反映タイミング、マスク不可条件の保護が詳細化前。"
+      },
+      {
+        "check_id": "RVR-BD-005",
+        "category": "基本設計",
+        "viewpoint": "公開APIの目的が明確か",
+        "status": "WARN",
+        "severity": "Medium",
+        "evidence": "BD-06",
+        "comment": "API名と概要はあるが、引数構造体、戻り値、BUSY時のUI表示方針は詳細設計依存。"
+      },
+      {
+        "check_id": "RVR-BD-006",
+        "category": "基本設計",
+        "viewpoint": "状態遷移・シーケンスが理解できるか",
+        "status": "WARN",
+        "severity": "Medium",
+        "evidence": "BD-07",
+        "comment": "IDLE/CHECKING/READY/BLOCKEDの概略はあるが、後続詳細設計のREQUESTED/SAMPLING/EVALUATINGとの用語整合が必要。"
+      },
+      {
+        "check_id": "RVR-BD-007",
+        "category": "基本設計",
+        "viewpoint": "異常時・安全側動作が定義されているか",
+        "status": "OK",
+        "severity": "Critical",
+        "evidence": "BD-08, BD-11",
+        "comment": "判定不能時は安全側維持、TSログ失敗は制御停止要因にしない方針がある。"
+      },
+      {
+        "check_id": "RVR-BD-008",
+        "category": "基本設計",
+        "viewpoint": "影響調査対象が列挙されているか",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "BD-09",
+        "comment": "既存モジュール、公開ヘッダ、build/test profileが列挙されている。"
+      },
+      {
+        "check_id": "RVR-BD-009",
+        "category": "基本設計",
+        "viewpoint": "テスト方針が後工程に繋がるか",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "BD-10",
+        "comment": "単体/機能テストとVC2026/clang両系の実行が記載されている。"
+      },
+      {
+        "check_id": "RVR-BD-010",
+        "category": "基本設計",
+        "viewpoint": "RT性能制約がレビュー可能か",
+        "status": "WARN",
+        "severity": "High",
+        "evidence": "BD-02, BD-10",
+        "comment": "全RT実行時間が1割込間隔を超えない制約はあるが、本機能の追加予算値や測定観点は未記載。"
+      },
+      {
+        "check_id": "RVR-IBM-001",
+        "category": "IBM-Bob固有",
+        "viewpoint": "RT側にI/Oや文字列処理を入れない方針か",
+        "status": "OK",
+        "severity": "Critical",
+        "evidence": "BD-04, BD-08",
+        "comment": "文言化・ログ保存はTSに分離。"
+      },
+      {
+        "check_id": "RVR-IBM-002",
+        "category": "IBM-Bob固有",
+        "viewpoint": "安全上マスク不可条件が保護されるか",
+        "status": "WARN",
+        "severity": "Critical",
+        "evidence": "BD-11",
+        "comment": "マスク不可条件を分離するとあるが、マスク対象台帳と保護ルールは未確定。"
+      },
+      {
+        "check_id": "RVR-BT-001",
+        "category": "Build/Test",
+        "viewpoint": "ビルド・テストprofileが明記されているか",
+        "status": "OK",
+        "severity": "Medium",
+        "evidence": "BD-09, BD-10",
+        "comment": "VC2026/clang Windows版のテストコマンドが記載されている。"
+      },
+      {
+        "check_id": "RVR-CR-001",
+        "category": "コード",
+        "viewpoint": "コードレビュー観点",
+        "status": "N/A",
+        "severity": "Low",
+        "evidence": "コード未提供",
+        "comment": "本レビュー対象は基本設計書のため対象外。"
+      },
+      {
+        "check_id": "RVR-UT-001",
+        "category": "単体テスト",
+        "viewpoint": "単体テスト実装レビュー観点",
+        "status": "N/A",
+        "severity": "Low",
+        "evidence": "単体テストコード未提供",
+        "comment": "本レビュー対象は基本設計書のため対象外。"
+      }
+    ],
+    "issues": [
+      {
+        "issue_id": "ISS-BD-001",
+        "source": "AI",
+        "location": "BD-05 / g_startInterlockMask",
+        "severity": "High",
+        "category": "安全/共有データ",
+        "description": "保守時マスク変数の更新権限、反映タイミング、マスク不可安全条件の保護が基本設計時点で未確定。",
+        "evidence": "g_startInterlockMaskはTS/API更新・RT読取。BD-11でマスク不可条件の分離が未確定事項。",
+        "recommendation": "詳細設計でマスク不可ビット、変更API、反映条件、監査ログ、RT側読取タイミングを固定する。",
+        "owner": "設計担当",
+        "due_date": "詳細設計レビュー前",
+        "status": "Open"
+      },
+      {
+        "issue_id": "ISS-BD-002",
+        "source": "AI",
+        "location": "BD-07 / 状態遷移",
+        "severity": "Medium",
+        "category": "状態遷移",
+        "description": "基本設計の状態名と後続詳細設計で想定される状態名の粒度差が大きく、トレーサビリティ上の読み替えが必要。",
+        "evidence": "基本設計はIDLE/CHECKING/READY/BLOCKED。詳細化時はREQUESTED/SAMPLING/EVALUATING/ALLOWED等が必要。",
+        "recommendation": "基本設計へ概略状態と詳細状態の対応表を追加する。",
+        "owner": "設計担当",
+        "due_date": "基本設計改訂時",
+        "status": "Open"
+      },
+      {
+        "issue_id": "ISS-BD-003",
+        "source": "AI",
+        "location": "BD-06 / API",
+        "severity": "Medium",
+        "category": "外部IF",
+        "description": "API概要はあるが、出力構造体、戻り値、BUSY/未初期化時の扱いは詳細設計依存で未確定。",
+        "evidence": "BD-06で詳細設計で確定すると記載。",
+        "recommendation": "詳細設計でApi_GetStartInterlockStatusの引数、戻り値、安定コピー方式を確定する。",
+        "owner": "詳細設計担当",
+        "due_date": "詳細設計レビュー前",
+        "status": "Open"
+      },
+      {
+        "issue_id": "ISS-BD-004",
+        "source": "AI",
+        "location": "BD-02/BD-10 / RT性能",
+        "severity": "High",
+        "category": "性能",
+        "description": "RT制約は示されているが、本機能に割り当てる追加処理時間予算と測定方法が基本設計では未定。",
+        "evidence": "全RTスレッド合計が1割込間隔を超えない制約のみ記載。",
+        "recommendation": "基本設計または詳細設計でRT追加予算、最大監視点数、測定profileを定義する。",
+        "owner": "設計担当",
+        "due_date": "詳細設計レビュー前",
+        "status": "Open"
+      },
+      {
+        "issue_id": "ISS-BD-005",
+        "source": "AI",
+        "location": "BD-11 / 台帳管理",
+        "severity": "Medium",
+        "category": "運用/台帳",
+        "description": "禁止理由ビットとメッセージIDの台帳管理が未整備。",
+        "evidence": "BD-11に「禁止理由ビットの台帳管理とメッセージIDの対応を整備」と記載。",
+        "recommendation": "理由ビット、代表理由コード、UIメッセージIDの共通台帳を作成する。",
+        "owner": "運用設計担当",
+        "due_date": "機能テスト設計前",
+        "status": "Open"
+      }
+    ],
+    "ibm_bob_findings": [
+      {
+        "id": "F-BD-001",
+        "status": "OK",
+        "title": "RT/TS分離",
+        "finding": "基本設計段階でRT側判定とTS側文言化/ログ保存が分離されている。",
+        "recommendation": "詳細設計でRT側禁止処理を関数単位まで落とし込む。"
+      },
+      {
+        "id": "F-BD-002",
+        "status": "WARN",
+        "title": "安全条件マスク",
+        "finding": "g_startInterlockMaskが導入されるが、マスク不可安全条件の保護が未確定。",
+        "recommendation": "安全PLC相当の必須条件はマスク不可として台帳化する。"
+      },
+      {
+        "id": "F-BD-003",
+        "status": "WARN",
+        "title": "性能予算",
+        "finding": "本機能のRT追加処理予算が基本設計にない。",
+        "recommendation": "最大監視点数と目標usecを詳細設計に定義する。"
+      }
+    ],
+    "evidence_summary": [
+      [
+        "Build",
+        "未実施",
+        "cmd /c scripts\\build_vc2026.bat / cmd /c scripts\\build_clang.bat",
+        "設計書上は記載あり。実行ログ未提供。"
+      ],
+      [
+        "Test",
+        "未実施",
+        "cmd /c scripts\\test_vc2026.bat / cmd /c scripts\\test_clang.bat",
+        "設計書上は記載あり。実行ログ未提供。"
+      ],
+      [
+        "静的解析",
+        "未実施",
+        "RT禁止API検索、構造体アラインメント確認",
+        "コード未提供または未レビューのため未実施。"
+      ],
+      [
+        "文書構造",
+        "確認済み",
+        "SECTION_ID / JSON Path",
+        "対象文書に章IDとJSON構造対応がある。"
+      ]
+    ],
+    "json_file": "/mnt/data/ibm_bob_review_results_interlock/RVR-ILK-BD-001_review_result.json"
+  }
+}
