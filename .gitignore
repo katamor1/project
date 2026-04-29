@@ -12,3 +12,4 @@ ibm-bob/mode-pack/scripts/__pycache__/
 *.legacy-kb.log.jsonl
 .agents/skills/legacy-basic-design-agent/.work/
 .agents/skills/legacy-basic-design-agent/scripts/__pycache__/
+/ibm-bob/samples/base/docs/requirements
