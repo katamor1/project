@@ -10,7 +10,7 @@ if not exist build mkdir build
 if not exist build\obj mkdir build\obj
 
 set "VS_DEV_SHELL=C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\Launch-VsDevShell.ps1"
-set "CLANG_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_codes.c src\nc_coordinate.c src\nc_feed.c src\nc_interp_math.c src\nc_interpolation.c src\nc_program.c src\nc_parser.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
+set "CLANG_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_capability.c src\nc_codes.c src\nc_compensation.c src\nc_coordinate.c src\nc_cycle.c src\nc_diagnostics.c src\nc_feed.c src\nc_interference.c src\nc_interp_math.c src\nc_interpolation.c src\nc_kinematics.c src\nc_lookahead.c src\nc_motion_filter.c src\nc_safety_motion.c src\nc_program.c src\nc_parser.c src\nc_parser_feature.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
 set "CLANG_CL="
 
 echo [build_clang] Checking compiler...

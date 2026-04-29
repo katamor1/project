@@ -1,0 +1,29 @@
+{
+  "version": "v8",
+  "base": "ibm_bob_source_implemented_additional_features_v7.zip",
+  "added_files": [
+    "source/inc/nc_motion_filter.h",
+    "source/src/nc_motion_filter.c",
+    "source/docs/implementation_report_v8.md",
+    "source/docs/verification_output_v8.txt",
+    "source/docs/continuation_v8_diff.patch",
+    "source/docs/manifest_v8.json"
+  ],
+  "updated_files": [
+    "source/inc/system_config.h",
+    "source/inc/system_shared.h",
+    "source/inc/control_api.h",
+    "source/src/system_shared.c",
+    "source/src/control_api.c",
+    "source/src/nc_interpolation.c",
+    "source/src/nc_program.c",
+    "source/src/main.c",
+    "source/scripts/build_clang.bat",
+    "source/scripts/build_vc2026.bat"
+  ],
+  "verification": {
+    "compiler": "gcc",
+    "status": "passed",
+    "output": "source/docs/verification_output_v8.txt"
+  }
+}

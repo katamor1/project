@@ -1,0 +1,17 @@
+nc_state=6 nc_error=0 nc_error_line=0 nc_exec=45 nc_read=45 nc_buf=0 nc_x=3400 nc_y=2300 nc_z=3400 nc_m=130
+interp_segments=16 feed_profile=1 feed_override=45 dwell_ticks=1
+coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=1000
+feature_blocks=40 feature_flags=97 canned=2 skip=1 advanced=3
+comp_applied=11 comp_mask=0x00000007 comp_tool=0 comp_cutter=0 comp_rotation=0
+path_arc=2 path_helical=1 path_arc_segments=8 path_lookahead=16 path_slowdowns=11 path_corner_deg=171 path_override=60
+kin_transformed=16 kin_mirrored=11 kin_retracts=1 kin_singularity_warn=0 kin_mirror_mask=0x00000000 kin_retract_mask=0x00000004 kin_tool_z=9848 kin_last_x=3400 kin_last_a=-100
+diag_axis_warn=0x00000003 diag_axis_limit=0x00000001 diag_axis_critical=0x00000000 decel_level=2 decel_override=45 load_peak_x=847
+tool_active=2 tool2_uses=7 tool_warn=0x00000000 tool_expired=0x00000000 diag_decel=2 diag_tool_expired=0x00000000 diag_axis_warn=0x00000003
+motion_filter_samples=83 mode=2 axis_mask=0x00000009 raw_vx=3661 smooth_vx=3661 out_x=3400
+motion_filter_limits vel_events=2 accel_events=12 endpoint_corrections=14 residual_samples=23 max_lag_x=1757 residual_x=-20
+tool_life_hold_state=5 tool_life_hold_error=15 tool_life_hold_line=4 events=34 lost=0 last_event=8201
+cycle_completed=2 cycle_phase_count=1 skip_completed=1 skip_x=3551
+aux_completed=1 aux_wait_cycles=80 prestart_ok=1 prestart_mask=0x00000000
+trace_frozen=1 trace_captured=32 trace_trigger_cycle=589
+mode=1 state=3 alarm=9001 cycle=589
+coord_error_checks=5

@@ -1,0 +1,217 @@
+[
+  {
+    "path": "source/.claude/config.toml",
+    "size": 472,
+    "sha256": "2a182423a93d99d87ac339650b38f8828f4e4570c77edf33e8d82cfa9c1afd22"
+  },
+  {
+    "path": "source/AGENTS.md",
+    "size": 2481,
+    "sha256": "ba4aa98227338af468a4c5a0c438524829f2ec47aac716ba7cf0cf34b308f357"
+  },
+  {
+    "path": "source/README.md",
+    "size": 2018,
+    "sha256": "fe0d5cd02bb3334c7d40e19cd83e4d09280f44720b42c72693a0b81ad1d09fda"
+  },
+  {
+    "path": "source/docs/continuation_diff.patch",
+    "size": 46772,
+    "sha256": "1786c4ec4126bd26bce97d1b898b3f17881723fed27c927592ddbf57bd305535"
+  },
+  {
+    "path": "source/docs/continuation_v3_diff.patch",
+    "size": 31326,
+    "sha256": "c29ad6bc5bda4465ec56c7403d5f1ed9c4493615d337fffdb048ee44d8f45b13"
+  },
+  {
+    "path": "source/docs/implementation_diff.patch",
+    "size": 87629,
+    "sha256": "fcb2ffaa7d776ab3a2d49c80213b56f2f10fbfde89bb30bf81d78cf841ea08e4"
+  },
+  {
+    "path": "source/docs/implementation_report.md",
+    "size": 6291,
+    "sha256": "81af94e6daa3be0996ecec8eb0fc78cadd01ab194b101c3801b7883b64783eab"
+  },
+  {
+    "path": "source/docs/implementation_report_v3.md",
+    "size": 2941,
+    "sha256": "cba91c17fd7c1318f136985513f9dfec94739e56fef08f258df3a24c853fce01"
+  },
+  {
+    "path": "source/docs/verification_output.txt",
+    "size": 546,
+    "sha256": "223b1a106c512fecf0cd9033eda02fbbcb821822640badb7d3e005ebfb22853d"
+  },
+  {
+    "path": "source/docs/verification_output_v3.txt",
+    "size": 1097,
+    "sha256": "b2c441753869bee60a6f15cb27e516c336dc418fd7a853c9380c1c0a9b08b7d6"
+  },
+  {
+    "path": "source/docs/workspace_profile_commands.md",
+    "size": 1439,
+    "sha256": "05961649eeb525f491423d928a50624804b07a6d5ebc6e97dd798f888887dfe2"
+  },
+  {
+    "path": "source/inc/control_api.h",
+    "size": 1555,
+    "sha256": "21345a3f7d195e693aa84dd50cf054e4eb50180488279552c58b2287d27e2922"
+  },
+  {
+    "path": "source/inc/nc_codes.h",
+    "size": 1728,
+    "sha256": "bf0d6d26a7fc286f0d589c796e042d41f75d1349e2acc7f39ffd74613bdce5fe"
+  },
+  {
+    "path": "source/inc/nc_coordinate.h",
+    "size": 1504,
+    "sha256": "34e9f4ff7a709ce8a7278dea8a70d6d349aa91ebc5e4d6ef8aaf8f4ec154d091"
+  },
+  {
+    "path": "source/inc/nc_feed.h",
+    "size": 1124,
+    "sha256": "84deea16973d9dc7ee750004b0724248b79945e7c4df05903b870aed5b077f24"
+  },
+  {
+    "path": "source/inc/nc_interp_math.h",
+    "size": 996,
+    "sha256": "3dc8f2479cba6982ad18f195627637d9d7c577c4f2f960921fca02e5e1b1df72"
+  },
+  {
+    "path": "source/inc/nc_interpolation.h",
+    "size": 860,
+    "sha256": "582c4d01d928186ad6ec8d020fd87a343fb42d207e571e96253e95eba151754a"
+  },
+  {
+    "path": "source/inc/nc_parser_internal.h",
+    "size": 1632,
+    "sha256": "d66f70720cb54fc24eb985c462a38bc95f15931bb7ccbcdda573dffc541ef37e"
+  },
+  {
+    "path": "source/inc/nc_program.h",
+    "size": 3407,
+    "sha256": "780b0d486e1b35106b4861ba3549b815156de41ea572e24ea242dc424ba0e847"
+  },
+  {
+    "path": "source/inc/rt_control.h",
+    "size": 417,
+    "sha256": "d1fa7525da621ee7afbbaf3cd6672bd53487194c6a3781ede6de922c0216ba53"
+  },
+  {
+    "path": "source/inc/system_config.h",
+    "size": 1751,
+    "sha256": "62bca8c3b1ba1ecaf9e9c974fd4002b447eeb0c445f9a92f0b9a989d5fb208fd"
+  },
+  {
+    "path": "source/inc/system_shared.h",
+    "size": 11429,
+    "sha256": "f691c1d760d3285fb4246d74910f50b63b86c192ecaded7ca5c500086d38ac0f"
+  },
+  {
+    "path": "source/inc/ts_service.h",
+    "size": 267,
+    "sha256": "643d88083b6b0564f4c4a42cc91da346bf2b04f3b06d78070c83c694405d97d5"
+  },
+  {
+    "path": "source/runtime_log.csv",
+    "size": 3963,
+    "sha256": "e3aaf35f4fbbc408b8252d56364cf2186f15ffc8b9e0c272f7ee48dcba9bf429"
+  },
+  {
+    "path": "source/scripts/build_clang.bat",
+    "size": 3264,
+    "sha256": "5bbb2e3e3287bf5cfe418c4be6d845119314972a8c5672b8d7844fa369fa6c25"
+  },
+  {
+    "path": "source/scripts/build_vc2026.bat",
+    "size": 1837,
+    "sha256": "54d54452177825d2dfe3f8bf8e49ede830ff4c07353fa78817d17cba2df71e25"
+  },
+  {
+    "path": "source/scripts/test_clang.bat",
+    "size": 1921,
+    "sha256": "5b923d50f203eb9ae57662f6262b650df550d8190cd00c0cb0900d38d8fecb83"
+  },
+  {
+    "path": "source/scripts/test_vc2026.bat",
+    "size": 1924,
+    "sha256": "7da92caae63471cd64c2471913e997d252aba45d476a7a7d6f930d4d0739bd5e"
+  },
+  {
+    "path": "source/src/control_api.c",
+    "size": 6476,
+    "sha256": "bd2a90c86a6df4abd0b4ef55092e0b89af28dc012586d1f451646b9e198bc4e0"
+  },
+  {
+    "path": "source/src/main.c",
+    "size": 11669,
+    "sha256": "d22d4cb3fb9cba7f17c10bdcad3b8b08ee2248513b36c9bd2800f42be81079c7"
+  },
+  {
+    "path": "source/src/nc_buffer.c",
+    "size": 2567,
+    "sha256": "293ca10a1ab96e234cfc298d93c4ffda0dfb1c51ba258c723c458e59c09fbc95"
+  },
+  {
+    "path": "source/src/nc_codes.c",
+    "size": 7486,
+    "sha256": "a5796431ab088b03dc31c0c686589f1b6e80d982a9b18b3ee9a6bab0b3cb8b39"
+  },
+  {
+    "path": "source/src/nc_coordinate.c",
+    "size": 5768,
+    "sha256": "ca28a4b2e72c21df8abf9d9d8f7075e9ed69a71b08bdf9536b4706fe406c43e0"
+  },
+  {
+    "path": "source/src/nc_feed.c",
+    "size": 5440,
+    "sha256": "4e82f82b786a24effe42f6686a30e2a6bf196fbcd6471d45c92e57944547e76a"
+  },
+  {
+    "path": "source/src/nc_interp_math.c",
+    "size": 6007,
+    "sha256": "0184c80e4a440d9060c01f44a6d0aacb5a2dda245c2128f3a6207d4c215ffed1"
+  },
+  {
+    "path": "source/src/nc_interpolation.c",
+    "size": 17521,
+    "sha256": "da8090a6f024f61e76aa452da35dea2f44ec10b9215a4123c62ed565f9e47dc9"
+  },
+  {
+    "path": "source/src/nc_parser.c",
+    "size": 2902,
+    "sha256": "835870fe1d077b69d817a09eb8ba101c06dfed236d31a8bfc129406d4342789e"
+  },
+  {
+    "path": "source/src/nc_parser_modal.c",
+    "size": 12935,
+    "sha256": "978e0bd825b209c81eeaef79a8077a19a38a7b7abe43362454b47b83a0caa7ac"
+  },
+  {
+    "path": "source/src/nc_parser_tokens.c",
+    "size": 9433,
+    "sha256": "bb853cc4515315b862f6778e0792f75c0014630d7fc65fa4338768bb697e6631"
+  },
+  {
+    "path": "source/src/nc_program.c",
+    "size": 13701,
+    "sha256": "1b9319a55a01710fa02beda48cf83cf3d0bfacccab067672a67bc37723cf190f"
+  },
+  {
+    "path": "source/src/rt_control.c",
+    "size": 8627,
+    "sha256": "fb2cc177964bf0f8572e5895b565bbaa5f507f8d3cd118e82a17d79adb879fa0"
+  },
+  {
+    "path": "source/src/system_shared.c",
+    "size": 3682,
+    "sha256": "0477370ca155f5d67cb298d661c1e5aa90107db2a37856f2a9c5466a4aa435fe"
+  },
+  {
+    "path": "source/src/ts_service.c",
+    "size": 2917,
+    "sha256": "559d4a9db7491e099fc46abf872579a53aa2799277d18957c16a111988cb9422"
+  }
+]

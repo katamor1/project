@@ -1,0 +1,14 @@
+{
+  "version": "v5",
+  "base_zip": "ibm_bob_source_implemented_additional_features_v4.zip",
+  "added_features": [
+    "arc/helical fixed segment execution",
+    "TS-side lightweight lookahead",
+    "corner slowdown",
+    "NC_PATH_CONTROL_STATUS shared memory",
+    "Api_GetNcPathControlStatus",
+    "v5 smoke test"
+  ],
+  "verification": "docs/verification_output_v5.txt",
+  "diff": "docs/continuation_v5_diff.patch"
+}

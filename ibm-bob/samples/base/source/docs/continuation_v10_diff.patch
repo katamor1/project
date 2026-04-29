@@ -1,0 +1,1200 @@
+diff -ruN /mnt/data/impl_orig/source/docs/implementation_report_v10.md /mnt/data/impl_work/source/docs/implementation_report_v10.md
+--- /mnt/data/impl_orig/source/docs/implementation_report_v10.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/impl_work/source/docs/implementation_report_v10.md	2026-04-29 22:57:28.396553980 +0000
+@@ -0,0 +1,63 @@
++# IBM-Bob source implementation report v10
++
++## 目的
++アップロードされた基本設計書・詳細設計書群のうち、既存 v9 実装で不足していた横断機能を追加実装した。
++RT/TS/API 分離、固定長共有メモリ、RT 側でのファイル I/O・動的メモリ禁止を維持した。
++
++## 追加実装
++
++### 1. 高速バイナリプログラム運転の入口実装
++- `NC_BINARY_PROGRAM_REQUEST` / `NC_BINARY_PROGRAM_STATUS` を共有メモリに追加。
++- `Api_RequestNcBinaryProgramLoad()` を追加し、固定長 `NC_EXEC_BLOCK` 配列を TS 側で NC 実行リングに投入可能にした。
++- 最大ブロック数は `NC_BINARY_PROGRAM_MAX_BLOCKS` とし、RT 側は従来どおり固定ブロックのみを消費する。
++
++### 2. Gコード/Mコード/同一ブロックアドレス解釈の状態公開
++- `nc_capability.h/c` を追加。
++- `NC_CAPABILITY_STATUS` を追加し、解析済み G/M/アドレス語の使用状況、履歴、未対応コード検出を公開。
++- `Api_GetNcCapabilityStatus()` を追加。
++
++### 3. 経路間干渉チェック・3D干渉チェックのTS側スクリーニング
++- `nc_interference.h/c` を追加。
++- TS 側固定ブロック化後に、軸可動域・簡易クリアランス・小半径円弧を判定。
++- 警告時はイベントリングに `NC_EVENT_CODE_INTERFERENCE_WARN` を記録し、対象ブロックのオーバライドを安全側へ制限。
++- `Api_SetNcInterferenceCheckEnabled()` / `Api_GetNcInterferenceStatus()` を追加。
++
++### 4. 外部減速・停電時減速停止・位置スイッチ・絶対位置検出状態
++- `nc_safety_motion.h/c` を追加。
++- RT周期で外部減速、停電時減速停止、位置スイッチラッチ、絶対基準有効状態を監視。
++- 実行ブロック開始時に安全モーションオーバレイを適用し、フィードオーバライドと減速 tick を安全側へ補正。
++- `Api_GetNcSafetyMotionStatus()` を追加。
++
++### 5. ビルド対象更新
++- `build_vc2026.bat` / `build_clang.bat` に追加モジュールを反映。
++- GCC スモーク確認では v10 の追加状態行を出力対象に追加。
++
++## 変更ファイル
++- `inc/system_config.h`
++- `inc/system_shared.h`
++- `inc/control_api.h`
++- `inc/nc_program.h`
++- `inc/nc_capability.h`
++- `inc/nc_interference.h`
++- `inc/nc_safety_motion.h`
++- `src/system_shared.c`
++- `src/control_api.c`
++- `src/nc_program.c`
++- `src/nc_parser_modal.c`
++- `src/nc_parser_tokens.c`
++- `src/rt_control.c`
++- `src/main.c`
++- `src/nc_capability.c`
++- `src/nc_interference.c`
++- `src/nc_safety_motion.c`
++- `scripts/build_vc2026.bat`
++- `scripts/build_clang.bat`
++
++## 確認結果
++`gcc -O0 -std=c99 -Wall -Wextra -Iinc src/*.c -lm` 相当でビルド確認し、サンプル実行が正常終了することを確認した。
++出力詳細は `docs/verification_output_v10.txt` を参照。
++
++## 制限事項
++- バイナリプログラムは固定ブロック投入の入口実装であり、外部バイナリファイル形式の永続仕様・CRC・バージョン互換は未実装。
++- 干渉チェックはTS側スクリーニングであり、完全な工具形状/治具/ワーク3Dモデル干渉計算ではない。
++- 停電時減速停止は安全オーバレイと状態公開までで、実機電源監視回路やサーボドライブ側停止カテゴリとの整合は別途詳細化が必要。
+diff -ruN /mnt/data/impl_orig/source/docs/manifest_v10.json /mnt/data/impl_work/source/docs/manifest_v10.json
+--- /mnt/data/impl_orig/source/docs/manifest_v10.json	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/impl_work/source/docs/manifest_v10.json	2026-04-29 22:57:28.406929568 +0000
+@@ -0,0 +1,28 @@
++{
++  "version": "v10",
++  "summary": "Binary NC block loading, capability/status catalog, TS interference screening, and RT safety motion overlays.",
++  "added_files": [
++    "inc/nc_capability.h",
++    "inc/nc_interference.h",
++    "inc/nc_safety_motion.h",
++    "src/nc_capability.c",
++    "src/nc_interference.c",
++    "src/nc_safety_motion.c"
++  ],
++  "updated_files": [
++    "inc/system_config.h",
++    "inc/system_shared.h",
++    "inc/control_api.h",
++    "inc/nc_program.h",
++    "src/system_shared.c",
++    "src/control_api.c",
++    "src/nc_program.c",
++    "src/nc_parser_modal.c",
++    "src/nc_parser_tokens.c",
++    "src/rt_control.c",
++    "src/main.c",
++    "scripts/build_vc2026.bat",
++    "scripts/build_clang.bat"
++  ],
++  "verification": "docs/verification_output_v10.txt"
++}
+diff -ruN /mnt/data/impl_orig/source/docs/verification_output_v10.txt /mnt/data/impl_work/source/docs/verification_output_v10.txt
+--- /mnt/data/impl_orig/source/docs/verification_output_v10.txt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/impl_work/source/docs/verification_output_v10.txt	2026-04-29 22:57:28.385697373 +0000
+@@ -0,0 +1,25 @@
++nc_state=6 nc_error=0 nc_error_line=0 nc_exec=67 nc_read=67 nc_buf=0 nc_x=3400 nc_y=2300 nc_z=3400 nc_m=130
++interp_segments=31 feed_profile=1 feed_override=45 dwell_ticks=1
++coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=1000
++feature_blocks=62 feature_flags=57344 canned=20 skip=1 advanced=3
++g08_standard_seen=1 g08_high_precision_seen=1 g08_cancel_seen=1 g08_final_smoothing=0 g08_final_high_precision=0
++hpcc_seen=1 hpcc_cancel_seen=1 hpcc_final=0 g05_p3_seen=1
++comp_applied=13 comp_mask=0x00000007 comp_tool=0 comp_cutter=0 comp_rotation=0
++path_arc=2 path_helical=1 path_arc_segments=8 path_lookahead=31 path_slowdowns=15 path_corner_deg=180 path_override=80
++kin_transformed=31 kin_mirrored=13 kin_retracts=1 kin_singularity_warn=0 kin_mirror_mask=0x00000000 kin_retract_mask=0x00000004 kin_tool_z=9848 kin_last_x=3400 kin_last_a=-100
++diag_axis_warn=0x00000003 diag_axis_limit=0x00000001 diag_axis_critical=0x00000000 decel_level=2 decel_override=45 load_peak_x=847
++tool_active=2 tool2_uses=22 tool_warn=0x00000000 tool_expired=0x00000000 diag_decel=2 diag_tool_expired=0x00000000 diag_axis_warn=0x00000003
++motion_filter_samples=703 mode=2 axis_mask=0x00000009 raw_vx=3661 smooth_vx=3661 out_x=3400
++motion_filter_limits vel_events=2 accel_events=12 endpoint_corrections=20 residual_samples=75 max_lag_x=1757 residual_x=-37
++tool_life_hold_state=5 tool_life_hold_error=15 tool_life_hold_line=4 events=57 lost=0 last_event=8201
++cycle_completed=13 cycle_phase_count=4 skip_completed=1 skip_x=3551
++cycle_detail last=890 repeat=1 repeat_done=14 peck_blocks=3 tap_blocks=2 boring_blocks=5 spindle_sync=2 spindle_reverse=2 manual_return=1
++aux_completed=1 aux_wait_cycles=80 prestart_ok=1 prestart_mask=0x00000000
++trace_frozen=1 trace_captured=32 trace_trigger_cycle=969
++capability parsed=3 g=2 m=1 address_words=4 binary_loaded=0
++interference checked=1 warnings=0 slowdown=0 safety_external=1 safety_position=1 safety_override=100
++mode=1 state=3 alarm=9001 cycle=969
++coord_error_checks=5
++g08_error_checks=3
++hpcc_error_checks=4
++cycle_error_checks=4
+diff -ruN /mnt/data/impl_orig/source/inc/control_api.h /mnt/data/impl_work/source/inc/control_api.h
+--- /mnt/data/impl_orig/source/inc/control_api.h	2026-04-29 20:47:46.000000000 +0000
++++ /mnt/data/impl_work/source/inc/control_api.h	2026-04-29 22:50:31.157988678 +0000
+@@ -13,6 +13,8 @@
+ int32_t Api_RequestLogFlush(void);
+ int32_t Api_GetPrefetchStatus(uint8_t* pReady, uint16_t* pGeneration);
+ int32_t Api_RequestNcProgramLoad(const char* filePath);
++int32_t Api_RequestNcBinaryProgramLoad(const NC_EXEC_BLOCK* pBlocks, uint32_t count);
++int32_t Api_GetNcBinaryProgramStatus(NC_BINARY_PROGRAM_STATUS* pOutStatus);
+ int32_t Api_RequestNcProgramStart(void);
+ int32_t Api_RequestNcProgramHold(void);
+ int32_t Api_RequestNcProgramStop(void);
+@@ -50,5 +52,9 @@
+                                        int32_t maxVelocityPerTick,
+                                        int32_t maxAccelPerTick);
+ int32_t Api_GetNcEventRing(NC_EVENT_RING* pOutRing);
++int32_t Api_GetNcCapabilityStatus(NC_CAPABILITY_STATUS* pOutStatus);
++int32_t Api_SetNcInterferenceCheckEnabled(uint8_t enabled);
++int32_t Api_GetNcInterferenceStatus(NC_INTERFERENCE_STATUS* pOutStatus);
++int32_t Api_GetNcSafetyMotionStatus(NC_SAFETY_MOTION_STATUS* pOutStatus);
+ 
+ #endif /* CONTROL_API_H */
+diff -ruN /mnt/data/impl_orig/source/inc/nc_capability.h /mnt/data/impl_work/source/inc/nc_capability.h
+--- /mnt/data/impl_orig/source/inc/nc_capability.h	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/impl_work/source/inc/nc_capability.h	2026-04-29 22:49:39.288728001 +0000
+@@ -0,0 +1,17 @@
++/* ibm-bob/samples/base/source/inc/nc_capability.h */
++/* Tracks table-driven G/M/address coverage and parser usage diagnostics. */
++#ifndef NC_CAPABILITY_H
++#define NC_CAPABILITY_H
++
++#include <stdint.h>
++#include "system_shared.h"
++
++#define NC_CAPABILITY_KIND_G       (1U)
++#define NC_CAPABILITY_KIND_M       (2U)
++#define NC_CAPABILITY_KIND_ADDRESS (3U)
++
++void NcCapability_Reset(void);
++void NcCapability_OnParsedBlockTs(const NC_EXEC_BLOCK* pBlock);
++void NcCapability_RecordUnsupported(uint8_t kind, uint32_t code);
++
++#endif /* NC_CAPABILITY_H */
+diff -ruN /mnt/data/impl_orig/source/inc/nc_interference.h /mnt/data/impl_work/source/inc/nc_interference.h
+--- /mnt/data/impl_orig/source/inc/nc_interference.h	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/impl_work/source/inc/nc_interference.h	2026-04-29 22:50:02.981354854 +0000
+@@ -0,0 +1,13 @@
++/* ibm-bob/samples/base/source/inc/nc_interference.h */
++/* Declares lightweight path/3D interference screening for TS-side block generation. */
++#ifndef NC_INTERFERENCE_H
++#define NC_INTERFERENCE_H
++
++#include <stdint.h>
++#include "system_shared.h"
++
++void NcInterference_Reset(void);
++int32_t NcInterference_SetEnabled(uint8_t enabled);
++void NcInterference_CheckBlockTs(NC_EXEC_BLOCK* pBlock);
++
++#endif /* NC_INTERFERENCE_H */
+diff -ruN /mnt/data/impl_orig/source/inc/nc_program.h /mnt/data/impl_work/source/inc/nc_program.h
+--- /mnt/data/impl_orig/source/inc/nc_program.h	2026-04-29 22:31:05.000000000 +0000
++++ /mnt/data/impl_work/source/inc/nc_program.h	2026-04-29 22:50:22.470692898 +0000
+@@ -75,6 +75,7 @@
+ void RtNcProgram_ProcessRequests(uint8_t safetyOk);
+ void RtNcProgram_ConsumeBlocks(void);
+ void TsNcProgram_ExecuteSlice(void);
++int32_t NcProgram_RequestBinaryLoad(const NC_EXEC_BLOCK* pBlocks, uint32_t count);
+ 
+ void NcParse_ResetModal(void);
+ int32_t NcParse_LineToBlock(const char* line,
+diff -ruN /mnt/data/impl_orig/source/inc/nc_safety_motion.h /mnt/data/impl_work/source/inc/nc_safety_motion.h
+--- /mnt/data/impl_orig/source/inc/nc_safety_motion.h	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/impl_work/source/inc/nc_safety_motion.h	2026-04-29 22:50:15.071937579 +0000
+@@ -0,0 +1,13 @@
++/* ibm-bob/samples/base/source/inc/nc_safety_motion.h */
++/* Declares RT-safe safety motion overlays for external decel, power loss, and position switch latch. */
++#ifndef NC_SAFETY_MOTION_H
++#define NC_SAFETY_MOTION_H
++
++#include <stdint.h>
++#include "system_shared.h"
++
++void NcSafetyMotion_Reset(void);
++void NcSafetyMotion_UpdateRt(void);
++void NcSafetyMotion_ApplyBlockRt(NC_EXEC_BLOCK* pBlock);
++
++#endif /* NC_SAFETY_MOTION_H */
+diff -ruN /mnt/data/impl_orig/source/inc/system_config.h /mnt/data/impl_work/source/inc/system_config.h
+--- /mnt/data/impl_orig/source/inc/system_config.h	2026-04-29 22:31:05.000000000 +0000
++++ /mnt/data/impl_work/source/inc/system_config.h	2026-04-29 22:48:57.271224166 +0000
+@@ -71,4 +71,23 @@
+ #define NC_MOTION_FILTER_ENDPOINT_WINDOW      (4U)
+ #define NC_MOTION_FILTER_ENDPOINT_TOLERANCE   (2)
+ 
++#define NC_BINARY_PROGRAM_MAX_BLOCKS        (256U)
++#define NC_CAPABILITY_G_HISTORY_SIZE        (32U)
++#define NC_CAPABILITY_M_HISTORY_SIZE        (16U)
++#define NC_INTERFERENCE_AXIS_LIMIT          (2000000)
++#define NC_INTERFERENCE_MIN_CLEARANCE       (500)
++#define NC_INTERFERENCE_SLOWDOWN_PERCENT    (50U)
++#define NC_SAFETY_EXTERNAL_DECEL_PERCENT    (35U)
++#define NC_SAFETY_POWERFAIL_DECEL_PERCENT   (10U)
++#define SENSOR_POWER_FAIL_BIT               (0x00000100UL)
++#define SENSOR_EXTERNAL_DECEL_BIT           (0x00000200UL)
++#define SENSOR_POSITION_SWITCH_BIT          (0x00000400UL)
++#define SENSOR_ABSOLUTE_REF_VALID_BIT       (0x00000800UL)
++#define NC_EVENT_CODE_BINARY_LOAD_READY      (8401U)
++#define NC_EVENT_CODE_CAPABILITY_UNSUPPORTED (8501U)
++#define NC_EVENT_CODE_INTERFERENCE_WARN      (8601U)
++#define NC_EVENT_CODE_EXTERNAL_DECEL         (8701U)
++#define NC_EVENT_CODE_POWERFAIL_DECEL_STOP   (8702U)
++#define NC_EVENT_CODE_POSITION_SWITCH_LATCH  (8703U)
++
+ #endif /* SYSTEM_CONFIG_H */
+diff -ruN /mnt/data/impl_orig/source/inc/system_shared.h /mnt/data/impl_work/source/inc/system_shared.h
+--- /mnt/data/impl_orig/source/inc/system_shared.h	2026-04-29 22:31:05.000000000 +0000
++++ /mnt/data/impl_work/source/inc/system_shared.h	2026-04-29 22:49:14.259302902 +0000
+@@ -606,6 +606,78 @@
+ } NC_EVENT_RING;
+ 
+ typedef struct {
++    uint8_t  load_request;
++    uint8_t  busy;
++    uint8_t  ready;
++    uint8_t  rejected;
++    uint32_t requested_count;
++    uint32_t accepted_count;
++    uint32_t generation;
++    NC_EXEC_BLOCK blocks[NC_BINARY_PROGRAM_MAX_BLOCKS];
++} NC_BINARY_PROGRAM_REQUEST;
++
++typedef struct {
++    uint32_t loaded_blocks;
++    uint32_t rejected_blocks;
++    uint32_t committed_blocks;
++    uint32_t last_error_line_no;
++    uint8_t  active;
++    uint8_t  source_ready;
++    uint8_t  generation;
++    uint8_t  reserved0;
++} NC_BINARY_PROGRAM_STATUS;
++
++typedef struct {
++    uint32_t parsed_blocks;
++    uint32_t supported_g_blocks;
++    uint32_t supported_m_blocks;
++    uint32_t address_words_seen;
++    uint32_t unsupported_g_events;
++    uint32_t unsupported_m_events;
++    uint32_t unsupported_address_events;
++    uint32_t last_g_code10;
++    uint32_t last_m_code;
++    uint32_t last_address_mask;
++    uint32_t modal_conflict_events;
++    uint32_t g_history[NC_CAPABILITY_G_HISTORY_SIZE];
++    uint32_t m_history[NC_CAPABILITY_M_HISTORY_SIZE];
++    uint32_t g_history_index;
++    uint32_t m_history_index;
++    uint32_t generation;
++} NC_CAPABILITY_STATUS;
++
++typedef struct {
++    uint8_t  enabled;
++    uint8_t  last_warning_kind;
++    uint8_t  reserved0;
++    uint8_t  reserved1;
++    uint32_t checked_blocks;
++    uint32_t path_interference_warnings;
++    uint32_t three_d_interference_warnings;
++    uint32_t axis_limit_warnings;
++    uint32_t slowdown_applied_blocks;
++    uint32_t last_line_no;
++    uint32_t last_warning_line_no;
++    int32_t  last_clearance[AXIS_MAX];
++    uint32_t generation;
++} NC_INTERFERENCE_STATUS;
++
++typedef struct {
++    uint8_t  external_decel_active;
++    uint8_t  powerfail_decel_stop_active;
++    uint8_t  position_switch_latched;
++    uint8_t  absolute_reference_valid;
++    uint16_t active_override_percent;
++    uint16_t reserved0;
++    uint32_t external_decel_events;
++    uint32_t powerfail_events;
++    uint32_t position_switch_events;
++    uint32_t absolute_ref_lost_events;
++    uint32_t last_line_no;
++    uint32_t generation;
++} NC_SAFETY_MOTION_STATUS;
++
++typedef struct {
+     uint32_t cycle;
+     uint32_t sensor_bits;
+     uint32_t seq_bits;
+@@ -655,6 +727,11 @@
+ extern volatile NC_DIAGNOSTIC_SNAPSHOT g_ncDiagnosticSnapshot;
+ extern volatile NC_MOTION_FILTER_STATUS g_ncMotionFilterStatus;
+ extern volatile NC_EVENT_RING    g_ncEventRing;
++extern volatile NC_BINARY_PROGRAM_REQUEST g_ncBinaryProgramRequest;
++extern volatile NC_BINARY_PROGRAM_STATUS  g_ncBinaryProgramStatus;
++extern volatile NC_CAPABILITY_STATUS      g_ncCapabilityStatus;
++extern volatile NC_INTERFERENCE_STATUS    g_ncInterferenceStatus;
++extern volatile NC_SAFETY_MOTION_STATUS   g_ncSafetyMotionStatus;
+ extern volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
+ 
+ void SystemShared_Initialize(void);
+diff -ruN /mnt/data/impl_orig/source/runtime_log.csv /mnt/data/impl_work/source/runtime_log.csv
+--- /mnt/data/impl_orig/source/runtime_log.csv	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/impl_work/source/runtime_log.csv	2026-04-29 22:56:09.081929434 +0000
+@@ -0,0 +1,44 @@
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++1,7101,1,35
++1,7102,1,40
++3,5006,0,790
++3,1002,0,791
++3,5001,0,901
++3,5002,0,901
++3,5003,0,901
++3,5004,0,909
++1,7201,3,909
++1,7202,3,909
++3,5005,0,909
++1,8201,3,909
++1,8201,3,909
++2,9001,950,969
++3,5007,0,969
++2,5009,4,969
++3,2001,0,969
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++1,7101,1,35
++1,7102,1,40
++3,5006,0,790
++3,1002,0,791
++3,5001,0,901
++3,5002,0,901
++3,5003,0,901
++3,5004,0,909
++1,7201,3,909
++1,7202,3,909
++3,5005,0,909
++1,8201,3,909
++1,8201,3,909
++2,9001,950,969
++3,5007,0,969
++2,5009,4,969
++3,2001,0,969
+diff -ruN /mnt/data/impl_orig/source/scripts/build_clang.bat /mnt/data/impl_work/source/scripts/build_clang.bat
+--- /mnt/data/impl_orig/source/scripts/build_clang.bat	2026-04-29 22:34:52.000000000 +0000
++++ /mnt/data/impl_work/source/scripts/build_clang.bat	2026-04-29 22:52:47.178210475 +0000
+@@ -10,7 +10,7 @@
+ if not exist build\obj mkdir build\obj
+ 
+ set "VS_DEV_SHELL=C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\Launch-VsDevShell.ps1"
+-set "CLANG_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_codes.c src\nc_compensation.c src\nc_coordinate.c src\nc_cycle.c src\nc_diagnostics.c src\nc_feed.c src\nc_interp_math.c src\nc_interpolation.c src\nc_kinematics.c src\nc_lookahead.c src\nc_motion_filter.c src\nc_program.c src\nc_parser.c src\nc_parser_feature.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
++set "CLANG_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_capability.c src\nc_codes.c src\nc_compensation.c src\nc_coordinate.c src\nc_cycle.c src\nc_diagnostics.c src\nc_feed.c src\nc_interference.c src\nc_interp_math.c src\nc_interpolation.c src\nc_kinematics.c src\nc_lookahead.c src\nc_motion_filter.c src\nc_safety_motion.c src\nc_program.c src\nc_parser.c src\nc_parser_feature.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
+ set "CLANG_CL="
+ 
+ echo [build_clang] Checking compiler...
+diff -ruN /mnt/data/impl_orig/source/scripts/build_vc2026.bat /mnt/data/impl_work/source/scripts/build_vc2026.bat
+--- /mnt/data/impl_orig/source/scripts/build_vc2026.bat	2026-04-29 22:34:52.000000000 +0000
++++ /mnt/data/impl_work/source/scripts/build_vc2026.bat	2026-04-29 22:52:47.157425212 +0000
+@@ -10,7 +10,7 @@
+ if not exist build\obj mkdir build\obj
+ 
+ set "VS_DEV_SHELL=C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\Launch-VsDevShell.ps1"
+-set "CL_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_codes.c src\nc_compensation.c src\nc_coordinate.c src\nc_cycle.c src\nc_diagnostics.c src\nc_feed.c src\nc_interp_math.c src\nc_interpolation.c src\nc_kinematics.c src\nc_lookahead.c src\nc_motion_filter.c src\nc_program.c src\nc_parser.c src\nc_parser_feature.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
++set "CL_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_capability.c src\nc_codes.c src\nc_compensation.c src\nc_coordinate.c src\nc_cycle.c src\nc_diagnostics.c src\nc_feed.c src\nc_interference.c src\nc_interp_math.c src\nc_interpolation.c src\nc_kinematics.c src\nc_lookahead.c src\nc_motion_filter.c src\nc_safety_motion.c src\nc_program.c src\nc_parser.c src\nc_parser_feature.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
+ 
+ echo [build_vc2026] Checking compiler...
+ where cl.exe >nul 2>nul
+diff -ruN /mnt/data/impl_orig/source/src/control_api.c /mnt/data/impl_work/source/src/control_api.c
+--- /mnt/data/impl_orig/source/src/control_api.c	2026-04-29 20:47:46.000000000 +0000
++++ /mnt/data/impl_work/source/src/control_api.c	2026-04-29 22:53:09.261666864 +0000
+@@ -5,10 +5,12 @@
+ /* RELEVANT FILES: ibm-bob/samples/base/source/inc/control_api.h, ibm-bob/samples/base/source/inc/system_shared.h, ibm-bob/samples/base/source/src/nc_program.c */
+ #include <string.h>
+ #include "control_api.h"
++#include "nc_program.h"
+ #include "nc_feed.h"
+ #include "nc_diagnostics.h"
+ #include "nc_compensation.h"
+ #include "nc_kinematics.h"
++#include "nc_interference.h"
+ 
+ static int32_t IsNcBusyForLoad(void)
+ {
+@@ -102,6 +104,33 @@
+     return 0;
+ }
+ 
++int32_t Api_RequestNcBinaryProgramLoad(const NC_EXEC_BLOCK* pBlocks, uint32_t count)
++{
++    if ((pBlocks == 0) || (count == 0U) ||
++        (count > NC_BINARY_PROGRAM_MAX_BLOCKS) ||
++        (g_machineCtx.run_mode != RUN_MODE_AUTO) || IsNcBusyForLoad()) {
++        g_ncProgramStatus.response_code = RESPONSE_REJECTED;
++        return -1;
++    }
++    if (NcProgram_RequestBinaryLoad(pBlocks, count) != 0) {
++        g_ncProgramStatus.response_code = RESPONSE_REJECTED;
++        return -1;
++    }
++    MarkNcRequestAccepted();
++    return 0;
++}
++
++int32_t Api_GetNcBinaryProgramStatus(NC_BINARY_PROGRAM_STATUS* pOutStatus)
++{
++    if (pOutStatus == 0) {
++        return -1;
++    }
++    (void)memcpy(pOutStatus,
++                 (const void*)&g_ncBinaryProgramStatus,
++                 sizeof(*pOutStatus));
++    return 0;
++}
++
+ int32_t Api_RequestNcProgramStart(void)
+ {
+     if (g_ncProgramStatus.state != NC_READY) {
+@@ -396,3 +425,35 @@
+ {
+     return NcMotionFilter_SetAxisLimitRt(axis, maxVelocityPerTick, maxAccelPerTick);
+ }
++
++int32_t Api_GetNcCapabilityStatus(NC_CAPABILITY_STATUS* pOutStatus)
++{
++    if (pOutStatus == NULL) {
++        return -1;
++    }
++    *pOutStatus = g_ncCapabilityStatus;
++    return 0;
++}
++
++int32_t Api_SetNcInterferenceCheckEnabled(uint8_t enabled)
++{
++    return NcInterference_SetEnabled(enabled);
++}
++
++int32_t Api_GetNcInterferenceStatus(NC_INTERFERENCE_STATUS* pOutStatus)
++{
++    if (pOutStatus == NULL) {
++        return -1;
++    }
++    *pOutStatus = g_ncInterferenceStatus;
++    return 0;
++}
++
++int32_t Api_GetNcSafetyMotionStatus(NC_SAFETY_MOTION_STATUS* pOutStatus)
++{
++    if (pOutStatus == NULL) {
++        return -1;
++    }
++    *pOutStatus = g_ncSafetyMotionStatus;
++    return 0;
++}
+diff -ruN /mnt/data/impl_orig/source/src/main.c /mnt/data/impl_work/source/src/main.c
+--- /mnt/data/impl_orig/source/src/main.c	2026-04-29 22:36:01.000000000 +0000
++++ /mnt/data/impl_work/source/src/main.c	2026-04-29 22:56:32.186589702 +0000
+@@ -172,6 +172,7 @@
+ {
+     if (cycle == 1U) {
+         g_ioIn.sensor_bits |= 0x00000008UL; /* READY */
++        g_ioIn.sensor_bits |= SENSOR_ABSOLUTE_REF_VALID_BIT;
+         g_ioIn.analog[0] = 300;
+     }
+     if (cycle == 3U) {
+@@ -186,6 +187,18 @@
+     if (cycle == 6U) {
+         g_ioIn.sensor_bits |= 0x00000010UL; /* RUN */
+     }
++    if (cycle == 60U) {
++        g_ioIn.sensor_bits |= SENSOR_EXTERNAL_DECEL_BIT;
++    }
++    if (cycle == 90U) {
++        g_ioIn.sensor_bits &= ~SENSOR_EXTERNAL_DECEL_BIT;
++    }
++    if (cycle == 120U) {
++        g_ioIn.sensor_bits |= SENSOR_POSITION_SWITCH_BIT;
++    }
++    if (cycle == 122U) {
++        g_ioIn.sensor_bits &= ~SENSOR_POSITION_SWITCH_BIT;
++    }
+     if (cycle == 30U) {
+         g_ioIn.analog[1] = 850; /* X-axis load enters staged-decel range */
+         g_ioIn.analog[2] = 640; /* Y-axis load enters warning range */
+@@ -221,6 +234,10 @@
+     NC_DIAGNOSTIC_SNAPSHOT diagSnapshot;
+     NC_MOTION_FILTER_STATUS filterStatus;
+     NC_EVENT_RING eventRing;
++    NC_CAPABILITY_STATUS capabilityStatus;
++    NC_INTERFERENCE_STATUS interferenceStatus;
++    NC_SAFETY_MOTION_STATUS safetyStatus;
++    NC_BINARY_PROGRAM_STATUS binaryStatus;
+     int32_t ncAxis[AXIS_MAX] = {0};
+     uint32_t ncMCode = 0U;
+     uint32_t mainNcError = 0U;
+@@ -320,6 +337,17 @@
+     uint32_t eventCaptured = 0U;
+     uint32_t eventLost = 0U;
+     uint32_t lastEventCode = 0U;
++    uint32_t capParsed = 0U;
++    uint32_t capG = 0U;
++    uint32_t capM = 0U;
++    uint32_t capAddr = 0U;
++    uint32_t interferenceChecked = 0U;
++    uint32_t interferenceSlowdown = 0U;
++    uint32_t interferenceWarn = 0U;
++    uint32_t safetyExternal = 0U;
++    uint32_t safetyPosition = 0U;
++    uint32_t safetyOverride = 0U;
++    uint32_t binaryLoaded = 0U;
+     uint32_t toolLifeHoldState = 0U;
+     uint32_t toolLifeHoldError = 0U;
+     uint32_t toolLifeHoldLine = 0U;
+@@ -546,6 +574,25 @@
+         filterMaxLagX = filterStatus.max_lag_error[0];
+         filterResidualX = filterStatus.endpoint_residual[0];
+     }
++    if ((capParsed == 0U) && (Api_GetNcCapabilityStatus(&capabilityStatus) == 0)) {
++        capParsed = capabilityStatus.parsed_blocks;
++        capG = capabilityStatus.supported_g_blocks;
++        capM = capabilityStatus.supported_m_blocks;
++        capAddr = capabilityStatus.address_words_seen;
++    }
++    if ((interferenceChecked == 0U) && (Api_GetNcInterferenceStatus(&interferenceStatus) == 0)) {
++        interferenceChecked = interferenceStatus.checked_blocks;
++        interferenceSlowdown = interferenceStatus.slowdown_applied_blocks;
++        interferenceWarn = interferenceStatus.path_interference_warnings +
++                           interferenceStatus.three_d_interference_warnings +
++                           interferenceStatus.axis_limit_warnings;
++    }
++    if ((safetyExternal == 0U) && (Api_GetNcSafetyMotionStatus(&safetyStatus) == 0)) {
++        safetyExternal = safetyStatus.external_decel_events;
++        safetyPosition = safetyStatus.position_switch_events;
++        safetyOverride = safetyStatus.active_override_percent;
++    }
++
+     if (ncCaptured != 0U) {
+         if (WriteNcToolExpiredFile() == 0) {
+             uint32_t extra;
+@@ -570,6 +617,27 @@
+         TsService_ExecuteSlice();
+     }
+ 
++    if ((capParsed == 0U) && (Api_GetNcCapabilityStatus(&capabilityStatus) == 0)) {
++        capParsed = capabilityStatus.parsed_blocks;
++        capG = capabilityStatus.supported_g_blocks;
++        capM = capabilityStatus.supported_m_blocks;
++        capAddr = capabilityStatus.address_words_seen;
++    }
++    if ((interferenceChecked == 0U) && (Api_GetNcInterferenceStatus(&interferenceStatus) == 0)) {
++        interferenceChecked = interferenceStatus.checked_blocks;
++        interferenceSlowdown = interferenceStatus.slowdown_applied_blocks;
++        interferenceWarn = interferenceStatus.path_interference_warnings +
++                           interferenceStatus.three_d_interference_warnings +
++                           interferenceStatus.axis_limit_warnings;
++    }
++    if ((safetyExternal == 0U) && (Api_GetNcSafetyMotionStatus(&safetyStatus) == 0)) {
++        safetyExternal = safetyStatus.external_decel_events;
++        safetyPosition = safetyStatus.position_switch_events;
++        safetyOverride = safetyStatus.active_override_percent;
++    }
++    if (Api_GetNcBinaryProgramStatus(&binaryStatus) == 0) {
++        binaryLoaded = binaryStatus.loaded_blocks;
++    }
+     if (Api_GetNcEventRing(&eventRing) == 0) {
+         uint32_t lastIndex = (eventRing.write_index == 0U) ?
+                              (NC_EVENT_RING_SIZE - 1U) :
+@@ -709,6 +777,19 @@
+                  (unsigned int)traceFrozen,
+                  (unsigned int)traceCaptured,
+                  (unsigned int)traceTriggerCycle);
++    (void)printf("capability parsed=%u g=%u m=%u address_words=%u binary_loaded=%u\n",
++                 (unsigned int)capParsed,
++                 (unsigned int)capG,
++                 (unsigned int)capM,
++                 (unsigned int)capAddr,
++                 (unsigned int)binaryLoaded);
++    (void)printf("interference checked=%u warnings=%u slowdown=%u safety_external=%u safety_position=%u safety_override=%u\n",
++                 (unsigned int)interferenceChecked,
++                 (unsigned int)interferenceWarn,
++                 (unsigned int)interferenceSlowdown,
++                 (unsigned int)safetyExternal,
++                 (unsigned int)safetyPosition,
++                 (unsigned int)safetyOverride);
+ 
+     if (Api_GetStatusSnapshot(&snapshot) == 0) {
+         (void)printf("mode=%u state=%u alarm=%u cycle=%u\n",
+diff -ruN /mnt/data/impl_orig/source/src/nc_capability.c /mnt/data/impl_work/source/src/nc_capability.c
+--- /mnt/data/impl_orig/source/src/nc_capability.c	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/impl_work/source/src/nc_capability.c	2026-04-29 22:49:50.800335208 +0000
+@@ -0,0 +1,93 @@
++/* ibm-bob/samples/base/source/src/nc_capability.c */
++/* Implements NC catalog/coverage status used by G-code, M-code, and address-code design docs. */
++#include <string.h>
++#include "nc_capability.h"
++#include "nc_program.h"
++
++static uint32_t Popcount32(uint32_t value)
++{
++    uint32_t count = 0U;
++    while (value != 0U) {
++        count += (value & 1U);
++        value >>= 1U;
++    }
++    return count;
++}
++
++static uint32_t AxisMaskToAddressMask(uint32_t axisMask)
++{
++    uint32_t mask = 0U;
++    if ((axisMask & 0x01UL) != 0U) { mask |= (1UL << ('X' - 'A')); }
++    if ((axisMask & 0x02UL) != 0U) { mask |= (1UL << ('Y' - 'A')); }
++    if ((axisMask & 0x04UL) != 0U) { mask |= (1UL << ('Z' - 'A')); }
++    if ((axisMask & 0x08UL) != 0U) { mask |= (1UL << ('A' - 'A')); }
++    return mask;
++}
++
++void NcCapability_Reset(void)
++{
++    (void)memset((void*)&g_ncCapabilityStatus, 0, sizeof(g_ncCapabilityStatus));
++    g_ncCapabilityStatus.generation++;
++}
++
++void NcCapability_RecordUnsupported(uint8_t kind, uint32_t code)
++{
++    if (kind == NC_CAPABILITY_KIND_G) {
++        g_ncCapabilityStatus.unsupported_g_events++;
++        g_ncCapabilityStatus.last_g_code10 = code;
++    } else if (kind == NC_CAPABILITY_KIND_M) {
++        g_ncCapabilityStatus.unsupported_m_events++;
++        g_ncCapabilityStatus.last_m_code = code;
++    } else if (kind == NC_CAPABILITY_KIND_ADDRESS) {
++        g_ncCapabilityStatus.unsupported_address_events++;
++        if (code < 26U) {
++            g_ncCapabilityStatus.last_address_mask |= (1UL << code);
++        }
++    }
++    NcEvent_Push(NC_EVENT_CODE_CAPABILITY_UNSUPPORTED,
++                 (int32_t)kind,
++                 (int32_t)code,
++                 g_ncProgramStatus.read_line_no);
++    g_ncCapabilityStatus.generation++;
++}
++
++void NcCapability_OnParsedBlockTs(const NC_EXEC_BLOCK* pBlock)
++{
++    uint32_t addrMask;
++
++    if (pBlock == NULL) {
++        return;
++    }
++
++    g_ncCapabilityStatus.parsed_blocks++;
++    addrMask = AxisMaskToAddressMask(pBlock->axis_mask);
++    if (pBlock->feed != 0) { addrMask |= (1UL << ('F' - 'A')); }
++    if ((pBlock->aux_flags & NC_AUX_FLAG_SPINDLE) != 0U) { addrMask |= (1UL << ('S' - 'A')); }
++    if ((pBlock->aux_flags & NC_AUX_FLAG_TOOL) != 0U) { addrMask |= (1UL << ('T' - 'A')); }
++    if ((pBlock->aux_flags & NC_AUX_FLAG_M_CODE) != 0U) { addrMask |= (1UL << ('M' - 'A')); }
++    if ((pBlock->feature_flags & NC_FEATURE_FLAG_PARAM_P) != 0U) { addrMask |= (1UL << ('P' - 'A')); }
++    if ((pBlock->feature_flags & NC_FEATURE_FLAG_PARAM_Q) != 0U) { addrMask |= (1UL << ('Q' - 'A')); }
++    if ((pBlock->feature_flags & NC_FEATURE_FLAG_PARAM_R) != 0U) { addrMask |= (1UL << ('R' - 'A')); }
++    if (pBlock->h_offset_no != 0U) { addrMask |= (1UL << ('H' - 'A')); }
++    if (pBlock->d_offset_no != 0U) { addrMask |= (1UL << ('D' - 'A')); }
++    if (pBlock->cycle_repeat != 0U) { addrMask |= (1UL << ('K' - 'A')); }
++
++    g_ncCapabilityStatus.address_words_seen += Popcount32(addrMask);
++    g_ncCapabilityStatus.last_address_mask = addrMask;
++
++    if (pBlock->g_code10 != 0U) {
++        uint32_t index = g_ncCapabilityStatus.g_history_index % NC_CAPABILITY_G_HISTORY_SIZE;
++        g_ncCapabilityStatus.g_history[index] = pBlock->g_code10;
++        g_ncCapabilityStatus.g_history_index++;
++        g_ncCapabilityStatus.last_g_code10 = pBlock->g_code10;
++        g_ncCapabilityStatus.supported_g_blocks++;
++    }
++    if ((pBlock->aux_flags & NC_AUX_FLAG_M_CODE) != 0U) {
++        uint32_t index = g_ncCapabilityStatus.m_history_index % NC_CAPABILITY_M_HISTORY_SIZE;
++        g_ncCapabilityStatus.m_history[index] = pBlock->aux_m_code;
++        g_ncCapabilityStatus.m_history_index++;
++        g_ncCapabilityStatus.last_m_code = pBlock->aux_m_code;
++        g_ncCapabilityStatus.supported_m_blocks++;
++    }
++    g_ncCapabilityStatus.generation++;
++}
+diff -ruN /mnt/data/impl_orig/source/src/nc_interference.c /mnt/data/impl_work/source/src/nc_interference.c
+--- /mnt/data/impl_orig/source/src/nc_interference.c	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/impl_work/source/src/nc_interference.c	2026-04-29 22:50:03.062888715 +0000
+@@ -0,0 +1,91 @@
++/* ibm-bob/samples/base/source/src/nc_interference.c */
++/* Implements deterministic TS-side screening for path interference and axis envelope warnings. */
++#include <stdlib.h>
++#include <string.h>
++#include "nc_interference.h"
++#include "nc_program.h"
++
++static int32_t Abs32(int32_t value)
++{
++    return (value < 0) ? -value : value;
++}
++
++void NcInterference_Reset(void)
++{
++    (void)memset((void*)&g_ncInterferenceStatus, 0, sizeof(g_ncInterferenceStatus));
++    g_ncInterferenceStatus.enabled = 1U;
++    g_ncInterferenceStatus.generation++;
++}
++
++int32_t NcInterference_SetEnabled(uint8_t enabled)
++{
++    g_ncInterferenceStatus.enabled = (uint8_t)(enabled != 0U);
++    g_ncInterferenceStatus.generation++;
++    return 0;
++}
++
++static void ApplyWarning(NC_EXEC_BLOCK* pBlock, uint8_t kind, int32_t value)
++{
++    g_ncInterferenceStatus.last_warning_kind = kind;
++    g_ncInterferenceStatus.last_warning_line_no = pBlock->line_no;
++    g_ncInterferenceStatus.slowdown_applied_blocks++;
++    if ((pBlock->feed_override_percent == 0U) ||
++        (pBlock->feed_override_percent > NC_INTERFERENCE_SLOWDOWN_PERCENT)) {
++        pBlock->feed_override_percent = NC_INTERFERENCE_SLOWDOWN_PERCENT;
++    }
++    NcEvent_Push(NC_EVENT_CODE_INTERFERENCE_WARN,
++                 (int32_t)kind,
++                 value,
++                 pBlock->line_no);
++}
++
++void NcInterference_CheckBlockTs(NC_EXEC_BLOCK* pBlock)
++{
++    uint32_t axis;
++    uint32_t movingAxes = 0U;
++    int32_t minClearance = NC_INTERFERENCE_AXIS_LIMIT;
++
++    if ((pBlock == NULL) || (g_ncInterferenceStatus.enabled == 0U)) {
++        return;
++    }
++    if ((pBlock->motion_type != NC_MOTION_RAPID) &&
++        (pBlock->motion_type != NC_MOTION_LINEAR) &&
++        (pBlock->motion_type != NC_MOTION_ARC_CW) &&
++        (pBlock->motion_type != NC_MOTION_ARC_CCW) &&
++        (pBlock->motion_type != NC_MOTION_ADVANCED_INTERP)) {
++        return;
++    }
++
++    g_ncInterferenceStatus.checked_blocks++;
++    g_ncInterferenceStatus.last_line_no = pBlock->line_no;
++
++    for (axis = 0U; axis < AXIS_MAX; ++axis) {
++        int32_t target = pBlock->axis_target[axis];
++        int32_t delta = Abs32(target - pBlock->axis_start[axis]);
++        int32_t clearance = NC_INTERFERENCE_AXIS_LIMIT - Abs32(target);
++        g_ncInterferenceStatus.last_clearance[axis] = clearance;
++        if (delta != 0) {
++            movingAxes++;
++        }
++        if (clearance < minClearance) {
++            minClearance = clearance;
++        }
++        if (clearance < 0) {
++            g_ncInterferenceStatus.axis_limit_warnings++;
++            ApplyWarning(pBlock, 3U, (int32_t)axis);
++        }
++    }
++
++    if ((movingAxes >= 3U) && (minClearance < NC_INTERFERENCE_MIN_CLEARANCE)) {
++        g_ncInterferenceStatus.three_d_interference_warnings++;
++        ApplyWarning(pBlock, 2U, minClearance);
++    } else if ((movingAxes >= 2U) &&
++               (pBlock->motion_type == NC_MOTION_ARC_CW ||
++                pBlock->motion_type == NC_MOTION_ARC_CCW) &&
++               (pBlock->arc_radius != 0) &&
++               (Abs32(pBlock->arc_radius) < NC_INTERFERENCE_MIN_CLEARANCE)) {
++        g_ncInterferenceStatus.path_interference_warnings++;
++        ApplyWarning(pBlock, 1U, pBlock->arc_radius);
++    }
++    g_ncInterferenceStatus.generation++;
++}
+diff -ruN /mnt/data/impl_orig/source/src/nc_parser_modal.c /mnt/data/impl_work/source/src/nc_parser_modal.c
+--- /mnt/data/impl_orig/source/src/nc_parser_modal.c	2026-04-29 22:40:00.000000000 +0000
++++ /mnt/data/impl_work/source/src/nc_parser_modal.c	2026-04-29 22:52:16.083879634 +0000
+@@ -4,6 +4,7 @@
+ /* RELEVANT FILES: ibm-bob/samples/base/source/src/nc_parser_tokens.c, ibm-bob/samples/base/source/inc/nc_parser_internal.h, ibm-bob/samples/base/source/inc/nc_codes.h */
+ #include <string.h>
+ #include "nc_codes.h"
++#include "nc_capability.h"
+ #include "nc_compensation.h"
+ #include "nc_coordinate.h"
+ #include "nc_cycle.h"
+@@ -221,6 +222,7 @@
+ 
+     if ((NcCodes_GetGCodeInfo(code, &info) != 0) ||
+         (info.supported_v1 == 0U)) {
++        NcCapability_RecordUnsupported(NC_CAPABILITY_KIND_G, (uint32_t)code);
+         return -1;
+     }
+     result = ApplyCoordinateG(code, &info, pBlock, pCtx);
+diff -ruN /mnt/data/impl_orig/source/src/nc_parser_tokens.c /mnt/data/impl_work/source/src/nc_parser_tokens.c
+--- /mnt/data/impl_orig/source/src/nc_parser_tokens.c	2026-04-29 22:33:23.000000000 +0000
++++ /mnt/data/impl_work/source/src/nc_parser_tokens.c	2026-04-29 22:52:21.874635595 +0000
+@@ -5,6 +5,7 @@
+ #include <limits.h>
+ #include <math.h>
+ #include "nc_codes.h"
++#include "nc_capability.h"
+ #include "nc_coordinate.h"
+ #include "nc_cycle.h"
+ #include "nc_parser_internal.h"
+@@ -308,6 +309,7 @@
+ 
+         if ((NcCodes_GetMCodeInfo(code, &mInfo) != 0) ||
+             (mInfo.supported_v1 == 0U)) {
++            NcCapability_RecordUnsupported(NC_CAPABILITY_KIND_M, code);
+             return -1;
+         }
+         pBlock->aux_m_code = mInfo.code;
+@@ -331,6 +333,10 @@
+ 
+     if ((NcCodes_GetAddressInfo(address, &info) != 0) ||
+         (info.supported_v1 == 0U)) {
++        if ((address >= 'A') && (address <= 'Z')) {
++            NcCapability_RecordUnsupported(NC_CAPABILITY_KIND_ADDRESS,
++                                           (uint32_t)(address - 'A'));
++        }
+         return -1;
+     }
+     if (info.kind == NC_ADDRESS_KIND_G_CODE) {
+diff -ruN /mnt/data/impl_orig/source/src/nc_program.c /mnt/data/impl_work/source/src/nc_program.c
+--- /mnt/data/impl_orig/source/src/nc_program.c	2026-04-29 22:19:48.000000000 +0000
++++ /mnt/data/impl_work/source/src/nc_program.c	2026-04-29 22:51:56.572203566 +0000
+@@ -9,6 +9,9 @@
+ #include "nc_compensation.h"
+ #include "nc_kinematics.h"
+ #include "nc_lookahead.h"
++#include "nc_capability.h"
++#include "nc_interference.h"
++#include "nc_safety_motion.h"
+ #include "nc_program.h"
+ 
+ #define NC_LOG_BASE        (5000U)
+@@ -319,17 +322,21 @@
+ static void RtNcProgram_StartMotionBlock(const NC_EXEC_BLOCK* pBlock)
+ {
+     int32_t beginResult;
++    NC_EXEC_BLOCK workBlock;
+ 
+-    if (pBlock->motion_type != NC_MOTION_DWELL) {
+-        RtNcProgram_ApplyBlockAux(pBlock);
++    (void)memcpy(&workBlock, pBlock, sizeof(workBlock));
++    NcSafetyMotion_ApplyBlockRt(&workBlock);
++
++    if (workBlock.motion_type != NC_MOTION_DWELL) {
++        RtNcProgram_ApplyBlockAux(&workBlock);
+         if (g_ncProgramStatus.state != NC_RUNNING) {
+             return;
+         }
+     } else {
+-        g_ncProgramStatus.exec_line_no = pBlock->line_no;
++        g_ncProgramStatus.exec_line_no = workBlock.line_no;
+     }
+ 
+-    beginResult = NcInterpolation_BeginBlockRt(pBlock);
++    beginResult = NcInterpolation_BeginBlockRt(&workBlock);
+     if (beginResult == 0) {
+         (void)NcInterpolation_StepRt();
+         RtNcProgram_FinishIfComplete();
+@@ -438,19 +445,40 @@
+     RtNcProgram_FinishIfComplete();
+ }
+ 
+-static void TsNcProgram_StartLoad(void)
++int32_t NcProgram_RequestBinaryLoad(const NC_EXEC_BLOCK* pBlocks, uint32_t count)
+ {
+-    char path[NC_FILE_PATH_MAX];
+-
+-    (void)memcpy(path, (const void*)g_ncProgramRequest.file_path, sizeof(path));
+-    path[NC_FILE_PATH_MAX - 1U] = '\0';
++    if ((pBlocks == NULL) || (count == 0U) ||
++        (count > NC_BINARY_PROGRAM_MAX_BLOCKS)) {
++        return -1;
++    }
++    (void)memcpy((void*)g_ncBinaryProgramRequest.blocks,
++                 pBlocks,
++                 sizeof(NC_EXEC_BLOCK) * count);
++    g_ncBinaryProgramRequest.requested_count = count;
++    g_ncBinaryProgramRequest.accepted_count = count;
++    g_ncBinaryProgramRequest.load_request = 1U;
++    g_ncBinaryProgramRequest.ready = 0U;
++    g_ncBinaryProgramRequest.rejected = 0U;
++    g_ncBinaryProgramRequest.generation++;
+     g_ncProgramRequest.load_request = 0U;
++    g_ncProgramRequest.start_request = 0U;
++    g_ncProgramRequest.hold_request = 0U;
++    g_ncProgramRequest.stop_request = 0U;
++    g_ncProgramRequest.resume_request = 0U;
++    g_ncProgramRequest.reset_request = 0U;
++    return 0;
++}
++
++static void TsNcProgram_ResetForNewLoad(void)
++{
+     NcProgram_ClearBuffer();
+     NcParse_ResetModal();
+     NcInterpolation_Reset();
+     NcCompensation_Reset();
+     NcKinematics_Reset();
+     NcLookahead_Reset();
++    NcCapability_Reset();
++    NcInterference_Reset();
+     (void)memset((void*)&g_ncAuxStatus, 0, sizeof(g_ncAuxStatus));
+     RtNcProgram_ResetAuxWait();
+     (void)memset((void*)&g_ncFeatureStatus, 0, sizeof(g_ncFeatureStatus));
+@@ -458,6 +486,20 @@
+     g_ncProgramStatus.error_line_no = 0U;
+     g_ncProgramStatus.read_line_no = 0U;
+     g_ncProgramStatus.exec_line_no = 0U;
++    g_ncBinaryProgramStatus.committed_blocks = 0U;
++    g_ncBinaryProgramStatus.last_error_line_no = 0U;
++}
++
++static void TsNcProgram_StartLoad(void)
++{
++    char path[NC_FILE_PATH_MAX];
++
++    (void)memcpy(path, (const void*)g_ncProgramRequest.file_path, sizeof(path));
++    path[NC_FILE_PATH_MAX - 1U] = '\0';
++    g_ncProgramRequest.load_request = 0U;
++    TsNcProgram_ResetForNewLoad();
++    g_ncBinaryProgramStatus.active = 0U;
++    g_ncBinaryProgramStatus.source_ready = 0U;
+     NcStatus_SetState(NC_LOAD_REQUESTED);
+ 
+     s_ncFile = fopen(path, "r");
+@@ -469,10 +511,72 @@
+     NcStatus_SetState(NC_PREFETCHING);
+ }
+ 
++static void TsNcProgram_StartBinaryLoad(void)
++{
++    uint32_t i;
++    uint32_t count = g_ncBinaryProgramRequest.requested_count;
++
++    g_ncBinaryProgramRequest.load_request = 0U;
++    g_ncBinaryProgramRequest.busy = 1U;
++    TsNcProgram_ResetForNewLoad();
++    (void)memset((void*)&g_ncBinaryProgramStatus, 0, sizeof(g_ncBinaryProgramStatus));
++    NcStatus_SetState(NC_LOAD_REQUESTED);
++
++    if ((count == 0U) || (count > NC_BINARY_PROGRAM_MAX_BLOCKS)) {
++        g_ncBinaryProgramRequest.rejected = 1U;
++        g_ncBinaryProgramRequest.busy = 0U;
++        g_ncBinaryProgramStatus.rejected_blocks = count;
++        g_ncBinaryProgramStatus.generation++;
++        NcStatus_SetError(NC_ERR_RANGE, 0U);
++        return;
++    }
++
++    for (i = 0U; i < count; ++i) {
++        NC_EXEC_BLOCK block;
++        (void)memcpy(&block,
++                     (const void*)&g_ncBinaryProgramRequest.blocks[i],
++                     sizeof(block));
++        block.valid = 1U;
++        block.generation = g_ncProgramBuffer.producer_generation + 1U;
++        if (block.line_no == 0U) {
++            block.line_no = i + 1U;
++        }
++        NcCapability_OnParsedBlockTs(&block);
++        NcInterference_CheckBlockTs(&block);
++        if (NcBuffer_CommitBlock(&block) != 0) {
++            g_ncBinaryProgramStatus.last_error_line_no = block.line_no;
++            NcStatus_SetError(NC_ERR_BUFFER_UNDERRUN, block.line_no);
++            break;
++        }
++        g_ncBinaryProgramStatus.committed_blocks++;
++    }
++
++    g_ncProgramStatus.read_line_no = count;
++    g_ncProgramBuffer.eof_reached = 1U;
++    g_ncBinaryProgramStatus.loaded_blocks = count;
++    g_ncBinaryProgramStatus.active = 1U;
++    g_ncBinaryProgramStatus.source_ready = 1U;
++    g_ncBinaryProgramStatus.generation++;
++    g_ncBinaryProgramRequest.ready = 1U;
++    g_ncBinaryProgramRequest.busy = 0U;
++    NcEvent_Push(NC_EVENT_CODE_BINARY_LOAD_READY,
++                 (int32_t)g_ncBinaryProgramStatus.committed_blocks,
++                 (int32_t)count,
++                 0U);
++    if (g_ncProgramStatus.state != NC_ERROR) {
++        NcStatus_SetState((NcBuffer_Count() > 0U) ? NC_READY : NC_COMPLETED);
++    }
++}
++
+ void TsNcProgram_ExecuteSlice(void)
+ {
+     uint32_t parsedLines = 0U;
+ 
++    if (g_ncBinaryProgramRequest.load_request != 0U) {
++        TsNcProgram_CloseFile();
++        TsNcProgram_StartBinaryLoad();
++        return;
++    }
+     if (g_ncProgramRequest.load_request != 0U) {
+         TsNcProgram_CloseFile();
+         TsNcProgram_StartLoad();
+@@ -520,7 +624,9 @@
+             return;
+         }
+         if (parseResult == 0) {
++            NcCapability_OnParsedBlockTs(&block);
+             NcLookahead_ApplyBlockTs(&block);
++            NcInterference_CheckBlockTs(&block);
+         }
+         if ((parseResult == 0) && (NcBuffer_CommitBlock(&block) != 0)) {
+             return;
+diff -ruN /mnt/data/impl_orig/source/src/nc_safety_motion.c /mnt/data/impl_work/source/src/nc_safety_motion.c
+--- /mnt/data/impl_orig/source/src/nc_safety_motion.c	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/impl_work/source/src/nc_safety_motion.c	2026-04-29 22:50:15.162854593 +0000
+@@ -0,0 +1,83 @@
++/* ibm-bob/samples/base/source/src/nc_safety_motion.c */
++/* Implements RT-safe motion override for power-fail decel, external decel, position switch, and absolute reference state. */
++#include <string.h>
++#include "nc_safety_motion.h"
++#include "nc_program.h"
++
++static uint8_t s_prevPositionSwitch;
++static uint8_t s_prevPowerFail;
++static uint8_t s_prevExternalDecel;
++static uint8_t s_prevAbsRefValid;
++
++void NcSafetyMotion_Reset(void)
++{
++    (void)memset((void*)&g_ncSafetyMotionStatus, 0, sizeof(g_ncSafetyMotionStatus));
++    g_ncSafetyMotionStatus.active_override_percent = NC_FEED_OVERRIDE_DEFAULT_PERCENT;
++    s_prevPositionSwitch = 0U;
++    s_prevPowerFail = 0U;
++    s_prevExternalDecel = 0U;
++    s_prevAbsRefValid = 0U;
++    g_ncSafetyMotionStatus.generation++;
++}
++
++void NcSafetyMotion_UpdateRt(void)
++{
++    uint32_t bits = g_ioIn.sensor_bits;
++    uint8_t powerFail = (uint8_t)((bits & SENSOR_POWER_FAIL_BIT) != 0U);
++    uint8_t externalDecel = (uint8_t)((bits & SENSOR_EXTERNAL_DECEL_BIT) != 0U);
++    uint8_t positionSwitch = (uint8_t)((bits & SENSOR_POSITION_SWITCH_BIT) != 0U);
++    uint8_t absRefValid = (uint8_t)((bits & SENSOR_ABSOLUTE_REF_VALID_BIT) != 0U);
++
++    g_ncSafetyMotionStatus.powerfail_decel_stop_active = powerFail;
++    g_ncSafetyMotionStatus.external_decel_active = externalDecel;
++    g_ncSafetyMotionStatus.absolute_reference_valid = absRefValid;
++    g_ncSafetyMotionStatus.active_override_percent = NC_FEED_OVERRIDE_DEFAULT_PERCENT;
++
++    if (powerFail != 0U) {
++        g_ncSafetyMotionStatus.active_override_percent = NC_SAFETY_POWERFAIL_DECEL_PERCENT;
++        if (s_prevPowerFail == 0U) {
++            g_ncSafetyMotionStatus.powerfail_events++;
++            NcEvent_Push(NC_EVENT_CODE_POWERFAIL_DECEL_STOP, 0, 0,
++                         g_ncProgramStatus.exec_line_no);
++        }
++    } else if (externalDecel != 0U) {
++        g_ncSafetyMotionStatus.active_override_percent = NC_SAFETY_EXTERNAL_DECEL_PERCENT;
++        if (s_prevExternalDecel == 0U) {
++            g_ncSafetyMotionStatus.external_decel_events++;
++            NcEvent_Push(NC_EVENT_CODE_EXTERNAL_DECEL, 0, 0,
++                         g_ncProgramStatus.exec_line_no);
++        }
++    }
++    if ((positionSwitch != 0U) && (s_prevPositionSwitch == 0U)) {
++        g_ncSafetyMotionStatus.position_switch_latched = 1U;
++        g_ncSafetyMotionStatus.position_switch_events++;
++        NcEvent_Push(NC_EVENT_CODE_POSITION_SWITCH_LATCH, 0, 0,
++                     g_ncProgramStatus.exec_line_no);
++    }
++    if ((absRefValid == 0U) && (s_prevAbsRefValid != 0U)) {
++        g_ncSafetyMotionStatus.absolute_ref_lost_events++;
++    }
++
++    s_prevPowerFail = powerFail;
++    s_prevExternalDecel = externalDecel;
++    s_prevPositionSwitch = positionSwitch;
++    s_prevAbsRefValid = absRefValid;
++    g_ncSafetyMotionStatus.generation++;
++}
++
++void NcSafetyMotion_ApplyBlockRt(NC_EXEC_BLOCK* pBlock)
++{
++    if (pBlock == NULL) {
++        return;
++    }
++    if (g_ncSafetyMotionStatus.active_override_percent < pBlock->feed_override_percent) {
++        pBlock->feed_override_percent = g_ncSafetyMotionStatus.active_override_percent;
++        g_ncSafetyMotionStatus.last_line_no = pBlock->line_no;
++        g_ncSafetyMotionStatus.generation++;
++    }
++    if ((g_ncSafetyMotionStatus.powerfail_decel_stop_active != 0U) &&
++        (pBlock->interp_ticks < 5U)) {
++        pBlock->interp_ticks = 5U;
++        pBlock->decel_ticks = 5U;
++    }
++}
+diff -ruN /mnt/data/impl_orig/source/src/rt_control.c /mnt/data/impl_work/source/src/rt_control.c
+--- /mnt/data/impl_orig/source/src/rt_control.c	2026-04-29 20:47:46.000000000 +0000
++++ /mnt/data/impl_work/source/src/rt_control.c	2026-04-29 22:52:06.568519584 +0000
+@@ -5,6 +5,7 @@
+ #include "rt_control.h"
+ #include "nc_program.h"
+ #include "nc_diagnostics.h"
++#include "nc_safety_motion.h"
+ #include "system_shared.h"
+ #include "system_config.h"
+ 
+@@ -108,6 +109,7 @@
+     RtInput_ScanInputs();
+     RtControl_UpdatePrestartInterlock();
+     NcDiagnostics_UpdateAxisLoadRt();
++    NcSafetyMotion_UpdateRt();
+     RtControl_UpdateMachineState();
+     RtControl_ProcessModeRequest();
+     RtControl_UpdateInterlock();
+diff -ruN /mnt/data/impl_orig/source/src/system_shared.c /mnt/data/impl_work/source/src/system_shared.c
+--- /mnt/data/impl_orig/source/src/system_shared.c	2026-04-29 20:47:46.000000000 +0000
++++ /mnt/data/impl_work/source/src/system_shared.c	2026-04-29 22:49:21.780307534 +0000
+@@ -30,6 +30,11 @@
+ volatile NC_DIAGNOSTIC_SNAPSHOT g_ncDiagnosticSnapshot;
+ volatile NC_MOTION_FILTER_STATUS g_ncMotionFilterStatus;
+ volatile NC_EVENT_RING    g_ncEventRing;
++volatile NC_BINARY_PROGRAM_REQUEST g_ncBinaryProgramRequest;
++volatile NC_BINARY_PROGRAM_STATUS  g_ncBinaryProgramStatus;
++volatile NC_CAPABILITY_STATUS      g_ncCapabilityStatus;
++volatile NC_INTERFERENCE_STATUS    g_ncInterferenceStatus;
++volatile NC_SAFETY_MOTION_STATUS   g_ncSafetyMotionStatus;
+ volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
+ 
+ void SystemShared_Initialize(void)
+@@ -59,6 +64,11 @@
+     (void)memset((void*)&g_ncDiagnosticSnapshot, 0, sizeof(g_ncDiagnosticSnapshot));
+     (void)memset((void*)&g_ncMotionFilterStatus, 0, sizeof(g_ncMotionFilterStatus));
+     (void)memset((void*)&g_ncEventRing, 0, sizeof(g_ncEventRing));
++    (void)memset((void*)&g_ncBinaryProgramRequest, 0, sizeof(g_ncBinaryProgramRequest));
++    (void)memset((void*)&g_ncBinaryProgramStatus, 0, sizeof(g_ncBinaryProgramStatus));
++    (void)memset((void*)&g_ncCapabilityStatus, 0, sizeof(g_ncCapabilityStatus));
++    (void)memset((void*)&g_ncInterferenceStatus, 0, sizeof(g_ncInterferenceStatus));
++    (void)memset((void*)&g_ncSafetyMotionStatus, 0, sizeof(g_ncSafetyMotionStatus));
+     (void)memset((void*)&g_ioTraceBuffer, 0, sizeof(g_ioTraceBuffer));
+ 
+     g_machineCtx.run_mode = RUN_MODE_MANUAL;
+@@ -80,6 +90,8 @@
+     g_ncMotionFilterStatus.velocity_window = NC_MOTION_FILTER_DEFAULT_VELOCITY_WINDOW;
+     g_ncMotionFilterStatus.accel_window = NC_MOTION_FILTER_DEFAULT_ACCEL_WINDOW;
+     g_ncMotionFilterStatus.endpoint_correction_window = NC_MOTION_FILTER_ENDPOINT_WINDOW;
++    g_ncInterferenceStatus.enabled = 1U;
++    g_ncSafetyMotionStatus.active_override_percent = NC_FEED_OVERRIDE_DEFAULT_PERCENT;
+     for (uint32_t axis = 0U; axis < AXIS_MAX; ++axis) {
+         g_ncMotionFilterStatus.max_velocity_per_tick[axis] = NC_MOTION_FILTER_DEFAULT_MAX_VELOCITY;
+         g_ncMotionFilterStatus.max_accel_per_tick[axis] = NC_MOTION_FILTER_DEFAULT_MAX_ACCEL;

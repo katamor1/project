@@ -1,0 +1,1052 @@
+diff -ruN /mnt/data/ibm_bob_v6_work/source_before_v6/docs/verification_output_v6.txt /mnt/data/ibm_bob_v6_work/source/docs/verification_output_v6.txt
+--- /mnt/data/ibm_bob_v6_work/source_before_v6/docs/verification_output_v6.txt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_v6_work/source/docs/verification_output_v6.txt	2026-04-29 19:41:52.583740847 +0000
+@@ -0,0 +1,12 @@
++nc_state=6 nc_error=0 nc_error_line=0 nc_exec=45 nc_read=45 nc_buf=0 nc_x=3400 nc_y=2300 nc_z=3400 nc_m=130
++interp_segments=16 feed_profile=1 feed_override=100 dwell_ticks=1
++coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=1000
++feature_blocks=40 feature_flags=97 canned=2 skip=1 advanced=3
++comp_applied=11 comp_mask=0x00000007 comp_tool=0 comp_cutter=0 comp_rotation=0
++path_arc=2 path_helical=1 path_arc_segments=8 path_lookahead=16 path_slowdowns=11 path_corner_deg=171 path_override=60
++kin_transformed=16 kin_mirrored=11 kin_retracts=1 kin_singularity_warn=0 kin_mirror_mask=0x00000000 kin_retract_mask=0x00000004 kin_tool_z=9848 kin_last_x=3400 kin_last_a=-100
++cycle_completed=2 cycle_phase_count=1 skip_completed=1 skip_x=3670
++aux_completed=1 aux_wait_cycles=80 prestart_ok=0 prestart_mask=0x00000014
++trace_frozen=1 trace_captured=32 trace_trigger_cycle=451
++mode=1 state=3 alarm=9001 cycle=520
++coord_error_checks=5
+diff -ruN /mnt/data/ibm_bob_v6_work/source_before_v6/inc/control_api.h /mnt/data/ibm_bob_v6_work/source/inc/control_api.h
+--- /mnt/data/ibm_bob_v6_work/source_before_v6/inc/control_api.h	2026-04-29 19:30:05.000000000 +0000
++++ /mnt/data/ibm_bob_v6_work/source/inc/control_api.h	2026-04-29 19:40:09.061851145 +0000
+@@ -31,5 +31,11 @@
+ int32_t Api_SetNcCutterRadiusOffset(uint16_t offsetNo, int32_t offset);
+ int32_t Api_GetNcCompensationStatus(NC_COMPENSATION_STATUS* pOutStatus);
+ int32_t Api_GetNcPathControlStatus(NC_PATH_CONTROL_STATUS* pOutStatus);
++int32_t Api_SetNcAxisAssignment(uint8_t logicalAxis,
++                                uint8_t physicalAxis,
++                                int8_t sign,
++                                uint8_t detached);
++int32_t Api_SetNcMirrorMask(uint32_t axisMask);
++int32_t Api_GetNcKinematicsStatus(NC_KINEMATICS_STATUS* pOutStatus);
+ 
+ #endif /* CONTROL_API_H */
+diff -ruN /mnt/data/ibm_bob_v6_work/source_before_v6/inc/nc_kinematics.h /mnt/data/ibm_bob_v6_work/source/inc/nc_kinematics.h
+--- /mnt/data/ibm_bob_v6_work/source_before_v6/inc/nc_kinematics.h	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_v6_work/source/inc/nc_kinematics.h	2026-04-29 19:39:10.401047475 +0000
+@@ -0,0 +1,20 @@
++/* ibm-bob/samples/base/source/inc/nc_kinematics.h */
++/* Declares TS-side 5-axis, mirror, axis allocation, and retract helpers. */
++/* This exists so RT receives fixed, already-transformed NC execution blocks. */
++/* RELEVANT FILES: src/nc_kinematics.c, src/nc_parser_modal.c, src/nc_program.c */
++#ifndef NC_KINEMATICS_H
++#define NC_KINEMATICS_H
++
++#include <stdint.h>
++#include "system_shared.h"
++
++void NcKinematics_Reset(void);
++int32_t NcKinematics_SetAxisAssignment(uint8_t logicalAxis,
++                                       uint8_t physicalAxis,
++                                       int8_t sign,
++                                       uint8_t detached);
++int32_t NcKinematics_SetMirrorMask(uint32_t axisMask);
++int32_t NcKinematics_ApplyBlockTs(NC_EXEC_BLOCK* pBlock,
++                                  NC_ERROR_CODE* pOutError);
++
++#endif /* NC_KINEMATICS_H */
+diff -ruN /mnt/data/ibm_bob_v6_work/source_before_v6/inc/nc_parser_internal.h /mnt/data/ibm_bob_v6_work/source/inc/nc_parser_internal.h
+--- /mnt/data/ibm_bob_v6_work/source_before_v6/inc/nc_parser_internal.h	2026-04-29 19:21:34.000000000 +0000
++++ /mnt/data/ibm_bob_v6_work/source/inc/nc_parser_internal.h	2026-04-29 19:38:00.145046156 +0000
+@@ -14,7 +14,10 @@
+     NC_PARSE_COORD_G10_WORK_OFFSET = 3,
+     NC_PARSE_COORD_MACHINE_DIRECT = 4,
+     NC_PARSE_COORD_TEMPORARY_SHIFT = 5,
+-    NC_PARSE_COORD_ROTATION_CENTER = 6
++    NC_PARSE_COORD_ROTATION_CENTER = 6,
++    NC_PARSE_COORD_TILTED_PLANE = 7,
++    NC_PARSE_COORD_TOOL_AXIS = 8,
++    NC_PARSE_COORD_MIRROR_SETTING = 9
+ } NC_PARSE_COORD_MODE;
+ 
+ typedef struct {
+diff -ruN /mnt/data/ibm_bob_v6_work/source_before_v6/inc/system_shared.h /mnt/data/ibm_bob_v6_work/source/inc/system_shared.h
+--- /mnt/data/ibm_bob_v6_work/source_before_v6/inc/system_shared.h	2026-04-29 19:27:57.000000000 +0000
++++ /mnt/data/ibm_bob_v6_work/source/inc/system_shared.h	2026-04-29 19:38:00.143577218 +0000
+@@ -258,8 +258,17 @@
+     uint8_t        polar_command;
+     uint16_t       h_offset_no;
+     uint16_t       d_offset_no;
++    uint8_t        kinematics_command;
++    uint8_t        tool_axis_command;
++    uint8_t        mirror_command;
++    uint8_t        axis_retract_command;
++    uint32_t       mirror_axis_mask;
++    uint32_t       axis_control_mask;
+     int32_t        rotation_center[2];
+     int32_t        rotation_angle_deg;
++    int32_t        tilt_origin[3];
++    int32_t        tilt_angle_deg[3];
++    int32_t        tool_axis_angle_deg[3];
+ } NC_EXEC_BLOCK;
+ 
+ typedef struct {
+@@ -342,6 +351,11 @@
+ #define NC_FEATURE_FLAG_CUTTER_RADIUS    (0x00004000UL)
+ #define NC_FEATURE_FLAG_COORD_ROTATION   (0x00008000UL)
+ #define NC_FEATURE_FLAG_POLAR_COORD      (0x00010000UL)
++#define NC_FEATURE_FLAG_TILTED_PLANE     (0x00020000UL)
++#define NC_FEATURE_FLAG_TOOL_AXIS_DIR    (0x00040000UL)
++#define NC_FEATURE_FLAG_AXIS_ASSIGNMENT  (0x00080000UL)
++#define NC_FEATURE_FLAG_AXIS_RETRACT     (0x00100000UL)
++#define NC_FEATURE_FLAG_MIRROR           (0x00200000UL)
+ 
+ #define NC_TOOL_LENGTH_CMD_NONE          (0U)
+ #define NC_TOOL_LENGTH_CMD_POSITIVE      (1U)
+@@ -357,6 +371,17 @@
+ #define NC_POLAR_CMD_NONE                (0U)
+ #define NC_POLAR_CMD_ENABLE              (1U)
+ #define NC_POLAR_CMD_CANCEL              (2U)
++#define NC_KINEMATICS_CMD_NONE           (0U)
++#define NC_KINEMATICS_CMD_TILT_ENABLE    (1U)
++#define NC_KINEMATICS_CMD_TILT_CANCEL    (2U)
++#define NC_TOOL_AXIS_CMD_NONE            (0U)
++#define NC_TOOL_AXIS_CMD_ENABLE          (1U)
++#define NC_MIRROR_CMD_NONE               (0U)
++#define NC_MIRROR_CMD_ENABLE             (1U)
++#define NC_MIRROR_CMD_CANCEL             (2U)
++#define NC_AXIS_RETRACT_CMD_NONE         (0U)
++#define NC_AXIS_RETRACT_CMD_RETRACT      (1U)
++#define NC_AXIS_RETRACT_CMD_RECOVER      (2U)
+ 
+ #define NC_AUX_STATE_IDLE           (0U)
+ #define NC_AUX_STATE_WAIT_MFIN      (1U)
+@@ -429,6 +454,31 @@
+ } NC_PATH_CONTROL_STATUS;
+ 
+ typedef struct {
++    uint8_t  tilted_plane_active;
++    uint8_t  tool_axis_active;
++    uint8_t  reserved0;
++    uint8_t  reserved1;
++    uint32_t logical_axis_mask;
++    uint32_t physical_axis_mask;
++    uint32_t detached_axis_mask;
++    uint32_t mirror_axis_mask;
++    uint32_t retract_axis_mask;
++    int8_t   axis_map[AXIS_MAX];
++    int8_t   axis_sign[AXIS_MAX];
++    int32_t  tilt_origin[3];
++    int32_t  tilt_angle_deg[3];
++    int32_t  tool_axis_angle_deg[3];
++    int32_t  tool_axis_vector[3];
++    int32_t  last_transformed_target[AXIS_MAX];
++    uint32_t transformed_blocks;
++    uint32_t mirrored_blocks;
++    uint32_t retract_events;
++    uint32_t singularity_warnings;
++    uint32_t last_line_no;
++    uint32_t generation;
++} NC_KINEMATICS_STATUS;
++
++typedef struct {
+     uint32_t cycle;
+     uint32_t sensor_bits;
+     uint32_t seq_bits;
+@@ -472,6 +522,7 @@
+ extern volatile NC_CYCLE_STATUS    g_ncCycleStatus;
+ extern volatile NC_COMPENSATION_STATUS g_ncCompensationStatus;
+ extern volatile NC_PATH_CONTROL_STATUS g_ncPathControlStatus;
++extern volatile NC_KINEMATICS_STATUS g_ncKinematicsStatus;
+ extern volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
+ 
+ void SystemShared_Initialize(void);
+diff -ruN /mnt/data/ibm_bob_v6_work/source_before_v6/runtime_log.csv /mnt/data/ibm_bob_v6_work/source/runtime_log.csv
+--- /mnt/data/ibm_bob_v6_work/source_before_v6/runtime_log.csv	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_v6_work/source/runtime_log.csv	2026-04-29 19:41:52.582254351 +0000
+@@ -0,0 +1,156 @@
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++3,5006,0,158
++3,1002,0,159
++2,9001,950,451
++2,9001,950,452
++2,9001,950,453
++2,9001,950,454
++2,9001,950,455
++2,9001,950,456
++2,9001,950,457
++2,9001,950,458
++2,9001,950,459
++2,9001,950,460
++2,9001,950,461
++2,9001,950,462
++2,9001,950,463
++2,9001,950,464
++2,9001,950,465
++2,9001,950,466
++2,9001,950,467
++2,9001,950,468
++2,9001,950,469
++2,9001,950,470
++2,9001,950,471
++2,9001,950,472
++2,9001,950,473
++2,9001,950,474
++2,9001,950,475
++2,9001,950,476
++2,9001,950,477
++2,9001,950,478
++2,9001,950,479
++2,9001,950,480
++2,9001,950,481
++2,9001,950,482
++2,9001,950,483
++2,9001,950,484
++2,9001,950,485
++2,9001,950,486
++2,9001,950,487
++2,9001,950,488
++2,9001,950,489
++2,9001,950,490
++2,9001,950,491
++2,9001,950,492
++2,9001,950,493
++2,9001,950,494
++2,9001,950,495
++2,9001,950,496
++2,9001,950,497
++2,9001,950,498
++2,9001,950,499
++2,9001,950,500
++2,9001,950,501
++2,9001,950,502
++2,9001,950,503
++2,9001,950,504
++2,9001,950,505
++2,9001,950,506
++2,9001,950,507
++2,9001,950,508
++2,9001,950,509
++2,9001,950,510
++2,9001,950,511
++2,9001,950,512
++2,9001,950,513
++2,9001,950,514
++2,9001,950,515
++2,9001,950,516
++2,9001,950,517
++2,9001,950,518
++2,9001,950,519
++2,9001,950,520
++3,2001,0,520
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++3,5006,0,158
++3,1002,0,159
++2,9001,950,451
++2,9001,950,452
++2,9001,950,453
++2,9001,950,454
++2,9001,950,455
++2,9001,950,456
++2,9001,950,457
++2,9001,950,458
++2,9001,950,459
++2,9001,950,460
++2,9001,950,461
++2,9001,950,462
++2,9001,950,463
++2,9001,950,464
++2,9001,950,465
++2,9001,950,466
++2,9001,950,467
++2,9001,950,468
++2,9001,950,469
++2,9001,950,470
++2,9001,950,471
++2,9001,950,472
++2,9001,950,473
++2,9001,950,474
++2,9001,950,475
++2,9001,950,476
++2,9001,950,477
++2,9001,950,478
++2,9001,950,479
++2,9001,950,480
++2,9001,950,481
++2,9001,950,482
++2,9001,950,483
++2,9001,950,484
++2,9001,950,485
++2,9001,950,486
++2,9001,950,487
++2,9001,950,488
++2,9001,950,489
++2,9001,950,490
++2,9001,950,491
++2,9001,950,492
++2,9001,950,493
++2,9001,950,494
++2,9001,950,495
++2,9001,950,496
++2,9001,950,497
++2,9001,950,498
++2,9001,950,499
++2,9001,950,500
++2,9001,950,501
++2,9001,950,502
++2,9001,950,503
++2,9001,950,504
++2,9001,950,505
++2,9001,950,506
++2,9001,950,507
++2,9001,950,508
++2,9001,950,509
++2,9001,950,510
++2,9001,950,511
++2,9001,950,512
++2,9001,950,513
++2,9001,950,514
++2,9001,950,515
++2,9001,950,516
++2,9001,950,517
++2,9001,950,518
++2,9001,950,519
++2,9001,950,520
++3,2001,0,520
+diff -ruN /mnt/data/ibm_bob_v6_work/source_before_v6/src/control_api.c /mnt/data/ibm_bob_v6_work/source/src/control_api.c
+--- /mnt/data/ibm_bob_v6_work/source_before_v6/src/control_api.c	2026-04-29 19:30:05.000000000 +0000
++++ /mnt/data/ibm_bob_v6_work/source/src/control_api.c	2026-04-29 19:40:09.062670041 +0000
+@@ -6,6 +6,7 @@
+ #include "control_api.h"
+ #include "nc_feed.h"
+ #include "nc_compensation.h"
++#include "nc_kinematics.h"
+ 
+ static int32_t IsNcBusyForLoad(void)
+ {
+@@ -289,3 +290,29 @@
+                  sizeof(*pOutStatus));
+     return 0;
+ }
++
++
++int32_t Api_SetNcAxisAssignment(uint8_t logicalAxis,
++                                uint8_t physicalAxis,
++                                int8_t sign,
++                                uint8_t detached)
++{
++    return NcKinematics_SetAxisAssignment(logicalAxis, physicalAxis, sign, detached);
++}
++
++int32_t Api_SetNcMirrorMask(uint32_t axisMask)
++{
++    return NcKinematics_SetMirrorMask(axisMask);
++}
++
++int32_t Api_GetNcKinematicsStatus(NC_KINEMATICS_STATUS* pOutStatus)
++{
++    if (pOutStatus == 0) {
++        return -1;
++    }
++
++    (void)memcpy(pOutStatus,
++                 (const void*)&g_ncKinematicsStatus,
++                 sizeof(*pOutStatus));
++    return 0;
++}
+diff -ruN /mnt/data/ibm_bob_v6_work/source_before_v6/src/main.c /mnt/data/ibm_bob_v6_work/source/src/main.c
+--- /mnt/data/ibm_bob_v6_work/source_before_v6/src/main.c	2026-04-29 19:32:52.000000000 +0000
++++ /mnt/data/ibm_bob_v6_work/source/src/main.c	2026-04-29 19:40:52.748301612 +0000
+@@ -31,14 +31,19 @@
+     (void)fprintf(pFile, "G43 H1 ; apply tool length compensation\n");
+     (void)fprintf(pFile, "G41 D1 ; apply cutter radius compensation\n");
+     (void)fprintf(pFile, "G68 X0 Y0 R15 ; coordinate rotation enable\n");
++    (void)fprintf(pFile, "G68.2 X0 Y0 Z0 A5 B10 C0 ; tilted work plane enable\n");
++    (void)fprintf(pFile, "G53.1 B10 ; tool axis direction sample\n");
++    (void)fprintf(pFile, "G51.1 X1 ; mirror X axis around tilted origin\n");
+     (void)fprintf(pFile, "G04 P1\n");
+     (void)fprintf(pFile, "G91\n");
+     (void)fprintf(pFile, "G01 X0.001 Y0.001 F60000\n");
++    (void)fprintf(pFile, "G01 X0.010 Y0.020 Z0.005 A0.010 F60000 ; transformed 5-axis target\n");
+     (void)fprintf(pFile, "G90 G20\n");
+     (void)fprintf(pFile, "G01 X0.001 Y0.001 Z0.001 F60000\n");
+     (void)fprintf(pFile, "G21\n");
+     (void)fprintf(pFile, "G92 X0.1354 Y0.2454 Z0.3554\n");
+     (void)fprintf(pFile, "G53 G00 X0 Y0 Z0\n");
++    (void)fprintf(pFile, "G10.6 Z0.100 ; controlled retract sample\n");
+     (void)fprintf(pFile, "G54\n");
+     (void)fprintf(pFile, "G98 G83 X0.025 Y0.035 Z0.010 R0.050 Q0.020 F60000\n");
+     (void)fprintf(pFile, "G80\n");
+@@ -53,6 +58,8 @@
+     (void)fprintf(pFile, "G31 X0.030 F60000\n");
+     (void)fprintf(pFile, "G02.3 X0.035 Y0.040 F60000\n");
+     (void)fprintf(pFile, "G50.4\n");
++    (void)fprintf(pFile, "G50.1 ; mirror cancel\n");
++    (void)fprintf(pFile, "G69.1 ; tilted work plane cancel\n");
+     (void)fprintf(pFile, "G69 ; coordinate rotation cancel\n");
+     (void)fprintf(pFile, "G40 ; cutter radius cancel\n");
+     (void)fprintf(pFile, "G49 ; tool length cancel\n");
+@@ -138,6 +145,7 @@
+     IO_TRACE_BUFFER traceBuffer;
+     NC_COMPENSATION_STATUS compStatus;
+     NC_PATH_CONTROL_STATUS pathStatus;
++    NC_KINEMATICS_STATUS kinStatus;
+     int32_t ncAxis[AXIS_MAX] = {0};
+     uint32_t ncMCode = 0U;
+     uint32_t interpSegments = 0U;
+@@ -177,12 +185,22 @@
+     uint32_t pathSlowdowns = 0U;
+     uint32_t pathCornerAngle = 0U;
+     uint32_t pathOverride = 0U;
++    uint32_t kinTransformed = 0U;
++    uint32_t kinMirrored = 0U;
++    uint32_t kinRetracts = 0U;
++    uint32_t kinSingularityWarn = 0U;
++    uint32_t kinMirrorMask = 0U;
++    uint32_t kinRetractMask = 0U;
++    int32_t kinToolVectorZ = 0;
++    int32_t kinLastX = 0;
++    int32_t kinLastA = 0;
+     uint8_t ncCaptured = 0U;
+     uint32_t cycle;
+ 
+     SystemShared_Initialize();
+     (void)Api_SetNcToolLengthOffset(1U, 500);
+     (void)Api_SetNcCutterRadiusOffset(1U, 300);
++    (void)Api_SetNcAxisAssignment(3U, 3U, -1, 0U);
+     if (WriteNcSmokeFile() != 0) {
+         return 1;
+     }
+@@ -246,6 +264,17 @@
+                 pathCornerAngle = pathStatus.last_corner_angle_deg;
+                 pathOverride = pathStatus.last_override_percent;
+             }
++            if (Api_GetNcKinematicsStatus(&kinStatus) == 0) {
++                kinTransformed = kinStatus.transformed_blocks;
++                kinMirrored = kinStatus.mirrored_blocks;
++                kinRetracts = kinStatus.retract_events;
++                kinSingularityWarn = kinStatus.singularity_warnings;
++                kinMirrorMask = kinStatus.mirror_axis_mask;
++                kinRetractMask = kinStatus.retract_axis_mask;
++                kinToolVectorZ = kinStatus.tool_axis_vector[2];
++                kinLastX = kinStatus.last_transformed_target[0];
++                kinLastA = kinStatus.last_transformed_target[3];
++            }
+             if (Api_GetPrestartInterlockStatus(&prestartStatus) == 0) {
+                 prestartMask = prestartStatus.mask;
+                 prestartOk = prestartStatus.ok;
+@@ -284,6 +313,17 @@
+         pathCornerAngle = pathStatus.last_corner_angle_deg;
+         pathOverride = pathStatus.last_override_percent;
+     }
++    if (Api_GetNcKinematicsStatus(&kinStatus) == 0) {
++        kinTransformed = kinStatus.transformed_blocks;
++        kinMirrored = kinStatus.mirrored_blocks;
++        kinRetracts = kinStatus.retract_events;
++        kinSingularityWarn = kinStatus.singularity_warnings;
++        kinMirrorMask = kinStatus.mirror_axis_mask;
++        kinRetractMask = kinStatus.retract_axis_mask;
++        kinToolVectorZ = kinStatus.tool_axis_vector[2];
++        kinLastX = kinStatus.last_transformed_target[0];
++        kinLastA = kinStatus.last_transformed_target[3];
++    }
+     if (Api_GetIoTraceBuffer(&traceBuffer) == 0) {
+         traceFrozen = traceBuffer.frozen;
+         traceCaptured = traceBuffer.captured_count;
+@@ -334,6 +374,16 @@
+                  (unsigned int)pathSlowdowns,
+                  (unsigned int)pathCornerAngle,
+                  (unsigned int)pathOverride);
++    (void)printf("kin_transformed=%u kin_mirrored=%u kin_retracts=%u kin_singularity_warn=%u kin_mirror_mask=0x%08x kin_retract_mask=0x%08x kin_tool_z=%d kin_last_x=%d kin_last_a=%d\n",
++                 (unsigned int)kinTransformed,
++                 (unsigned int)kinMirrored,
++                 (unsigned int)kinRetracts,
++                 (unsigned int)kinSingularityWarn,
++                 (unsigned int)kinMirrorMask,
++                 (unsigned int)kinRetractMask,
++                 (int)kinToolVectorZ,
++                 (int)kinLastX,
++                 (int)kinLastA);
+     (void)printf("cycle_completed=%u cycle_phase_count=%u skip_completed=%u skip_x=%d\n",
+                  (unsigned int)cycleCompleted,
+                  (unsigned int)cyclePhaseCount,
+diff -ruN /mnt/data/ibm_bob_v6_work/source_before_v6/src/nc_codes.c /mnt/data/ibm_bob_v6_work/source/src/nc_codes.c
+--- /mnt/data/ibm_bob_v6_work/source_before_v6/src/nc_codes.c	2026-04-29 18:59:06.000000000 +0000
++++ /mnt/data/ibm_bob_v6_work/source/src/nc_codes.c	2026-04-29 19:39:52.031288124 +0000
+@@ -25,6 +25,7 @@
+     {G(9), 1U, NC_MOTION_NONE,   NC_MODAL_FLAG_G09},
+     {G(10), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G10},
+     {GD(10, 6), 1U, NC_MOTION_REFERENCE_RETURN, 0U},
++    {GD(11, 6), 1U, NC_MOTION_REFERENCE_RETURN, 0U},
+     {GD(12, 1), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
+     {GD(13, 1), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
+     {GD(12, 4), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+@@ -46,17 +47,20 @@
+     {G(43), 1U, NC_MOTION_NONE,  0U},
+     {G(44), 1U, NC_MOTION_NONE,  0U},
+     {G(49), 1U, NC_MOTION_NONE,  0U},
++    {GD(50, 1), 1U, NC_MOTION_NONE, 0U},
+     {GD(50, 4), 1U, NC_MOTION_NONE, 0U},
+     {GD(50, 5), 1U, NC_MOTION_NONE, 0U},
+     {GD(50, 6), 1U, NC_MOTION_NONE, 0U},
+     {G(52), 1U, NC_MOTION_NONE,  0U},
+     {G(53), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G53},
++    {GD(53, 1), 1U, NC_MOTION_NONE, 0U},
+     {G(54), 1U, NC_MOTION_NONE,  0U},
+     {G(55), 1U, NC_MOTION_NONE,  0U},
+     {G(56), 1U, NC_MOTION_NONE,  0U},
+     {G(57), 1U, NC_MOTION_NONE,  0U},
+     {G(58), 1U, NC_MOTION_NONE,  0U},
+     {G(59), 1U, NC_MOTION_NONE,  0U},
++    {GD(51, 1), 1U, NC_MOTION_NONE, 0U},
+     {GD(51, 4), 1U, NC_MOTION_NONE, 0U},
+     {GD(51, 5), 1U, NC_MOTION_NONE, 0U},
+     {GD(51, 6), 1U, NC_MOTION_NONE, 0U},
+@@ -65,7 +69,9 @@
+     {G(63), 1U, NC_MOTION_NONE,  0U},
+     {G(64), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G64},
+     {G(68), 1U, NC_MOTION_NONE,  0U},
++    {GD(68, 2), 1U, NC_MOTION_NONE, 0U},
+     {G(69), 1U, NC_MOTION_NONE,  0U},
++    {GD(69, 1), 1U, NC_MOTION_NONE, 0U},
+     {G(70), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+     {GD(70, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+     {G(71), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+diff -ruN /mnt/data/ibm_bob_v6_work/source_before_v6/src/nc_kinematics.c /mnt/data/ibm_bob_v6_work/source/src/nc_kinematics.c
+--- /mnt/data/ibm_bob_v6_work/source_before_v6/src/nc_kinematics.c	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_v6_work/source/src/nc_kinematics.c	2026-04-29 19:40:25.838861505 +0000
+@@ -0,0 +1,373 @@
++/* ibm-bob/samples/base/source/src/nc_kinematics.c */
++/* Applies TS-side tilted work plane, tool axis, mirror, axis allocation, and retract state. */
++/* This exists so RT stays deterministic and only consumes fixed execution blocks. */
++/* RELEVANT FILES: inc/nc_kinematics.h, src/nc_parser_modal.c, src/nc_program.c */
++#include <math.h>
++#include <string.h>
++#include "nc_kinematics.h"
++
++#ifndef M_PI
++#define M_PI 3.14159265358979323846
++#endif
++
++static uint8_t IsMotionLike(NC_MOTION_TYPE motion)
++{
++    return (uint8_t)((motion == NC_MOTION_RAPID) ||
++                     (motion == NC_MOTION_LINEAR) ||
++                     (motion == NC_MOTION_ARC_CW) ||
++                     (motion == NC_MOTION_ARC_CCW) ||
++                     (motion == NC_MOTION_CANNED_CYCLE) ||
++                     (motion == NC_MOTION_THREAD) ||
++                     (motion == NC_MOTION_SKIP) ||
++                     (motion == NC_MOTION_REFERENCE_RETURN) ||
++                     (motion == NC_MOTION_ADVANCED_INTERP));
++}
++
++static int32_t RoundFixed(double value)
++{
++    return (int32_t)(value + ((value >= 0.0) ? 0.5 : -0.5));
++}
++
++static double AngleRad(int32_t scaledDegree)
++{
++    return (((double)scaledDegree / (double)NC_ANGLE_SCALE) * M_PI) / 180.0;
++}
++
++static void SetIdentityAxisMap(void)
++{
++    uint8_t i;
++
++    g_ncKinematicsStatus.logical_axis_mask = 0U;
++    g_ncKinematicsStatus.physical_axis_mask = 0U;
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        g_ncKinematicsStatus.axis_map[i] = (int8_t)i;
++        g_ncKinematicsStatus.axis_sign[i] = 1;
++        g_ncKinematicsStatus.logical_axis_mask |= (1UL << i);
++        g_ncKinematicsStatus.physical_axis_mask |= (1UL << i);
++    }
++}
++
++void NcKinematics_Reset(void)
++{
++    NC_KINEMATICS_STATUS previous;
++    uint32_t generation;
++
++    (void)memcpy(&previous,
++                 (const void*)&g_ncKinematicsStatus,
++                 sizeof(previous));
++    generation = previous.generation;
++    (void)memset((void*)&g_ncKinematicsStatus, 0, sizeof(g_ncKinematicsStatus));
++    if (previous.logical_axis_mask != 0U) {
++        uint8_t i;
++        for (i = 0U; i < AXIS_MAX; ++i) {
++            g_ncKinematicsStatus.axis_map[i] = previous.axis_map[i];
++            g_ncKinematicsStatus.axis_sign[i] =
++                (previous.axis_sign[i] == -1) ? -1 : 1;
++        }
++        g_ncKinematicsStatus.logical_axis_mask = previous.logical_axis_mask;
++        g_ncKinematicsStatus.physical_axis_mask = previous.physical_axis_mask;
++        g_ncKinematicsStatus.detached_axis_mask = previous.detached_axis_mask;
++        g_ncKinematicsStatus.mirror_axis_mask = previous.mirror_axis_mask;
++    } else {
++        SetIdentityAxisMap();
++    }
++    g_ncKinematicsStatus.generation = generation + 1U;
++}
++
++int32_t NcKinematics_SetAxisAssignment(uint8_t logicalAxis,
++                                       uint8_t physicalAxis,
++                                       int8_t sign,
++                                       uint8_t detached)
++{
++    if ((logicalAxis >= AXIS_MAX) || (physicalAxis >= AXIS_MAX) ||
++        ((sign != 1) && (sign != -1))) {
++        return -1;
++    }
++
++    g_ncKinematicsStatus.axis_map[logicalAxis] = (int8_t)physicalAxis;
++    g_ncKinematicsStatus.axis_sign[logicalAxis] = sign;
++    if (detached != 0U) {
++        g_ncKinematicsStatus.detached_axis_mask |= (1UL << logicalAxis);
++    } else {
++        g_ncKinematicsStatus.detached_axis_mask &= ~(1UL << logicalAxis);
++    }
++    g_ncKinematicsStatus.logical_axis_mask |= (1UL << logicalAxis);
++    g_ncKinematicsStatus.physical_axis_mask |= (1UL << physicalAxis);
++    g_ncKinematicsStatus.generation++;
++    return 0;
++}
++
++int32_t NcKinematics_SetMirrorMask(uint32_t axisMask)
++{
++    if ((axisMask & ~((1UL << AXIS_MAX) - 1UL)) != 0U) {
++        return -1;
++    }
++    g_ncKinematicsStatus.mirror_axis_mask = axisMask;
++    g_ncKinematicsStatus.generation++;
++    return 0;
++}
++
++static void ApplyTiltCommand(const NC_EXEC_BLOCK* pBlock)
++{
++    uint32_t i;
++
++    if (pBlock->kinematics_command == NC_KINEMATICS_CMD_TILT_CANCEL) {
++        g_ncKinematicsStatus.tilted_plane_active = 0U;
++        for (i = 0U; i < 3U; ++i) {
++            g_ncKinematicsStatus.tilt_angle_deg[i] = 0;
++        }
++        g_ncKinematicsStatus.generation++;
++        return;
++    }
++    if (pBlock->kinematics_command != NC_KINEMATICS_CMD_TILT_ENABLE) {
++        return;
++    }
++
++    g_ncKinematicsStatus.tilted_plane_active = 1U;
++    for (i = 0U; i < 3U; ++i) {
++        g_ncKinematicsStatus.tilt_origin[i] = pBlock->tilt_origin[i];
++        g_ncKinematicsStatus.tilt_angle_deg[i] = pBlock->tilt_angle_deg[i];
++    }
++    if ((g_ncKinematicsStatus.tilt_angle_deg[1] > (85 * NC_ANGLE_SCALE)) ||
++        (g_ncKinematicsStatus.tilt_angle_deg[1] < (-85 * NC_ANGLE_SCALE))) {
++        g_ncKinematicsStatus.singularity_warnings++;
++    }
++    g_ncKinematicsStatus.generation++;
++}
++
++static void ApplyToolAxisCommand(const NC_EXEC_BLOCK* pBlock)
++{
++    double a;
++    double b;
++    double ca;
++    double sa;
++    double cb;
++    double sb;
++    uint32_t i;
++
++    if (pBlock->tool_axis_command != NC_TOOL_AXIS_CMD_ENABLE) {
++        return;
++    }
++
++    g_ncKinematicsStatus.tool_axis_active = 1U;
++    for (i = 0U; i < 3U; ++i) {
++        g_ncKinematicsStatus.tool_axis_angle_deg[i] = pBlock->tool_axis_angle_deg[i];
++    }
++
++    a = AngleRad(pBlock->tool_axis_angle_deg[0]);
++    b = AngleRad(pBlock->tool_axis_angle_deg[1]);
++    ca = cos(a);
++    sa = sin(a);
++    cb = cos(b);
++    sb = sin(b);
++
++    g_ncKinematicsStatus.tool_axis_vector[0] = RoundFixed(sb * (double)NC_POSITION_SCALE);
++    g_ncKinematicsStatus.tool_axis_vector[1] = RoundFixed((-sa * cb) * (double)NC_POSITION_SCALE);
++    g_ncKinematicsStatus.tool_axis_vector[2] = RoundFixed((ca * cb) * (double)NC_POSITION_SCALE);
++    if ((pBlock->tool_axis_angle_deg[1] > (85 * NC_ANGLE_SCALE)) ||
++        (pBlock->tool_axis_angle_deg[1] < (-85 * NC_ANGLE_SCALE))) {
++        g_ncKinematicsStatus.singularity_warnings++;
++    }
++    g_ncKinematicsStatus.generation++;
++}
++
++static void ApplyMirrorCommand(const NC_EXEC_BLOCK* pBlock)
++{
++    if (pBlock->mirror_command == NC_MIRROR_CMD_CANCEL) {
++        g_ncKinematicsStatus.mirror_axis_mask = 0U;
++        g_ncKinematicsStatus.generation++;
++    } else if (pBlock->mirror_command == NC_MIRROR_CMD_ENABLE) {
++        g_ncKinematicsStatus.mirror_axis_mask = pBlock->mirror_axis_mask;
++        g_ncKinematicsStatus.generation++;
++    }
++}
++
++static void ApplyRetractCommand(const NC_EXEC_BLOCK* pBlock)
++{
++    if (pBlock->axis_retract_command == NC_AXIS_RETRACT_CMD_RETRACT) {
++        g_ncKinematicsStatus.retract_axis_mask |= pBlock->axis_mask;
++        g_ncKinematicsStatus.retract_events++;
++        g_ncKinematicsStatus.generation++;
++    } else if (pBlock->axis_retract_command == NC_AXIS_RETRACT_CMD_RECOVER) {
++        g_ncKinematicsStatus.retract_axis_mask &= ~pBlock->axis_mask;
++        g_ncKinematicsStatus.retract_events++;
++        g_ncKinematicsStatus.generation++;
++    }
++}
++
++static void RotateTiltedTarget(NC_EXEC_BLOCK* pBlock)
++{
++    double x;
++    double y;
++    double z;
++    double cx;
++    double cy;
++    double cz;
++    double a;
++    double b;
++    double c;
++    double ca;
++    double cb;
++    double cc;
++    double sa;
++    double sb;
++    double sc;
++    double x1;
++    double y1;
++    double z1;
++    double x2;
++    double y2;
++    double z2;
++
++    if ((g_ncKinematicsStatus.tilted_plane_active == 0U) ||
++        (IsMotionLike(pBlock->motion_type) == 0U) ||
++        ((pBlock->axis_mask & 0x7U) == 0U)) {
++        return;
++    }
++
++    cx = (double)g_ncKinematicsStatus.tilt_origin[0];
++    cy = (double)g_ncKinematicsStatus.tilt_origin[1];
++    cz = (double)g_ncKinematicsStatus.tilt_origin[2];
++    x = (double)pBlock->axis_target[0] - cx;
++    y = (double)pBlock->axis_target[1] - cy;
++    z = (double)pBlock->axis_target[2] - cz;
++
++    a = AngleRad(g_ncKinematicsStatus.tilt_angle_deg[0]);
++    b = AngleRad(g_ncKinematicsStatus.tilt_angle_deg[1]);
++    c = AngleRad(g_ncKinematicsStatus.tilt_angle_deg[2]);
++    ca = cos(a); sa = sin(a);
++    cb = cos(b); sb = sin(b);
++    cc = cos(c); sc = sin(c);
++
++    x1 = x;
++    y1 = (y * ca) - (z * sa);
++    z1 = (y * sa) + (z * ca);
++
++    x2 = (x1 * cb) + (z1 * sb);
++    y2 = y1;
++    z2 = (-x1 * sb) + (z1 * cb);
++
++    pBlock->axis_target[0] = RoundFixed(cx + (x2 * cc) - (y2 * sc));
++    pBlock->axis_target[1] = RoundFixed(cy + (x2 * sc) + (y2 * cc));
++    pBlock->axis_target[2] = RoundFixed(cz + z2);
++    pBlock->axis_mask |= 0x7U;
++    pBlock->feature_flags |= NC_FEATURE_FLAG_TILTED_PLANE;
++}
++
++static void ApplyMirrorToTarget(NC_EXEC_BLOCK* pBlock)
++{
++    uint32_t i;
++    uint32_t mask = g_ncKinematicsStatus.mirror_axis_mask;
++
++    if ((mask == 0U) || (IsMotionLike(pBlock->motion_type) == 0U)) {
++        return;
++    }
++
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        if (((mask & (1UL << i)) != 0U) &&
++            ((pBlock->axis_mask & (1UL << i)) != 0U)) {
++            int32_t center = (i < 3U) ? g_ncKinematicsStatus.tilt_origin[i] : 0;
++            pBlock->axis_target[i] = (center * 2) - pBlock->axis_target[i];
++            pBlock->feature_flags |= NC_FEATURE_FLAG_MIRROR;
++        }
++    }
++}
++
++static void ApplyDetachedAxes(NC_EXEC_BLOCK* pBlock)
++{
++    uint32_t i;
++
++    if ((g_ncKinematicsStatus.detached_axis_mask == 0U) ||
++        (IsMotionLike(pBlock->motion_type) == 0U)) {
++        return;
++    }
++
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        if ((g_ncKinematicsStatus.detached_axis_mask & (1UL << i)) != 0U) {
++            pBlock->axis_target[i] = pBlock->axis_start[i];
++            pBlock->axis_mask &= ~(1UL << i);
++            pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
++        }
++    }
++}
++
++static void ApplyAxisMap(NC_EXEC_BLOCK* pBlock)
++{
++    int32_t mappedTarget[AXIS_MAX];
++    int32_t mappedStart[AXIS_MAX];
++    uint32_t mappedMask = 0U;
++    uint32_t i;
++
++    if (IsMotionLike(pBlock->motion_type) == 0U) {
++        return;
++    }
++
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        mappedTarget[i] = pBlock->axis_target[i];
++        mappedStart[i] = pBlock->axis_start[i];
++    }
++
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        uint8_t physical = (uint8_t)g_ncKinematicsStatus.axis_map[i];
++        int8_t sign = g_ncKinematicsStatus.axis_sign[i];
++        if (physical >= AXIS_MAX) {
++            continue;
++        }
++        mappedTarget[physical] = (int32_t)sign * pBlock->axis_target[i];
++        mappedStart[physical] = (int32_t)sign * pBlock->axis_start[i];
++        if ((pBlock->axis_mask & (1UL << i)) != 0U) {
++            mappedMask |= (1UL << physical);
++        }
++    }
++
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        pBlock->axis_target[i] = mappedTarget[i];
++        pBlock->axis_start[i] = mappedStart[i];
++    }
++    pBlock->axis_mask = mappedMask;
++}
++
++int32_t NcKinematics_ApplyBlockTs(NC_EXEC_BLOCK* pBlock,
++                                  NC_ERROR_CODE* pOutError)
++{
++    int32_t before[AXIS_MAX];
++    uint32_t i;
++    uint8_t changed = 0U;
++
++    if ((pBlock == 0) || (pOutError == 0)) {
++        return -1;
++    }
++
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        before[i] = pBlock->axis_target[i];
++    }
++
++    ApplyTiltCommand(pBlock);
++    ApplyToolAxisCommand(pBlock);
++    ApplyMirrorCommand(pBlock);
++    ApplyRetractCommand(pBlock);
++
++    ApplyDetachedAxes(pBlock);
++    RotateTiltedTarget(pBlock);
++    ApplyMirrorToTarget(pBlock);
++    ApplyAxisMap(pBlock);
++
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        g_ncKinematicsStatus.last_transformed_target[i] = pBlock->axis_target[i];
++        if (before[i] != pBlock->axis_target[i]) {
++            changed = 1U;
++        }
++    }
++
++    if (changed != 0U) {
++        g_ncKinematicsStatus.transformed_blocks++;
++        if ((pBlock->feature_flags & NC_FEATURE_FLAG_MIRROR) != 0U) {
++            g_ncKinematicsStatus.mirrored_blocks++;
++        }
++        g_ncKinematicsStatus.last_line_no = pBlock->line_no;
++        g_ncKinematicsStatus.generation++;
++    }
++
++    (void)pOutError;
++    return 0;
++}
+diff -ruN /mnt/data/ibm_bob_v6_work/source_before_v6/src/nc_parser_modal.c /mnt/data/ibm_bob_v6_work/source/src/nc_parser_modal.c
+--- /mnt/data/ibm_bob_v6_work/source_before_v6/src/nc_parser_modal.c	2026-04-29 19:22:01.000000000 +0000
++++ /mnt/data/ibm_bob_v6_work/source/src/nc_parser_modal.c	2026-04-29 19:39:26.036248423 +0000
+@@ -7,6 +7,7 @@
+ #include "nc_compensation.h"
+ #include "nc_coordinate.h"
+ #include "nc_interpolation.h"
++#include "nc_kinematics.h"
+ #include "nc_parser_internal.h"
+ #include "nc_program.h"
+ 
+@@ -243,6 +244,32 @@
+                (code == GD(12, 1)) || (code == GD(13, 1))) {
+         pBlock->feature_flags |= NC_FEATURE_FLAG_ADVANCED_INTERP;
+         pBlock->motion_type = NC_MOTION_ADVANCED_INTERP;
++    } else if ((code == GD(68, 2)) || (code == GD(69, 1))) {
++        pBlock->kinematics_command = (uint8_t)((code == GD(68, 2)) ?
++            NC_KINEMATICS_CMD_TILT_ENABLE : NC_KINEMATICS_CMD_TILT_CANCEL);
++        if (code == GD(68, 2)) {
++            pCtx->coord_mode = NC_PARSE_COORD_TILTED_PLANE;
++        }
++        pBlock->feature_flags |= NC_FEATURE_FLAG_TILTED_PLANE;
++        pBlock->motion_type = NC_MOTION_NONE;
++    } else if (code == GD(53, 1)) {
++        pBlock->tool_axis_command = NC_TOOL_AXIS_CMD_ENABLE;
++        pCtx->coord_mode = NC_PARSE_COORD_TOOL_AXIS;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_TOOL_AXIS_DIR;
++        pBlock->motion_type = NC_MOTION_NONE;
++    } else if ((code == GD(51, 1)) || (code == GD(50, 1))) {
++        pBlock->mirror_command = (uint8_t)((code == GD(51, 1)) ?
++            NC_MIRROR_CMD_ENABLE : NC_MIRROR_CMD_CANCEL);
++        if (code == GD(51, 1)) {
++            pCtx->coord_mode = NC_PARSE_COORD_MIRROR_SETTING;
++        }
++        pBlock->feature_flags |= NC_FEATURE_FLAG_MIRROR;
++        pBlock->motion_type = NC_MOTION_NONE;
++    } else if ((code == GD(10, 6)) || (code == GD(11, 6))) {
++        pBlock->axis_retract_command = (uint8_t)((code == GD(10, 6)) ?
++            NC_AXIS_RETRACT_CMD_RETRACT : NC_AXIS_RETRACT_CMD_RECOVER);
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        pBlock->motion_type = NC_MOTION_REFERENCE_RETURN;
+     } else if ((code == G(15)) || (code == G(16))) {
+         pBlock->polar_command = (uint8_t)((code == G(16)) ? NC_POLAR_CMD_ENABLE : NC_POLAR_CMD_CANCEL);
+         pBlock->feature_flags |= NC_FEATURE_FLAG_POLAR_COORD;
+@@ -378,5 +405,8 @@
+     if (NcCompensation_ApplyBlockTs(pBlock, pOutError) != 0) {
+         return -1;
+     }
++    if (NcKinematics_ApplyBlockTs(pBlock, pOutError) != 0) {
++        return -1;
++    }
+     return NcInterpolation_PrepareBlockTs(pBlock, pOutError);
+ }
+diff -ruN /mnt/data/ibm_bob_v6_work/source_before_v6/src/nc_parser_tokens.c /mnt/data/ibm_bob_v6_work/source/src/nc_parser_tokens.c
+--- /mnt/data/ibm_bob_v6_work/source_before_v6/src/nc_parser_tokens.c	2026-04-29 19:22:09.000000000 +0000
++++ /mnt/data/ibm_bob_v6_work/source/src/nc_parser_tokens.c	2026-04-29 19:39:41.016244859 +0000
+@@ -88,6 +88,33 @@
+                          NC_EXEC_BLOCK* pBlock,
+                          NC_PARSE_CONTEXT* pCtx)
+ {
++    if (pCtx->coord_mode == NC_PARSE_COORD_TILTED_PLANE) {
++        if ((pInfo->axis_index >= 0) && (pInfo->axis_index < 3)) {
++            pBlock->tilt_origin[pInfo->axis_index] = scaled;
++            return 0;
++        }
++        if (pInfo->axis_index == 3) {
++            pBlock->tilt_angle_deg[0] = scaled;
++            return 0;
++        }
++        return -4;
++    }
++    if (pCtx->coord_mode == NC_PARSE_COORD_TOOL_AXIS) {
++        if (pInfo->axis_index == 3) {
++            pBlock->tool_axis_angle_deg[0] = scaled;
++            return 0;
++        }
++        return -4;
++    }
++    if (pCtx->coord_mode == NC_PARSE_COORD_MIRROR_SETTING) {
++        if ((pInfo->axis_index >= 0) && (pInfo->axis_index < (int32_t)AXIS_MAX)) {
++            if (scaled != 0) {
++                pBlock->mirror_axis_mask |= (1UL << pInfo->axis_index);
++            }
++            return 0;
++        }
++        return -4;
++    }
+     if (pCtx->coord_mode == NC_PARSE_COORD_ROTATION_CENTER) {
+         if ((pInfo->axis_index == 0) || (pInfo->axis_index == 1)) {
+             pBlock->rotation_center[pInfo->axis_index] = scaled;
+@@ -167,6 +194,26 @@
+         return 0;
+     }
+     if (pInfo->kind == NC_ADDRESS_KIND_OFFSET) {
++        if (pCtx->coord_mode == NC_PARSE_COORD_TILTED_PLANE) {
++            if (pInfo->address == 'B') {
++                pBlock->tilt_angle_deg[1] = scaled;
++                return 0;
++            }
++            if (pInfo->address == 'C') {
++                pBlock->tilt_angle_deg[2] = scaled;
++                return 0;
++            }
++        }
++        if (pCtx->coord_mode == NC_PARSE_COORD_TOOL_AXIS) {
++            if (pInfo->address == 'B') {
++                pBlock->tool_axis_angle_deg[1] = scaled;
++                return 0;
++            }
++            if (pInfo->address == 'C') {
++                pBlock->tool_axis_angle_deg[2] = scaled;
++                return 0;
++            }
++        }
+         if (pInfo->address == 'H') {
+             pBlock->h_offset_no = (uint16_t)(scaled / NC_POSITION_SCALE);
+         } else if (pInfo->address == 'D') {
+diff -ruN /mnt/data/ibm_bob_v6_work/source_before_v6/src/nc_program.c /mnt/data/ibm_bob_v6_work/source/src/nc_program.c
+--- /mnt/data/ibm_bob_v6_work/source_before_v6/src/nc_program.c	2026-04-29 19:28:54.000000000 +0000
++++ /mnt/data/ibm_bob_v6_work/source/src/nc_program.c	2026-04-29 19:39:26.035025345 +0000
+@@ -6,6 +6,7 @@
+ #include <string.h>
+ #include "nc_interpolation.h"
+ #include "nc_compensation.h"
++#include "nc_kinematics.h"
+ #include "nc_lookahead.h"
+ #include "nc_program.h"
+ 
+@@ -356,6 +357,7 @@
+     NcParse_ResetModal();
+     NcInterpolation_Reset();
+     NcCompensation_Reset();
++    NcKinematics_Reset();
+     NcLookahead_Reset();
+     (void)memset((void*)&g_ncAuxStatus, 0, sizeof(g_ncAuxStatus));
+     RtNcProgram_ResetAuxWait();
+diff -ruN /mnt/data/ibm_bob_v6_work/source_before_v6/src/system_shared.c /mnt/data/ibm_bob_v6_work/source/src/system_shared.c
+--- /mnt/data/ibm_bob_v6_work/source_before_v6/src/system_shared.c	2026-04-29 19:28:15.000000000 +0000
++++ /mnt/data/ibm_bob_v6_work/source/src/system_shared.c	2026-04-29 19:38:00.144367173 +0000
+@@ -24,6 +24,7 @@
+ volatile NC_CYCLE_STATUS    g_ncCycleStatus;
+ volatile NC_COMPENSATION_STATUS g_ncCompensationStatus;
+ volatile NC_PATH_CONTROL_STATUS g_ncPathControlStatus;
++volatile NC_KINEMATICS_STATUS g_ncKinematicsStatus;
+ volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
+ 
+ void SystemShared_Initialize(void)
+@@ -47,6 +48,7 @@
+     (void)memset((void*)&g_ncCycleStatus, 0, sizeof(g_ncCycleStatus));
+     (void)memset((void*)&g_ncCompensationStatus, 0, sizeof(g_ncCompensationStatus));
+     (void)memset((void*)&g_ncPathControlStatus, 0, sizeof(g_ncPathControlStatus));
++    (void)memset((void*)&g_ncKinematicsStatus, 0, sizeof(g_ncKinematicsStatus));
+     (void)memset((void*)&g_ioTraceBuffer, 0, sizeof(g_ioTraceBuffer));
+ 
+     g_machineCtx.run_mode = RUN_MODE_MANUAL;

@@ -1,0 +1,1190 @@
+diff -ruN ibm_bob_v7_orig/source/docs/implementation_report_v7.md ibm_bob_v7_work/source/docs/implementation_report_v7.md
+--- ibm_bob_v7_orig/source/docs/implementation_report_v7.md	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_v7_work/source/docs/implementation_report_v7.md	2026-04-29 19:50:31.512841734 +0000
+@@ -0,0 +1,69 @@
++# IBM-Bob 追加機能実装レポート v7
++
++## 目的
++v6で追加した5軸/傾斜、ミラー、軸退避、経路制御の実行基盤に対し、運用時に必要となる診断・保全系の追加機能を実装した。
++
++## 追加した主な機能
++
++### 1. 軸過負荷予兆監視・段階減速要求
++- 新規共有メモリ `NC_AXIS_LOAD_STATUS` / `g_ncAxisLoadStatus` を追加。
++- RT周期で `g_ioIn.analog[1..AXIS_MAX]` を軸負荷入力として監視。
++- 移動平均フィルタにより瞬間ノイズを抑制し、以下の段階を判定する。
++  - Warning: `NC_AXIS_LOAD_WARN_THRESHOLD`
++  - Limit: `NC_AXIS_LOAD_LIMIT_THRESHOLD`
++  - Critical: `NC_AXIS_LOAD_CRITICAL_THRESHOLD`
++- 判定結果として `warning_mask`、`limit_mask`、`critical_mask`、`staged_decel_level`、`decel_override_percent` を公開。
++- RT側ではファイルI/O、動的メモリ、重い計算を行わず、固定長共有メモリ更新のみとした。
++
++### 2. 工具寿命カウンタ・交換予告/寿命到達通知
++- 新規共有メモリ `NC_TOOL_LIFE_STATUS` / `g_ncToolLifeStatus` を追加。
++- `Api_SetNcToolLifeLimit()` で工具ごとの寿命上限を設定可能にした。
++- `M06 Tn` およびアクティブ工具によるモーションブロック消費時に使用回数を更新。
++- 80%到達で `warning_mask`、寿命到達で `expired_mask` を設定。
++- サンプルでは `T2` の寿命上限を4に設定し、スモークテスト内で警告/寿命到達を確認する。
++
++### 3. NC診断スナップショット
++- 新規共有メモリ `NC_DIAGNOSTIC_SNAPSHOT` / `g_ncDiagnosticSnapshot` を追加。
++- `Api_GetNcDiagnosticSnapshot()` を追加。
++- RT周期の最後に、以下を一括スナップショット化する。
++  - 実行状態、NC状態、アラーム、実行行、読込行、バッファ数
++  - 運転開始前インターロックマスク
++  - 軸負荷警告/制限/クリティカルマスク
++  - 段階減速レベルと要求オーバライド
++  - 工具寿命警告/寿命到達マスク
++  - 補間完了数、固定サイクル完了数、MFIN待ち時間、I/Oトレースfreeze状態
++
++### 4. API追加
++- `Api_SetNcToolLifeLimit()`
++- `Api_GetNcAxisLoadStatus()`
++- `Api_GetNcToolLifeStatus()`
++- `Api_GetNcDiagnosticSnapshot()`
++
++### 5. ビルド/テストスクリプト更新
++- `scripts/build_vc2026.bat` と `scripts/build_clang.bat` に、v4〜v7で追加した以下のソースを追加。
++  - `nc_compensation.c`
++  - `nc_kinematics.c`
++  - `nc_lookahead.c`
++  - `nc_diagnostics.c`
++- `scripts/test_vc2026.bat` と `scripts/test_clang.bat` の期待出力をv7のスモークテストに更新。
++
++## 主要な確認結果
++
++`docs/verification_output_v7.txt` に実行結果を保存した。
++
++主な確認値:
++
++```text
++nc_state=6 nc_error=0
++path_arc=2 path_helical=1 path_arc_segments=8
++kin_transformed=16 kin_mirrored=11 kin_retracts=1
++diag_axis_warn=0x00000003 diag_axis_limit=0x00000001 diag_axis_critical=0x00000000 decel_level=2 decel_override=45
++tool_active=2 tool2_uses=7 tool_warn=0x00000004 tool_expired=0x00000004
++coord_error_checks=5
++```
++
++## 実装上の制約
++
++- 軸負荷値は評価用として `g_ioIn.analog[1..]` を使用している。実機ではサーボアンプ/モーションコントローラからの負荷率入力へ接続する必要がある。
++- 段階減速は現時点では「要求状態の公開」までであり、実際の加減速計画再生成や補間中速度制御への閉ループ反映は未実装。
++- 工具寿命カウントはサンプル実装として、工具選択/交換とモーションブロック消費を基準にしている。実機では加工時間、切削距離、材質、主軸負荷などとの統合が必要。
+diff -ruN ibm_bob_v7_orig/source/docs/manifest_v7.json ibm_bob_v7_work/source/docs/manifest_v7.json
+--- ibm_bob_v7_orig/source/docs/manifest_v7.json	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_v7_work/source/docs/manifest_v7.json	2026-04-29 19:50:31.521333211 +0000
+@@ -0,0 +1,38 @@
++{
++  "version": "v7",
++  "base_version": "v6",
++  "added_files": [
++    "inc/nc_diagnostics.h",
++    "src/nc_diagnostics.c",
++    "docs/implementation_report_v7.md",
++    "docs/verification_output_v7.txt",
++    "docs/continuation_v7_diff.patch",
++    "docs/manifest_v7.json"
++  ],
++  "updated_files": [
++    "inc/system_config.h",
++    "inc/system_shared.h",
++    "inc/control_api.h",
++    "src/system_shared.c",
++    "src/control_api.c",
++    "src/rt_control.c",
++    "src/nc_program.c",
++    "src/main.c",
++    "scripts/build_vc2026.bat",
++    "scripts/build_clang.bat",
++    "scripts/test_vc2026.bat",
++    "scripts/test_clang.bat"
++  ],
++  "public_apis_added": [
++    "Api_SetNcToolLifeLimit",
++    "Api_GetNcAxisLoadStatus",
++    "Api_GetNcToolLifeStatus",
++    "Api_GetNcDiagnosticSnapshot"
++  ],
++  "verification": {
++    "compiler": "gcc",
++    "mode": "object-by-object C99 build and link",
++    "result": "PASS",
++    "output_file": "docs/verification_output_v7.txt"
++  }
++}
+diff -ruN ibm_bob_v7_orig/source/docs/verification_output_v7.txt ibm_bob_v7_work/source/docs/verification_output_v7.txt
+--- ibm_bob_v7_orig/source/docs/verification_output_v7.txt	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_v7_work/source/docs/verification_output_v7.txt	2026-04-29 19:50:02.309354956 +0000
+@@ -0,0 +1,14 @@
++nc_state=6 nc_error=0 nc_error_line=0 nc_exec=45 nc_read=45 nc_buf=0 nc_x=3400 nc_y=2300 nc_z=3400 nc_m=130
++interp_segments=16 feed_profile=1 feed_override=100 dwell_ticks=1
++coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=1000
++feature_blocks=40 feature_flags=97 canned=2 skip=1 advanced=3
++comp_applied=11 comp_mask=0x00000007 comp_tool=0 comp_cutter=0 comp_rotation=0
++path_arc=2 path_helical=1 path_arc_segments=8 path_lookahead=16 path_slowdowns=11 path_corner_deg=171 path_override=60
++kin_transformed=16 kin_mirrored=11 kin_retracts=1 kin_singularity_warn=0 kin_mirror_mask=0x00000000 kin_retract_mask=0x00000004 kin_tool_z=9848 kin_last_x=3400 kin_last_a=-100
++diag_axis_warn=0x00000003 diag_axis_limit=0x00000001 diag_axis_critical=0x00000000 decel_level=2 decel_override=45 load_peak_x=847
++tool_active=2 tool2_uses=7 tool_warn=0x00000004 tool_expired=0x00000004 diag_decel=2 diag_tool_expired=0x00000004 diag_axis_warn=0x00000003
++cycle_completed=2 cycle_phase_count=1 skip_completed=1 skip_x=3670
++aux_completed=1 aux_wait_cycles=80 prestart_ok=0 prestart_mask=0x00000014
++trace_frozen=1 trace_captured=32 trace_trigger_cycle=451
++mode=1 state=3 alarm=9001 cycle=520
++coord_error_checks=5
+diff -ruN ibm_bob_v7_orig/source/inc/control_api.h ibm_bob_v7_work/source/inc/control_api.h
+--- ibm_bob_v7_orig/source/inc/control_api.h	2026-04-29 19:40:08.000000000 +0000
++++ ibm_bob_v7_work/source/inc/control_api.h	2026-04-29 19:46:25.835601847 +0000
+@@ -37,5 +37,9 @@
+                                 uint8_t detached);
+ int32_t Api_SetNcMirrorMask(uint32_t axisMask);
+ int32_t Api_GetNcKinematicsStatus(NC_KINEMATICS_STATUS* pOutStatus);
++int32_t Api_SetNcToolLifeLimit(uint16_t toolNo, uint32_t limit);
++int32_t Api_GetNcAxisLoadStatus(NC_AXIS_LOAD_STATUS* pOutStatus);
++int32_t Api_GetNcToolLifeStatus(NC_TOOL_LIFE_STATUS* pOutStatus);
++int32_t Api_GetNcDiagnosticSnapshot(NC_DIAGNOSTIC_SNAPSHOT* pOutSnapshot);
+ 
+ #endif /* CONTROL_API_H */
+diff -ruN ibm_bob_v7_orig/source/inc/nc_diagnostics.h ibm_bob_v7_work/source/inc/nc_diagnostics.h
+--- ibm_bob_v7_orig/source/inc/nc_diagnostics.h	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_v7_work/source/inc/nc_diagnostics.h	2026-04-29 19:46:25.834362912 +0000
+@@ -0,0 +1,16 @@
++/* ibm-bob/samples/base/source/inc/nc_diagnostics.h */
++/* Declares RT-safe diagnostic helpers for load monitoring and tool-life tracking. */
++/* This exists so operations diagnostics stay separate from NC parsing and interpolation. */
++/* RELEVANT FILES: ibm-bob/samples/base/source/src/nc_diagnostics.c, ibm-bob/samples/base/source/src/rt_control.c, ibm-bob/samples/base/source/src/nc_program.c */
++#ifndef NC_DIAGNOSTICS_H
++#define NC_DIAGNOSTICS_H
++
++#include <stdint.h>
++#include "system_shared.h"
++
++void NcDiagnostics_UpdateAxisLoadRt(void);
++void NcDiagnostics_OnBlockRt(const NC_EXEC_BLOCK* pBlock);
++int32_t NcDiagnostics_SetToolLifeLimit(uint16_t toolNo, uint32_t limit);
++void NcDiagnostics_BuildSnapshot(void);
++
++#endif /* NC_DIAGNOSTICS_H */
+diff -ruN ibm_bob_v7_orig/source/inc/system_config.h ibm_bob_v7_work/source/inc/system_config.h
+--- ibm_bob_v7_orig/source/inc/system_config.h	2026-04-29 19:27:48.000000000 +0000
++++ ibm_bob_v7_work/source/inc/system_config.h	2026-04-29 19:46:25.832704234 +0000
+@@ -43,6 +43,12 @@
+ #define NC_LOOKAHEAD_CORNER_SLOW_PERCENT   (60U)
+ #define NC_LOOKAHEAD_CORNER_WARN_DEG        (35U)
+ #define NC_ANGLE_SCALE                     (10000)
+-
++#define NC_AXIS_LOAD_WARN_THRESHOLD         (600)
++#define NC_AXIS_LOAD_LIMIT_THRESHOLD        (800)
++#define NC_AXIS_LOAD_CRITICAL_THRESHOLD     (920)
++#define NC_AXIS_LOAD_FILTER_DIV             (4)
++#define NC_TOOL_LIFE_TABLE_SIZE             (32U)
++#define NC_TOOL_LIFE_DEFAULT_LIMIT          (1000U)
++#define NC_TOOL_LIFE_WARNING_PERCENT        (80U)
+ 
+ #endif /* SYSTEM_CONFIG_H */
+diff -ruN ibm_bob_v7_orig/source/inc/system_shared.h ibm_bob_v7_work/source/inc/system_shared.h
+--- ibm_bob_v7_orig/source/inc/system_shared.h	2026-04-29 19:38:00.000000000 +0000
++++ ibm_bob_v7_work/source/inc/system_shared.h	2026-04-29 19:46:25.833691073 +0000
+@@ -479,6 +479,62 @@
+ } NC_KINEMATICS_STATUS;
+ 
+ typedef struct {
++    int32_t  current_load[AXIS_MAX];
++    int32_t  filtered_load[AXIS_MAX];
++    int32_t  peak_load[AXIS_MAX];
++    uint32_t warning_mask;
++    uint32_t limit_mask;
++    uint32_t critical_mask;
++    uint8_t  decel_request;
++    uint8_t  staged_decel_level;
++    uint16_t decel_override_percent;
++    uint32_t warning_events;
++    uint32_t limit_events;
++    uint32_t critical_events;
++    uint32_t last_warning_cycle;
++    uint32_t generation;
++} NC_AXIS_LOAD_STATUS;
++
++typedef struct {
++    uint32_t active_tool_no;
++    uint32_t last_tool_no;
++    uint32_t last_m_code;
++    uint32_t tool_use_count[NC_TOOL_LIFE_TABLE_SIZE];
++    uint32_t tool_life_limit[NC_TOOL_LIFE_TABLE_SIZE];
++    uint32_t warning_mask;
++    uint32_t expired_mask;
++    uint32_t warning_events;
++    uint32_t expired_events;
++    uint32_t last_update_line_no;
++    uint32_t generation;
++} NC_TOOL_LIFE_STATUS;
++
++typedef struct {
++    uint32_t cycle_count;
++    RUN_MODE run_mode;
++    MACHINE_STATE machine_state;
++    NC_PROGRAM_STATE nc_state;
++    uint32_t alarm_code;
++    uint32_t prestart_mask;
++    uint32_t buffered_blocks;
++    uint32_t exec_line_no;
++    uint32_t read_line_no;
++    uint32_t axis_warning_mask;
++    uint32_t axis_limit_mask;
++    uint32_t axis_critical_mask;
++    uint8_t  staged_decel_level;
++    uint16_t decel_override_percent;
++    uint32_t tool_warning_mask;
++    uint32_t tool_expired_mask;
++    uint32_t active_tool_no;
++    uint32_t completed_segments;
++    uint32_t completed_cycles;
++    uint32_t aux_wait_cycles;
++    uint8_t  trace_frozen;
++    uint32_t generation;
++} NC_DIAGNOSTIC_SNAPSHOT;
++
++typedef struct {
+     uint32_t cycle;
+     uint32_t sensor_bits;
+     uint32_t seq_bits;
+@@ -523,6 +579,9 @@
+ extern volatile NC_COMPENSATION_STATUS g_ncCompensationStatus;
+ extern volatile NC_PATH_CONTROL_STATUS g_ncPathControlStatus;
+ extern volatile NC_KINEMATICS_STATUS g_ncKinematicsStatus;
++extern volatile NC_AXIS_LOAD_STATUS  g_ncAxisLoadStatus;
++extern volatile NC_TOOL_LIFE_STATUS  g_ncToolLifeStatus;
++extern volatile NC_DIAGNOSTIC_SNAPSHOT g_ncDiagnosticSnapshot;
+ extern volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
+ 
+ void SystemShared_Initialize(void);
+diff -ruN ibm_bob_v7_orig/source/runtime_log.csv ibm_bob_v7_work/source/runtime_log.csv
+--- ibm_bob_v7_orig/source/runtime_log.csv	2026-04-29 19:41:52.000000000 +0000
++++ ibm_bob_v7_work/source/runtime_log.csv	2026-04-29 19:48:50.566530576 +0000
+@@ -154,3 +154,85 @@
+ 2,9001,950,519
+ 2,9001,950,520
+ 3,2001,0,520
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++1,7101,1,35
++1,7102,1,40
++1,7201,2,154
++1,7202,2,155
++3,5006,0,158
++3,1002,0,159
++2,9001,950,451
++2,9001,950,452
++2,9001,950,453
++2,9001,950,454
++2,9001,950,455
++2,9001,950,456
++2,9001,950,457
++2,9001,950,458
++2,9001,950,459
++2,9001,950,460
++2,9001,950,461
++2,9001,950,462
++2,9001,950,463
++2,9001,950,464
++2,9001,950,465
++2,9001,950,466
++2,9001,950,467
++2,9001,950,468
++2,9001,950,469
++2,9001,950,470
++2,9001,950,471
++2,9001,950,472
++2,9001,950,473
++2,9001,950,474
++2,9001,950,475
++2,9001,950,476
++2,9001,950,477
++2,9001,950,478
++2,9001,950,479
++2,9001,950,480
++2,9001,950,481
++2,9001,950,482
++2,9001,950,483
++2,9001,950,484
++2,9001,950,485
++2,9001,950,486
++2,9001,950,487
++2,9001,950,488
++2,9001,950,489
++2,9001,950,490
++2,9001,950,491
++2,9001,950,492
++2,9001,950,493
++2,9001,950,494
++2,9001,950,495
++2,9001,950,496
++2,9001,950,497
++2,9001,950,498
++2,9001,950,499
++2,9001,950,500
++2,9001,950,501
++2,9001,950,502
++2,9001,950,503
++2,9001,950,504
++2,9001,950,505
++2,9001,950,506
++2,9001,950,507
++2,9001,950,508
++2,9001,950,509
++2,9001,950,510
++2,9001,950,511
++2,9001,950,512
++2,9001,950,513
++2,9001,950,514
++2,9001,950,515
++2,9001,950,516
++2,9001,950,517
++2,9001,950,518
++2,9001,950,519
++2,9001,950,520
++3,2001,0,520
+diff -ruN ibm_bob_v7_orig/source/scripts/build_clang.bat ibm_bob_v7_work/source/scripts/build_clang.bat
+--- ibm_bob_v7_orig/source/scripts/build_clang.bat	2026-04-29 17:59:16.000000000 +0000
++++ ibm_bob_v7_work/source/scripts/build_clang.bat	2026-04-29 19:49:47.809756155 +0000
+@@ -3,60 +3,60 @@
+ @REM This exists so the clang workspace profile compiles the sample without inventing alternate commands.
+ @REM RELEVANT FILES: ibm-bob/samples/base/source/AGENTS.md, ibm-bob/samples/base/source/scripts/test_clang.bat, ibm-bob/samples/base/source/scripts/build_vc2026.bat
+ @echo off
+-setlocal
+-cd /d "%~dp0.."
+-
+-if not exist build mkdir build
+-if not exist build\obj mkdir build\obj
+-
+-set "VS_DEV_SHELL=C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\Launch-VsDevShell.ps1"
+-set "CLANG_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_codes.c src\nc_coordinate.c src\nc_feed.c src\nc_interp_math.c src\nc_interpolation.c src\nc_program.c src\nc_parser.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
+-set "CLANG_CL="
+-
+-echo [build_clang] Checking compiler...
+-where clang-cl.exe >nul 2>nul
+-if not errorlevel 1 set "CLANG_CL=clang-cl.exe"
+-if not defined CLANG_CL if exist "C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\bin\clang-cl.exe" set "CLANG_CL=C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\bin\clang-cl.exe"
+-if not defined CLANG_CL if exist "C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\x64\bin\clang-cl.exe" set "CLANG_CL=C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\x64\bin\clang-cl.exe"
+-if not defined CLANG_CL if exist "C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\ARM64\bin\clang-cl.exe" set "CLANG_CL=C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\ARM64\bin\clang-cl.exe"
+-if defined CLANG_CL goto compile_local
+-if not exist "%VS_DEV_SHELL%" (
+-  echo ERROR: clang-cl.exe was not found on PATH or in the Visual Studio LLVM toolchain.
+-  exit /b 1
+-)
+-
+-echo [build_clang] Launching VS Dev Shell...
+-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+-  "$clang = $null; " ^
+-  "& '%VS_DEV_SHELL%' -Arch amd64 -HostArch amd64; " ^
+-  "Set-Location '%CD%'; " ^
+-  "$command = Get-Command clang-cl.exe -ErrorAction SilentlyContinue; " ^
+-  "if ($command) { $clang = $command.Source }; " ^
+-  "if (-not $clang) { " ^
+-  "  $candidates = @(" ^
+-  "    'C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\bin\clang-cl.exe'," ^
+-  "    'C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\x64\bin\clang-cl.exe'," ^
+-  "    'C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\ARM64\bin\clang-cl.exe'" ^
+-  "  ); " ^
+-  "  $clang = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1 " ^
+-  "}; " ^
+-  "if (-not $clang) { Write-Error 'clang-cl.exe was not found after launching VS Dev Shell.'; exit 1 }; " ^
+-  "& $clang %CLANG_ARGS%"
+-if errorlevel 1 (
+-  echo ERROR: build failed.
+-  exit /b 1
+-)
+-
+-echo [build_clang] Build succeeded.
+-exit /b 0
+-
+-:compile_local
+-echo [build_clang] Compiling sample...
+-"%CLANG_CL%" %CLANG_ARGS%
+-if errorlevel 1 (
+-  echo ERROR: build failed.
+-  exit /b 1
+-)
+-
+-echo [build_clang] Build succeeded.
+-exit /b 0
++setlocal
++cd /d "%~dp0.."
++
++if not exist build mkdir build
++if not exist build\obj mkdir build\obj
++
++set "VS_DEV_SHELL=C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\Launch-VsDevShell.ps1"
++set "CLANG_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_codes.c src\nc_compensation.c src\nc_coordinate.c src\nc_diagnostics.c src\nc_feed.c src\nc_interp_math.c src\nc_interpolation.c src\nc_kinematics.c src\nc_lookahead.c src\nc_program.c src\nc_parser.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
++set "CLANG_CL="
++
++echo [build_clang] Checking compiler...
++where clang-cl.exe >nul 2>nul
++if not errorlevel 1 set "CLANG_CL=clang-cl.exe"
++if not defined CLANG_CL if exist "C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\bin\clang-cl.exe" set "CLANG_CL=C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\bin\clang-cl.exe"
++if not defined CLANG_CL if exist "C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\x64\bin\clang-cl.exe" set "CLANG_CL=C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\x64\bin\clang-cl.exe"
++if not defined CLANG_CL if exist "C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\ARM64\bin\clang-cl.exe" set "CLANG_CL=C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\ARM64\bin\clang-cl.exe"
++if defined CLANG_CL goto compile_local
++if not exist "%VS_DEV_SHELL%" (
++  echo ERROR: clang-cl.exe was not found on PATH or in the Visual Studio LLVM toolchain.
++  exit /b 1
++)
++
++echo [build_clang] Launching VS Dev Shell...
++powershell -NoProfile -ExecutionPolicy Bypass -Command ^
++  "$clang = $null; " ^
++  "& '%VS_DEV_SHELL%' -Arch amd64 -HostArch amd64; " ^
++  "Set-Location '%CD%'; " ^
++  "$command = Get-Command clang-cl.exe -ErrorAction SilentlyContinue; " ^
++  "if ($command) { $clang = $command.Source }; " ^
++  "if (-not $clang) { " ^
++  "  $candidates = @(" ^
++  "    'C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\bin\clang-cl.exe'," ^
++  "    'C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\x64\bin\clang-cl.exe'," ^
++  "    'C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\ARM64\bin\clang-cl.exe'" ^
++  "  ); " ^
++  "  $clang = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1 " ^
++  "}; " ^
++  "if (-not $clang) { Write-Error 'clang-cl.exe was not found after launching VS Dev Shell.'; exit 1 }; " ^
++  "& $clang %CLANG_ARGS%"
++if errorlevel 1 (
++  echo ERROR: build failed.
++  exit /b 1
++)
++
++echo [build_clang] Build succeeded.
++exit /b 0
++
++:compile_local
++echo [build_clang] Compiling sample...
++"%CLANG_CL%" %CLANG_ARGS%
++if errorlevel 1 (
++  echo ERROR: build failed.
++  exit /b 1
++)
++
++echo [build_clang] Build succeeded.
++exit /b 0
+diff -ruN ibm_bob_v7_orig/source/scripts/build_vc2026.bat ibm_bob_v7_work/source/scripts/build_vc2026.bat
+--- ibm_bob_v7_orig/source/scripts/build_vc2026.bat	2026-04-29 17:59:36.000000000 +0000
++++ ibm_bob_v7_work/source/scripts/build_vc2026.bat	2026-04-29 19:49:47.809286969 +0000
+@@ -3,41 +3,41 @@
+ @REM This exists so the VC2026 workspace profile can run from both an active developer shell and a normal PowerShell session.
+ @REM RELEVANT FILES: ibm-bob/samples/base/source/AGENTS.md, ibm-bob/samples/base/source/scripts/test_vc2026.bat, ibm-bob/samples/base/source/docs/workspace_profile_commands.md
+ @echo off
+-setlocal
+-cd /d "%~dp0.."
+-
+-if not exist build mkdir build
+-if not exist build\obj mkdir build\obj
+-
+-set "VS_DEV_SHELL=C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\Launch-VsDevShell.ps1"
+-set "CL_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_codes.c src\nc_coordinate.c src\nc_feed.c src\nc_interp_math.c src\nc_interpolation.c src\nc_program.c src\nc_parser.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
++setlocal
++cd /d "%~dp0.."
++
++if not exist build mkdir build
++if not exist build\obj mkdir build\obj
++
++set "VS_DEV_SHELL=C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\Launch-VsDevShell.ps1"
++set "CL_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_codes.c src\nc_compensation.c src\nc_coordinate.c src\nc_diagnostics.c src\nc_feed.c src\nc_interp_math.c src\nc_interpolation.c src\nc_kinematics.c src\nc_lookahead.c src\nc_program.c src\nc_parser.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
+ 
+ echo [build_vc2026] Checking compiler...
+ where cl.exe >nul 2>nul
+ if not errorlevel 1 (
+   echo [build_vc2026] Compiling sample...
+-  cl %CL_ARGS%
+-  if errorlevel 1 (
+-    echo ERROR: build failed.
+-    exit /b 1
++  cl %CL_ARGS%
++  if errorlevel 1 (
++    echo ERROR: build failed.
++    exit /b 1
+   )
+   echo [build_vc2026] Build succeeded.
+   exit /b 0
+ )
+ 
+ if not exist "%VS_DEV_SHELL%" (
+-  echo ERROR: cl.exe was not found in PATH.
+-  echo Hint: open a VC2026 Developer Command Prompt first.
+-  echo Hint: or make sure "%VS_DEV_SHELL%" is available.
+-  exit /b 1
+-)
+-
+-echo [build_vc2026] Launching VS Dev Shell...
+-powershell -NoProfile -ExecutionPolicy Bypass -Command "& '%VS_DEV_SHELL%' -Arch amd64 -HostArch amd64; Set-Location '%CD%'; cl %CL_ARGS%"
+-if errorlevel 1 (
+-  echo ERROR: build failed.
+-  exit /b 1
+-)
+-
+-echo [build_vc2026] Build succeeded.
+-exit /b 0
++  echo ERROR: cl.exe was not found in PATH.
++  echo Hint: open a VC2026 Developer Command Prompt first.
++  echo Hint: or make sure "%VS_DEV_SHELL%" is available.
++  exit /b 1
++)
++
++echo [build_vc2026] Launching VS Dev Shell...
++powershell -NoProfile -ExecutionPolicy Bypass -Command "& '%VS_DEV_SHELL%' -Arch amd64 -HostArch amd64; Set-Location '%CD%'; cl %CL_ARGS%"
++if errorlevel 1 (
++  echo ERROR: build failed.
++  exit /b 1
++)
++
++echo [build_vc2026] Build succeeded.
++exit /b 0
+diff -ruN ibm_bob_v7_orig/source/scripts/test_clang.bat ibm_bob_v7_work/source/scripts/test_clang.bat
+--- ibm_bob_v7_orig/source/scripts/test_clang.bat	2026-04-29 18:01:24.000000000 +0000
++++ ibm_bob_v7_work/source/scripts/test_clang.bat	2026-04-29 19:49:47.809959309 +0000
+@@ -1,48 +1,55 @@
+ @REM ibm-bob/samples/base/source/scripts/test_clang.bat
+-@REM Builds and runs the IBM BOB sample smoke test with clang-cl.
+-@REM This exists so baseline and NC v4 coordinate/unit behavior are checked together.
+-@REM RELEVANT FILES: ibm-bob/samples/base/source/scripts/build_clang.bat, ibm-bob/samples/base/source/src/main.c, ibm-bob/samples/base/source/src/nc_program.c
++@REM Builds and runs the IBM BOB sample smoke test.
++@REM This exists so NC v7 diagnostics, compensation, kinematics, path, and cycle behavior are checked together.
++@REM RELEVANT FILES: ibm-bob/samples/base/source/scripts/build_clang.bat, ibm-bob/samples/base/source/src/main.c, ibm-bob/samples/base/source/src/nc_diagnostics.c
+ @echo off
+ setlocal
+ cd /d "%~dp0.."
+-
+-call scripts\build_clang.bat
+-if errorlevel 1 exit /b 1
+-
+-if exist runtime_log.csv del /q runtime_log.csv
+-if exist build\test_output.txt del /q build\test_output.txt
+-
+-echo [test_clang] Running smoke test...
+-build\ibm_bob_sample.exe > build\test_output.txt
+-if errorlevel 1 (
+-  echo ERROR: executable returned failure.
+-  exit /b 1
+-)
+-
+-findstr /c:"mode=1 state=3 alarm=9001 cycle=16" build\test_output.txt >nul
++
++call scripts\build_clang.bat
++if errorlevel 1 exit /b 1
++
++if exist runtime_log.csv del /q runtime_log.csv
++if exist build\test_output.txt del /q build\test_output.txt
++
++echo [test_clang] Running smoke test...
++build\ibm_bob_sample.exe > build\test_output.txt
++if errorlevel 1 (
++  echo ERROR: executable returned failure.
++  exit /b 1
++)
++
++findstr /c:"nc_state=6 nc_error=0" build\test_output.txt >nul
+ if errorlevel 1 (
+-  echo ERROR: expected output was not found.
++  echo ERROR: expected NC completion output was not found.
+   type build\test_output.txt
+   exit /b 1
+ )
+ 
+-findstr /c:"nc_state=6 nc_exec=15 nc_x=1200 nc_y=2300 nc_z=3400 nc_m=130" build\test_output.txt >nul
++findstr /c:"path_arc=2 path_helical=1 path_arc_segments=8" build\test_output.txt >nul
+ if errorlevel 1 (
+-  echo ERROR: expected NC output was not found.
++  echo ERROR: expected path-control output was not found.
+   type build\test_output.txt
+   exit /b 1
+ )
+ 
+-findstr /c:"interp_segments=5 feed_profile=1 feed_override=100 dwell_ticks=1" build\test_output.txt >nul
++findstr /c:"kin_transformed=16 kin_mirrored=11 kin_retracts=1" build\test_output.txt >nul
+ if errorlevel 1 (
+-  echo ERROR: expected feed/interpolation output was not found.
++  echo ERROR: expected kinematics output was not found.
+   type build\test_output.txt
+   exit /b 1
+ )
+ 
+-findstr /c:"coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=1000" build\test_output.txt >nul
++findstr /c:"diag_axis_warn=0x00000003 diag_axis_limit=0x00000001 diag_axis_critical=0x00000000 decel_level=2" build\test_output.txt >nul
+ if errorlevel 1 (
+-  echo ERROR: expected coordinate output was not found.
++  echo ERROR: expected axis-load diagnostic output was not found.
++  type build\test_output.txt
++  exit /b 1
++)
++
++findstr /c:"tool_active=2 tool2_uses=7 tool_warn=0x00000004 tool_expired=0x00000004" build\test_output.txt >nul
++if errorlevel 1 (
++  echo ERROR: expected tool-life diagnostic output was not found.
+   type build\test_output.txt
+   exit /b 1
+ )
+@@ -58,6 +65,6 @@
+   echo ERROR: runtime_log.csv was not generated.
+   exit /b 1
+ )
+-
+-echo [test_clang] PASS
+-exit /b 0
++
++echo [test_clang] PASS
++exit /b 0
+diff -ruN ibm_bob_v7_orig/source/scripts/test_vc2026.bat ibm_bob_v7_work/source/scripts/test_vc2026.bat
+--- ibm_bob_v7_orig/source/scripts/test_vc2026.bat	2026-04-29 18:01:46.000000000 +0000
++++ ibm_bob_v7_work/source/scripts/test_vc2026.bat	2026-04-29 19:49:47.809859786 +0000
+@@ -1,48 +1,55 @@
+ @REM ibm-bob/samples/base/source/scripts/test_vc2026.bat
+-@REM Builds and runs the IBM BOB sample smoke test with cl.exe.
+-@REM This exists so baseline and NC v4 coordinate/unit behavior are checked together.
+-@REM RELEVANT FILES: ibm-bob/samples/base/source/scripts/build_vc2026.bat, ibm-bob/samples/base/source/src/main.c, ibm-bob/samples/base/source/src/nc_program.c
++@REM Builds and runs the IBM BOB sample smoke test.
++@REM This exists so NC v7 diagnostics, compensation, kinematics, path, and cycle behavior are checked together.
++@REM RELEVANT FILES: ibm-bob/samples/base/source/scripts/build_vc2026.bat, ibm-bob/samples/base/source/src/main.c, ibm-bob/samples/base/source/src/nc_diagnostics.c
+ @echo off
+ setlocal
+ cd /d "%~dp0.."
+-
+-call scripts\build_vc2026.bat
+-if errorlevel 1 exit /b 1
+-
+-if exist runtime_log.csv del /q runtime_log.csv
+-if exist build\test_output.txt del /q build\test_output.txt
+-
+-echo [test_vc2026] Running smoke test...
+-build\ibm_bob_sample.exe > build\test_output.txt
+-if errorlevel 1 (
+-  echo ERROR: executable returned failure.
+-  exit /b 1
+-)
+-
+-findstr /c:"mode=1 state=3 alarm=9001 cycle=16" build\test_output.txt >nul
++
++call scripts\build_vc2026.bat
++if errorlevel 1 exit /b 1
++
++if exist runtime_log.csv del /q runtime_log.csv
++if exist build\test_output.txt del /q build\test_output.txt
++
++echo [test_vc2026] Running smoke test...
++build\ibm_bob_sample.exe > build\test_output.txt
++if errorlevel 1 (
++  echo ERROR: executable returned failure.
++  exit /b 1
++)
++
++findstr /c:"nc_state=6 nc_error=0" build\test_output.txt >nul
+ if errorlevel 1 (
+-  echo ERROR: expected output was not found.
++  echo ERROR: expected NC completion output was not found.
+   type build\test_output.txt
+   exit /b 1
+ )
+ 
+-findstr /c:"nc_state=6 nc_exec=15 nc_x=1200 nc_y=2300 nc_z=3400 nc_m=130" build\test_output.txt >nul
++findstr /c:"path_arc=2 path_helical=1 path_arc_segments=8" build\test_output.txt >nul
+ if errorlevel 1 (
+-  echo ERROR: expected NC output was not found.
++  echo ERROR: expected path-control output was not found.
+   type build\test_output.txt
+   exit /b 1
+ )
+ 
+-findstr /c:"interp_segments=5 feed_profile=1 feed_override=100 dwell_ticks=1" build\test_output.txt >nul
++findstr /c:"kin_transformed=16 kin_mirrored=11 kin_retracts=1" build\test_output.txt >nul
+ if errorlevel 1 (
+-  echo ERROR: expected feed/interpolation output was not found.
++  echo ERROR: expected kinematics output was not found.
+   type build\test_output.txt
+   exit /b 1
+ )
+ 
+-findstr /c:"coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=1000" build\test_output.txt >nul
++findstr /c:"diag_axis_warn=0x00000003 diag_axis_limit=0x00000001 diag_axis_critical=0x00000000 decel_level=2" build\test_output.txt >nul
+ if errorlevel 1 (
+-  echo ERROR: expected coordinate output was not found.
++  echo ERROR: expected axis-load diagnostic output was not found.
++  type build\test_output.txt
++  exit /b 1
++)
++
++findstr /c:"tool_active=2 tool2_uses=7 tool_warn=0x00000004 tool_expired=0x00000004" build\test_output.txt >nul
++if errorlevel 1 (
++  echo ERROR: expected tool-life diagnostic output was not found.
+   type build\test_output.txt
+   exit /b 1
+ )
+@@ -58,6 +65,6 @@
+   echo ERROR: runtime_log.csv was not generated.
+   exit /b 1
+ )
+-
+-echo [test_vc2026] PASS
+-exit /b 0
++
++echo [test_vc2026] PASS
++exit /b 0
+diff -ruN ibm_bob_v7_orig/source/src/control_api.c ibm_bob_v7_work/source/src/control_api.c
+--- ibm_bob_v7_orig/source/src/control_api.c	2026-04-29 19:40:08.000000000 +0000
++++ ibm_bob_v7_work/source/src/control_api.c	2026-04-29 19:46:25.835871244 +0000
+@@ -5,6 +5,7 @@
+ #include <string.h>
+ #include "control_api.h"
+ #include "nc_feed.h"
++#include "nc_diagnostics.h"
+ #include "nc_compensation.h"
+ #include "nc_kinematics.h"
+ 
+@@ -316,3 +317,45 @@
+                  sizeof(*pOutStatus));
+     return 0;
+ }
++
++
++int32_t Api_SetNcToolLifeLimit(uint16_t toolNo, uint32_t limit)
++{
++    return NcDiagnostics_SetToolLifeLimit(toolNo, limit);
++}
++
++int32_t Api_GetNcAxisLoadStatus(NC_AXIS_LOAD_STATUS* pOutStatus)
++{
++    if (pOutStatus == 0) {
++        return -1;
++    }
++
++    (void)memcpy(pOutStatus,
++                 (const void*)&g_ncAxisLoadStatus,
++                 sizeof(*pOutStatus));
++    return 0;
++}
++
++int32_t Api_GetNcToolLifeStatus(NC_TOOL_LIFE_STATUS* pOutStatus)
++{
++    if (pOutStatus == 0) {
++        return -1;
++    }
++
++    (void)memcpy(pOutStatus,
++                 (const void*)&g_ncToolLifeStatus,
++                 sizeof(*pOutStatus));
++    return 0;
++}
++
++int32_t Api_GetNcDiagnosticSnapshot(NC_DIAGNOSTIC_SNAPSHOT* pOutSnapshot)
++{
++    if (pOutSnapshot == 0) {
++        return -1;
++    }
++
++    (void)memcpy(pOutSnapshot,
++                 (const void*)&g_ncDiagnosticSnapshot,
++                 sizeof(*pOutSnapshot));
++    return 0;
++}
+diff -ruN ibm_bob_v7_orig/source/src/main.c ibm_bob_v7_work/source/src/main.c
+--- ibm_bob_v7_orig/source/src/main.c	2026-04-29 19:40:52.000000000 +0000
++++ ibm_bob_v7_work/source/src/main.c	2026-04-29 19:48:50.375483610 +0000
+@@ -117,6 +117,10 @@
+     if (cycle == 6U) {
+         g_ioIn.sensor_bits |= 0x00000010UL; /* RUN */
+     }
++    if (cycle == 30U) {
++        g_ioIn.analog[1] = 850; /* X-axis load enters staged-decel range */
++        g_ioIn.analog[2] = 640; /* Y-axis load enters warning range */
++    }
+     if (cycle == 150U) {
+         g_ioIn.seq_bits |= SENSOR_SEQ_MFIN_BIT; /* MFIN response */
+     }
+@@ -146,6 +150,9 @@
+     NC_COMPENSATION_STATUS compStatus;
+     NC_PATH_CONTROL_STATUS pathStatus;
+     NC_KINEMATICS_STATUS kinStatus;
++    NC_AXIS_LOAD_STATUS loadStatus;
++    NC_TOOL_LIFE_STATUS toolLifeStatus;
++    NC_DIAGNOSTIC_SNAPSHOT diagSnapshot;
+     int32_t ncAxis[AXIS_MAX] = {0};
+     uint32_t ncMCode = 0U;
+     uint32_t interpSegments = 0U;
+@@ -194,6 +201,19 @@
+     int32_t kinToolVectorZ = 0;
+     int32_t kinLastX = 0;
+     int32_t kinLastA = 0;
++    uint32_t loadWarningMask = 0U;
++    uint32_t loadLimitMask = 0U;
++    uint32_t loadCriticalMask = 0U;
++    uint32_t loadDecelLevel = 0U;
++    uint32_t loadDecelOverride = 0U;
++    int32_t loadPeakX = 0;
++    uint32_t toolActive = 0U;
++    uint32_t tool2Uses = 0U;
++    uint32_t toolWarningMask = 0U;
++    uint32_t toolExpiredMask = 0U;
++    uint32_t diagDecelLevel = 0U;
++    uint32_t diagToolExpired = 0U;
++    uint32_t diagAxisWarn = 0U;
+     uint8_t ncCaptured = 0U;
+     uint32_t cycle;
+ 
+@@ -201,6 +221,7 @@
+     (void)Api_SetNcToolLengthOffset(1U, 500);
+     (void)Api_SetNcCutterRadiusOffset(1U, 300);
+     (void)Api_SetNcAxisAssignment(3U, 3U, -1, 0U);
++    (void)Api_SetNcToolLifeLimit(2U, 4U);
+     if (WriteNcSmokeFile() != 0) {
+         return 1;
+     }
+@@ -275,6 +296,25 @@
+                 kinLastX = kinStatus.last_transformed_target[0];
+                 kinLastA = kinStatus.last_transformed_target[3];
+             }
++            if (Api_GetNcAxisLoadStatus(&loadStatus) == 0) {
++                loadWarningMask = loadStatus.warning_mask;
++                loadLimitMask = loadStatus.limit_mask;
++                loadCriticalMask = loadStatus.critical_mask;
++                loadDecelLevel = loadStatus.staged_decel_level;
++                loadDecelOverride = loadStatus.decel_override_percent;
++                loadPeakX = loadStatus.peak_load[0];
++            }
++            if (Api_GetNcToolLifeStatus(&toolLifeStatus) == 0) {
++                toolActive = toolLifeStatus.active_tool_no;
++                tool2Uses = toolLifeStatus.tool_use_count[2];
++                toolWarningMask = toolLifeStatus.warning_mask;
++                toolExpiredMask = toolLifeStatus.expired_mask;
++            }
++            if (Api_GetNcDiagnosticSnapshot(&diagSnapshot) == 0) {
++                diagDecelLevel = diagSnapshot.staged_decel_level;
++                diagToolExpired = diagSnapshot.tool_expired_mask;
++                diagAxisWarn = diagSnapshot.axis_warning_mask;
++            }
+             if (Api_GetPrestartInterlockStatus(&prestartStatus) == 0) {
+                 prestartMask = prestartStatus.mask;
+                 prestartOk = prestartStatus.ok;
+@@ -324,6 +364,25 @@
+         kinLastX = kinStatus.last_transformed_target[0];
+         kinLastA = kinStatus.last_transformed_target[3];
+     }
++    if (Api_GetNcAxisLoadStatus(&loadStatus) == 0) {
++        loadWarningMask = loadStatus.warning_mask;
++        loadLimitMask = loadStatus.limit_mask;
++        loadCriticalMask = loadStatus.critical_mask;
++        loadDecelLevel = loadStatus.staged_decel_level;
++        loadDecelOverride = loadStatus.decel_override_percent;
++        loadPeakX = loadStatus.peak_load[0];
++    }
++    if (Api_GetNcToolLifeStatus(&toolLifeStatus) == 0) {
++        toolActive = toolLifeStatus.active_tool_no;
++        tool2Uses = toolLifeStatus.tool_use_count[2];
++        toolWarningMask = toolLifeStatus.warning_mask;
++        toolExpiredMask = toolLifeStatus.expired_mask;
++    }
++    if (Api_GetNcDiagnosticSnapshot(&diagSnapshot) == 0) {
++        diagDecelLevel = diagSnapshot.staged_decel_level;
++        diagToolExpired = diagSnapshot.tool_expired_mask;
++        diagAxisWarn = diagSnapshot.axis_warning_mask;
++    }
+     if (Api_GetIoTraceBuffer(&traceBuffer) == 0) {
+         traceFrozen = traceBuffer.frozen;
+         traceCaptured = traceBuffer.captured_count;
+@@ -384,6 +443,21 @@
+                  (int)kinToolVectorZ,
+                  (int)kinLastX,
+                  (int)kinLastA);
++    (void)printf("diag_axis_warn=0x%08x diag_axis_limit=0x%08x diag_axis_critical=0x%08x decel_level=%u decel_override=%u load_peak_x=%d\n",
++                 (unsigned int)loadWarningMask,
++                 (unsigned int)loadLimitMask,
++                 (unsigned int)loadCriticalMask,
++                 (unsigned int)loadDecelLevel,
++                 (unsigned int)loadDecelOverride,
++                 (int)loadPeakX);
++    (void)printf("tool_active=%u tool2_uses=%u tool_warn=0x%08x tool_expired=0x%08x diag_decel=%u diag_tool_expired=0x%08x diag_axis_warn=0x%08x\n",
++                 (unsigned int)toolActive,
++                 (unsigned int)tool2Uses,
++                 (unsigned int)toolWarningMask,
++                 (unsigned int)toolExpiredMask,
++                 (unsigned int)diagDecelLevel,
++                 (unsigned int)diagToolExpired,
++                 (unsigned int)diagAxisWarn);
+     (void)printf("cycle_completed=%u cycle_phase_count=%u skip_completed=%u skip_x=%d\n",
+                  (unsigned int)cycleCompleted,
+                  (unsigned int)cyclePhaseCount,
+diff -ruN ibm_bob_v7_orig/source/src/nc_diagnostics.c ibm_bob_v7_work/source/src/nc_diagnostics.c
+--- ibm_bob_v7_orig/source/src/nc_diagnostics.c	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_v7_work/source/src/nc_diagnostics.c	2026-04-29 19:46:25.834413764 +0000
+@@ -0,0 +1,194 @@
++/* ibm-bob/samples/base/source/src/nc_diagnostics.c */
++/* Implements RT-safe diagnostics for axis overload prognosis and tool life. */
++/* This exists so monitoring logic can be exposed through fixed-size shared memory. */
++/* RELEVANT FILES: ibm-bob/samples/base/source/inc/nc_diagnostics.h, ibm-bob/samples/base/source/src/rt_control.c, ibm-bob/samples/base/source/src/nc_program.c */
++#include <string.h>
++#include "nc_diagnostics.h"
++#include "nc_program.h"
++
++static int32_t Abs32(int32_t value)
++{
++    return (value < 0) ? -value : value;
++}
++
++static uint16_t OverrideForLevel(uint8_t level)
++{
++    if (level >= 3U) {
++        return 25U;
++    }
++    if (level == 2U) {
++        return 45U;
++    }
++    if (level == 1U) {
++        return 70U;
++    }
++    return NC_FEED_OVERRIDE_DEFAULT_PERCENT;
++}
++
++void NcDiagnostics_UpdateAxisLoadRt(void)
++{
++    uint32_t i;
++    uint32_t warningMask = 0U;
++    uint32_t limitMask = 0U;
++    uint32_t criticalMask = 0U;
++    uint8_t level = 0U;
++
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        int32_t raw = 0;
++        int32_t filtered;
++
++        if ((i + 1U) < ANALOG_CH_MAX) {
++            raw = Abs32(g_ioIn.analog[i + 1U]);
++        }
++        filtered = ((g_ncAxisLoadStatus.filtered_load[i] *
++                     (NC_AXIS_LOAD_FILTER_DIV - 1)) + raw) /
++                   NC_AXIS_LOAD_FILTER_DIV;
++        g_ncAxisLoadStatus.current_load[i] = raw;
++        g_ncAxisLoadStatus.filtered_load[i] = filtered;
++        if (filtered > g_ncAxisLoadStatus.peak_load[i]) {
++            g_ncAxisLoadStatus.peak_load[i] = filtered;
++        }
++        if (filtered >= NC_AXIS_LOAD_WARN_THRESHOLD) {
++            warningMask |= (1UL << i);
++            if (level < 1U) {
++                level = 1U;
++            }
++        }
++        if (filtered >= NC_AXIS_LOAD_LIMIT_THRESHOLD) {
++            limitMask |= (1UL << i);
++            if (level < 2U) {
++                level = 2U;
++            }
++        }
++        if (filtered >= NC_AXIS_LOAD_CRITICAL_THRESHOLD) {
++            criticalMask |= (1UL << i);
++            level = 3U;
++        }
++    }
++
++    if ((warningMask != 0U) && (g_ncAxisLoadStatus.warning_mask == 0U)) {
++        g_ncAxisLoadStatus.warning_events++;
++        g_ncAxisLoadStatus.last_warning_cycle = g_machineCtx.cycle_count;
++        (void)LogQueue_Push(LOG_WARN, 7101U, (int32_t)warningMask);
++    }
++    if ((limitMask != 0U) && (g_ncAxisLoadStatus.limit_mask == 0U)) {
++        g_ncAxisLoadStatus.limit_events++;
++        (void)LogQueue_Push(LOG_WARN, 7102U, (int32_t)limitMask);
++    }
++    if ((criticalMask != 0U) && (g_ncAxisLoadStatus.critical_mask == 0U)) {
++        g_ncAxisLoadStatus.critical_events++;
++        (void)LogQueue_Push(LOG_ALARM, 7103U, (int32_t)criticalMask);
++    }
++
++    g_ncAxisLoadStatus.warning_mask = warningMask;
++    g_ncAxisLoadStatus.limit_mask = limitMask;
++    g_ncAxisLoadStatus.critical_mask = criticalMask;
++    g_ncAxisLoadStatus.staged_decel_level = level;
++    g_ncAxisLoadStatus.decel_request = (uint8_t)(level != 0U);
++    g_ncAxisLoadStatus.decel_override_percent = OverrideForLevel(level);
++    g_ncAxisLoadStatus.generation++;
++}
++
++int32_t NcDiagnostics_SetToolLifeLimit(uint16_t toolNo, uint32_t limit)
++{
++    if ((toolNo == 0U) || (toolNo >= NC_TOOL_LIFE_TABLE_SIZE) ||
++        (limit == 0U)) {
++        return -1;
++    }
++    g_ncToolLifeStatus.tool_life_limit[toolNo] = limit;
++    g_ncToolLifeStatus.generation++;
++    return 0;
++}
++
++static void UpdateToolLife(uint32_t toolNo, uint32_t lineNo, uint32_t mCode)
++{
++    uint32_t limit;
++    uint32_t count;
++    uint32_t warnAt;
++    uint32_t bit;
++
++    if ((toolNo == 0U) || (toolNo >= NC_TOOL_LIFE_TABLE_SIZE)) {
++        return;
++    }
++
++    bit = (1UL << toolNo);
++    limit = g_ncToolLifeStatus.tool_life_limit[toolNo];
++    if (limit == 0U) {
++        limit = NC_TOOL_LIFE_DEFAULT_LIMIT;
++        g_ncToolLifeStatus.tool_life_limit[toolNo] = limit;
++    }
++    count = g_ncToolLifeStatus.tool_use_count[toolNo] + 1U;
++    g_ncToolLifeStatus.tool_use_count[toolNo] = count;
++    g_ncToolLifeStatus.active_tool_no = toolNo;
++    g_ncToolLifeStatus.last_tool_no = toolNo;
++    g_ncToolLifeStatus.last_m_code = mCode;
++    g_ncToolLifeStatus.last_update_line_no = lineNo;
++
++    warnAt = (limit * NC_TOOL_LIFE_WARNING_PERCENT) / 100U;
++    if (warnAt == 0U) {
++        warnAt = 1U;
++    }
++    if ((count >= warnAt) && ((g_ncToolLifeStatus.warning_mask & bit) == 0U)) {
++        g_ncToolLifeStatus.warning_mask |= bit;
++        g_ncToolLifeStatus.warning_events++;
++        (void)LogQueue_Push(LOG_WARN, 7201U, (int32_t)toolNo);
++    }
++    if ((count >= limit) && ((g_ncToolLifeStatus.expired_mask & bit) == 0U)) {
++        g_ncToolLifeStatus.expired_mask |= bit;
++        g_ncToolLifeStatus.expired_events++;
++        (void)LogQueue_Push(LOG_WARN, 7202U, (int32_t)toolNo);
++    }
++    g_ncToolLifeStatus.generation++;
++}
++
++void NcDiagnostics_OnBlockRt(const NC_EXEC_BLOCK* pBlock)
++{
++    uint32_t toolNo;
++
++    if (pBlock == 0) {
++        return;
++    }
++
++    toolNo = pBlock->tool_no;
++    if ((toolNo != 0U) && (toolNo < NC_TOOL_LIFE_TABLE_SIZE)) {
++        g_ncToolLifeStatus.active_tool_no = toolNo;
++        g_ncToolLifeStatus.last_tool_no = toolNo;
++        if (((pBlock->aux_flags & NC_AUX_FLAG_TOOL) != 0U) ||
++            (pBlock->aux_m_code == 6U)) {
++            UpdateToolLife(toolNo, pBlock->line_no, pBlock->aux_m_code);
++            return;
++        }
++    }
++
++    toolNo = g_ncToolLifeStatus.active_tool_no;
++    if ((toolNo != 0U) && (pBlock->motion_type != NC_MOTION_NONE) &&
++        (pBlock->motion_type != NC_MOTION_DWELL)) {
++        UpdateToolLife(toolNo, pBlock->line_no, pBlock->aux_m_code);
++    }
++}
++
++void NcDiagnostics_BuildSnapshot(void)
++{
++    g_ncDiagnosticSnapshot.cycle_count = g_machineCtx.cycle_count;
++    g_ncDiagnosticSnapshot.run_mode = g_machineCtx.run_mode;
++    g_ncDiagnosticSnapshot.machine_state = g_machineCtx.machine_state;
++    g_ncDiagnosticSnapshot.nc_state = g_ncProgramStatus.state;
++    g_ncDiagnosticSnapshot.alarm_code = g_machineCtx.alarm_code;
++    g_ncDiagnosticSnapshot.prestart_mask = g_prestartInterlockStatus.mask;
++    g_ncDiagnosticSnapshot.buffered_blocks = g_ncProgramStatus.buffered_blocks;
++    g_ncDiagnosticSnapshot.exec_line_no = g_ncProgramStatus.exec_line_no;
++    g_ncDiagnosticSnapshot.read_line_no = g_ncProgramStatus.read_line_no;
++    g_ncDiagnosticSnapshot.axis_warning_mask = g_ncAxisLoadStatus.warning_mask;
++    g_ncDiagnosticSnapshot.axis_limit_mask = g_ncAxisLoadStatus.limit_mask;
++    g_ncDiagnosticSnapshot.axis_critical_mask = g_ncAxisLoadStatus.critical_mask;
++    g_ncDiagnosticSnapshot.staged_decel_level = g_ncAxisLoadStatus.staged_decel_level;
++    g_ncDiagnosticSnapshot.decel_override_percent = g_ncAxisLoadStatus.decel_override_percent;
++    g_ncDiagnosticSnapshot.tool_warning_mask = g_ncToolLifeStatus.warning_mask;
++    g_ncDiagnosticSnapshot.tool_expired_mask = g_ncToolLifeStatus.expired_mask;
++    g_ncDiagnosticSnapshot.active_tool_no = g_ncToolLifeStatus.active_tool_no;
++    g_ncDiagnosticSnapshot.completed_segments = g_ncInterpStatus.completed_segments;
++    g_ncDiagnosticSnapshot.completed_cycles = g_ncCycleStatus.completed_cycles;
++    g_ncDiagnosticSnapshot.aux_wait_cycles = g_ncAuxStatus.last_wait_cycles;
++    g_ncDiagnosticSnapshot.trace_frozen = g_ioTraceBuffer.frozen;
++    g_ncDiagnosticSnapshot.generation++;
++}
+diff -ruN ibm_bob_v7_orig/source/src/nc_program.c ibm_bob_v7_work/source/src/nc_program.c
+--- ibm_bob_v7_orig/source/src/nc_program.c	2026-04-29 19:39:26.000000000 +0000
++++ ibm_bob_v7_work/source/src/nc_program.c	2026-04-29 19:46:25.835461669 +0000
+@@ -5,6 +5,7 @@
+ #include <stdio.h>
+ #include <string.h>
+ #include "nc_interpolation.h"
++#include "nc_diagnostics.h"
+ #include "nc_compensation.h"
+ #include "nc_kinematics.h"
+ #include "nc_lookahead.h"
+@@ -187,6 +188,7 @@
+ 
+     g_ncProgramStatus.exec_line_no = pBlock->line_no;
+     RtNcProgram_UpdateFeatureStatus(pBlock);
++    NcDiagnostics_OnBlockRt(pBlock);
+     if ((pBlock->motion_type == NC_MOTION_NONE) &&
+         (pBlock->axis_mask == 0U) &&
+         (pBlock->aux_flags == 0U)) {
+diff -ruN ibm_bob_v7_orig/source/src/rt_control.c ibm_bob_v7_work/source/src/rt_control.c
+--- ibm_bob_v7_orig/source/src/rt_control.c	2026-04-29 18:56:38.000000000 +0000
++++ ibm_bob_v7_work/source/src/rt_control.c	2026-04-29 19:46:25.835174065 +0000
+@@ -4,6 +4,7 @@
+ /* RELEVANT FILES: ibm-bob/samples/base/source/inc/rt_control.h, ibm-bob/samples/base/source/inc/nc_program.h, ibm-bob/samples/base/source/src/system_shared.c */
+ #include "rt_control.h"
+ #include "nc_program.h"
++#include "nc_diagnostics.h"
+ #include "system_shared.h"
+ #include "system_config.h"
+ 
+@@ -106,6 +107,7 @@
+ 
+     RtInput_ScanInputs();
+     RtControl_UpdatePrestartInterlock();
++    NcDiagnostics_UpdateAxisLoadRt();
+     RtControl_UpdateMachineState();
+     RtControl_ProcessModeRequest();
+     RtControl_UpdateInterlock();
+@@ -115,6 +117,7 @@
+     RtNcProgram_ConsumeBlocks();
+     RtOutput_CommitOutputs();
+     RtControl_CaptureIoTrace();
++    NcDiagnostics_BuildSnapshot();
+ 
+     g_machineCtx.rt_input_ticks = 1U;
+     g_machineCtx.rt_control_ticks = 2U;
+diff -ruN ibm_bob_v7_orig/source/src/system_shared.c ibm_bob_v7_work/source/src/system_shared.c
+--- ibm_bob_v7_orig/source/src/system_shared.c	2026-04-29 19:38:00.000000000 +0000
++++ ibm_bob_v7_work/source/src/system_shared.c	2026-04-29 19:46:25.834292626 +0000
+@@ -25,6 +25,9 @@
+ volatile NC_COMPENSATION_STATUS g_ncCompensationStatus;
+ volatile NC_PATH_CONTROL_STATUS g_ncPathControlStatus;
+ volatile NC_KINEMATICS_STATUS g_ncKinematicsStatus;
++volatile NC_AXIS_LOAD_STATUS  g_ncAxisLoadStatus;
++volatile NC_TOOL_LIFE_STATUS  g_ncToolLifeStatus;
++volatile NC_DIAGNOSTIC_SNAPSHOT g_ncDiagnosticSnapshot;
+ volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
+ 
+ void SystemShared_Initialize(void)
+@@ -49,6 +52,9 @@
+     (void)memset((void*)&g_ncCompensationStatus, 0, sizeof(g_ncCompensationStatus));
+     (void)memset((void*)&g_ncPathControlStatus, 0, sizeof(g_ncPathControlStatus));
+     (void)memset((void*)&g_ncKinematicsStatus, 0, sizeof(g_ncKinematicsStatus));
++    (void)memset((void*)&g_ncAxisLoadStatus, 0, sizeof(g_ncAxisLoadStatus));
++    (void)memset((void*)&g_ncToolLifeStatus, 0, sizeof(g_ncToolLifeStatus));
++    (void)memset((void*)&g_ncDiagnosticSnapshot, 0, sizeof(g_ncDiagnosticSnapshot));
+     (void)memset((void*)&g_ioTraceBuffer, 0, sizeof(g_ioTraceBuffer));
+ 
+     g_machineCtx.run_mode = RUN_MODE_MANUAL;
+@@ -64,6 +70,10 @@
+     g_prestartInterlockStatus.mask = PRESTART_ILK_READY_SWITCH | PRESTART_ILK_PRESSURE_RANGE;
+     g_prestartInterlockStatus.ok = 0U;
+     g_ncAuxStatus.state = NC_AUX_STATE_IDLE;
++    g_ncAxisLoadStatus.decel_override_percent = NC_FEED_OVERRIDE_DEFAULT_PERCENT;
++    for (uint32_t i = 0U; i < NC_TOOL_LIFE_TABLE_SIZE; ++i) {
++        g_ncToolLifeStatus.tool_life_limit[i] = NC_TOOL_LIFE_DEFAULT_LIMIT;
++    }
+ }
+ 
+ int32_t LogQueue_Push(uint32_t eventType, uint32_t code, int32_t value)

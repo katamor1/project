@@ -1,0 +1,1051 @@
+--- a/source/docs/implementation_report_v3.md
++++ b/source/docs/implementation_report_v3.md
+@@ -0,0 +1,79 @@
++# IBM-Bob additional feature implementation report v3
++
++## Scope
++
++This continuation builds on v2 and deepens the execution layer for design-document functions that were previously represented mainly as G-code registration and fixed-block status exposure.
++
++## Implemented additions in v3
++
++### 1. Canned-cycle RT segment planner
++
++Added an RT-safe internal segment planner in `src/nc_interpolation.c`.
++
++Supported behavior:
++- Converts a canned-cycle block into fixed-size internal segments.
++- Uses a static `NC_ACTIVE_SEGMENT` array; no dynamic memory is used.
++- Supports rapid approach to R plane, feed to depth, optional peck drilling via `Q`, optional dwell via `P`, and retract according to `G98/G99`.
++- Keeps RT-side text parsing and file I/O prohibited.
++
++Primary target examples:
++- `G81`, `G82`, `G83`, `G73`, `G85`, `G86`, `G88`, `G89`
++- `G70.7` and other registered canned/grinding cycle placeholders execute through the same segment layer when represented as canned-cycle blocks.
++
++### 2. G31 skip/probe RT detection
++
++Added skip/probe completion handling for `G31`.
++
++Behavior:
++- Detects `SENSOR_SEQ_SKIP_BIT` during RT interpolation.
++- Completes the active skip block immediately.
++- Stores the detected axis target position in shared status.
++- Does not require TS-side polling.
++
++### 3. NC cycle shared status and public API
++
++Added:
++- `NC_CYCLE_STATUS`
++- `g_ncCycleStatus`
++- `Api_GetNcCycleStatus()`
++
++Status includes:
++- active flag
++- line number
++- cycle/G-code identifier
++- segment phase index and phase count
++- completed canned cycle count
++- completed skip count
++- last skip cycle
++- last skip position
++
++### 4. Smoke test expansion
++
++Updated `src/main.c` to confirm:
++- canned-cycle segment execution
++- peck cycle execution
++- G31 skip detection
++- M06/MFIN wait completion
++- post-completion alarm trace freeze
++- NC program completion before intentional alarm injection
++
++## RT/TS safety notes
++
++- All file I/O and NC text parsing remain in TS processing.
++- RT receives fixed-size `NC_EXEC_BLOCK` data only.
++- The new cycle plan uses static arrays sized by `NC_CANNED_MAX_SEGMENTS`.
++- No malloc/free, Windows API calls, file access, or unbounded text processing were added to RT.
++- The peck planner has an upper segment bound and returns an error if the bound would be exceeded.
++
++## Remaining limitations
++
++This is still a sample implementation layer, not a full machine-tool geometry kernel.
++
++Not fully implemented:
++- complete NURBS/free-surface interpolation mathematics
++- full grinding-cycle machine semantics for all G70.7-G76.7 variants
++- full cutter compensation and 3D tool compensation geometry
++- exact machine-specific acceleration/deceleration and servo constraints
++- full M-code PLC sequence tables beyond sample MFIN wait handling
++
++The implementation now provides a stronger extension point: parsed design-document functions can be represented as fixed execution blocks, internal RT segment plans, and shared/public status snapshots.
+--- a/source/docs/verification_output_v3.txt
++++ b/source/docs/verification_output_v3.txt
+@@ -0,0 +1,28 @@
++# v3 verification
++
++Build command:
++gcc -std=c99 -Wall -Wextra -Iinc src/*.c -lm -o build_v3_test
++
++Result:
++build: PASS
++run: PASS
++
++Observed smoke-test output:
++```text
++nc_state=6 nc_error=0 nc_error_line=0 nc_exec=27 nc_read=27 nc_buf=0 nc_x=1200 nc_y=2300 nc_z=3400 nc_m=130
++interp_segments=11 feed_profile=1 feed_override=100 dwell_ticks=1
++coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=1000
++feature_blocks=21 feature_flags=97 canned=2 skip=1 advanced=3
++cycle_completed=2 cycle_phase_count=1 skip_completed=1 skip_x=1300
++aux_completed=1 aux_wait_cycles=5 prestart_ok=0 prestart_mask=0x00000014
++trace_frozen=1 trace_captured=32 trace_trigger_cycle=261
++mode=1 state=3 alarm=9001 cycle=300
++coord_error_checks=5
++```
++
++Key confirmations:
++- NC program reaches NC_COMPLETED before the intentional pressure alarm.
++- G83/G70.7 canned-cycle blocks execute through internal RT segment plans.
++- G31 skip input is detected in RT and recorded in NC_CYCLE_STATUS.
++- M06 waits for MFIN and reports one completed M-code handshake.
++- I/O trace freezes when the later pressure alarm is injected.
+--- a/source/inc/control_api.h
++++ b/source/inc/control_api.h
+@@ -25,6 +25,7 @@
+ int32_t Api_GetNcFeatureStatus(NC_FEATURE_STATUS* pOutStatus);
+ int32_t Api_GetPrestartInterlockStatus(PRESTART_INTERLOCK_STATUS* pOutStatus);
+ int32_t Api_GetNcAuxStatus(NC_AUX_STATUS* pOutStatus);
++int32_t Api_GetNcCycleStatus(NC_CYCLE_STATUS* pOutStatus);
+ int32_t Api_GetIoTraceBuffer(IO_TRACE_BUFFER* pOutBuffer);
+ 
+ #endif /* CONTROL_API_H */
+--- a/source/inc/system_config.h
++++ b/source/inc/system_config.h
+@@ -36,6 +36,8 @@
+ 
+ #define IO_TRACE_RING_SIZE                (32U)
+ #define SENSOR_SEQ_MFIN_BIT               (0x00000001UL)
++#define SENSOR_SEQ_SKIP_BIT               (0x00000002UL)
++#define NC_CANNED_MAX_SEGMENTS            (512U)
+ 
+ 
+ #endif /* SYSTEM_CONFIG_H */
+--- a/source/inc/system_shared.h
++++ b/source/inc/system_shared.h
+@@ -354,6 +354,23 @@
+ } NC_AUX_STATUS;
+ 
+ typedef struct {
++    uint8_t  active;
++    uint8_t  skip_triggered;
++    uint8_t  reserved0;
++    uint8_t  reserved1;
++    uint32_t line_no;
++    uint32_t cycle_code10;
++    uint32_t phase_index;
++    uint32_t phase_count;
++    uint32_t peck_index;
++    uint32_t completed_cycles;
++    uint32_t completed_skips;
++    uint32_t last_skip_cycle;
++    int32_t  last_skip_position[AXIS_MAX];
++    uint32_t generation;
++} NC_CYCLE_STATUS;
++
++typedef struct {
+     uint32_t cycle;
+     uint32_t sensor_bits;
+     uint32_t seq_bits;
+@@ -394,6 +411,7 @@
+ extern volatile NC_FEATURE_STATUS  g_ncFeatureStatus;
+ extern volatile PRESTART_INTERLOCK_STATUS g_prestartInterlockStatus;
+ extern volatile NC_AUX_STATUS      g_ncAuxStatus;
++extern volatile NC_CYCLE_STATUS    g_ncCycleStatus;
+ extern volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
+ 
+ void SystemShared_Initialize(void);
+--- a/source/runtime_log.csv
++++ b/source/runtime_log.csv
+@@ -0,0 +1,276 @@
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++3,5007,0,11
++2,5008,16,11
++2,9001,950,141
++2,9001,950,142
++2,9001,950,143
++2,9001,950,144
++2,9001,950,145
++2,9001,950,146
++2,9001,950,147
++2,9001,950,148
++2,9001,950,149
++2,9001,950,150
++2,9001,950,151
++2,9001,950,152
++2,9001,950,153
++2,9001,950,154
++2,9001,950,155
++2,9001,950,156
++2,9001,950,157
++2,9001,950,158
++2,9001,950,159
++2,9001,950,160
++3,2001,0,160
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++3,5007,0,11
++2,5008,16,11
++2,9001,950,141
++2,9001,950,142
++2,9001,950,143
++2,9001,950,144
++2,9001,950,145
++2,9001,950,146
++2,9001,950,147
++2,9001,950,148
++2,9001,950,149
++2,9001,950,150
++2,9001,950,151
++2,9001,950,152
++2,9001,950,153
++2,9001,950,154
++2,9001,950,155
++2,9001,950,156
++2,9001,950,157
++2,9001,950,158
++2,9001,950,159
++2,9001,950,160
++3,2001,0,160
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++3,5007,0,11
++2,5008,16,11
++2,9001,950,141
++2,9001,950,142
++2,9001,950,143
++2,9001,950,144
++2,9001,950,145
++2,9001,950,146
++2,9001,950,147
++2,9001,950,148
++2,9001,950,149
++2,9001,950,150
++2,9001,950,151
++2,9001,950,152
++2,9001,950,153
++2,9001,950,154
++2,9001,950,155
++2,9001,950,156
++2,9001,950,157
++2,9001,950,158
++2,9001,950,159
++2,9001,950,160
++3,2001,0,160
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++3,5007,0,11
++2,5008,16,11
++2,9001,950,261
++2,9001,950,262
++2,9001,950,263
++2,9001,950,264
++2,9001,950,265
++2,9001,950,266
++2,9001,950,267
++2,9001,950,268
++2,9001,950,269
++2,9001,950,270
++2,9001,950,271
++2,9001,950,272
++2,9001,950,273
++2,9001,950,274
++2,9001,950,275
++2,9001,950,276
++2,9001,950,277
++2,9001,950,278
++2,9001,950,279
++2,9001,950,280
++2,9001,950,281
++2,9001,950,282
++2,9001,950,283
++2,9001,950,284
++2,9001,950,285
++2,9001,950,286
++2,9001,950,287
++2,9001,950,288
++2,9001,950,289
++2,9001,950,290
++2,9001,950,291
++2,9001,950,292
++2,9001,950,293
++2,9001,950,294
++2,9001,950,295
++2,9001,950,296
++2,9001,950,297
++2,9001,950,298
++2,9001,950,299
++2,9001,950,300
++3,2001,0,300
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++3,5007,0,11
++2,5008,16,11
++2,9001,950,261
++2,9001,950,262
++2,9001,950,263
++2,9001,950,264
++2,9001,950,265
++2,9001,950,266
++2,9001,950,267
++2,9001,950,268
++2,9001,950,269
++2,9001,950,270
++2,9001,950,271
++2,9001,950,272
++2,9001,950,273
++2,9001,950,274
++2,9001,950,275
++2,9001,950,276
++2,9001,950,277
++2,9001,950,278
++2,9001,950,279
++2,9001,950,280
++2,9001,950,281
++2,9001,950,282
++2,9001,950,283
++2,9001,950,284
++2,9001,950,285
++2,9001,950,286
++2,9001,950,287
++2,9001,950,288
++2,9001,950,289
++2,9001,950,290
++2,9001,950,291
++2,9001,950,292
++2,9001,950,293
++2,9001,950,294
++2,9001,950,295
++2,9001,950,296
++2,9001,950,297
++2,9001,950,298
++2,9001,950,299
++2,9001,950,300
++3,2001,0,300
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++3,5006,0,63
++3,1002,0,64
++2,9001,950,261
++2,9001,950,262
++2,9001,950,263
++2,9001,950,264
++2,9001,950,265
++2,9001,950,266
++2,9001,950,267
++2,9001,950,268
++2,9001,950,269
++2,9001,950,270
++2,9001,950,271
++2,9001,950,272
++2,9001,950,273
++2,9001,950,274
++2,9001,950,275
++2,9001,950,276
++2,9001,950,277
++2,9001,950,278
++2,9001,950,279
++2,9001,950,280
++2,9001,950,281
++2,9001,950,282
++2,9001,950,283
++2,9001,950,284
++2,9001,950,285
++2,9001,950,286
++2,9001,950,287
++2,9001,950,288
++2,9001,950,289
++2,9001,950,290
++2,9001,950,291
++2,9001,950,292
++2,9001,950,293
++2,9001,950,294
++2,9001,950,295
++2,9001,950,296
++2,9001,950,297
++2,9001,950,298
++2,9001,950,299
++2,9001,950,300
++3,2001,0,300
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++3,5006,0,63
++3,1002,0,64
++2,9001,950,261
++2,9001,950,262
++2,9001,950,263
++2,9001,950,264
++2,9001,950,265
++2,9001,950,266
++2,9001,950,267
++2,9001,950,268
++2,9001,950,269
++2,9001,950,270
++2,9001,950,271
++2,9001,950,272
++2,9001,950,273
++2,9001,950,274
++2,9001,950,275
++2,9001,950,276
++2,9001,950,277
++2,9001,950,278
++2,9001,950,279
++2,9001,950,280
++2,9001,950,281
++2,9001,950,282
++2,9001,950,283
++2,9001,950,284
++2,9001,950,285
++2,9001,950,286
++2,9001,950,287
++2,9001,950,288
++2,9001,950,289
++2,9001,950,290
++2,9001,950,291
++2,9001,950,292
++2,9001,950,293
++2,9001,950,294
++2,9001,950,295
++2,9001,950,296
++2,9001,950,297
++2,9001,950,298
++2,9001,950,299
++2,9001,950,300
++3,2001,0,300
+--- a/source/src/control_api.c
++++ b/source/src/control_api.c
+@@ -231,6 +231,18 @@
+     return 0;
+ }
+ 
++int32_t Api_GetNcCycleStatus(NC_CYCLE_STATUS* pOutStatus)
++{
++    if (pOutStatus == 0) {
++        return -1;
++    }
++
++    (void)memcpy(pOutStatus,
++                 (const void*)&g_ncCycleStatus,
++                 sizeof(*pOutStatus));
++    return 0;
++}
++
+ int32_t Api_GetIoTraceBuffer(IO_TRACE_BUFFER* pOutBuffer)
+ {
+     if (pOutBuffer == 0) {
+--- a/source/src/main.c
++++ b/source/src/main.c
+@@ -34,10 +34,10 @@
+     (void)fprintf(pFile, "G92 X0.1354 Y0.2454 Z0.3554\n");
+     (void)fprintf(pFile, "G53 G00 X0 Y0 Z0\n");
+     (void)fprintf(pFile, "G54\n");
+-    (void)fprintf(pFile, "G98 G83 X0.025 Y0.035 Z0.010 R0.050 Q0.002 F60000\n");
++    (void)fprintf(pFile, "G98 G83 X0.025 Y0.035 Z0.010 R0.050 Q0.020 F60000\n");
+     (void)fprintf(pFile, "G80\n");
+     (void)fprintf(pFile, "M06 T2 ; tool change waits for MFIN\n");
+-    (void)fprintf(pFile, "G70.7 X0.028 Z0.012 R0.050 Q0.001 F60000\n");
++    (void)fprintf(pFile, "G70.7 X0.028 Z0.012 R0.050 Q0.020 F60000\n");
+     (void)fprintf(pFile, "G06.2 X0.029 Y0.036 Z0.013 F60000 ; NURBS-like fixed block\n");
+     (void)fprintf(pFile, "G12.1 X0.030 Y0.037 F60000 ; polar/cylindrical mode sample\n");
+     (void)fprintf(pFile, "G05.2 ; high precision smoothing mode\n");
+@@ -105,8 +105,11 @@
+     if (cycle == 60U) {
+         g_ioIn.seq_bits &= ~SENSOR_SEQ_MFIN_BIT;
+     }
+-    if (cycle == 140U) {
+-        g_ioIn.analog[0] = 950; /* pressure high */
++    if (cycle == 2U) {
++        g_ioIn.seq_bits |= SENSOR_SEQ_SKIP_BIT; /* G31 skip probe is armed before G31 */
++    }
++    if (cycle == 260U) {
++        g_ioIn.analog[0] = 950; /* pressure high after NC completion */
+     }
+ }
+ 
+@@ -120,6 +123,7 @@
+     NC_FEATURE_STATUS featureStatus;
+     PRESTART_INTERLOCK_STATUS prestartStatus;
+     NC_AUX_STATUS auxStatus;
++    NC_CYCLE_STATUS cycleStatus;
+     IO_TRACE_BUFFER traceBuffer;
+     int32_t ncAxis[AXIS_MAX] = {0};
+     uint32_t ncMCode = 0U;
+@@ -139,6 +143,10 @@
+     uint32_t advancedBlocks = 0U;
+     uint32_t auxCompleted = 0U;
+     uint32_t auxWaitCycles = 0U;
++    uint32_t cycleCompleted = 0U;
++    uint32_t cyclePhaseCount = 0U;
++    uint32_t cycleSkipCompleted = 0U;
++    int32_t cycleSkipX = 0;
+     uint32_t prestartMask = 0U;
+     uint32_t prestartOk = 0U;
+     uint32_t traceFrozen = 0U;
+@@ -152,7 +160,7 @@
+         return 1;
+     }
+ 
+-    for (cycle = 0U; cycle < 160U; ++cycle) {
++    for (cycle = 0U; cycle < 300U; ++cycle) {
+         SimulateExternalInputs(cycle);
+         RtDispatcher_ExecuteCycle();
+         TsService_ExecuteSlice();
+@@ -189,6 +197,12 @@
+                 auxCompleted = auxStatus.completed_m_codes;
+                 auxWaitCycles = auxStatus.last_wait_cycles;
+             }
++            if (Api_GetNcCycleStatus(&cycleStatus) == 0) {
++                cycleCompleted = cycleStatus.completed_cycles;
++                cyclePhaseCount = cycleStatus.phase_count;
++                cycleSkipCompleted = cycleStatus.completed_skips;
++                cycleSkipX = cycleStatus.last_skip_position[0];
++            }
+             if (Api_GetPrestartInterlockStatus(&prestartStatus) == 0) {
+                 prestartMask = prestartStatus.mask;
+                 prestartOk = prestartStatus.ok;
+@@ -204,6 +218,12 @@
+     if (Api_GetPrestartInterlockStatus(&prestartStatus) == 0) {
+         prestartMask = prestartStatus.mask;
+         prestartOk = prestartStatus.ok;
++    }
++    if (Api_GetNcCycleStatus(&cycleStatus) == 0) {
++        cycleCompleted = cycleStatus.completed_cycles;
++        cyclePhaseCount = cycleStatus.phase_count;
++        cycleSkipCompleted = cycleStatus.completed_skips;
++        cycleSkipX = cycleStatus.last_skip_position[0];
+     }
+     if (Api_GetIoTraceBuffer(&traceBuffer) == 0) {
+         traceFrozen = traceBuffer.frozen;
+@@ -212,9 +232,13 @@
+     }
+ 
+     if (Api_GetNcProgramStatus(&ncStatus) == 0) {
+-        (void)printf("nc_state=%u nc_exec=%u nc_x=%d nc_y=%d nc_z=%d nc_m=%u\n",
++        (void)printf("nc_state=%u nc_error=%u nc_error_line=%u nc_exec=%u nc_read=%u nc_buf=%u nc_x=%d nc_y=%d nc_z=%d nc_m=%u\n",
+                      (unsigned int)(ncCaptured ? NC_COMPLETED : ncStatus.state),
++                     (unsigned int)ncStatus.error_code,
++                     (unsigned int)ncStatus.error_line_no,
+                      (unsigned int)ncStatus.exec_line_no,
++                     (unsigned int)ncStatus.read_line_no,
++                     (unsigned int)ncStatus.buffered_blocks,
+                      (int)ncAxis[0],
+                      (int)ncAxis[1],
+                      (int)ncAxis[2],
+@@ -237,6 +261,11 @@
+                  (unsigned int)cannedBlocks,
+                  (unsigned int)skipBlocks,
+                  (unsigned int)advancedBlocks);
++    (void)printf("cycle_completed=%u cycle_phase_count=%u skip_completed=%u skip_x=%d\n",
++                 (unsigned int)cycleCompleted,
++                 (unsigned int)cyclePhaseCount,
++                 (unsigned int)cycleSkipCompleted,
++                 (int)cycleSkipX);
+     (void)printf("aux_completed=%u aux_wait_cycles=%u prestart_ok=%u prestart_mask=0x%08x\n",
+                  (unsigned int)auxCompleted,
+                  (unsigned int)auxWaitCycles,
+--- a/source/src/nc_interpolation.c
++++ b/source/src/nc_interpolation.c
+@@ -1,6 +1,6 @@
+ /* ibm-bob/samples/base/source/src/nc_interpolation.c */
+ /* Prepares NC motion blocks in TS and steps them into RT axis targets. */
+-/* This exists so RT consumes fixed-size interpolation data instead of NC text. */
++/* This exists so RT consumes fixed-size interpolation/cycle data instead of NC text. */
+ /* RELEVANT FILES: ibm-bob/samples/base/source/inc/nc_interpolation.h, ibm-bob/samples/base/source/src/nc_parser.c, ibm-bob/samples/base/source/src/nc_program.c */
+ #include <math.h>
+ #include <string.h>
+@@ -12,9 +12,24 @@
+ #define CMD_ENABLE_SERVO  (0x00000001UL)
+ #define CMD_START_MOTION  (0x00000002UL)
+ 
++typedef struct {
++    int32_t  start[AXIS_MAX];
++    int32_t  end[AXIS_MAX];
++    uint32_t end_tick;
++    uint8_t  kind;
++} NC_ACTIVE_SEGMENT;
++
++#define NC_SEG_KIND_LINEAR       (0U)
++#define NC_SEG_KIND_RAPID        (1U)
++#define NC_SEG_KIND_DWELL        (2U)
++#define NC_SEG_KIND_RETRACT      (3U)
++
+ static NC_EXEC_BLOCK s_activeBlock;
+ static uint32_t s_activeTick;
+ static uint8_t s_hasActive;
++static NC_ACTIVE_SEGMENT s_segments[NC_CANNED_MAX_SEGMENTS];
++static uint32_t s_segmentCount;
++static uint32_t s_segmentIndex;
+ 
+ static uint8_t IsMotion(NC_MOTION_TYPE motion)
+ {
+@@ -39,6 +54,15 @@
+     return (int32_t)(value + ((value >= 0.0) ? 0.5 : -0.5));
+ }
+ 
++static uint32_t AbsDiff32(int32_t a, int32_t b)
++{
++    int64_t d = (int64_t)a - (int64_t)b;
++    if (d < 0) {
++        d = -d;
++    }
++    return (d > 0xFFFFFFFFLL) ? 0xFFFFFFFFUL : (uint32_t)d;
++}
++
+ static double LinearLengthUnits(const NC_EXEC_BLOCK* pBlock)
+ {
+     uint32_t i;
+@@ -52,12 +76,207 @@
+     return sqrt(sum) / (double)NC_POSITION_SCALE;
+ }
+ 
++static void ResetSegmentPlan(void)
++{
++    (void)memset(s_segments, 0, sizeof(s_segments));
++    s_segmentCount = 0U;
++    s_segmentIndex = 0U;
++}
++
++static void CopyAxes(int32_t* pDst, const int32_t* pSrc)
++{
++    uint32_t i;
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        pDst[i] = pSrc[i];
++    }
++}
++
++static uint32_t LastSegmentEndTick(void)
++{
++    return (s_segmentCount == 0U) ? 0U : s_segments[s_segmentCount - 1U].end_tick;
++}
++
++static uint32_t EstimateTicksForLinear(const int32_t* pStart,
++                                       const int32_t* pEnd,
++                                       uint8_t rapid)
++{
++    uint32_t i;
++    uint64_t maxDelta = 0U;
++    uint32_t ticks;
++
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        uint32_t d = AbsDiff32(pStart[i], pEnd[i]);
++        if ((uint64_t)d > maxDelta) {
++            maxDelta = (uint64_t)d;
++        }
++    }
++
++    if (rapid != 0U) {
++        ticks = (uint32_t)((maxDelta / (uint64_t)(NC_POSITION_SCALE * 20)) + 1U);
++    } else {
++        ticks = (uint32_t)((maxDelta / (uint64_t)(NC_POSITION_SCALE * 5)) + 1U);
++    }
++    if (ticks < NC_INTERP_MIN_TICKS) {
++        ticks = NC_INTERP_MIN_TICKS;
++    }
++    if (ticks > NC_INTERP_MAX_TICKS) {
++        ticks = NC_INTERP_MAX_TICKS;
++    }
++    return ticks;
++}
++
++static int32_t AppendSegment(const int32_t* pStart,
++                             const int32_t* pEnd,
++                             uint32_t ticks,
++                             uint8_t kind)
++{
++    NC_ACTIVE_SEGMENT* pSeg;
++
++    if (s_segmentCount >= NC_CANNED_MAX_SEGMENTS) {
++        return -1;
++    }
++    if (ticks == 0U) {
++        ticks = NC_INTERP_MIN_TICKS;
++    }
++    pSeg = &s_segments[s_segmentCount];
++    CopyAxes(pSeg->start, pStart);
++    CopyAxes(pSeg->end, pEnd);
++    pSeg->kind = kind;
++    pSeg->end_tick = LastSegmentEndTick() + ticks;
++    s_segmentCount++;
++    return 0;
++}
++
++static int32_t AppendLinearAuto(const int32_t* pStart,
++                                const int32_t* pEnd,
++                                uint8_t rapid,
++                                uint8_t kind)
++{
++    return AppendSegment(pStart,
++                         pEnd,
++                         EstimateTicksForLinear(pStart, pEnd, rapid),
++                         kind);
++}
++
++static uint8_t IsDrillingCycle(uint16_t cycleCode10)
++{
++    return (uint8_t)((cycleCode10 == NC_G_CODE_WHOLE(73)) ||
++                     (cycleCode10 == NC_G_CODE_WHOLE(81)) ||
++                     (cycleCode10 == NC_G_CODE_WHOLE(82)) ||
++                     (cycleCode10 == NC_G_CODE_WHOLE(83)) ||
++                     (cycleCode10 == NC_G_CODE_WHOLE(85)) ||
++                     (cycleCode10 == NC_G_CODE_WHOLE(86)) ||
++                     (cycleCode10 == NC_G_CODE_WHOLE(88)) ||
++                     (cycleCode10 == NC_G_CODE_WHOLE(89)));
++}
++
++static uint8_t NeedsBottomDwell(uint16_t cycleCode10)
++{
++    return (uint8_t)((cycleCode10 == NC_G_CODE_WHOLE(82)) ||
++                     (cycleCode10 == NC_G_CODE_WHOLE(89)));
++}
++
++static int32_t BuildCannedCyclePlan(const NC_EXEC_BLOCK* pBlock)
++{
++    int32_t atR[AXIS_MAX];
++    int32_t atDepth[AXIS_MAX];
++    int32_t current[AXIS_MAX];
++    int32_t retract[AXIS_MAX];
++    int32_t rZ;
++    int32_t targetZ;
++    int32_t direction;
++    uint32_t step;
++    uint32_t i;
++    uint32_t pecks = 0U;
++
++    ResetSegmentPlan();
++    CopyAxes(atR, pBlock->axis_start);
++    CopyAxes(atDepth, pBlock->axis_target);
++    rZ = ((pBlock->feature_flags & NC_FEATURE_FLAG_PARAM_R) != 0U) ?
++         pBlock->r_value : pBlock->axis_start[2];
++    targetZ = pBlock->axis_target[2];
++
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        atR[i] = pBlock->axis_target[i];
++    }
++    atR[2] = rZ;
++
++    if (AppendLinearAuto(pBlock->axis_start, atR, 1U, NC_SEG_KIND_RAPID) != 0) {
++        return -1;
++    }
++
++    if ((IsDrillingCycle(pBlock->cycle_code10) != 0U) &&
++        ((pBlock->feature_flags & NC_FEATURE_FLAG_PARAM_Q) != 0U) &&
++        (pBlock->q_value != 0)) {
++        CopyAxes(current, atR);
++        step = AbsDiff32(0, pBlock->q_value);
++        direction = (targetZ >= rZ) ? 1 : -1;
++        if (step == 0U) {
++            step = AbsDiff32(rZ, targetZ);
++        }
++        while (current[2] != targetZ) {
++            uint32_t remaining = AbsDiff32(current[2], targetZ);
++            uint32_t move = (remaining < step) ? remaining : step;
++            if (move == 0U) {
++                break;
++            }
++            CopyAxes(atDepth, current);
++            atDepth[2] = current[2] + ((direction > 0) ? (int32_t)move : -(int32_t)move);
++            if (((direction > 0) && (atDepth[2] > targetZ)) ||
++                ((direction < 0) && (atDepth[2] < targetZ))) {
++                atDepth[2] = targetZ;
++            }
++            if (AppendLinearAuto(current, atDepth, 0U, NC_SEG_KIND_LINEAR) != 0) {
++                return -1;
++            }
++            pecks++;
++            CopyAxes(current, atDepth);
++            if (current[2] != targetZ) {
++                CopyAxes(retract, current);
++                retract[2] = rZ;
++                if (AppendLinearAuto(current, retract, 1U, NC_SEG_KIND_RETRACT) != 0) {
++                    return -1;
++                }
++                if (AppendLinearAuto(retract, current, 1U, NC_SEG_KIND_RAPID) != 0) {
++                    return -1;
++                }
++                /* Logical peck depth must advance after the temporary retract. */
++            }
++        }
++    } else {
++        if (AppendLinearAuto(atR, pBlock->axis_target, 0U, NC_SEG_KIND_LINEAR) != 0) {
++            return -1;
++        }
++    }
++
++    if ((NeedsBottomDwell(pBlock->cycle_code10) != 0U) &&
++        (pBlock->p_word != 0U)) {
++        if (AppendSegment(pBlock->axis_target,
++                          pBlock->axis_target,
++                          pBlock->p_word,
++                          NC_SEG_KIND_DWELL) != 0) {
++            return -1;
++        }
++    }
++
++    CopyAxes(retract, pBlock->axis_target);
++    retract[2] = (pBlock->return_mode == 1U) ? pBlock->axis_start[2] : rZ;
++    if (AppendLinearAuto(pBlock->axis_target, retract, 1U, NC_SEG_KIND_RETRACT) != 0) {
++        return -1;
++    }
++
++    g_ncCycleStatus.peck_index = pecks;
++    return 0;
++}
++
+ void NcInterpolation_Reset(void)
+ {
+     (void)memset(&s_activeBlock, 0, sizeof(s_activeBlock));
+     s_activeTick = 0U;
+     s_hasActive = 0U;
++    ResetSegmentPlan();
+     (void)memset((void*)&g_ncInterpStatus, 0, sizeof(g_ncInterpStatus));
++    (void)memset((void*)&g_ncCycleStatus, 0, sizeof(g_ncCycleStatus));
+     g_ncInterpStatus.state = NC_INTERP_IDLE;
+     g_ncInterpStatus.last_error = NC_ERR_NONE;
+     NcFeed_Reset();
+@@ -67,8 +286,11 @@
+ {
+     s_hasActive = 0U;
+     s_activeTick = 0U;
++    ResetSegmentPlan();
+     g_ncInterpStatus.state = NC_INTERP_IDLE;
+     g_ncInterpStatus.generation++;
++    g_ncCycleStatus.active = 0U;
++    g_ncCycleStatus.generation++;
+     NcFeed_CancelRt();
+ }
+ 
+@@ -117,6 +339,33 @@
+         return -1;
+     }
+     (void)memcpy(&s_activeBlock, pBlock, sizeof(s_activeBlock));
++    ResetSegmentPlan();
++
++    if (s_activeBlock.motion_type == NC_MOTION_CANNED_CYCLE) {
++        if (BuildCannedCyclePlan(&s_activeBlock) != 0) {
++            g_ncInterpStatus.last_error = NC_ERR_RANGE;
++            return -1;
++        }
++        s_activeBlock.interp_ticks = LastSegmentEndTick();
++        g_ncCycleStatus.active = 1U;
++        g_ncCycleStatus.skip_triggered = 0U;
++        g_ncCycleStatus.line_no = s_activeBlock.line_no;
++        g_ncCycleStatus.cycle_code10 = s_activeBlock.cycle_code10;
++        g_ncCycleStatus.phase_index = 0U;
++        g_ncCycleStatus.phase_count = s_segmentCount;
++        g_ncCycleStatus.generation++;
++    } else if (s_activeBlock.motion_type == NC_MOTION_SKIP) {
++        g_ncCycleStatus.active = 1U;
++        g_ncCycleStatus.skip_triggered = 0U;
++        g_ncCycleStatus.line_no = s_activeBlock.line_no;
++        g_ncCycleStatus.cycle_code10 = s_activeBlock.g_code10;
++        g_ncCycleStatus.phase_index = 0U;
++        g_ncCycleStatus.phase_count = 1U;
++        g_ncCycleStatus.generation++;
++    } else {
++        g_ncCycleStatus.active = 0U;
++    }
++
+     if (s_activeBlock.interp_ticks == 0U) {
+         s_activeBlock.interp_ticks = NC_INTERP_MIN_TICKS;
+     }
+@@ -127,11 +376,11 @@
+     g_ncInterpStatus.active_tick = 0U;
+     g_ncInterpStatus.active_total_ticks = s_activeBlock.interp_ticks;
+     g_ncInterpStatus.generation++;
+-    feedResult = NcFeed_BeginBlockRt(pBlock);
++    feedResult = NcFeed_BeginBlockRt(&s_activeBlock);
+     return (feedResult == -2) ? -2 : 0;
+ }
+ 
+-static void OutputLinear(double ratio)
++static void OutputLinearBlock(double ratio)
+ {
+     uint32_t i;
+ 
+@@ -140,6 +389,42 @@
+         double end = (double)s_activeBlock.axis_target[i];
+         g_ioOut.axis_target[i] = RoundFixed(start + ((end - start) * ratio));
+     }
++}
++
++static void OutputSegmentAtTick(uint32_t tick)
++{
++    const NC_ACTIVE_SEGMENT* pSeg;
++    uint32_t startTick;
++    uint32_t i;
++    double ratio;
++
++    if (s_segmentCount == 0U) {
++        OutputLinearBlock(1.0);
++        return;
++    }
++
++    while (((s_segmentIndex + 1U) < s_segmentCount) &&
++           (tick > s_segments[s_segmentIndex].end_tick)) {
++        s_segmentIndex++;
++    }
++    pSeg = &s_segments[s_segmentIndex];
++    startTick = (s_segmentIndex == 0U) ? 0U : s_segments[s_segmentIndex - 1U].end_tick;
++    if (pSeg->end_tick <= startTick) {
++        ratio = 1.0;
++    } else {
++        ratio = ((double)(tick - startTick)) /
++                ((double)(pSeg->end_tick - startTick));
++    }
++    if (ratio > 1.0) {
++        ratio = 1.0;
++    }
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        double start = (double)pSeg->start[i];
++        double end = (double)pSeg->end[i];
++        g_ioOut.axis_target[i] = RoundFixed(start + ((end - start) * ratio));
++    }
++    g_ncCycleStatus.phase_index = s_segmentIndex;
++    g_ncCycleStatus.generation++;
+ }
+ 
+ static void OutputArc(double ratio)
+@@ -149,7 +434,7 @@
+     double sweep;
+     double angle;
+ 
+-    OutputLinear(ratio);
++    OutputLinearBlock(ratio);
+     NcInterp_PlaneAxes(s_activeBlock.plane, &a, &b);
+     sweep = NcInterp_SignedSweep(s_activeBlock.motion_type,
+                                  (double)s_activeBlock.axis_start[a],
+@@ -170,6 +455,45 @@
+                    ((double)s_activeBlock.arc_radius * sin(angle)));
+ }
+ 
++static void CompleteActiveBlock(uint8_t countAsSegment)
++{
++    s_hasActive = 0U;
++    g_ncInterpStatus.state = NC_INTERP_COMPLETED;
++    if (countAsSegment != 0U) {
++        g_ncInterpStatus.completed_segments++;
++        g_ncInterpStatus.completed_ticks += s_activeBlock.interp_ticks;
++    }
++    if (s_activeBlock.motion_type == NC_MOTION_CANNED_CYCLE) {
++        g_ncCycleStatus.active = 0U;
++        g_ncCycleStatus.completed_cycles++;
++        g_ncCycleStatus.generation++;
++    } else if (s_activeBlock.motion_type == NC_MOTION_SKIP) {
++        g_ncCycleStatus.active = 0U;
++        g_ncCycleStatus.generation++;
++    }
++    g_ncInterpStatus.generation++;
++}
++
++static void CheckSkipInput(void)
++{
++    uint32_t i;
++
++    if ((s_activeBlock.motion_type != NC_MOTION_SKIP) ||
++        ((g_ioIn.seq_bits & SENSOR_SEQ_SKIP_BIT) == 0U)) {
++        return;
++    }
++
++    g_ncCycleStatus.skip_triggered = 1U;
++    g_ncCycleStatus.completed_skips++;
++    g_ncCycleStatus.last_skip_cycle = g_machineCtx.cycle_count;
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        g_ncCycleStatus.last_skip_position[i] = g_ioOut.axis_target[i];
++        s_activeBlock.axis_target[i] = g_ioOut.axis_target[i];
++    }
++    g_ncCycleStatus.generation++;
++    CompleteActiveBlock(1U);
++}
++
+ int32_t NcInterpolation_StepRt(void)
+ {
+     double ratio;
+@@ -189,13 +513,20 @@
+ 
+     if (s_activeBlock.motion_type == NC_MOTION_DWELL) {
+         /* Dwell keeps the current target; only the active tick advances. */
++    } else if (s_activeBlock.motion_type == NC_MOTION_CANNED_CYCLE) {
++        OutputSegmentAtTick(s_activeTick);
+     } else if (s_activeTick == s_activeBlock.interp_ticks) {
+-        OutputLinear(1.0);
++        OutputLinearBlock(1.0);
+     } else if ((s_activeBlock.motion_type == NC_MOTION_ARC_CW) ||
+                (s_activeBlock.motion_type == NC_MOTION_ARC_CCW)) {
+         OutputArc(ratio);
+     } else {
+-        OutputLinear(ratio);
++        OutputLinearBlock(ratio);
++    }
++
++    CheckSkipInput();
++    if (s_hasActive == 0U) {
++        return 0;
+     }
+ 
+     g_ncInterpStatus.active_tick = s_activeTick;
+@@ -203,13 +534,7 @@
+                     s_activeTick,
+                     (uint8_t)(s_activeTick == s_activeBlock.interp_ticks));
+     if (s_activeTick == s_activeBlock.interp_ticks) {
+-        s_hasActive = 0U;
+-        g_ncInterpStatus.state = NC_INTERP_COMPLETED;
+-        if (s_activeBlock.motion_type != NC_MOTION_DWELL) {
+-            g_ncInterpStatus.completed_segments++;
+-            g_ncInterpStatus.completed_ticks += s_activeBlock.interp_ticks;
+-        }
+-        g_ncInterpStatus.generation++;
++        CompleteActiveBlock((uint8_t)(s_activeBlock.motion_type != NC_MOTION_DWELL));
+     }
+     return 0;
+ }
+--- a/source/src/system_shared.c
++++ b/source/src/system_shared.c
+@@ -21,6 +21,7 @@
+ volatile NC_FEATURE_STATUS  g_ncFeatureStatus;
+ volatile PRESTART_INTERLOCK_STATUS g_prestartInterlockStatus;
+ volatile NC_AUX_STATUS      g_ncAuxStatus;
++volatile NC_CYCLE_STATUS    g_ncCycleStatus;
+ volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
+ 
+ void SystemShared_Initialize(void)
+@@ -41,6 +42,7 @@
+     (void)memset((void*)&g_ncFeatureStatus, 0, sizeof(g_ncFeatureStatus));
+     (void)memset((void*)&g_prestartInterlockStatus, 0, sizeof(g_prestartInterlockStatus));
+     (void)memset((void*)&g_ncAuxStatus, 0, sizeof(g_ncAuxStatus));
++    (void)memset((void*)&g_ncCycleStatus, 0, sizeof(g_ncCycleStatus));
+     (void)memset((void*)&g_ioTraceBuffer, 0, sizeof(g_ioTraceBuffer));
+ 
+     g_machineCtx.run_mode = RUN_MODE_MANUAL;

@@ -1,0 +1,1151 @@
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' impl_prev/source/docs/implementation_report.md impl_work/source/docs/implementation_report.md
+--- impl_prev/source/docs/implementation_report.md	2026-04-29 18:51:45.000000000 +0000
++++ impl_work/source/docs/implementation_report.md	2026-04-29 19:01:11.703518020 +0000
+@@ -2,18 +2,43 @@
+ 
+ ## Scope implemented
+ 
+-The uploaded basic/detail design documents describe a broad NC/machine-control feature set. This implementation adds a compiled, RT/TS-safe first implementation layer to the supplied `source` tree, focused on the shared execution model rather than full machine-geometry fidelity for every specialized function.
++The uploaded basic/detail design documents describe a broad NC/machine-control feature set. This implementation adds a compiled, RT/TS-safe first implementation layer to the supplied `source` tree, focused on the shared execution model, NC block normalization, and fixed-cycle RT consumption rather than full machine-geometry fidelity for every specialized CNC function.
+ 
+-## Main changes
++This continuation builds on the previous implementation and adds the next safety/control layer requested by the design documents: pre-start interlock aggregation, M-code response wait handling, alarm I/O trace capture, and more decimal G-code coverage.
+ 
+-- Added normalized G-code handling for decimal G-codes such as `G02.3`, `G03.3`, `G05.2`, `G10.6`, `G12.4`, `G13.4`, `G50.4`, `G51.4`, `G50.5`, `G51.5`, `G50.6`, and `G51.6`.
+-- Expanded the G-code table to cover canned cycles, threading, skip/reference return, high-precision/smoothing, sync/compound/overlay, coordinate rotation, tool compensation, feed modes, and return-plane modes.
++## Main changes from the first implementation
++
++- Added pre-start interlock aggregation shared memory and API.
++  - New `PRESTART_INTERLOCK_STATUS g_prestartInterlockStatus`.
++  - New `Api_GetPrestartInterlockStatus()`.
++  - RT cycle now evaluates emergency stop, servo alarm, ready switch, pressure range, machine alarm, and NC buffer readiness before AUTO/NC start acceptance.
++- Added M-code MFIN response-wait handling.
++  - `M06` is identified as an MFIN-wait M-code through the M-code table.
++  - Parser now sets `NC_AUX_FLAG_MFIN_WAIT` on fixed `NC_EXEC_BLOCK` output.
++  - RT consumption outputs the M-code, stops consuming subsequent NC blocks, and resumes only after `SENSOR_SEQ_MFIN_BIT` appears in `g_ioIn.seq_bits`.
++  - New `NC_AUX_STATUS g_ncAuxStatus` and `Api_GetNcAuxStatus()` expose active M-code, wait line, wait cycles, completed M-codes, and generation.
++- Added alarm-triggered I/O trace ring buffer.
++  - New `IO_TRACE_BUFFER g_ioTraceBuffer` and `Api_GetIoTraceBuffer()`.
++  - RT captures sensor bits, sequence bits, command bits, aux command, spindle/tool outputs, axis targets, run mode, machine state, NC state, and alarm code each cycle.
++  - On machine alarm, the ring freezes with trigger cycle/alarm metadata so TS/UI/API can inspect the pre-alarm window without doing file I/O in RT.
++- Added decimal/advanced G-code coverage.
++  - Added `G06.2` for NURBS-like fixed-block handling.
++  - Added `G07.1`, `G12.1`, and `G13.1` for cylindrical/polar/advanced interpolation mode signaling.
++  - Added grinding-cycle range `G70.7` through `G75.7` as canned-cycle fixed blocks.
++  - Added `G76.7` as a special threading fixed block.
++- Extended smoke coverage.
++  - The smoke NC program now includes `M06 T2`, `G70.7`, `G06.2`, and `G12.1` in addition to the previous canned cycle, skip, high-precision smoothing, sync on/off, and decimal interpolation samples.
++
++## Main changes from the uploaded baseline source
++
++- Added normalized G-code handling for decimal G-codes such as `G02.3`, `G03.3`, `G05.2`, `G06.2`, `G07.1`, `G10.6`, `G12.1`, `G13.1`, `G12.4`, `G13.4`, `G50.4`, `G51.4`, `G50.5`, `G51.5`, `G50.6`, `G51.6`, and `G70.7` through `G76.7`.
++- Expanded the G-code table to cover canned cycles, grinding cycles, threading, skip/reference return, high-precision/smoothing, sync/compound/overlay, coordinate rotation, tool compensation, feed modes, return-plane modes, and advanced interpolation modes.
+ - Added support for NC comments, percent delimiters, sequence/program numbers (`N`, `O`), `Q` words, and incremental `U/V/W` axis words.
+-- Added shared-memory feature status `g_ncFeatureStatus` and public API `Api_GetNcFeatureStatus`.
+-- Extended `NC_EXEC_BLOCK` so TS parsing can pass feature flags, cycle codes, R/Q/P parameters, and normalized G-code identity to RT.
+-- Extended RT block consumption so feature-state changes are committed in RT and exposed to UI/API snapshots without doing file I/O or parsing in RT.
++- Added shared-memory feature status `g_ncFeatureStatus` and public API `Api_GetNcFeatureStatus()`.
++- Extended `NC_EXEC_BLOCK` so TS parsing can pass feature flags, cycle codes, R/Q/P parameters, normalized G-code identity, and MFIN-wait auxiliary command identity to RT.
++- Extended RT block consumption so feature-state changes and M-code handshake waits are committed in RT and exposed to UI/API snapshots without doing file I/O or text parsing in RT.
+ - Extended interpolation so canned-cycle, thread, skip, reference-return, and advanced-interpolation blocks execute through the fixed-size block pipeline using safe linearized target stepping in this sample implementation.
+-- Updated the smoke program to cover comments, sequence numbers, canned cycle `G83`, `G80`, `G05.2`, `G51.4/G50.4`, `G31`, and `G02.3`.
++- Updated the smoke program to cover comments, sequence numbers, canned cycle `G83`, grinding cycle `G70.7`, NURBS-like `G06.2`, polar/cylindrical sample `G12.1`, `G80`, MFIN-wait `M06`, `G05.2`, `G51.4/G50.4`, `G31`, and `G02.3`.
+ 
+ ## Verification
+ 
+@@ -27,15 +52,27 @@
+ Observed smoke-test output:
+ 
+ ```text
+-nc_state=6 nc_exec=23 nc_x=1200 nc_y=2300 nc_z=3400 nc_m=130
+-interp_segments=8 feed_profile=1 feed_override=100 dwell_ticks=1
++nc_state=6 nc_exec=27 nc_x=1200 nc_y=2300 nc_z=3400 nc_m=130
++interp_segments=11 feed_profile=1 feed_override=100 dwell_ticks=1
+ coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=1000
+-feature_blocks=18 feature_flags=96 canned=1 skip=1 advanced=1
+-mode=1 state=3 alarm=9001 cycle=120
++feature_blocks=21 feature_flags=97 canned=2 skip=1 advanced=3
++aux_completed=1 aux_wait_cycles=43 prestart_ok=0 prestart_mask=0x00000014
++trace_frozen=1 trace_captured=32 trace_trigger_cycle=141
++mode=1 state=3 alarm=9001 cycle=160
+ coord_error_checks=5
+ ```
+ 
++Interpretation:
++
++- `aux_completed=1` confirms the `M06`/MFIN wait path completed.
++- `aux_wait_cycles=43` confirms RT stopped consuming later NC blocks while waiting for MFIN.
++- `trace_frozen=1` and `trace_captured=32` confirm the alarm-triggered I/O trace ring froze after the pressure-high alarm.
++- `feature_blocks=21`, `canned=2`, and `advanced=3` confirm the additional G70.7/G06.2/G12.1 path is reaching the feature-status layer; `G06.2` and `G12.1` also execute as active advanced-interpolation blocks in the fixed RT pipeline.
++- `coord_error_checks=5` confirms the retained parser error checks still pass.
++
+ ## Known limits
+ 
+ - Specialized geometric algorithms such as exact NURBS, true 3D interference checking, free-form high-precision contouring, grinding-cycle path decomposition, and machine-specific synchronized multi-axis behavior are represented by feature flags/status and safe linearized execution blocks in this sample layer.
++- The MFIN handshake currently uses a single active auxiliary wait slot, which matches the fixed-block sample architecture. A production machine-control implementation should add machine-specific timeout values, retry policy, and PLC sequence-code mapping.
++- The I/O trace ring captures fixed shared-memory snapshots only. Long-term persistence remains a TS-side responsibility.
+ - The implementation keeps the original fixed-size shared-memory and RT constraints; no file I/O, dynamic allocation, or text parsing was added to RT code.
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' impl_prev/source/docs/verification_output.txt impl_work/source/docs/verification_output.txt
+--- impl_prev/source/docs/verification_output.txt	2026-04-29 18:51:53.000000000 +0000
++++ impl_work/source/docs/verification_output.txt	2026-04-29 19:01:03.001868074 +0000
+@@ -1,6 +1,13 @@
+-nc_state=6 nc_exec=23 nc_x=1200 nc_y=2300 nc_z=3400 nc_m=130
+-interp_segments=8 feed_profile=1 feed_override=100 dwell_ticks=1
++Command:
++  gcc -std=c99 -Wall -Wextra -Iinc src/*.c -lm -o build_test
++  ./build_test
++
++Output:
++nc_state=6 nc_exec=27 nc_x=1200 nc_y=2300 nc_z=3400 nc_m=130
++interp_segments=11 feed_profile=1 feed_override=100 dwell_ticks=1
+ coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=1000
+-feature_blocks=18 feature_flags=96 canned=1 skip=1 advanced=1
+-mode=1 state=3 alarm=9001 cycle=120
++feature_blocks=21 feature_flags=97 canned=2 skip=1 advanced=3
++aux_completed=1 aux_wait_cycles=43 prestart_ok=0 prestart_mask=0x00000014
++trace_frozen=1 trace_captured=32 trace_trigger_cycle=141
++mode=1 state=3 alarm=9001 cycle=160
+ coord_error_checks=5
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' impl_prev/source/inc/control_api.h impl_work/source/inc/control_api.h
+--- impl_prev/source/inc/control_api.h	2026-04-29 18:48:49.000000000 +0000
++++ impl_work/source/inc/control_api.h	2026-04-29 18:55:25.467631618 +0000
+@@ -23,5 +23,8 @@
+ int32_t Api_GetNcFeedStatus(NC_FEED_STATUS* pOutStatus);
+ int32_t Api_GetNcCoordinateStatus(NC_COORDINATE_STATE* pOutStatus);
+ int32_t Api_GetNcFeatureStatus(NC_FEATURE_STATUS* pOutStatus);
++int32_t Api_GetPrestartInterlockStatus(PRESTART_INTERLOCK_STATUS* pOutStatus);
++int32_t Api_GetNcAuxStatus(NC_AUX_STATUS* pOutStatus);
++int32_t Api_GetIoTraceBuffer(IO_TRACE_BUFFER* pOutBuffer);
+ 
+ #endif /* CONTROL_API_H */
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' impl_prev/source/inc/rt_control.h impl_work/source/inc/rt_control.h
+--- impl_prev/source/inc/rt_control.h	2026-04-24 16:14:23.000000000 +0000
++++ impl_work/source/inc/rt_control.h	2026-04-29 18:56:38.530095315 +0000
+@@ -1,12 +1,14 @@
+-#ifndef RT_CONTROL_H
+-#define RT_CONTROL_H
+-
+-void RtDispatcher_ExecuteCycle(void);
+-void RtInput_ScanInputs(void);
+-void RtControl_UpdateMachineState(void);
+-void RtControl_ProcessModeRequest(void);
+-void RtControl_UpdateInterlock(void);
+-void RtControl_UpdateAxisTargets(void);
+-void RtOutput_CommitOutputs(void);
+-
+-#endif /* RT_CONTROL_H */
++#ifndef RT_CONTROL_H
++#define RT_CONTROL_H
++
++void RtDispatcher_ExecuteCycle(void);
++void RtInput_ScanInputs(void);
++void RtControl_UpdateMachineState(void);
++void RtControl_UpdatePrestartInterlock(void);
++void RtControl_CaptureIoTrace(void);
++void RtControl_ProcessModeRequest(void);
++void RtControl_UpdateInterlock(void);
++void RtControl_UpdateAxisTargets(void);
++void RtOutput_CommitOutputs(void);
++
++#endif /* RT_CONTROL_H */
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' impl_prev/source/inc/system_config.h impl_work/source/inc/system_config.h
+--- impl_prev/source/inc/system_config.h	2026-04-29 17:55:39.000000000 +0000
++++ impl_work/source/inc/system_config.h	2026-04-29 18:54:42.236535219 +0000
+@@ -8,10 +8,10 @@
+ #define AXIS_MAX                (4)
+ #define ANALOG_CH_MAX           (8)
+ #define LOG_QUEUE_MAX           (64)
+-#define PREFETCH_TABLE_SIZE     (64)
+-#define UI_MESSAGE_TEXT_MAX     (96)
+-
+-#define CYCLE_TICK_MS           (1)
++#define PREFETCH_TABLE_SIZE     (64)
++#define UI_MESSAGE_TEXT_MAX     (96)
++
++#define CYCLE_TICK_MS           (1)
+ #define SAFE_PRESSURE_LIMIT     (900)
+ #define READY_PRESSURE_MIN      (100)
+ #define READY_PRESSURE_MAX      (700)
+@@ -34,4 +34,8 @@
+ #define NC_WORK_COORD_SYSTEMS            (6U)
+ #define NC_G10_L_WORK_OFFSET             (2)
+ 
++#define IO_TRACE_RING_SIZE                (32U)
++#define SENSOR_SEQ_MFIN_BIT               (0x00000001UL)
++
++
+ #endif /* SYSTEM_CONFIG_H */
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' impl_prev/source/inc/system_shared.h impl_work/source/inc/system_shared.h
+--- impl_prev/source/inc/system_shared.h	2026-04-29 18:48:36.000000000 +0000
++++ impl_work/source/inc/system_shared.h	2026-04-29 18:58:23.700805471 +0000
+@@ -321,6 +321,63 @@
+     uint32_t generation;
+ } NC_FEATURE_STATUS;
+ 
++#define PRESTART_ILK_ESTOP          (0x00000001UL)
++#define PRESTART_ILK_SERVO_ALARM    (0x00000002UL)
++#define PRESTART_ILK_PRESSURE_RANGE (0x00000004UL)
++#define PRESTART_ILK_READY_SWITCH   (0x00000008UL)
++#define PRESTART_ILK_MACHINE_ALARM  (0x00000010UL)
++#define PRESTART_ILK_NC_BUFFER      (0x00000020UL)
++
++#define NC_AUX_FLAG_MFIN_WAIT       (0x00000008UL)
++
++#define NC_AUX_STATE_IDLE           (0U)
++#define NC_AUX_STATE_WAIT_MFIN      (1U)
++
++typedef struct {
++    uint8_t  ok;
++    uint32_t mask;
++    uint32_t sensor_bits;
++    int32_t  pressure;
++    uint32_t buffered_blocks;
++    uint32_t generation;
++} PRESTART_INTERLOCK_STATUS;
++
++typedef struct {
++    uint8_t  state;
++    uint32_t active_m_code;
++    uint32_t wait_line_no;
++    uint32_t wait_cycles;
++    uint32_t last_wait_cycles;
++    uint32_t total_wait_cycles;
++    uint32_t completed_m_codes;
++    uint32_t generation;
++} NC_AUX_STATUS;
++
++typedef struct {
++    uint32_t cycle;
++    uint32_t sensor_bits;
++    uint32_t seq_bits;
++    uint32_t command_bits;
++    uint32_t aux_m_code;
++    uint32_t spindle_speed;
++    uint32_t tool_no;
++    RUN_MODE run_mode;
++    MACHINE_STATE machine_state;
++    NC_PROGRAM_STATE nc_state;
++    uint32_t alarm_code;
++    int32_t  axis_target[AXIS_MAX];
++} IO_TRACE_ITEM;
++
++typedef struct {
++    uint32_t write_index;
++    uint32_t captured_count;
++    uint8_t  frozen;
++    uint32_t trigger_cycle;
++    uint32_t trigger_alarm_code;
++    uint32_t generation;
++    IO_TRACE_ITEM items[IO_TRACE_RING_SIZE];
++} IO_TRACE_BUFFER;
++
+ extern volatile IO_INPUT_AREA      g_ioIn;
+ extern volatile IO_OUTPUT_AREA     g_ioOut;
+ extern volatile MACHINE_CONTEXT    g_machineCtx;
+@@ -335,6 +392,9 @@
+ extern volatile NC_INTERP_STATUS   g_ncInterpStatus;
+ extern volatile NC_FEED_STATUS     g_ncFeedStatus;
+ extern volatile NC_FEATURE_STATUS  g_ncFeatureStatus;
++extern volatile PRESTART_INTERLOCK_STATUS g_prestartInterlockStatus;
++extern volatile NC_AUX_STATUS      g_ncAuxStatus;
++extern volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
+ 
+ void SystemShared_Initialize(void);
+ int32_t LogQueue_Push(uint32_t eventType, uint32_t code, int32_t value);
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' impl_prev/source/src/control_api.c impl_work/source/src/control_api.c
+--- impl_prev/source/src/control_api.c	2026-04-29 18:50:38.000000000 +0000
++++ impl_work/source/src/control_api.c	2026-04-29 18:55:25.467830516 +0000
+@@ -23,48 +23,48 @@
+ 
+ int32_t Api_RequestRunModeChange(uint8_t requestedMode)
+ {
+-    if (requestedMode > (uint8_t)RUN_MODE_MAINT) {
+-        g_uiRequest.mode_response = RESPONSE_PARAM_ERROR;
+-        return -1;
+-    }
+-
+-    g_uiRequest.requested_mode = requestedMode;
+-    g_uiRequest.mode_change_request = 1U;
+-    g_uiRequest.mode_response = RESPONSE_ACCEPTED;
+-    return 0;
+-}
+-
+-int32_t Api_GetStatusSnapshot(STATUS_SNAPSHOT* pOutSnapshot)
+-{
+-    if (pOutSnapshot == 0) {
+-        return -1;
+-    }
+-
+-    (void)memset(pOutSnapshot, 0, sizeof(*pOutSnapshot));
+-    pOutSnapshot->run_mode = g_machineCtx.run_mode;
+-    pOutSnapshot->machine_state = g_machineCtx.machine_state;
+-    pOutSnapshot->alarm_code = g_machineCtx.alarm_code;
+-    pOutSnapshot->cycle_count = g_machineCtx.cycle_count;
+-    pOutSnapshot->command_bits = g_ioOut.command_bits;
+-    pOutSnapshot->sensor_bits = g_ioIn.sensor_bits;
+-    pOutSnapshot->mode_response = g_uiRequest.mode_response;
+-    pOutSnapshot->prefetch_ready = g_prefetchReq.ready;
+-    pOutSnapshot->prefetch_generation = g_prefetchReq.generation;
+-    return 0;
+-}
+-
+-int32_t Api_RequestLogFlush(void)
+-{
+-    g_uiRequest.log_flush_request = 1U;
+-    return 0;
+-}
+-
+-int32_t Api_GetPrefetchStatus(uint8_t* pReady, uint16_t* pGeneration)
+-{
+-    if ((pReady == 0) || (pGeneration == 0)) {
+-        return -1;
+-    }
+-
++    if (requestedMode > (uint8_t)RUN_MODE_MAINT) {
++        g_uiRequest.mode_response = RESPONSE_PARAM_ERROR;
++        return -1;
++    }
++
++    g_uiRequest.requested_mode = requestedMode;
++    g_uiRequest.mode_change_request = 1U;
++    g_uiRequest.mode_response = RESPONSE_ACCEPTED;
++    return 0;
++}
++
++int32_t Api_GetStatusSnapshot(STATUS_SNAPSHOT* pOutSnapshot)
++{
++    if (pOutSnapshot == 0) {
++        return -1;
++    }
++
++    (void)memset(pOutSnapshot, 0, sizeof(*pOutSnapshot));
++    pOutSnapshot->run_mode = g_machineCtx.run_mode;
++    pOutSnapshot->machine_state = g_machineCtx.machine_state;
++    pOutSnapshot->alarm_code = g_machineCtx.alarm_code;
++    pOutSnapshot->cycle_count = g_machineCtx.cycle_count;
++    pOutSnapshot->command_bits = g_ioOut.command_bits;
++    pOutSnapshot->sensor_bits = g_ioIn.sensor_bits;
++    pOutSnapshot->mode_response = g_uiRequest.mode_response;
++    pOutSnapshot->prefetch_ready = g_prefetchReq.ready;
++    pOutSnapshot->prefetch_generation = g_prefetchReq.generation;
++    return 0;
++}
++
++int32_t Api_RequestLogFlush(void)
++{
++    g_uiRequest.log_flush_request = 1U;
++    return 0;
++}
++
++int32_t Api_GetPrefetchStatus(uint8_t* pReady, uint16_t* pGeneration)
++{
++    if ((pReady == 0) || (pGeneration == 0)) {
++        return -1;
++    }
++
+     *pReady = g_prefetchReq.ready;
+     *pGeneration = g_prefetchReq.generation;
+     return 0;
+@@ -205,3 +205,40 @@
+                  sizeof(*pOutStatus));
+     return 0;
+ }
++
++
++int32_t Api_GetPrestartInterlockStatus(PRESTART_INTERLOCK_STATUS* pOutStatus)
++{
++    if (pOutStatus == 0) {
++        return -1;
++    }
++
++    (void)memcpy(pOutStatus,
++                 (const void*)&g_prestartInterlockStatus,
++                 sizeof(*pOutStatus));
++    return 0;
++}
++
++int32_t Api_GetNcAuxStatus(NC_AUX_STATUS* pOutStatus)
++{
++    if (pOutStatus == 0) {
++        return -1;
++    }
++
++    (void)memcpy(pOutStatus,
++                 (const void*)&g_ncAuxStatus,
++                 sizeof(*pOutStatus));
++    return 0;
++}
++
++int32_t Api_GetIoTraceBuffer(IO_TRACE_BUFFER* pOutBuffer)
++{
++    if (pOutBuffer == 0) {
++        return -1;
++    }
++
++    (void)memcpy(pOutBuffer,
++                 (const void*)&g_ioTraceBuffer,
++                 sizeof(*pOutBuffer));
++    return 0;
++}
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' impl_prev/source/src/main.c impl_work/source/src/main.c
+--- impl_prev/source/src/main.c	2026-04-29 18:51:11.000000000 +0000
++++ impl_work/source/src/main.c	2026-04-29 18:59:07.228155121 +0000
+@@ -36,6 +36,10 @@
+     (void)fprintf(pFile, "G54\n");
+     (void)fprintf(pFile, "G98 G83 X0.025 Y0.035 Z0.010 R0.050 Q0.002 F60000\n");
+     (void)fprintf(pFile, "G80\n");
++    (void)fprintf(pFile, "M06 T2 ; tool change waits for MFIN\n");
++    (void)fprintf(pFile, "G70.7 X0.028 Z0.012 R0.050 Q0.001 F60000\n");
++    (void)fprintf(pFile, "G06.2 X0.029 Y0.036 Z0.013 F60000 ; NURBS-like fixed block\n");
++    (void)fprintf(pFile, "G12.1 X0.030 Y0.037 F60000 ; polar/cylindrical mode sample\n");
+     (void)fprintf(pFile, "G05.2 ; high precision smoothing mode\n");
+     (void)fprintf(pFile, "G51.4\n");
+     (void)fprintf(pFile, "G31 X0.030 F60000\n");
+@@ -95,7 +99,13 @@
+     if (cycle == 6U) {
+         g_ioIn.sensor_bits |= 0x00000010UL; /* RUN */
+     }
+-    if (cycle == 110U) {
++    if (cycle == 55U) {
++        g_ioIn.seq_bits |= SENSOR_SEQ_MFIN_BIT; /* MFIN response */
++    }
++    if (cycle == 60U) {
++        g_ioIn.seq_bits &= ~SENSOR_SEQ_MFIN_BIT;
++    }
++    if (cycle == 140U) {
+         g_ioIn.analog[0] = 950; /* pressure high */
+     }
+ }
+@@ -108,6 +118,9 @@
+     NC_FEED_STATUS feedStatus;
+     NC_COORDINATE_STATE coordStatus;
+     NC_FEATURE_STATUS featureStatus;
++    PRESTART_INTERLOCK_STATUS prestartStatus;
++    NC_AUX_STATUS auxStatus;
++    IO_TRACE_BUFFER traceBuffer;
+     int32_t ncAxis[AXIS_MAX] = {0};
+     uint32_t ncMCode = 0U;
+     uint32_t interpSegments = 0U;
+@@ -124,6 +137,13 @@
+     uint32_t cannedBlocks = 0U;
+     uint32_t skipBlocks = 0U;
+     uint32_t advancedBlocks = 0U;
++    uint32_t auxCompleted = 0U;
++    uint32_t auxWaitCycles = 0U;
++    uint32_t prestartMask = 0U;
++    uint32_t prestartOk = 0U;
++    uint32_t traceFrozen = 0U;
++    uint32_t traceCaptured = 0U;
++    uint32_t traceTriggerCycle = 0U;
+     uint8_t ncCaptured = 0U;
+     uint32_t cycle;
+ 
+@@ -132,7 +152,7 @@
+         return 1;
+     }
+ 
+-    for (cycle = 0U; cycle < 120U; ++cycle) {
++    for (cycle = 0U; cycle < 160U; ++cycle) {
+         SimulateExternalInputs(cycle);
+         RtDispatcher_ExecuteCycle();
+         TsService_ExecuteSlice();
+@@ -165,10 +185,32 @@
+                 skipBlocks = featureStatus.skip_blocks;
+                 advancedBlocks = featureStatus.advanced_interp_blocks;
+             }
++            if (Api_GetNcAuxStatus(&auxStatus) == 0) {
++                auxCompleted = auxStatus.completed_m_codes;
++                auxWaitCycles = auxStatus.last_wait_cycles;
++            }
++            if (Api_GetPrestartInterlockStatus(&prestartStatus) == 0) {
++                prestartMask = prestartStatus.mask;
++                prestartOk = prestartStatus.ok;
++            }
+             ncCaptured = 1U;
+         }
+     }
+ 
++    if (Api_GetNcAuxStatus(&auxStatus) == 0) {
++        auxCompleted = auxStatus.completed_m_codes;
++        auxWaitCycles = auxStatus.last_wait_cycles;
++    }
++    if (Api_GetPrestartInterlockStatus(&prestartStatus) == 0) {
++        prestartMask = prestartStatus.mask;
++        prestartOk = prestartStatus.ok;
++    }
++    if (Api_GetIoTraceBuffer(&traceBuffer) == 0) {
++        traceFrozen = traceBuffer.frozen;
++        traceCaptured = traceBuffer.captured_count;
++        traceTriggerCycle = traceBuffer.trigger_cycle;
++    }
++
+     if (Api_GetNcProgramStatus(&ncStatus) == 0) {
+         (void)printf("nc_state=%u nc_exec=%u nc_x=%d nc_y=%d nc_z=%d nc_m=%u\n",
+                      (unsigned int)(ncCaptured ? NC_COMPLETED : ncStatus.state),
+@@ -195,6 +237,15 @@
+                  (unsigned int)cannedBlocks,
+                  (unsigned int)skipBlocks,
+                  (unsigned int)advancedBlocks);
++    (void)printf("aux_completed=%u aux_wait_cycles=%u prestart_ok=%u prestart_mask=0x%08x\n",
++                 (unsigned int)auxCompleted,
++                 (unsigned int)auxWaitCycles,
++                 (unsigned int)prestartOk,
++                 (unsigned int)prestartMask);
++    (void)printf("trace_frozen=%u trace_captured=%u trace_trigger_cycle=%u\n",
++                 (unsigned int)traceFrozen,
++                 (unsigned int)traceCaptured,
++                 (unsigned int)traceTriggerCycle);
+ 
+     if (Api_GetStatusSnapshot(&snapshot) == 0) {
+         (void)printf("mode=%u state=%u alarm=%u cycle=%u\n",
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' impl_prev/source/src/nc_codes.c impl_work/source/src/nc_codes.c
+--- impl_prev/source/src/nc_codes.c	2026-04-29 18:49:10.000000000 +0000
++++ impl_work/source/src/nc_codes.c	2026-04-29 18:59:07.227117574 +0000
+@@ -19,10 +19,14 @@
+     {GD(3, 3), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
+     {G(4), 1U, NC_MOTION_DWELL,  NC_MODAL_FLAG_G04},
+     {GD(5, 1), 1U, NC_MOTION_NONE, 0U},
++    {GD(6, 2), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
++    {GD(7, 1), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
+     {GD(5, 2), 1U, NC_MOTION_NONE, 0U},
+     {G(9), 1U, NC_MOTION_NONE,   NC_MODAL_FLAG_G09},
+     {G(10), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G10},
+     {GD(10, 6), 1U, NC_MOTION_REFERENCE_RETURN, 0U},
++    {GD(12, 1), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
++    {GD(13, 1), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
+     {GD(12, 4), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+     {GD(13, 4), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+     {G(15), 1U, NC_MOTION_NONE,  0U},
+@@ -63,12 +67,19 @@
+     {G(68), 1U, NC_MOTION_NONE,  0U},
+     {G(69), 1U, NC_MOTION_NONE,  0U},
+     {G(70), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(70, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+     {G(71), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(71, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+     {G(72), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(72, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+     {G(73), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(73, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+     {G(74), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(74, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+     {G(75), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(75, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+     {G(76), 1U, NC_MOTION_THREAD, 0U},
++    {GD(76, 7), 1U, NC_MOTION_THREAD, 0U},
+     {G(77), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+     {G(78), 1U, NC_MOTION_THREAD, 0U},
+     {G(79), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' impl_prev/source/src/nc_parser_modal.c impl_work/source/src/nc_parser_modal.c
+--- impl_prev/source/src/nc_parser_modal.c	2026-04-29 18:50:09.000000000 +0000
++++ impl_work/source/src/nc_parser_modal.c	2026-04-29 19:00:43.513574355 +0000
+@@ -238,6 +238,10 @@
+     } else if (code == GD(50, 6)) {
+         pBlock->feature_flags |= NC_FEATURE_FLAG_OVERLAY;
+         pBlock->motion_type = NC_MOTION_NONE;
++    } else if ((code == GD(6, 2)) || (code == GD(7, 1)) ||
++               (code == GD(12, 1)) || (code == GD(13, 1))) {
++        pBlock->feature_flags |= NC_FEATURE_FLAG_ADVANCED_INTERP;
++        pBlock->motion_type = NC_MOTION_ADVANCED_INTERP;
+     } else if ((code == G(15)) || (code == G(16)) ||
+                (code == G(40)) || (code == G(41)) || (code == G(42)) ||
+                (code == G(43)) || (code == G(44)) || (code == G(49)) ||
+@@ -255,6 +259,7 @@
+ static uint8_t IsCannedCycleCode(int32_t code)
+ {
+     return (uint8_t)(((code >= G(70)) && (code <= G(89))) ||
++                     ((code >= GD(70, 7)) && (code <= GD(75, 7))) ||
+                      (code == GD(12, 4)) || (code == GD(13, 4)));
+ }
+ 
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' impl_prev/source/src/nc_parser_tokens.c impl_work/source/src/nc_parser_tokens.c
+--- impl_prev/source/src/nc_parser_tokens.c	2026-04-29 18:49:35.000000000 +0000
++++ impl_work/source/src/nc_parser_tokens.c	2026-04-29 18:55:37.819952960 +0000
+@@ -252,6 +252,9 @@
+         }
+         pBlock->aux_m_code = mInfo.code;
+         pBlock->aux_flags |= NC_AUX_FLAG_M_CODE;
++        if (mInfo.waits_for_mfin != 0U) {
++            pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        }
+         return 0;
+     }
+     return -1;
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' impl_prev/source/src/nc_program.c impl_work/source/src/nc_program.c
+--- impl_prev/source/src/nc_program.c	2026-04-29 18:50:32.000000000 +0000
++++ impl_work/source/src/nc_program.c	2026-04-29 18:58:23.701347376 +0000
+@@ -13,6 +13,8 @@
+ 
+ static FILE* s_ncFile = NULL;
+ 
++static void RtNcProgram_ResetAuxWait(void);
++
+ static void NcStatus_SetState(NC_PROGRAM_STATE state)
+ {
+     if (g_ncProgramStatus.state != state) {
+@@ -27,6 +29,7 @@
+     g_ncProgramStatus.error_code = errorCode;
+     g_ncProgramStatus.error_line_no = lineNo;
+     g_ncProgramStatus.response_code = RESPONSE_REJECTED;
++    RtNcProgram_ResetAuxWait();
+     NcStatus_SetState(NC_ERROR);
+     (void)LogQueue_Push(LOG_ALARM, NC_LOG_BASE + (uint32_t)errorCode, (int32_t)lineNo);
+ }
+@@ -52,6 +55,32 @@
+                      (pBlock->motion_type == NC_MOTION_ADVANCED_INTERP));
+ }
+ 
++static void RtNcProgram_ResetAuxWait(void)
++{
++    g_ncAuxStatus.state = NC_AUX_STATE_IDLE;
++    g_ncAuxStatus.active_m_code = 0U;
++    g_ncAuxStatus.wait_line_no = 0U;
++    g_ncAuxStatus.wait_cycles = 0U;
++    g_ncAuxStatus.generation++;
++}
++
++static uint8_t RtNcProgram_ServiceAuxWait(void)
++{
++    if (g_ncAuxStatus.state != NC_AUX_STATE_WAIT_MFIN) {
++        return 0U;
++    }
++    if ((g_ioIn.seq_bits & SENSOR_SEQ_MFIN_BIT) != 0U) {
++        g_ncAuxStatus.last_wait_cycles = g_ncAuxStatus.wait_cycles;
++        g_ncAuxStatus.total_wait_cycles += g_ncAuxStatus.wait_cycles;
++        g_ncAuxStatus.completed_m_codes++;
++        RtNcProgram_ResetAuxWait();
++        return 0U;
++    }
++    g_ncAuxStatus.wait_cycles++;
++    g_ncAuxStatus.generation++;
++    return 1U;
++}
++
+ static void RtNcProgram_UpdateFeatureStatus(const NC_EXEC_BLOCK* pBlock)
+ {
+     uint32_t flags = pBlock->feature_flags;
+@@ -155,6 +184,13 @@
+         g_ioOut.tool_no = pBlock->tool_no;
+     }
+     g_ioOut.aux_flags |= pBlock->aux_flags;
++    if ((pBlock->aux_flags & NC_AUX_FLAG_MFIN_WAIT) != 0U) {
++        g_ncAuxStatus.state = NC_AUX_STATE_WAIT_MFIN;
++        g_ncAuxStatus.active_m_code = pBlock->aux_m_code;
++        g_ncAuxStatus.wait_line_no = pBlock->line_no;
++        g_ncAuxStatus.wait_cycles = 0U;
++        g_ncAuxStatus.generation++;
++    }
+ }
+ 
+ static void RtNcProgram_FinishIfComplete(void)
+@@ -202,6 +238,7 @@
+     if (g_ncProgramRequest.stop_request != 0U) {
+         g_ncProgramRequest.stop_request = 0U;
+         NcInterpolation_Cancel();
++        RtNcProgram_ResetAuxWait();
+         NcStatus_SetState(NC_COMPLETED);
+         g_ncProgramStatus.response_code = RESPONSE_COMPLETED;
+         return;
+@@ -247,6 +284,9 @@
+         RtNcProgram_FinishIfComplete();
+         return;
+     }
++    if (RtNcProgram_ServiceAuxWait() != 0U) {
++        return;
++    }
+ 
+     while (consumed < NC_RT_MAX_BLOCKS_PER_CYCLE) {
+         NC_EXEC_BLOCK block;
+@@ -271,6 +311,9 @@
+             return;
+         }
+         RtNcProgram_ApplyBlockAux(&block);
++        if (g_ncAuxStatus.state == NC_AUX_STATE_WAIT_MFIN) {
++            return;
++        }
+         consumed++;
+     }
+     RtNcProgram_FinishIfComplete();
+@@ -286,6 +329,9 @@
+     NcProgram_ClearBuffer();
+     NcParse_ResetModal();
+     NcInterpolation_Reset();
++    (void)memset((void*)&g_ncAuxStatus, 0, sizeof(g_ncAuxStatus));
++    RtNcProgram_ResetAuxWait();
++    (void)memset((void*)&g_ncFeatureStatus, 0, sizeof(g_ncFeatureStatus));
+     g_ncProgramStatus.error_code = NC_ERR_NONE;
+     g_ncProgramStatus.error_line_no = 0U;
+     g_ncProgramStatus.read_line_no = 0U;
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' impl_prev/source/src/rt_control.c impl_work/source/src/rt_control.c
+--- impl_prev/source/src/rt_control.c	2026-04-29 10:52:19.000000000 +0000
++++ impl_work/source/src/rt_control.c	2026-04-29 18:56:38.530767977 +0000
+@@ -6,182 +6,263 @@
+ #include "nc_program.h"
+ #include "system_shared.h"
+ #include "system_config.h"
+-
+-#define SENSOR_EMERGENCY_STOP   (0x00000001UL)
+-#define SENSOR_PRESSURE_HIGH    (0x00000002UL)
+-#define SENSOR_SERVO_ALARM      (0x00000004UL)
+-#define SENSOR_READY_SWITCH     (0x00000008UL)
+-#define SENSOR_RUN_SWITCH       (0x00000010UL)
+-
+-#define CMD_ENABLE_SERVO        (0x00000001UL)
+-#define CMD_START_MOTION        (0x00000002UL)
+-#define CMD_SAFE_OUTPUT         (0x80000000UL)
+-
+-static int32_t GetPressureFeedback(void)
+-{
+-    return g_ioIn.analog[0];
+-}
+-
+-void RtDispatcher_ExecuteCycle(void)
+-{
+-    g_machineCtx.cycle_count++;
+-
+-    RtInput_ScanInputs();
++
++#define SENSOR_EMERGENCY_STOP   (0x00000001UL)
++#define SENSOR_PRESSURE_HIGH    (0x00000002UL)
++#define SENSOR_SERVO_ALARM      (0x00000004UL)
++#define SENSOR_READY_SWITCH     (0x00000008UL)
++#define SENSOR_RUN_SWITCH       (0x00000010UL)
++
++#define CMD_ENABLE_SERVO        (0x00000001UL)
++#define CMD_START_MOTION        (0x00000002UL)
++#define CMD_SAFE_OUTPUT         (0x80000000UL)
++
++static int32_t GetPressureFeedback(void)
++{
++    return g_ioIn.analog[0];
++}
++
++static uint8_t IsPressureReadyRange(int32_t pressure)
++{
++    return (uint8_t)((pressure >= READY_PRESSURE_MIN) &&
++                     (pressure <= READY_PRESSURE_MAX));
++}
++
++void RtControl_UpdatePrestartInterlock(void)
++{
++    uint32_t mask = 0U;
++    uint32_t bits = g_ioIn.sensor_bits;
++    int32_t pressure = GetPressureFeedback();
++
++    if ((bits & SENSOR_EMERGENCY_STOP) != 0U) {
++        mask |= PRESTART_ILK_ESTOP;
++    }
++    if ((bits & SENSOR_SERVO_ALARM) != 0U) {
++        mask |= PRESTART_ILK_SERVO_ALARM;
++    }
++    if (IsPressureReadyRange(pressure) == 0U) {
++        mask |= PRESTART_ILK_PRESSURE_RANGE;
++    }
++    if ((bits & SENSOR_READY_SWITCH) == 0U) {
++        mask |= PRESTART_ILK_READY_SWITCH;
++    }
++    if (g_machineCtx.machine_state == MACHINE_ALARM) {
++        mask |= PRESTART_ILK_MACHINE_ALARM;
++    }
++    if ((g_ncProgramStatus.state == NC_READY) &&
++        (g_ncProgramStatus.buffered_blocks == 0U)) {
++        mask |= PRESTART_ILK_NC_BUFFER;
++    }
++
++    g_prestartInterlockStatus.mask = mask;
++    g_prestartInterlockStatus.ok = (uint8_t)(mask == 0U);
++    g_prestartInterlockStatus.sensor_bits = bits;
++    g_prestartInterlockStatus.pressure = pressure;
++    g_prestartInterlockStatus.buffered_blocks = g_ncProgramStatus.buffered_blocks;
++    g_prestartInterlockStatus.generation++;
++}
++
++void RtControl_CaptureIoTrace(void)
++{
++    IO_TRACE_ITEM* pItem;
++    uint32_t i;
++
++    if (g_ioTraceBuffer.frozen != 0U) {
++        return;
++    }
++
++    pItem = (IO_TRACE_ITEM*)&g_ioTraceBuffer.items[g_ioTraceBuffer.write_index];
++    pItem->cycle = g_machineCtx.cycle_count;
++    pItem->sensor_bits = g_ioIn.sensor_bits;
++    pItem->seq_bits = g_ioIn.seq_bits;
++    pItem->command_bits = g_ioOut.command_bits;
++    pItem->aux_m_code = g_ioOut.aux_m_code;
++    pItem->spindle_speed = g_ioOut.spindle_speed;
++    pItem->tool_no = g_ioOut.tool_no;
++    pItem->run_mode = g_machineCtx.run_mode;
++    pItem->machine_state = g_machineCtx.machine_state;
++    pItem->nc_state = g_ncProgramStatus.state;
++    pItem->alarm_code = g_machineCtx.alarm_code;
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        pItem->axis_target[i] = g_ioOut.axis_target[i];
++    }
++
++    g_ioTraceBuffer.write_index =
++        (g_ioTraceBuffer.write_index + 1U) % IO_TRACE_RING_SIZE;
++    if (g_ioTraceBuffer.captured_count < IO_TRACE_RING_SIZE) {
++        g_ioTraceBuffer.captured_count++;
++    }
++    if (g_machineCtx.machine_state == MACHINE_ALARM) {
++        g_ioTraceBuffer.frozen = 1U;
++        g_ioTraceBuffer.trigger_cycle = g_machineCtx.cycle_count;
++        g_ioTraceBuffer.trigger_alarm_code = g_machineCtx.alarm_code;
++    }
++    g_ioTraceBuffer.generation++;
++}
++
++void RtDispatcher_ExecuteCycle(void)
++{
++    g_machineCtx.cycle_count++;
++
++    RtInput_ScanInputs();
++    RtControl_UpdatePrestartInterlock();
+     RtControl_UpdateMachineState();
+     RtControl_ProcessModeRequest();
+     RtControl_UpdateInterlock();
+-    RtNcProgram_ProcessRequests((uint8_t)(g_machineCtx.machine_state != MACHINE_ALARM));
++    RtNcProgram_ProcessRequests((uint8_t)((g_machineCtx.machine_state != MACHINE_ALARM) &&
++                                          (g_prestartInterlockStatus.ok != 0U)));
+     RtControl_UpdateAxisTargets();
+     RtNcProgram_ConsumeBlocks();
+     RtOutput_CommitOutputs();
+-
+-    g_machineCtx.rt_input_ticks = 1U;
+-    g_machineCtx.rt_control_ticks = 2U;
+-    g_machineCtx.rt_output_ticks = 1U;
+-    g_machineCtx.rt_total_ticks = (g_machineCtx.rt_input_ticks +
+-                                   g_machineCtx.rt_control_ticks +
+-                                   g_machineCtx.rt_output_ticks);
+-}
+-
+-void RtInput_ScanInputs(void)
+-{
+-    /* 評価用コードでは外部入力ミラー更新を省略し、既存 g_ioIn を参照する。 */
+-    if (g_prefetchReq.ready == 0U) {
+-        g_prefetchReq.request = 1U;
+-        g_prefetchReq.section_id = (uint16_t)(g_machineCtx.cycle_count % 4U);
+-    }
+-}
+-
+-void RtControl_UpdateMachineState(void)
+-{
+-    int32_t pressure = GetPressureFeedback();
+-
+-    switch (g_machineCtx.machine_state) {
+-    case MACHINE_STOPPED:
+-        if (((g_ioIn.sensor_bits & SENSOR_READY_SWITCH) != 0U) &&
+-            (pressure >= READY_PRESSURE_MIN) &&
+-            (pressure <= READY_PRESSURE_MAX)) {
+-            g_machineCtx.machine_state = MACHINE_READY;
+-            (void)LogQueue_Push(LOG_INFO, 1001U, pressure);
+-        }
+-        break;
+-
+-    case MACHINE_READY:
+-        if (((g_ioIn.sensor_bits & SENSOR_RUN_SWITCH) != 0U) &&
+-            (g_machineCtx.run_mode == RUN_MODE_AUTO)) {
+-            g_machineCtx.machine_state = MACHINE_RUNNING;
+-            (void)LogQueue_Push(LOG_AUDIT, 1002U, 0);
+-        }
+-        break;
+-
+-    case MACHINE_RUNNING:
+-        if ((g_ioIn.sensor_bits & SENSOR_RUN_SWITCH) == 0U) {
+-            g_machineCtx.machine_state = MACHINE_STOPPED;
+-            (void)LogQueue_Push(LOG_AUDIT, 1003U, 0);
+-        }
+-        break;
+-
+-    case MACHINE_ALARM:
+-    default:
+-        break;
+-    }
+-}
+-
+-void RtControl_ProcessModeRequest(void)
+-{
+-    if (g_uiRequest.mode_change_request == 0U) {
+-        return;
+-    }
+-
+-    switch ((RUN_MODE)g_uiRequest.requested_mode) {
+-    case RUN_MODE_MANUAL:
+-        g_machineCtx.run_mode = RUN_MODE_MANUAL;
+-        g_uiRequest.mode_response = RESPONSE_COMPLETED;
+-        break;
+-
+-    case RUN_MODE_AUTO:
+-        if (g_machineCtx.machine_state == MACHINE_READY) {
+-            g_machineCtx.run_mode = RUN_MODE_AUTO;
+-            g_uiRequest.mode_response = RESPONSE_COMPLETED;
+-        } else {
+-            g_uiRequest.mode_response = RESPONSE_REJECTED;
+-        }
+-        break;
+-
+-    case RUN_MODE_MAINT:
+-        if (g_machineCtx.machine_state != MACHINE_RUNNING) {
+-            g_machineCtx.run_mode = RUN_MODE_MAINT;
+-            g_uiRequest.mode_response = RESPONSE_COMPLETED;
+-        } else {
+-            g_uiRequest.mode_response = RESPONSE_REJECTED;
+-        }
+-        break;
+-
+-    default:
+-        g_uiRequest.mode_response = RESPONSE_PARAM_ERROR;
+-        break;
+-    }
+-
+-    g_uiRequest.mode_change_request = 0U;
+-}
+-
+-void RtControl_UpdateInterlock(void)
+-{
+-    int32_t pressure = GetPressureFeedback();
+-    uint32_t bits = g_ioIn.sensor_bits;
+-
+-    if (((bits & SENSOR_EMERGENCY_STOP) != 0U) ||
+-        ((bits & SENSOR_SERVO_ALARM) != 0U) ||
+-        ((bits & SENSOR_PRESSURE_HIGH) != 0U) ||
+-        (pressure > SAFE_PRESSURE_LIMIT)) {
+-        g_machineCtx.machine_state = MACHINE_ALARM;
+-        g_machineCtx.alarm_code = 9001U;
+-        g_ioOut.command_bits = CMD_SAFE_OUTPUT;
+-        g_ioOut.lamp_bits = 0x00000004UL;
+-        (void)LogQueue_Push(LOG_ALARM, g_machineCtx.alarm_code, pressure);
+-    }
+-}
+-
+-void RtControl_UpdateAxisTargets(void)
+-{
+-    uint32_t i;
+-    int32_t baseTarget = 0;
+-
+-    if (g_machineCtx.machine_state == MACHINE_RUNNING) {
+-        g_ioOut.command_bits = (CMD_ENABLE_SERVO | CMD_START_MOTION);
+-        baseTarget = 1000;
+-    } else if (g_machineCtx.machine_state == MACHINE_READY) {
+-        g_ioOut.command_bits = CMD_ENABLE_SERVO;
+-        baseTarget = 100;
+-    } else {
+-        g_ioOut.command_bits = 0U;
+-        baseTarget = 0;
+-    }
+-
+-    if ((g_prefetchReq.ready != 0U) &&
+-        (g_prefetchResult.generation == g_prefetchReq.generation)) {
+-        baseTarget += (int32_t)(g_prefetchResult.table[0] * 10.0F);
+-    }
+-
+-    for (i = 0U; i < AXIS_MAX; ++i) {
+-        g_ioOut.axis_target[i] = baseTarget + ((int32_t)i * 25);
+-    }
+-
+-    if (g_machineCtx.machine_state == MACHINE_ALARM) {
+-        for (i = 0U; i < AXIS_MAX; ++i) {
+-            g_ioOut.axis_target[i] = 0;
+-        }
+-    }
+-}
+-
+-void RtOutput_CommitOutputs(void)
+-{
+-    if (g_machineCtx.machine_state == MACHINE_ALARM) {
+-        g_ioOut.command_bits |= CMD_SAFE_OUTPUT;
+-        g_ioOut.lamp_bits = 0x00000004UL;
+-    } else if (g_machineCtx.machine_state == MACHINE_RUNNING) {
+-        g_ioOut.lamp_bits = 0x00000002UL;
+-    } else {
+-        g_ioOut.lamp_bits = 0x00000001UL;
+-    }
+-}
++    RtControl_CaptureIoTrace();
++
++    g_machineCtx.rt_input_ticks = 1U;
++    g_machineCtx.rt_control_ticks = 2U;
++    g_machineCtx.rt_output_ticks = 1U;
++    g_machineCtx.rt_total_ticks = (g_machineCtx.rt_input_ticks +
++                                   g_machineCtx.rt_control_ticks +
++                                   g_machineCtx.rt_output_ticks);
++}
++
++void RtInput_ScanInputs(void)
++{
++    /* 評価用コードでは外部入力ミラー更新を省略し、既存 g_ioIn を参照する。 */
++    if (g_prefetchReq.ready == 0U) {
++        g_prefetchReq.request = 1U;
++        g_prefetchReq.section_id = (uint16_t)(g_machineCtx.cycle_count % 4U);
++    }
++}
++
++void RtControl_UpdateMachineState(void)
++{
++    int32_t pressure = GetPressureFeedback();
++
++    switch (g_machineCtx.machine_state) {
++    case MACHINE_STOPPED:
++        if (((g_ioIn.sensor_bits & SENSOR_READY_SWITCH) != 0U) &&
++            (IsPressureReadyRange(pressure) != 0U)) {
++            g_machineCtx.machine_state = MACHINE_READY;
++            (void)LogQueue_Push(LOG_INFO, 1001U, pressure);
++        }
++        break;
++
++    case MACHINE_READY:
++        if (((g_ioIn.sensor_bits & SENSOR_RUN_SWITCH) != 0U) &&
++            (g_machineCtx.run_mode == RUN_MODE_AUTO)) {
++            g_machineCtx.machine_state = MACHINE_RUNNING;
++            (void)LogQueue_Push(LOG_AUDIT, 1002U, 0);
++        }
++        break;
++
++    case MACHINE_RUNNING:
++        if ((g_ioIn.sensor_bits & SENSOR_RUN_SWITCH) == 0U) {
++            g_machineCtx.machine_state = MACHINE_STOPPED;
++            (void)LogQueue_Push(LOG_AUDIT, 1003U, 0);
++        }
++        break;
++
++    case MACHINE_ALARM:
++    default:
++        break;
++    }
++}
++
++void RtControl_ProcessModeRequest(void)
++{
++    if (g_uiRequest.mode_change_request == 0U) {
++        return;
++    }
++
++    switch ((RUN_MODE)g_uiRequest.requested_mode) {
++    case RUN_MODE_MANUAL:
++        g_machineCtx.run_mode = RUN_MODE_MANUAL;
++        g_uiRequest.mode_response = RESPONSE_COMPLETED;
++        break;
++
++    case RUN_MODE_AUTO:
++        if ((g_machineCtx.machine_state == MACHINE_READY) &&
++            (g_prestartInterlockStatus.ok != 0U)) {
++            g_machineCtx.run_mode = RUN_MODE_AUTO;
++            g_uiRequest.mode_response = RESPONSE_COMPLETED;
++        } else {
++            g_uiRequest.mode_response = RESPONSE_REJECTED;
++        }
++        break;
++
++    case RUN_MODE_MAINT:
++        if (g_machineCtx.machine_state != MACHINE_RUNNING) {
++            g_machineCtx.run_mode = RUN_MODE_MAINT;
++            g_uiRequest.mode_response = RESPONSE_COMPLETED;
++        } else {
++            g_uiRequest.mode_response = RESPONSE_REJECTED;
++        }
++        break;
++
++    default:
++        g_uiRequest.mode_response = RESPONSE_PARAM_ERROR;
++        break;
++    }
++
++    g_uiRequest.mode_change_request = 0U;
++}
++
++void RtControl_UpdateInterlock(void)
++{
++    int32_t pressure = GetPressureFeedback();
++    uint32_t bits = g_ioIn.sensor_bits;
++
++    if (((bits & SENSOR_EMERGENCY_STOP) != 0U) ||
++        ((bits & SENSOR_SERVO_ALARM) != 0U) ||
++        ((bits & SENSOR_PRESSURE_HIGH) != 0U) ||
++        (pressure > SAFE_PRESSURE_LIMIT)) {
++        g_machineCtx.machine_state = MACHINE_ALARM;
++        g_machineCtx.alarm_code = 9001U;
++        g_ioOut.command_bits = CMD_SAFE_OUTPUT;
++        g_ioOut.lamp_bits = 0x00000004UL;
++        (void)LogQueue_Push(LOG_ALARM, g_machineCtx.alarm_code, pressure);
++    }
++}
++
++void RtControl_UpdateAxisTargets(void)
++{
++    uint32_t i;
++    int32_t baseTarget = 0;
++
++    if (g_machineCtx.machine_state == MACHINE_RUNNING) {
++        g_ioOut.command_bits = (CMD_ENABLE_SERVO | CMD_START_MOTION);
++        baseTarget = 1000;
++    } else if (g_machineCtx.machine_state == MACHINE_READY) {
++        g_ioOut.command_bits = CMD_ENABLE_SERVO;
++        baseTarget = 100;
++    } else {
++        g_ioOut.command_bits = 0U;
++        baseTarget = 0;
++    }
++
++    if ((g_prefetchReq.ready != 0U) &&
++        (g_prefetchResult.generation == g_prefetchReq.generation)) {
++        baseTarget += (int32_t)(g_prefetchResult.table[0] * 10.0F);
++    }
++
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        g_ioOut.axis_target[i] = baseTarget + ((int32_t)i * 25);
++    }
++
++    if (g_machineCtx.machine_state == MACHINE_ALARM) {
++        for (i = 0U; i < AXIS_MAX; ++i) {
++            g_ioOut.axis_target[i] = 0;
++        }
++    }
++}
++
++void RtOutput_CommitOutputs(void)
++{
++    if (g_machineCtx.machine_state == MACHINE_ALARM) {
++        g_ioOut.command_bits |= CMD_SAFE_OUTPUT;
++        g_ioOut.lamp_bits = 0x00000004UL;
++    } else if (g_machineCtx.machine_state == MACHINE_RUNNING) {
++        g_ioOut.lamp_bits = 0x00000002UL;
++    } else {
++        g_ioOut.lamp_bits = 0x00000001UL;
++    }
++}
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' impl_prev/source/src/system_shared.c impl_work/source/src/system_shared.c
+--- impl_prev/source/src/system_shared.c	2026-04-29 18:48:40.000000000 +0000
++++ impl_work/source/src/system_shared.c	2026-04-29 18:55:13.425456210 +0000
+@@ -19,6 +19,9 @@
+ volatile NC_INTERP_STATUS   g_ncInterpStatus;
+ volatile NC_FEED_STATUS     g_ncFeedStatus;
+ volatile NC_FEATURE_STATUS  g_ncFeatureStatus;
++volatile PRESTART_INTERLOCK_STATUS g_prestartInterlockStatus;
++volatile NC_AUX_STATUS      g_ncAuxStatus;
++volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
+ 
+ void SystemShared_Initialize(void)
+ {
+@@ -36,6 +39,9 @@
+     (void)memset((void*)&g_ncInterpStatus, 0, sizeof(g_ncInterpStatus));
+     (void)memset((void*)&g_ncFeedStatus, 0, sizeof(g_ncFeedStatus));
+     (void)memset((void*)&g_ncFeatureStatus, 0, sizeof(g_ncFeatureStatus));
++    (void)memset((void*)&g_prestartInterlockStatus, 0, sizeof(g_prestartInterlockStatus));
++    (void)memset((void*)&g_ncAuxStatus, 0, sizeof(g_ncAuxStatus));
++    (void)memset((void*)&g_ioTraceBuffer, 0, sizeof(g_ioTraceBuffer));
+ 
+     g_machineCtx.run_mode = RUN_MODE_MANUAL;
+     g_machineCtx.machine_state = MACHINE_STOPPED;
+@@ -47,6 +53,9 @@
+     g_ncInterpStatus.last_error = NC_ERR_NONE;
+     g_ncFeedStatus.state = NC_FEED_CTRL_IDLE;
+     g_ncFeedStatus.feed_override_percent = NC_FEED_OVERRIDE_DEFAULT_PERCENT;
++    g_prestartInterlockStatus.mask = PRESTART_ILK_READY_SWITCH | PRESTART_ILK_PRESSURE_RANGE;
++    g_prestartInterlockStatus.ok = 0U;
++    g_ncAuxStatus.state = NC_AUX_STATE_IDLE;
+ }
+ 
+ int32_t LogQueue_Push(uint32_t eventType, uint32_t code, int32_t value)

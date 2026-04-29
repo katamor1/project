@@ -13,7 +13,11 @@ typedef enum {
     NC_PARSE_COORD_WORK_SELECT = 2,
     NC_PARSE_COORD_G10_WORK_OFFSET = 3,
     NC_PARSE_COORD_MACHINE_DIRECT = 4,
-    NC_PARSE_COORD_TEMPORARY_SHIFT = 5
+    NC_PARSE_COORD_TEMPORARY_SHIFT = 5,
+    NC_PARSE_COORD_ROTATION_CENTER = 6,
+    NC_PARSE_COORD_TILTED_PLANE = 7,
+    NC_PARSE_COORD_TOOL_AXIS = 8,
+    NC_PARSE_COORD_MIRROR_SETTING = 9
 } NC_PARSE_COORD_MODE;
 
 typedef struct {
@@ -21,6 +25,7 @@ typedef struct {
     uint8_t seen_groups;
     uint8_t g10_l_valid;
     uint8_t g10_p_valid;
+    uint8_t smoothing_seen;
     int32_t g10_l_value;
     int32_t g10_p_value;
 } NC_PARSE_CONTEXT;
@@ -30,6 +35,11 @@ void NcParser_InitBlock(NC_EXEC_BLOCK* pBlock, uint32_t lineNo);
 int32_t NcParser_ApplyGCode(int32_t code,
                             NC_EXEC_BLOCK* pBlock,
                             NC_PARSE_CONTEXT* pCtx);
+int32_t NcParser_ApplyFeatureG(int32_t code,
+                               NC_EXEC_BLOCK* pBlock,
+                               NC_PARSE_CONTEXT* pCtx);
+int32_t NcParser_FinalizeFeatureBlock(NC_EXEC_BLOCK* pBlock,
+                                      NC_ERROR_CODE* pOutError);
 void NcParser_SetFeed(int32_t feed, NC_EXEC_BLOCK* pBlock);
 void NcParser_SetSpindle(uint32_t spindleSpeed, NC_EXEC_BLOCK* pBlock);
 int32_t NcParser_ApplyToken(char address,

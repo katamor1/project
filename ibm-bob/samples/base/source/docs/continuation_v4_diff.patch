@@ -1,0 +1,708 @@
+Only in work_v4/source/docs: continuation_v4_diff.patch
+diff -ur work_v4_prev/source/inc/control_api.h work_v4/source/inc/control_api.h
+--- work_v4_prev/source/inc/control_api.h	2026-04-29 19:11:14.000000000 +0000
++++ work_v4/source/inc/control_api.h	2026-04-29 19:22:16.525001718 +0000
+@@ -27,5 +27,8 @@
+ int32_t Api_GetNcAuxStatus(NC_AUX_STATUS* pOutStatus);
+ int32_t Api_GetNcCycleStatus(NC_CYCLE_STATUS* pOutStatus);
+ int32_t Api_GetIoTraceBuffer(IO_TRACE_BUFFER* pOutBuffer);
++int32_t Api_SetNcToolLengthOffset(uint16_t offsetNo, int32_t offset);
++int32_t Api_SetNcCutterRadiusOffset(uint16_t offsetNo, int32_t offset);
++int32_t Api_GetNcCompensationStatus(NC_COMPENSATION_STATUS* pOutStatus);
+ 
+ #endif /* CONTROL_API_H */
+Only in work_v4/source/inc: nc_compensation.h
+diff -ur work_v4_prev/source/inc/nc_parser_internal.h work_v4/source/inc/nc_parser_internal.h
+--- work_v4_prev/source/inc/nc_parser_internal.h	2026-04-29 17:57:12.000000000 +0000
++++ work_v4/source/inc/nc_parser_internal.h	2026-04-29 19:21:34.604038033 +0000
+@@ -13,7 +13,8 @@
+     NC_PARSE_COORD_WORK_SELECT = 2,
+     NC_PARSE_COORD_G10_WORK_OFFSET = 3,
+     NC_PARSE_COORD_MACHINE_DIRECT = 4,
+-    NC_PARSE_COORD_TEMPORARY_SHIFT = 5
++    NC_PARSE_COORD_TEMPORARY_SHIFT = 5,
++    NC_PARSE_COORD_ROTATION_CENTER = 6
+ } NC_PARSE_COORD_MODE;
+ 
+ typedef struct {
+@@ -21,6 +22,7 @@
+     uint8_t seen_groups;
+     uint8_t g10_l_valid;
+     uint8_t g10_p_valid;
++    uint8_t reserved0;
+     int32_t g10_l_value;
+     int32_t g10_p_value;
+ } NC_PARSE_CONTEXT;
+diff -ur work_v4_prev/source/inc/system_config.h work_v4/source/inc/system_config.h
+--- work_v4_prev/source/inc/system_config.h	2026-04-29 19:15:02.000000000 +0000
++++ work_v4/source/inc/system_config.h	2026-04-29 19:20:32.609443741 +0000
+@@ -38,6 +38,8 @@
+ #define SENSOR_SEQ_MFIN_BIT               (0x00000001UL)
+ #define SENSOR_SEQ_SKIP_BIT               (0x00000002UL)
+ #define NC_CANNED_MAX_SEGMENTS            (512U)
++#define NC_TOOL_OFFSET_TABLE_SIZE          (32U)
++#define NC_ANGLE_SCALE                     (10000)
+ 
+ 
+ #endif /* SYSTEM_CONFIG_H */
+diff -ur work_v4_prev/source/inc/system_shared.h work_v4/source/inc/system_shared.h
+--- work_v4_prev/source/inc/system_shared.h	2026-04-29 19:11:14.000000000 +0000
++++ work_v4/source/inc/system_shared.h	2026-04-29 19:20:48.743554821 +0000
+@@ -252,6 +252,14 @@
+     uint16_t       g_code10;
+     uint16_t       cycle_code10;
+     uint8_t        return_mode;
++    uint8_t        tool_length_command;
++    uint8_t        cutter_comp_command;
++    uint8_t        rotation_command;
++    uint8_t        polar_command;
++    uint16_t       h_offset_no;
++    uint16_t       d_offset_no;
++    int32_t        rotation_center[2];
++    int32_t        rotation_angle_deg;
+ } NC_EXEC_BLOCK;
+ 
+ typedef struct {
+@@ -330,6 +338,26 @@
+ 
+ #define NC_AUX_FLAG_MFIN_WAIT       (0x00000008UL)
+ 
++#define NC_FEATURE_FLAG_TOOL_LENGTH      (0x00002000UL)
++#define NC_FEATURE_FLAG_CUTTER_RADIUS    (0x00004000UL)
++#define NC_FEATURE_FLAG_COORD_ROTATION   (0x00008000UL)
++#define NC_FEATURE_FLAG_POLAR_COORD      (0x00010000UL)
++
++#define NC_TOOL_LENGTH_CMD_NONE          (0U)
++#define NC_TOOL_LENGTH_CMD_POSITIVE      (1U)
++#define NC_TOOL_LENGTH_CMD_NEGATIVE      (2U)
++#define NC_TOOL_LENGTH_CMD_CANCEL        (3U)
++#define NC_CUTTER_COMP_CMD_NONE          (0U)
++#define NC_CUTTER_COMP_CMD_CANCEL        (1U)
++#define NC_CUTTER_COMP_CMD_LEFT          (2U)
++#define NC_CUTTER_COMP_CMD_RIGHT         (3U)
++#define NC_ROTATION_CMD_NONE             (0U)
++#define NC_ROTATION_CMD_ENABLE           (1U)
++#define NC_ROTATION_CMD_CANCEL           (2U)
++#define NC_POLAR_CMD_NONE                (0U)
++#define NC_POLAR_CMD_ENABLE              (1U)
++#define NC_POLAR_CMD_CANCEL              (2U)
++
+ #define NC_AUX_STATE_IDLE           (0U)
+ #define NC_AUX_STATE_WAIT_MFIN      (1U)
+ 
+@@ -371,6 +399,24 @@
+ } NC_CYCLE_STATUS;
+ 
+ typedef struct {
++    uint8_t  tool_length_active;
++    uint8_t  tool_length_sign;
++    uint8_t  cutter_comp_mode;
++    uint8_t  rotation_active;
++    uint8_t  polar_active;
++    uint16_t active_h_no;
++    uint16_t active_d_no;
++    int32_t  tool_length_offset;
++    int32_t  cutter_radius_offset;
++    int32_t  rotation_center[2];
++    int32_t  rotation_angle_deg;
++    uint32_t adjusted_axis_mask;
++    uint32_t applied_blocks;
++    uint32_t last_line_no;
++    uint32_t generation;
++} NC_COMPENSATION_STATUS;
++
++typedef struct {
+     uint32_t cycle;
+     uint32_t sensor_bits;
+     uint32_t seq_bits;
+@@ -412,6 +458,7 @@
+ extern volatile PRESTART_INTERLOCK_STATUS g_prestartInterlockStatus;
+ extern volatile NC_AUX_STATUS      g_ncAuxStatus;
+ extern volatile NC_CYCLE_STATUS    g_ncCycleStatus;
++extern volatile NC_COMPENSATION_STATUS g_ncCompensationStatus;
+ extern volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
+ 
+ void SystemShared_Initialize(void);
+diff -ur work_v4_prev/source/runtime_log.csv work_v4/source/runtime_log.csv
+--- work_v4_prev/source/runtime_log.csv	2026-04-29 19:17:10.000000000 +0000
++++ work_v4/source/runtime_log.csv	2026-04-29 19:24:30.386836386 +0000
+@@ -274,3 +274,237 @@
+ 2,9001,950,299
+ 2,9001,950,300
+ 3,2001,0,300
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++3,5006,0,67
++3,1002,0,68
++2,9001,950,451
++2,9001,950,452
++2,9001,950,453
++2,9001,950,454
++2,9001,950,455
++2,9001,950,456
++2,9001,950,457
++2,9001,950,458
++2,9001,950,459
++2,9001,950,460
++2,9001,950,461
++2,9001,950,462
++2,9001,950,463
++2,9001,950,464
++2,9001,950,465
++2,9001,950,466
++2,9001,950,467
++2,9001,950,468
++2,9001,950,469
++2,9001,950,470
++2,9001,950,471
++2,9001,950,472
++2,9001,950,473
++2,9001,950,474
++2,9001,950,475
++2,9001,950,476
++2,9001,950,477
++2,9001,950,478
++2,9001,950,479
++2,9001,950,480
++2,9001,950,481
++2,9001,950,482
++2,9001,950,483
++2,9001,950,484
++2,9001,950,485
++2,9001,950,486
++2,9001,950,487
++2,9001,950,488
++2,9001,950,489
++2,9001,950,490
++2,9001,950,491
++2,9001,950,492
++2,9001,950,493
++2,9001,950,494
++2,9001,950,495
++2,9001,950,496
++2,9001,950,497
++2,9001,950,498
++2,9001,950,499
++2,9001,950,500
++2,9001,950,501
++2,9001,950,502
++2,9001,950,503
++2,9001,950,504
++2,9001,950,505
++2,9001,950,506
++2,9001,950,507
++2,9001,950,508
++2,9001,950,509
++2,9001,950,510
++2,9001,950,511
++2,9001,950,512
++2,9001,950,513
++2,9001,950,514
++2,9001,950,515
++2,9001,950,516
++2,9001,950,517
++2,9001,950,518
++2,9001,950,519
++2,9001,950,520
++3,2001,0,520
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++3,5006,0,158
++3,1002,0,159
++2,9001,950,451
++2,9001,950,452
++2,9001,950,453
++2,9001,950,454
++2,9001,950,455
++2,9001,950,456
++2,9001,950,457
++2,9001,950,458
++2,9001,950,459
++2,9001,950,460
++2,9001,950,461
++2,9001,950,462
++2,9001,950,463
++2,9001,950,464
++2,9001,950,465
++2,9001,950,466
++2,9001,950,467
++2,9001,950,468
++2,9001,950,469
++2,9001,950,470
++2,9001,950,471
++2,9001,950,472
++2,9001,950,473
++2,9001,950,474
++2,9001,950,475
++2,9001,950,476
++2,9001,950,477
++2,9001,950,478
++2,9001,950,479
++2,9001,950,480
++2,9001,950,481
++2,9001,950,482
++2,9001,950,483
++2,9001,950,484
++2,9001,950,485
++2,9001,950,486
++2,9001,950,487
++2,9001,950,488
++2,9001,950,489
++2,9001,950,490
++2,9001,950,491
++2,9001,950,492
++2,9001,950,493
++2,9001,950,494
++2,9001,950,495
++2,9001,950,496
++2,9001,950,497
++2,9001,950,498
++2,9001,950,499
++2,9001,950,500
++2,9001,950,501
++2,9001,950,502
++2,9001,950,503
++2,9001,950,504
++2,9001,950,505
++2,9001,950,506
++2,9001,950,507
++2,9001,950,508
++2,9001,950,509
++2,9001,950,510
++2,9001,950,511
++2,9001,950,512
++2,9001,950,513
++2,9001,950,514
++2,9001,950,515
++2,9001,950,516
++2,9001,950,517
++2,9001,950,518
++2,9001,950,519
++2,9001,950,520
++3,2001,0,520
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++3,5006,0,158
++3,1002,0,159
++2,9001,950,451
++2,9001,950,452
++2,9001,950,453
++2,9001,950,454
++2,9001,950,455
++2,9001,950,456
++2,9001,950,457
++2,9001,950,458
++2,9001,950,459
++2,9001,950,460
++2,9001,950,461
++2,9001,950,462
++2,9001,950,463
++2,9001,950,464
++2,9001,950,465
++2,9001,950,466
++2,9001,950,467
++2,9001,950,468
++2,9001,950,469
++2,9001,950,470
++2,9001,950,471
++2,9001,950,472
++2,9001,950,473
++2,9001,950,474
++2,9001,950,475
++2,9001,950,476
++2,9001,950,477
++2,9001,950,478
++2,9001,950,479
++2,9001,950,480
++2,9001,950,481
++2,9001,950,482
++2,9001,950,483
++2,9001,950,484
++2,9001,950,485
++2,9001,950,486
++2,9001,950,487
++2,9001,950,488
++2,9001,950,489
++2,9001,950,490
++2,9001,950,491
++2,9001,950,492
++2,9001,950,493
++2,9001,950,494
++2,9001,950,495
++2,9001,950,496
++2,9001,950,497
++2,9001,950,498
++2,9001,950,499
++2,9001,950,500
++2,9001,950,501
++2,9001,950,502
++2,9001,950,503
++2,9001,950,504
++2,9001,950,505
++2,9001,950,506
++2,9001,950,507
++2,9001,950,508
++2,9001,950,509
++2,9001,950,510
++2,9001,950,511
++2,9001,950,512
++2,9001,950,513
++2,9001,950,514
++2,9001,950,515
++2,9001,950,516
++2,9001,950,517
++2,9001,950,518
++2,9001,950,519
++2,9001,950,520
++3,2001,0,520
+diff -ur work_v4_prev/source/src/control_api.c work_v4/source/src/control_api.c
+--- work_v4_prev/source/src/control_api.c	2026-04-29 19:11:14.000000000 +0000
++++ work_v4/source/src/control_api.c	2026-04-29 19:22:16.549961533 +0000
+@@ -5,6 +5,7 @@
+ #include <string.h>
+ #include "control_api.h"
+ #include "nc_feed.h"
++#include "nc_compensation.h"
+ 
+ static int32_t IsNcBusyForLoad(void)
+ {
+@@ -254,3 +255,25 @@
+                  sizeof(*pOutBuffer));
+     return 0;
+ }
++
++int32_t Api_SetNcToolLengthOffset(uint16_t offsetNo, int32_t offset)
++{
++    return NcCompensation_SetToolLengthOffset(offsetNo, offset);
++}
++
++int32_t Api_SetNcCutterRadiusOffset(uint16_t offsetNo, int32_t offset)
++{
++    return NcCompensation_SetCutterRadiusOffset(offsetNo, offset);
++}
++
++int32_t Api_GetNcCompensationStatus(NC_COMPENSATION_STATUS* pOutStatus)
++{
++    if (pOutStatus == 0) {
++        return -1;
++    }
++
++    (void)memcpy(pOutStatus,
++                 (const void*)&g_ncCompensationStatus,
++                 sizeof(*pOutStatus));
++    return 0;
++}
+diff -ur work_v4_prev/source/src/main.c work_v4/source/src/main.c
+--- work_v4_prev/source/src/main.c	2026-04-29 19:16:58.000000000 +0000
++++ work_v4/source/src/main.c	2026-04-29 19:23:43.014112150 +0000
+@@ -25,6 +25,9 @@
+     (void)fprintf(pFile, "G10 L2 P1 X0.1 Y0.2 Z0.3\n");
+     (void)fprintf(pFile, "G52 X0.01 Y0.02 Z0.03\n");
+     (void)fprintf(pFile, "G00 X0.001 Y0.002 Z0.003\n");
++    (void)fprintf(pFile, "G43 H1 ; apply tool length compensation\n");
++    (void)fprintf(pFile, "G41 D1 ; apply cutter radius compensation\n");
++    (void)fprintf(pFile, "G68 X0 Y0 R15 ; coordinate rotation enable\n");
+     (void)fprintf(pFile, "G04 P1\n");
+     (void)fprintf(pFile, "G91\n");
+     (void)fprintf(pFile, "G01 X0.001 Y0.001 F60000\n");
+@@ -42,9 +45,14 @@
+     (void)fprintf(pFile, "G12.1 X0.030 Y0.037 F60000 ; polar/cylindrical mode sample\n");
+     (void)fprintf(pFile, "G05.2 ; high precision smoothing mode\n");
+     (void)fprintf(pFile, "G51.4\n");
++    (void)fprintf(pFile, "G16 ; polar coordinate mode on\n");
++    (void)fprintf(pFile, "G15 ; polar coordinate mode off\n");
+     (void)fprintf(pFile, "G31 X0.030 F60000\n");
+     (void)fprintf(pFile, "G02.3 X0.035 Y0.040 F60000\n");
+     (void)fprintf(pFile, "G50.4\n");
++    (void)fprintf(pFile, "G69 ; coordinate rotation cancel\n");
++    (void)fprintf(pFile, "G40 ; cutter radius cancel\n");
++    (void)fprintf(pFile, "G49 ; tool length cancel\n");
+     (void)fprintf(pFile, "G00 X0.02 Y0.03 Z0.04 M130\n");
+     (void)fclose(pFile);
+     return 0;
+@@ -99,16 +107,16 @@
+     if (cycle == 6U) {
+         g_ioIn.sensor_bits |= 0x00000010UL; /* RUN */
+     }
+-    if (cycle == 55U) {
++    if (cycle == 150U) {
+         g_ioIn.seq_bits |= SENSOR_SEQ_MFIN_BIT; /* MFIN response */
+     }
+-    if (cycle == 60U) {
++    if (cycle == 250U) {
+         g_ioIn.seq_bits &= ~SENSOR_SEQ_MFIN_BIT;
+     }
+     if (cycle == 2U) {
+         g_ioIn.seq_bits |= SENSOR_SEQ_SKIP_BIT; /* G31 skip probe is armed before G31 */
+     }
+-    if (cycle == 260U) {
++    if (cycle == 450U) {
+         g_ioIn.analog[0] = 950; /* pressure high after NC completion */
+     }
+ }
+@@ -125,6 +133,7 @@
+     NC_AUX_STATUS auxStatus;
+     NC_CYCLE_STATUS cycleStatus;
+     IO_TRACE_BUFFER traceBuffer;
++    NC_COMPENSATION_STATUS compStatus;
+     int32_t ncAxis[AXIS_MAX] = {0};
+     uint32_t ncMCode = 0U;
+     uint32_t interpSegments = 0U;
+@@ -152,15 +161,22 @@
+     uint32_t traceFrozen = 0U;
+     uint32_t traceCaptured = 0U;
+     uint32_t traceTriggerCycle = 0U;
++    uint32_t compAppliedBlocks = 0U;
++    uint32_t compAdjustedMask = 0U;
++    int32_t compToolLength = 0;
++    int32_t compCutterRadius = 0;
++    uint32_t compRotation = 0U;
+     uint8_t ncCaptured = 0U;
+     uint32_t cycle;
+ 
+     SystemShared_Initialize();
++    (void)Api_SetNcToolLengthOffset(1U, 500);
++    (void)Api_SetNcCutterRadiusOffset(1U, 300);
+     if (WriteNcSmokeFile() != 0) {
+         return 1;
+     }
+ 
+-    for (cycle = 0U; cycle < 300U; ++cycle) {
++    for (cycle = 0U; cycle < 520U; ++cycle) {
+         SimulateExternalInputs(cycle);
+         RtDispatcher_ExecuteCycle();
+         TsService_ExecuteSlice();
+@@ -203,6 +219,13 @@
+                 cycleSkipCompleted = cycleStatus.completed_skips;
+                 cycleSkipX = cycleStatus.last_skip_position[0];
+             }
++            if (Api_GetNcCompensationStatus(&compStatus) == 0) {
++                compAppliedBlocks = compStatus.applied_blocks;
++                compAdjustedMask = compStatus.adjusted_axis_mask;
++                compToolLength = compStatus.tool_length_offset;
++                compCutterRadius = compStatus.cutter_radius_offset;
++                compRotation = compStatus.rotation_active;
++            }
+             if (Api_GetPrestartInterlockStatus(&prestartStatus) == 0) {
+                 prestartMask = prestartStatus.mask;
+                 prestartOk = prestartStatus.ok;
+@@ -225,6 +248,13 @@
+         cycleSkipCompleted = cycleStatus.completed_skips;
+         cycleSkipX = cycleStatus.last_skip_position[0];
+     }
++    if (Api_GetNcCompensationStatus(&compStatus) == 0) {
++        compAppliedBlocks = compStatus.applied_blocks;
++        compAdjustedMask = compStatus.adjusted_axis_mask;
++        compToolLength = compStatus.tool_length_offset;
++        compCutterRadius = compStatus.cutter_radius_offset;
++        compRotation = compStatus.rotation_active;
++    }
+     if (Api_GetIoTraceBuffer(&traceBuffer) == 0) {
+         traceFrozen = traceBuffer.frozen;
+         traceCaptured = traceBuffer.captured_count;
+@@ -261,6 +291,12 @@
+                  (unsigned int)cannedBlocks,
+                  (unsigned int)skipBlocks,
+                  (unsigned int)advancedBlocks);
++    (void)printf("comp_applied=%u comp_mask=0x%08x comp_tool=%d comp_cutter=%d comp_rotation=%u\n",
++                 (unsigned int)compAppliedBlocks,
++                 (unsigned int)compAdjustedMask,
++                 (int)compToolLength,
++                 (int)compCutterRadius,
++                 (unsigned int)compRotation);
+     (void)printf("cycle_completed=%u cycle_phase_count=%u skip_completed=%u skip_x=%d\n",
+                  (unsigned int)cycleCompleted,
+                  (unsigned int)cyclePhaseCount,
+Only in work_v4/source/src: nc_compensation.c
+diff -ur work_v4_prev/source/src/nc_parser_modal.c work_v4/source/src/nc_parser_modal.c
+--- work_v4_prev/source/src/nc_parser_modal.c	2026-04-29 19:00:42.000000000 +0000
++++ work_v4/source/src/nc_parser_modal.c	2026-04-29 19:22:01.225947129 +0000
+@@ -4,6 +4,7 @@
+ /* RELEVANT FILES: ibm-bob/samples/base/source/src/nc_parser_tokens.c, ibm-bob/samples/base/source/inc/nc_parser_internal.h, ibm-bob/samples/base/source/inc/nc_codes.h */
+ #include <string.h>
+ #include "nc_codes.h"
++#include "nc_compensation.h"
+ #include "nc_coordinate.h"
+ #include "nc_interpolation.h"
+ #include "nc_parser_internal.h"
+@@ -242,11 +243,28 @@
+                (code == GD(12, 1)) || (code == GD(13, 1))) {
+         pBlock->feature_flags |= NC_FEATURE_FLAG_ADVANCED_INTERP;
+         pBlock->motion_type = NC_MOTION_ADVANCED_INTERP;
+-    } else if ((code == G(15)) || (code == G(16)) ||
+-               (code == G(40)) || (code == G(41)) || (code == G(42)) ||
+-               (code == G(43)) || (code == G(44)) || (code == G(49)) ||
+-               (code == G(68)) || (code == G(69)) ||
+-               (code == G(96)) || (code == G(97))) {
++    } else if ((code == G(15)) || (code == G(16))) {
++        pBlock->polar_command = (uint8_t)((code == G(16)) ? NC_POLAR_CMD_ENABLE : NC_POLAR_CMD_CANCEL);
++        pBlock->feature_flags |= NC_FEATURE_FLAG_POLAR_COORD;
++        pBlock->motion_type = NC_MOTION_NONE;
++    } else if ((code == G(40)) || (code == G(41)) || (code == G(42))) {
++        pBlock->cutter_comp_command = (code == G(40)) ? NC_CUTTER_COMP_CMD_CANCEL :
++            (uint8_t)((code == G(41)) ? NC_CUTTER_COMP_CMD_LEFT : NC_CUTTER_COMP_CMD_RIGHT);
++        pBlock->feature_flags |= NC_FEATURE_FLAG_CUTTER_RADIUS;
++        pBlock->motion_type = NC_MOTION_NONE;
++    } else if ((code == G(43)) || (code == G(44)) || (code == G(49))) {
++        pBlock->tool_length_command = (code == G(49)) ? NC_TOOL_LENGTH_CMD_CANCEL :
++            (uint8_t)((code == G(44)) ? NC_TOOL_LENGTH_CMD_NEGATIVE : NC_TOOL_LENGTH_CMD_POSITIVE);
++        pBlock->feature_flags |= NC_FEATURE_FLAG_TOOL_LENGTH;
++        pBlock->motion_type = NC_MOTION_NONE;
++    } else if ((code == G(68)) || (code == G(69))) {
++        pBlock->rotation_command = (uint8_t)((code == G(68)) ? NC_ROTATION_CMD_ENABLE : NC_ROTATION_CMD_CANCEL);
++        if (code == G(68)) {
++            pCtx->coord_mode = NC_PARSE_COORD_ROTATION_CENTER;
++        }
++        pBlock->feature_flags |= NC_FEATURE_FLAG_COORD_ROTATION;
++        pBlock->motion_type = NC_MOTION_NONE;
++    } else if ((code == G(96)) || (code == G(97))) {
+         pBlock->feature_flags |= NC_FEATURE_FLAG_ADVANCED_INTERP;
+         pBlock->motion_type = NC_MOTION_NONE;
+     } else {
+@@ -339,7 +357,6 @@
+             (pBlock->motion_type != NC_MOTION_REFERENCE_RETURN)) {
+             pBlock->motion_type = (pBlock->aux_flags != 0U) ?
+                                   NC_MOTION_AUX_ONLY : NC_MOTION_NONE;
+-            return NcInterpolation_PrepareBlockTs(pBlock, pOutError);
+         }
+         if ((s_oneShotExactStop != 0U) || (s_exactStopMode != 0U)) {
+             pBlock->modal_flags |= (s_oneShotExactStop != 0U) ?
+@@ -358,5 +375,8 @@
+         *pOutError = NC_ERR_UNSUPPORTED;
+         return -1;
+     }
++    if (NcCompensation_ApplyBlockTs(pBlock, pOutError) != 0) {
++        return -1;
++    }
+     return NcInterpolation_PrepareBlockTs(pBlock, pOutError);
+ }
+diff -ur work_v4_prev/source/src/nc_parser_tokens.c work_v4/source/src/nc_parser_tokens.c
+--- work_v4_prev/source/src/nc_parser_tokens.c	2026-04-29 18:55:36.000000000 +0000
++++ work_v4/source/src/nc_parser_tokens.c	2026-04-29 19:22:09.494107314 +0000
+@@ -88,6 +88,13 @@
+                          NC_EXEC_BLOCK* pBlock,
+                          NC_PARSE_CONTEXT* pCtx)
+ {
++    if (pCtx->coord_mode == NC_PARSE_COORD_ROTATION_CENTER) {
++        if ((pInfo->axis_index == 0) || (pInfo->axis_index == 1)) {
++            pBlock->rotation_center[pInfo->axis_index] = scaled;
++            return 0;
++        }
++        return -4;
++    }
+     if (pCtx->coord_mode == NC_PARSE_COORD_LOCAL_SHIFT) {
+         return (NcCoordinate_SetLocalShiftAxis(pInfo->axis_index, scaled) == 0) ?
+                0 : -4;
+@@ -160,6 +167,11 @@
+         return 0;
+     }
+     if (pInfo->kind == NC_ADDRESS_KIND_OFFSET) {
++        if (pInfo->address == 'H') {
++            pBlock->h_offset_no = (uint16_t)(scaled / NC_POSITION_SCALE);
++        } else if (pInfo->address == 'D') {
++            pBlock->d_offset_no = (uint16_t)(scaled / NC_POSITION_SCALE);
++        }
+         return 0;
+     }
+     NcParser_SetFeed(scaled, pBlock);
+@@ -288,6 +300,15 @@
+     if (info.kind == NC_ADDRESS_KIND_Q_WORD) {
+         return ApplyQWord(value, pBlock);
+     }
++    if ((info.address == 'R') &&
++        (pCtx->coord_mode == NC_PARSE_COORD_ROTATION_CENTER)) {
++        int32_t angle;
++        if (RoundToInt(value * (double)NC_ANGLE_SCALE, &angle) != 0) {
++            return -2;
++        }
++        pBlock->rotation_angle_deg = angle;
++        return 0;
++    }
+     if (info.kind == NC_ADDRESS_KIND_FEED) {
+         if (ScaleFeed(value, &scaled) != 0) {
+             return -2;
+diff -ur work_v4_prev/source/src/nc_program.c work_v4/source/src/nc_program.c
+--- work_v4_prev/source/src/nc_program.c	2026-04-29 18:58:22.000000000 +0000
++++ work_v4/source/src/nc_program.c	2026-04-29 19:22:32.704323638 +0000
+@@ -5,6 +5,7 @@
+ #include <stdio.h>
+ #include <string.h>
+ #include "nc_interpolation.h"
++#include "nc_compensation.h"
+ #include "nc_program.h"
+ 
+ #define NC_LOG_BASE        (5000U)
+@@ -114,6 +115,18 @@
+     if ((flags & NC_FEATURE_FLAG_ADVANCED_INTERP) != 0U) {
+         g_ncFeatureStatus.advanced_interp_blocks++;
+     }
++    if ((flags & NC_FEATURE_FLAG_TOOL_LENGTH) != 0U) {
++        g_ncFeatureStatus.active_feature_flags |= NC_FEATURE_FLAG_TOOL_LENGTH;
++    }
++    if ((flags & NC_FEATURE_FLAG_CUTTER_RADIUS) != 0U) {
++        g_ncFeatureStatus.active_feature_flags |= NC_FEATURE_FLAG_CUTTER_RADIUS;
++    }
++    if ((flags & NC_FEATURE_FLAG_COORD_ROTATION) != 0U) {
++        g_ncFeatureStatus.active_feature_flags |= NC_FEATURE_FLAG_COORD_ROTATION;
++    }
++    if ((flags & NC_FEATURE_FLAG_POLAR_COORD) != 0U) {
++        g_ncFeatureStatus.active_feature_flags |= NC_FEATURE_FLAG_POLAR_COORD;
++    }
+     if ((flags & NC_FEATURE_FLAG_HIGH_PRECISION) != 0U) {
+         g_ncFeatureStatus.high_precision_enabled = 1U;
+         g_ncFeatureStatus.active_feature_flags |= NC_FEATURE_FLAG_HIGH_PRECISION;
+@@ -145,6 +158,18 @@
+     if (pBlock->g_code10 == NC_G_CODE_WHOLE(80)) {
+         g_ncFeatureStatus.active_feature_flags &= ~NC_FEATURE_FLAG_CANNED_CYCLE;
+     }
++    if (pBlock->tool_length_command == NC_TOOL_LENGTH_CMD_CANCEL) {
++        g_ncFeatureStatus.active_feature_flags &= ~NC_FEATURE_FLAG_TOOL_LENGTH;
++    }
++    if (pBlock->cutter_comp_command == NC_CUTTER_COMP_CMD_CANCEL) {
++        g_ncFeatureStatus.active_feature_flags &= ~NC_FEATURE_FLAG_CUTTER_RADIUS;
++    }
++    if (pBlock->rotation_command == NC_ROTATION_CMD_CANCEL) {
++        g_ncFeatureStatus.active_feature_flags &= ~NC_FEATURE_FLAG_COORD_ROTATION;
++    }
++    if (pBlock->polar_command == NC_POLAR_CMD_CANCEL) {
++        g_ncFeatureStatus.active_feature_flags &= ~NC_FEATURE_FLAG_POLAR_COORD;
++    }
+     g_ncFeatureStatus.generation++;
+ }
+ 
+@@ -329,6 +354,7 @@
+     NcProgram_ClearBuffer();
+     NcParse_ResetModal();
+     NcInterpolation_Reset();
++    NcCompensation_Reset();
+     (void)memset((void*)&g_ncAuxStatus, 0, sizeof(g_ncAuxStatus));
+     RtNcProgram_ResetAuxWait();
+     (void)memset((void*)&g_ncFeatureStatus, 0, sizeof(g_ncFeatureStatus));
+diff -ur work_v4_prev/source/src/system_shared.c work_v4/source/src/system_shared.c
+--- work_v4_prev/source/src/system_shared.c	2026-04-29 19:11:14.000000000 +0000
++++ work_v4/source/src/system_shared.c	2026-04-29 19:21:00.601558564 +0000
+@@ -22,6 +22,7 @@
+ volatile PRESTART_INTERLOCK_STATUS g_prestartInterlockStatus;
+ volatile NC_AUX_STATUS      g_ncAuxStatus;
+ volatile NC_CYCLE_STATUS    g_ncCycleStatus;
++volatile NC_COMPENSATION_STATUS g_ncCompensationStatus;
+ volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
+ 
+ void SystemShared_Initialize(void)
+@@ -43,6 +44,7 @@
+     (void)memset((void*)&g_prestartInterlockStatus, 0, sizeof(g_prestartInterlockStatus));
+     (void)memset((void*)&g_ncAuxStatus, 0, sizeof(g_ncAuxStatus));
+     (void)memset((void*)&g_ncCycleStatus, 0, sizeof(g_ncCycleStatus));
++    (void)memset((void*)&g_ncCompensationStatus, 0, sizeof(g_ncCompensationStatus));
+     (void)memset((void*)&g_ioTraceBuffer, 0, sizeof(g_ioTraceBuffer));
+ 
+     g_machineCtx.run_mode = RUN_MODE_MANUAL;

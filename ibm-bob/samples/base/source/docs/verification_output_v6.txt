@@ -1,0 +1,12 @@
+nc_state=6 nc_error=0 nc_error_line=0 nc_exec=45 nc_read=45 nc_buf=0 nc_x=3400 nc_y=2300 nc_z=3400 nc_m=130
+interp_segments=16 feed_profile=1 feed_override=100 dwell_ticks=1
+coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=1000
+feature_blocks=40 feature_flags=97 canned=2 skip=1 advanced=3
+comp_applied=11 comp_mask=0x00000007 comp_tool=0 comp_cutter=0 comp_rotation=0
+path_arc=2 path_helical=1 path_arc_segments=8 path_lookahead=16 path_slowdowns=11 path_corner_deg=171 path_override=60
+kin_transformed=16 kin_mirrored=11 kin_retracts=1 kin_singularity_warn=0 kin_mirror_mask=0x00000000 kin_retract_mask=0x00000004 kin_tool_z=9848 kin_last_x=3400 kin_last_a=-100
+cycle_completed=2 cycle_phase_count=1 skip_completed=1 skip_x=3670
+aux_completed=1 aux_wait_cycles=80 prestart_ok=0 prestart_mask=0x00000014
+trace_frozen=1 trace_captured=32 trace_trigger_cycle=451
+mode=1 state=3 alarm=9001 cycle=520
+coord_error_checks=5

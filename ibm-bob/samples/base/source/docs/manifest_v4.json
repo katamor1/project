@@ -1,0 +1,22 @@
+{
+  "artifact": "ibm_bob_source_implemented_additional_features_v4.zip",
+  "base": "ibm_bob_source_implemented_additional_features_v3.zip",
+  "version": "v4",
+  "added_files": [
+    "source/inc/nc_compensation.h",
+    "source/src/nc_compensation.c",
+    "source/docs/implementation_report_v4.md",
+    "source/docs/verification_output_v4.txt",
+    "source/docs/continuation_v4_diff.patch",
+    "source/docs/manifest_v4.json"
+  ],
+  "updated_areas": [
+    "tool length compensation G43/G44/G49",
+    "cutter radius compensation G41/G42/G40",
+    "coordinate rotation G68/G69",
+    "polar command G16/G15",
+    "NC compensation shared-memory status and public APIs",
+    "smoke test coverage"
+  ],
+  "verified_with": "gcc -std=c99 -Wall -Wextra -Iinc src/*.c -lm"
+}

@@ -1,0 +1,615 @@
+Only in /mnt/data/ibm_bob_v8_work/source/docs: continuation_v8_diff.patch
+Only in /mnt/data/ibm_bob_v8_work/source/docs: implementation_report_v8.md
+Only in /mnt/data/ibm_bob_v8_work/source/docs: manifest_v8.json
+Only in /mnt/data/ibm_bob_v8_work/source/docs: verification_output_v8.txt
+diff -ru /mnt/data/ibm_bob_v7_for_diff/source/inc/control_api.h /mnt/data/ibm_bob_v8_work/source/inc/control_api.h
+--- /mnt/data/ibm_bob_v7_for_diff/source/inc/control_api.h	2026-04-29 19:46:25.000000000 +0000
++++ /mnt/data/ibm_bob_v8_work/source/inc/control_api.h	2026-04-29 20:16:38.653096119 +0000
+@@ -41,5 +41,11 @@
+ int32_t Api_GetNcAxisLoadStatus(NC_AXIS_LOAD_STATUS* pOutStatus);
+ int32_t Api_GetNcToolLifeStatus(NC_TOOL_LIFE_STATUS* pOutStatus);
+ int32_t Api_GetNcDiagnosticSnapshot(NC_DIAGNOSTIC_SNAPSHOT* pOutSnapshot);
++int32_t Api_SetNcMotionFilterConfig(uint8_t enabled,
++                                      uint8_t secondStageMode,
++                                      uint8_t velocityWindow,
++                                      uint8_t accelWindow);
++int32_t Api_GetNcMotionFilterStatus(NC_MOTION_FILTER_STATUS* pOutStatus);
++int32_t Api_GetNcEventRing(NC_EVENT_RING* pOutRing);
+ 
+ #endif /* CONTROL_API_H */
+Only in /mnt/data/ibm_bob_v8_work/source/inc: nc_motion_filter.h
+diff -ru /mnt/data/ibm_bob_v7_for_diff/source/inc/system_config.h /mnt/data/ibm_bob_v8_work/source/inc/system_config.h
+--- /mnt/data/ibm_bob_v7_for_diff/source/inc/system_config.h	2026-04-29 19:46:25.000000000 +0000
++++ /mnt/data/ibm_bob_v8_work/source/inc/system_config.h	2026-04-29 20:15:57.576859768 +0000
+@@ -51,4 +51,11 @@
+ #define NC_TOOL_LIFE_DEFAULT_LIMIT          (1000U)
+ #define NC_TOOL_LIFE_WARNING_PERCENT        (80U)
+ 
++#define NC_MOTION_FILTER_VELOCITY_WINDOW_MAX (8U)
++#define NC_MOTION_FILTER_ACCEL_WINDOW_MAX    (8U)
++#define NC_MOTION_FILTER_FIR_TAPS            (5U)
++#define NC_MOTION_FILTER_DEFAULT_VELOCITY_WINDOW (3U)
++#define NC_MOTION_FILTER_DEFAULT_ACCEL_WINDOW    (5U)
++#define NC_EVENT_RING_SIZE                   (64U)
++
+ #endif /* SYSTEM_CONFIG_H */
+diff -ru /mnt/data/ibm_bob_v7_for_diff/source/inc/system_shared.h /mnt/data/ibm_bob_v8_work/source/inc/system_shared.h
+--- /mnt/data/ibm_bob_v7_for_diff/source/inc/system_shared.h	2026-04-29 19:46:25.000000000 +0000
++++ /mnt/data/ibm_bob_v8_work/source/inc/system_shared.h	2026-04-29 20:16:22.527104875 +0000
+@@ -63,7 +63,8 @@
+     NC_ERR_ARC_GEOMETRY   = 11,
+     NC_ERR_FEED           = 12,
+     NC_ERR_COORDINATE     = 13,
+-    NC_ERR_UNIT           = 14
++    NC_ERR_UNIT           = 14,
++    NC_ERR_TOOL_LIFE_EXPIRED = 15
+ } NC_ERROR_CODE;
+ 
+ typedef enum {
+@@ -383,6 +384,12 @@
+ #define NC_AXIS_RETRACT_CMD_RETRACT      (1U)
+ #define NC_AXIS_RETRACT_CMD_RECOVER      (2U)
+ 
++#define NC_MOTION_FILTER_SECOND_STAGE_MOVING_AVERAGE (1U)
++#define NC_MOTION_FILTER_SECOND_STAGE_FIR            (2U)
++#define NC_EVENT_CODE_AXIS_DECEL_APPLIED             (8101U)
++#define NC_EVENT_CODE_TOOL_LIFE_EXPIRED_HOLD         (8201U)
++#define NC_EVENT_CODE_MOTION_FILTER_APPLIED          (8301U)
++
+ #define NC_AUX_STATE_IDLE           (0U)
+ #define NC_AUX_STATE_WAIT_MFIN      (1U)
+ 
+@@ -535,6 +542,39 @@
+ } NC_DIAGNOSTIC_SNAPSHOT;
+ 
+ typedef struct {
++    uint8_t  enabled;
++    uint8_t  second_stage_mode;
++    uint8_t  velocity_window;
++    uint8_t  accel_window;
++    uint32_t applied_samples;
++    uint32_t filtered_axis_mask;
++    int32_t  last_raw_velocity[AXIS_MAX];
++    int32_t  last_velocity_stage1[AXIS_MAX];
++    int32_t  last_velocity_stage2[AXIS_MAX];
++    int32_t  last_filtered_target[AXIS_MAX];
++    int32_t  max_raw_velocity[AXIS_MAX];
++    int32_t  max_filtered_velocity[AXIS_MAX];
++    uint32_t generation;
++} NC_MOTION_FILTER_STATUS;
++
++typedef struct {
++    uint32_t cycle;
++    uint32_t code;
++    int32_t  value0;
++    int32_t  value1;
++    uint32_t line_no;
++    NC_PROGRAM_STATE nc_state;
++} NC_EVENT_ITEM;
++
++typedef struct {
++    uint32_t write_index;
++    uint32_t captured_count;
++    uint32_t lost_count;
++    uint32_t generation;
++    NC_EVENT_ITEM items[NC_EVENT_RING_SIZE];
++} NC_EVENT_RING;
++
++typedef struct {
+     uint32_t cycle;
+     uint32_t sensor_bits;
+     uint32_t seq_bits;
+@@ -582,9 +622,12 @@
+ extern volatile NC_AXIS_LOAD_STATUS  g_ncAxisLoadStatus;
+ extern volatile NC_TOOL_LIFE_STATUS  g_ncToolLifeStatus;
+ extern volatile NC_DIAGNOSTIC_SNAPSHOT g_ncDiagnosticSnapshot;
++extern volatile NC_MOTION_FILTER_STATUS g_ncMotionFilterStatus;
++extern volatile NC_EVENT_RING    g_ncEventRing;
+ extern volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
+ 
+ void SystemShared_Initialize(void);
+ int32_t LogQueue_Push(uint32_t eventType, uint32_t code, int32_t value);
++void NcEvent_Push(uint32_t code, int32_t value0, int32_t value1, uint32_t lineNo);
+ 
+ #endif /* SYSTEM_SHARED_H */
+diff -ru /mnt/data/ibm_bob_v7_for_diff/source/runtime_log.csv /mnt/data/ibm_bob_v8_work/source/runtime_log.csv
+--- /mnt/data/ibm_bob_v7_for_diff/source/runtime_log.csv	2026-04-29 19:48:50.000000000 +0000
++++ /mnt/data/ibm_bob_v8_work/source/runtime_log.csv	2026-04-29 20:21:54.228952160 +0000
+@@ -236,3 +236,25 @@
+ 2,9001,950,519
+ 2,9001,950,520
+ 3,2001,0,520
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++1,7101,1,35
++1,7102,1,40
++3,5006,0,170
++3,1002,0,171
++3,5001,0,521
++3,5002,0,521
++3,5003,0,521
++3,5004,0,529
++1,7201,3,529
++1,7202,3,529
++3,5005,0,529
++1,8201,3,529
++1,8201,3,529
++2,9001,950,589
++3,5007,0,589
++2,5009,4,589
++3,2001,0,589
+diff -ru /mnt/data/ibm_bob_v7_for_diff/source/scripts/build_clang.bat /mnt/data/ibm_bob_v8_work/source/scripts/build_clang.bat
+--- /mnt/data/ibm_bob_v7_for_diff/source/scripts/build_clang.bat	2026-04-29 19:49:47.000000000 +0000
++++ /mnt/data/ibm_bob_v8_work/source/scripts/build_clang.bat	2026-04-29 20:18:55.372095283 +0000
+@@ -10,7 +10,7 @@
+ if not exist build\obj mkdir build\obj
+ 
+ set "VS_DEV_SHELL=C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\Launch-VsDevShell.ps1"
+-set "CLANG_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_codes.c src\nc_compensation.c src\nc_coordinate.c src\nc_diagnostics.c src\nc_feed.c src\nc_interp_math.c src\nc_interpolation.c src\nc_kinematics.c src\nc_lookahead.c src\nc_program.c src\nc_parser.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
++set "CLANG_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_codes.c src\nc_compensation.c src\nc_coordinate.c src\nc_diagnostics.c src\nc_feed.c src\nc_interp_math.c src\nc_interpolation.c src\nc_kinematics.c src\nc_lookahead.c src\nc_motion_filter.c src\nc_program.c src\nc_parser.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
+ set "CLANG_CL="
+ 
+ echo [build_clang] Checking compiler...
+diff -ru /mnt/data/ibm_bob_v7_for_diff/source/scripts/build_vc2026.bat /mnt/data/ibm_bob_v8_work/source/scripts/build_vc2026.bat
+--- /mnt/data/ibm_bob_v7_for_diff/source/scripts/build_vc2026.bat	2026-04-29 19:49:47.000000000 +0000
++++ /mnt/data/ibm_bob_v8_work/source/scripts/build_vc2026.bat	2026-04-29 20:18:55.372467100 +0000
+@@ -10,7 +10,7 @@
+ if not exist build\obj mkdir build\obj
+ 
+ set "VS_DEV_SHELL=C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\Launch-VsDevShell.ps1"
+-set "CL_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_codes.c src\nc_compensation.c src\nc_coordinate.c src\nc_diagnostics.c src\nc_feed.c src\nc_interp_math.c src\nc_interpolation.c src\nc_kinematics.c src\nc_lookahead.c src\nc_program.c src\nc_parser.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
++set "CL_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_codes.c src\nc_compensation.c src\nc_coordinate.c src\nc_diagnostics.c src\nc_feed.c src\nc_interp_math.c src\nc_interpolation.c src\nc_kinematics.c src\nc_lookahead.c src\nc_motion_filter.c src\nc_program.c src\nc_parser.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
+ 
+ echo [build_vc2026] Checking compiler...
+ where cl.exe >nul 2>nul
+diff -ru /mnt/data/ibm_bob_v7_for_diff/source/src/control_api.c /mnt/data/ibm_bob_v8_work/source/src/control_api.c
+--- /mnt/data/ibm_bob_v7_for_diff/source/src/control_api.c	2026-04-29 19:46:25.000000000 +0000
++++ /mnt/data/ibm_bob_v8_work/source/src/control_api.c	2026-04-29 20:16:38.699596958 +0000
+@@ -1,4 +1,5 @@
+ /* ibm-bob/samples/base/source/src/control_api.c */
++#include "nc_motion_filter.h"
+ /* Implements public request APIs for the IBM BOB baseline sample. */
+ /* This exists so callers register work and read snapshots without doing RT work. */
+ /* RELEVANT FILES: ibm-bob/samples/base/source/inc/control_api.h, ibm-bob/samples/base/source/inc/system_shared.h, ibm-bob/samples/base/source/src/nc_program.c */
+@@ -359,3 +360,32 @@
+                  sizeof(*pOutSnapshot));
+     return 0;
+ }
++
++int32_t Api_SetNcMotionFilterConfig(uint8_t enabled,
++                                      uint8_t secondStageMode,
++                                      uint8_t velocityWindow,
++                                      uint8_t accelWindow)
++{
++    return NcMotionFilter_SetConfigRt(enabled,
++                                      secondStageMode,
++                                      velocityWindow,
++                                      accelWindow);
++}
++
++int32_t Api_GetNcMotionFilterStatus(NC_MOTION_FILTER_STATUS* pOutStatus)
++{
++    if (pOutStatus == NULL) {
++        return -1;
++    }
++    *pOutStatus = g_ncMotionFilterStatus;
++    return 0;
++}
++
++int32_t Api_GetNcEventRing(NC_EVENT_RING* pOutRing)
++{
++    if (pOutRing == NULL) {
++        return -1;
++    }
++    *pOutRing = g_ncEventRing;
++    return 0;
++}
+diff -ru /mnt/data/ibm_bob_v7_for_diff/source/src/main.c /mnt/data/ibm_bob_v8_work/source/src/main.c
+--- /mnt/data/ibm_bob_v7_for_diff/source/src/main.c	2026-04-29 19:48:50.000000000 +0000
++++ /mnt/data/ibm_bob_v8_work/source/src/main.c	2026-04-29 20:21:54.075292566 +0000
+@@ -10,6 +10,7 @@
+ #include "ts_service.h"
+ 
+ #define NC_SMOKE_FILE "sample_nc_program.nc"
++#define NC_TOOL_EXPIRED_FILE "sample_nc_tool_expired.nc"
+ 
+ static int32_t WriteNcSmokeFile(void)
+ {
+@@ -68,6 +69,20 @@
+     return 0;
+ }
+ 
++static int32_t WriteNcToolExpiredFile(void)
++{
++    FILE* pFile = fopen(NC_TOOL_EXPIRED_FILE, "w");
++    if (pFile == NULL) {
++        return -1;
++    }
++    (void)fprintf(pFile, "%%\n");
++    (void)fprintf(pFile, "G21 G90\n");
++    (void)fprintf(pFile, "M06 T3 ; tool-life expiry hold sample\n");
++    (void)fprintf(pFile, "G01 X0.050 F60000\n");
++    (void)fclose(pFile);
++    return 0;
++}
++
+ static uint32_t ParseLineExpectError(const char* firstLine,
+                                      const char* secondLine,
+                                      NC_ERROR_CODE expected)
+@@ -130,9 +145,6 @@
+     if (cycle == 2U) {
+         g_ioIn.seq_bits |= SENSOR_SEQ_SKIP_BIT; /* G31 skip probe is armed before G31 */
+     }
+-    if (cycle == 450U) {
+-        g_ioIn.analog[0] = 950; /* pressure high after NC completion */
+-    }
+ }
+ 
+ int main(void)
+@@ -153,8 +165,15 @@
+     NC_AXIS_LOAD_STATUS loadStatus;
+     NC_TOOL_LIFE_STATUS toolLifeStatus;
+     NC_DIAGNOSTIC_SNAPSHOT diagSnapshot;
++    NC_MOTION_FILTER_STATUS filterStatus;
++    NC_EVENT_RING eventRing;
+     int32_t ncAxis[AXIS_MAX] = {0};
+     uint32_t ncMCode = 0U;
++    uint32_t mainNcError = 0U;
++    uint32_t mainNcErrorLine = 0U;
++    uint32_t mainNcExec = 0U;
++    uint32_t mainNcRead = 0U;
++    uint32_t mainNcBuf = 0U;
+     uint32_t interpSegments = 0U;
+     uint32_t feedProfile = 0U;
+     uint32_t feedOverride = 0U;
+@@ -214,6 +233,18 @@
+     uint32_t diagDecelLevel = 0U;
+     uint32_t diagToolExpired = 0U;
+     uint32_t diagAxisWarn = 0U;
++    uint32_t filterSamples = 0U;
++    uint32_t filterMode = 0U;
++    uint32_t filterAxisMask = 0U;
++    int32_t filterRawVX = 0;
++    int32_t filterSmoothVX = 0;
++    int32_t filterOutX = 0;
++    uint32_t eventCaptured = 0U;
++    uint32_t eventLost = 0U;
++    uint32_t lastEventCode = 0U;
++    uint32_t toolLifeHoldState = 0U;
++    uint32_t toolLifeHoldError = 0U;
++    uint32_t toolLifeHoldLine = 0U;
+     uint8_t ncCaptured = 0U;
+     uint32_t cycle;
+ 
+@@ -221,7 +252,9 @@
+     (void)Api_SetNcToolLengthOffset(1U, 500);
+     (void)Api_SetNcCutterRadiusOffset(1U, 300);
+     (void)Api_SetNcAxisAssignment(3U, 3U, -1, 0U);
+-    (void)Api_SetNcToolLifeLimit(2U, 4U);
++    (void)Api_SetNcMotionFilterConfig(1U, NC_MOTION_FILTER_SECOND_STAGE_FIR, 3U, 5U);
++    (void)Api_SetNcToolLifeLimit(2U, 100U);
++    (void)Api_SetNcToolLifeLimit(3U, 1U);
+     if (WriteNcSmokeFile() != 0) {
+         return 1;
+     }
+@@ -233,6 +266,11 @@
+         if ((ncCaptured == 0U) &&
+             (Api_GetNcProgramStatus(&ncStatus) == 0) &&
+             (ncStatus.state == NC_COMPLETED)) {
++            mainNcError = ncStatus.error_code;
++            mainNcErrorLine = ncStatus.error_line_no;
++            mainNcExec = ncStatus.exec_line_no;
++            mainNcRead = ncStatus.read_line_no;
++            mainNcBuf = ncStatus.buffered_blocks;
+             ncAxis[0] = g_ioOut.axis_target[0];
+             ncAxis[1] = g_ioOut.axis_target[1];
+             ncAxis[2] = g_ioOut.axis_target[2];
+@@ -323,6 +361,8 @@
+         }
+     }
+ 
++
++
+     if (Api_GetNcAuxStatus(&auxStatus) == 0) {
+         auxCompleted = auxStatus.completed_m_codes;
+         auxWaitCycles = auxStatus.last_wait_cycles;
+@@ -383,6 +423,46 @@
+         diagToolExpired = diagSnapshot.tool_expired_mask;
+         diagAxisWarn = diagSnapshot.axis_warning_mask;
+     }
++    if (Api_GetNcMotionFilterStatus(&filterStatus) == 0) {
++        filterSamples = filterStatus.applied_samples;
++        filterMode = filterStatus.second_stage_mode;
++        filterAxisMask = filterStatus.filtered_axis_mask;
++        filterRawVX = filterStatus.max_raw_velocity[0];
++        filterSmoothVX = filterStatus.max_filtered_velocity[0];
++        filterOutX = filterStatus.last_filtered_target[0];
++    }
++    if (ncCaptured != 0U) {
++        if (WriteNcToolExpiredFile() == 0) {
++            uint32_t extra;
++            (void)Api_RequestNcProgramLoad(NC_TOOL_EXPIRED_FILE);
++            for (extra = 0U; extra < 8U; ++extra) {
++                RtDispatcher_ExecuteCycle();
++                TsService_ExecuteSlice();
++            }
++            (void)Api_RequestNcProgramStart();
++            for (extra = 0U; extra < 60U; ++extra) {
++                RtDispatcher_ExecuteCycle();
++                TsService_ExecuteSlice();
++            }
++            if (Api_GetNcProgramStatus(&ncStatus) == 0) {
++                toolLifeHoldState = ncStatus.state;
++                toolLifeHoldError = ncStatus.error_code;
++                toolLifeHoldLine = ncStatus.error_line_no;
++            }
++        }
++        g_ioIn.analog[0] = 950;
++        RtDispatcher_ExecuteCycle();
++        TsService_ExecuteSlice();
++    }
++
++    if (Api_GetNcEventRing(&eventRing) == 0) {
++        uint32_t lastIndex = (eventRing.write_index == 0U) ?
++                             (NC_EVENT_RING_SIZE - 1U) :
++                             (eventRing.write_index - 1U);
++        eventCaptured = eventRing.captured_count;
++        eventLost = eventRing.lost_count;
++        lastEventCode = eventRing.items[lastIndex].code;
++    }
+     if (Api_GetIoTraceBuffer(&traceBuffer) == 0) {
+         traceFrozen = traceBuffer.frozen;
+         traceCaptured = traceBuffer.captured_count;
+@@ -392,11 +472,11 @@
+     if (Api_GetNcProgramStatus(&ncStatus) == 0) {
+         (void)printf("nc_state=%u nc_error=%u nc_error_line=%u nc_exec=%u nc_read=%u nc_buf=%u nc_x=%d nc_y=%d nc_z=%d nc_m=%u\n",
+                      (unsigned int)(ncCaptured ? NC_COMPLETED : ncStatus.state),
+-                     (unsigned int)ncStatus.error_code,
+-                     (unsigned int)ncStatus.error_line_no,
+-                     (unsigned int)ncStatus.exec_line_no,
+-                     (unsigned int)ncStatus.read_line_no,
+-                     (unsigned int)ncStatus.buffered_blocks,
++                     (unsigned int)(ncCaptured ? mainNcError : ncStatus.error_code),
++                     (unsigned int)(ncCaptured ? mainNcErrorLine : ncStatus.error_line_no),
++                     (unsigned int)(ncCaptured ? mainNcExec : ncStatus.exec_line_no),
++                     (unsigned int)(ncCaptured ? mainNcRead : ncStatus.read_line_no),
++                     (unsigned int)(ncCaptured ? mainNcBuf : ncStatus.buffered_blocks),
+                      (int)ncAxis[0],
+                      (int)ncAxis[1],
+                      (int)ncAxis[2],
+@@ -458,6 +538,20 @@
+                  (unsigned int)diagDecelLevel,
+                  (unsigned int)diagToolExpired,
+                  (unsigned int)diagAxisWarn);
++    (void)printf("motion_filter_samples=%u mode=%u axis_mask=0x%08x raw_vx=%d smooth_vx=%d out_x=%d\n",
++                 (unsigned int)filterSamples,
++                 (unsigned int)filterMode,
++                 (unsigned int)filterAxisMask,
++                 (int)filterRawVX,
++                 (int)filterSmoothVX,
++                 (int)filterOutX);
++    (void)printf("tool_life_hold_state=%u tool_life_hold_error=%u tool_life_hold_line=%u events=%u lost=%u last_event=%u\n",
++                 (unsigned int)toolLifeHoldState,
++                 (unsigned int)toolLifeHoldError,
++                 (unsigned int)toolLifeHoldLine,
++                 (unsigned int)eventCaptured,
++                 (unsigned int)eventLost,
++                 (unsigned int)lastEventCode);
+     (void)printf("cycle_completed=%u cycle_phase_count=%u skip_completed=%u skip_x=%d\n",
+                  (unsigned int)cycleCompleted,
+                  (unsigned int)cyclePhaseCount,
+@@ -486,5 +580,6 @@
+     (void)printf("coord_error_checks=%u\n",
+                  (unsigned int)RunCoordinateErrorChecks());
+     (void)remove(NC_SMOKE_FILE);
++    (void)remove(NC_TOOL_EXPIRED_FILE);
+     return 0;
+ }
+diff -ru /mnt/data/ibm_bob_v7_for_diff/source/src/nc_interpolation.c /mnt/data/ibm_bob_v8_work/source/src/nc_interpolation.c
+--- /mnt/data/ibm_bob_v7_for_diff/source/src/nc_interpolation.c	2026-04-29 19:32:22.000000000 +0000
++++ /mnt/data/ibm_bob_v8_work/source/src/nc_interpolation.c	2026-04-29 20:17:26.721899986 +0000
+@@ -5,6 +5,7 @@
+ #include <math.h>
+ #include <string.h>
+ #include "nc_feed.h"
++#include "nc_motion_filter.h"
+ #include "nc_interp_math.h"
+ #include "nc_interpolation.h"
+ #include "nc_program.h"
+@@ -269,6 +270,35 @@
+     return 0;
+ }
+ 
++static void ApplyStagedDecelToActivePlan(void)
++{
++    uint16_t percent = g_ncAxisLoadStatus.decel_override_percent;
++    uint32_t i;
++    if ((g_ncAxisLoadStatus.decel_request == 0U) ||
++        (percent == 0U) || (percent >= NC_FEED_OVERRIDE_DEFAULT_PERCENT)) {
++        return;
++    }
++    if (s_activeBlock.interp_ticks < NC_INTERP_MAX_TICKS) {
++        uint64_t scaled = ((uint64_t)s_activeBlock.interp_ticks * 100U + (percent - 1U)) / percent;
++        s_activeBlock.interp_ticks = (scaled > NC_INTERP_MAX_TICKS) ? NC_INTERP_MAX_TICKS : (uint32_t)scaled;
++    }
++    for (i = 0U; i < s_segmentCount; ++i) {
++        uint64_t scaled = ((uint64_t)s_segments[i].end_tick * 100U + (percent - 1U)) / percent;
++        s_segments[i].end_tick = (scaled > NC_INTERP_MAX_TICKS) ? NC_INTERP_MAX_TICKS : (uint32_t)scaled;
++    }
++    if (s_activeBlock.accel_ticks != 0U) {
++        s_activeBlock.accel_ticks = (s_activeBlock.accel_ticks * 100U + (percent - 1U)) / percent;
++    }
++    if (s_activeBlock.decel_ticks != 0U) {
++        s_activeBlock.decel_ticks = (s_activeBlock.decel_ticks * 100U + (percent - 1U)) / percent;
++    }
++    s_activeBlock.feed_override_percent = percent;
++    NcEvent_Push(NC_EVENT_CODE_AXIS_DECEL_APPLIED,
++                 (int32_t)g_ncAxisLoadStatus.staged_decel_level,
++                 (int32_t)percent,
++                 s_activeBlock.line_no);
++}
++
+ static int32_t BuildArcSegmentPlan(const NC_EXEC_BLOCK* pBlock)
+ {
+     uint32_t a;
+@@ -344,6 +374,7 @@
+     g_ncInterpStatus.state = NC_INTERP_IDLE;
+     g_ncInterpStatus.last_error = NC_ERR_NONE;
+     NcFeed_Reset();
++    NcMotionFilter_ResetRt();
+ }
+ 
+ void NcInterpolation_Cancel(void)
+@@ -437,6 +468,7 @@
+         g_ncCycleStatus.active = 0U;
+     }
+ 
++    ApplyStagedDecelToActivePlan();
+     if (s_activeBlock.interp_ticks == 0U) {
+         s_activeBlock.interp_ticks = NC_INTERP_MIN_TICKS;
+     }
+@@ -567,6 +599,11 @@
+         OutputLinearBlock(ratio);
+     }
+ 
++    if (s_activeBlock.motion_type != NC_MOTION_DWELL) {
++        NcMotionFilter_ApplyRt(g_ioOut.axis_target,
++                               s_activeBlock.axis_mask,
++                               (uint8_t)(s_activeTick == s_activeBlock.interp_ticks));
++    }
+     CheckSkipInput();
+     if (s_hasActive == 0U) {
+         return 0;
+Only in /mnt/data/ibm_bob_v8_work/source/src: nc_motion_filter.c
+diff -ru /mnt/data/ibm_bob_v7_for_diff/source/src/nc_program.c /mnt/data/ibm_bob_v8_work/source/src/nc_program.c
+--- /mnt/data/ibm_bob_v7_for_diff/source/src/nc_program.c	2026-04-29 19:46:25.000000000 +0000
++++ /mnt/data/ibm_bob_v8_work/source/src/nc_program.c	2026-04-29 20:18:02.507976052 +0000
+@@ -182,6 +182,31 @@
+                      (pBlock->motion_type == NC_MOTION_DWELL));
+ }
+ 
++static uint8_t RtNcProgram_IsActiveToolExpired(void)
++{
++    uint32_t toolNo = g_ncToolLifeStatus.active_tool_no;
++    if ((toolNo == 0U) || (toolNo >= NC_TOOL_LIFE_TABLE_SIZE)) {
++        return 0U;
++    }
++    return (uint8_t)((g_ncToolLifeStatus.expired_mask & (1UL << toolNo)) != 0U);
++}
++
++static void RtNcProgram_HoldForToolLife(uint32_t lineNo)
++{
++    g_ncProgramStatus.error_code = NC_ERR_TOOL_LIFE_EXPIRED;
++    g_ncProgramStatus.error_line_no = lineNo;
++    g_ncProgramStatus.response_code = RESPONSE_REJECTED;
++    NcInterpolation_Cancel();
++    RtNcProgram_ResetAuxWait();
++    NcStatus_SetState(NC_HOLD);
++    NcEvent_Push(NC_EVENT_CODE_TOOL_LIFE_EXPIRED_HOLD,
++                 (int32_t)g_ncToolLifeStatus.active_tool_no,
++                 (int32_t)g_ncToolLifeStatus.tool_use_count[g_ncToolLifeStatus.active_tool_no],
++                 lineNo);
++    (void)LogQueue_Push(LOG_WARN, NC_EVENT_CODE_TOOL_LIFE_EXPIRED_HOLD,
++                        (int32_t)g_ncToolLifeStatus.active_tool_no);
++}
++
+ static void RtNcProgram_ApplyBlockAux(const NC_EXEC_BLOCK* pBlock)
+ {
+     uint32_t i;
+@@ -189,6 +214,10 @@
+     g_ncProgramStatus.exec_line_no = pBlock->line_no;
+     RtNcProgram_UpdateFeatureStatus(pBlock);
+     NcDiagnostics_OnBlockRt(pBlock);
++    if (RtNcProgram_IsActiveToolExpired() != 0U) {
++        RtNcProgram_HoldForToolLife(pBlock->line_no);
++        return;
++    }
+     if ((pBlock->motion_type == NC_MOTION_NONE) &&
+         (pBlock->axis_mask == 0U) &&
+         (pBlock->aux_flags == 0U)) {
+@@ -238,6 +267,9 @@
+ 
+     if (pBlock->motion_type != NC_MOTION_DWELL) {
+         RtNcProgram_ApplyBlockAux(pBlock);
++        if (g_ncProgramStatus.state != NC_RUNNING) {
++            return;
++        }
+     } else {
+         g_ncProgramStatus.exec_line_no = pBlock->line_no;
+     }
+@@ -291,7 +323,10 @@
+     }
+ 
+     g_ncProgramRequest.start_request = 0U;
+-    if ((g_ncProgramStatus.state == NC_READY) &&
++    if (RtNcProgram_IsActiveToolExpired() != 0U) {
++        RtNcProgram_HoldForToolLife(g_ncProgramStatus.exec_line_no);
++        g_ncProgramStatus.response_code = RESPONSE_REJECTED;
++    } else if ((g_ncProgramStatus.state == NC_READY) &&
+         (g_machineCtx.run_mode == RUN_MODE_AUTO) && (safetyOk != 0U)) {
+         g_machineCtx.machine_state = MACHINE_RUNNING;
+         NcStatus_SetState(NC_RUNNING);
+diff -ru /mnt/data/ibm_bob_v7_for_diff/source/src/system_shared.c /mnt/data/ibm_bob_v8_work/source/src/system_shared.c
+--- /mnt/data/ibm_bob_v7_for_diff/source/src/system_shared.c	2026-04-29 19:46:25.000000000 +0000
++++ /mnt/data/ibm_bob_v8_work/source/src/system_shared.c	2026-04-29 20:16:31.831559145 +0000
+@@ -28,6 +28,8 @@
+ volatile NC_AXIS_LOAD_STATUS  g_ncAxisLoadStatus;
+ volatile NC_TOOL_LIFE_STATUS  g_ncToolLifeStatus;
+ volatile NC_DIAGNOSTIC_SNAPSHOT g_ncDiagnosticSnapshot;
++volatile NC_MOTION_FILTER_STATUS g_ncMotionFilterStatus;
++volatile NC_EVENT_RING    g_ncEventRing;
+ volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
+ 
+ void SystemShared_Initialize(void)
+@@ -55,6 +57,8 @@
+     (void)memset((void*)&g_ncAxisLoadStatus, 0, sizeof(g_ncAxisLoadStatus));
+     (void)memset((void*)&g_ncToolLifeStatus, 0, sizeof(g_ncToolLifeStatus));
+     (void)memset((void*)&g_ncDiagnosticSnapshot, 0, sizeof(g_ncDiagnosticSnapshot));
++    (void)memset((void*)&g_ncMotionFilterStatus, 0, sizeof(g_ncMotionFilterStatus));
++    (void)memset((void*)&g_ncEventRing, 0, sizeof(g_ncEventRing));
+     (void)memset((void*)&g_ioTraceBuffer, 0, sizeof(g_ioTraceBuffer));
+ 
+     g_machineCtx.run_mode = RUN_MODE_MANUAL;
+@@ -71,6 +75,10 @@
+     g_prestartInterlockStatus.ok = 0U;
+     g_ncAuxStatus.state = NC_AUX_STATE_IDLE;
+     g_ncAxisLoadStatus.decel_override_percent = NC_FEED_OVERRIDE_DEFAULT_PERCENT;
++    g_ncMotionFilterStatus.enabled = 1U;
++    g_ncMotionFilterStatus.second_stage_mode = NC_MOTION_FILTER_SECOND_STAGE_FIR;
++    g_ncMotionFilterStatus.velocity_window = NC_MOTION_FILTER_DEFAULT_VELOCITY_WINDOW;
++    g_ncMotionFilterStatus.accel_window = NC_MOTION_FILTER_DEFAULT_ACCEL_WINDOW;
+     for (uint32_t i = 0U; i < NC_TOOL_LIFE_TABLE_SIZE; ++i) {
+         g_ncToolLifeStatus.tool_life_limit[i] = NC_TOOL_LIFE_DEFAULT_LIMIT;
+     }
+@@ -94,3 +102,28 @@
+ 
+     return 0;
+ }
++
++void NcEvent_Push(uint32_t code, int32_t value0, int32_t value1, uint32_t lineNo)
++{
++    NC_EVENT_ITEM* pItem;
++    uint32_t index = g_ncEventRing.write_index;
++
++    if (index >= NC_EVENT_RING_SIZE) {
++        index = 0U;
++        g_ncEventRing.write_index = 0U;
++    }
++    pItem = (NC_EVENT_ITEM*)&g_ncEventRing.items[index];
++    pItem->cycle = g_machineCtx.cycle_count;
++    pItem->code = code;
++    pItem->value0 = value0;
++    pItem->value1 = value1;
++    pItem->line_no = lineNo;
++    pItem->nc_state = g_ncProgramStatus.state;
++    g_ncEventRing.write_index = (index + 1U) % NC_EVENT_RING_SIZE;
++    if (g_ncEventRing.captured_count < NC_EVENT_RING_SIZE) {
++        g_ncEventRing.captured_count++;
++    } else {
++        g_ncEventRing.lost_count++;
++    }
++    g_ncEventRing.generation++;
++}

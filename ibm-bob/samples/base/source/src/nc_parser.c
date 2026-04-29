@@ -71,8 +71,18 @@ int32_t NcParse_LineToBlock(const char* line,
         while (isspace((unsigned char)*pCursor) != 0) {
             pCursor++;
         }
-        if (*pCursor == '\0') {
+        if ((*pCursor == '\0') || (*pCursor == ';') || (*pCursor == '%')) {
             break;
+        }
+        if (*pCursor == '(') {
+            pCursor++;
+            while ((*pCursor != '\0') && (*pCursor != ')')) {
+                pCursor++;
+            }
+            if (*pCursor == ')') {
+                pCursor++;
+            }
+            continue;
         }
         if (isalpha((unsigned char)*pCursor) == 0) {
             *pOutError = NC_ERR_TOKEN;

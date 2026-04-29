@@ -3,8 +3,11 @@
 /* This exists so unit scaling and coordinate words stay out of modal code. */
 /* RELEVANT FILES: ibm-bob/samples/base/source/src/nc_parser_modal.c, ibm-bob/samples/base/source/inc/nc_parser_internal.h, ibm-bob/samples/base/source/src/nc_coordinate.c */
 #include <limits.h>
+#include <math.h>
 #include "nc_codes.h"
+#include "nc_capability.h"
 #include "nc_coordinate.h"
+#include "nc_cycle.h"
 #include "nc_parser_internal.h"
 #include "nc_program.h"
 
@@ -17,6 +20,25 @@ static int32_t RoundToInt(double value, int32_t* pOut)
         return -1;
     }
     *pOut = (int32_t)value;
+    return 0;
+}
+
+static int32_t NormalizeGCode(double value, int32_t* pOutCode10)
+{
+    double scaled;
+    int32_t code10;
+
+    if ((value < 0.0) || (value > 999.9)) {
+        return -1;
+    }
+    scaled = (value * 10.0) + 0.5;
+    if (RoundToInt(scaled - 0.5, &code10) != 0) {
+        return -1;
+    }
+    if (fabs(((double)code10 / 10.0) - value) > 0.0001) {
+        return -1;
+    }
+    *pOutCode10 = code10;
     return 0;
 }
 
@@ -68,6 +90,40 @@ static int32_t ApplyAxis(const NC_ADDRESS_INFO* pInfo,
                          NC_EXEC_BLOCK* pBlock,
                          NC_PARSE_CONTEXT* pCtx)
 {
+    if (pCtx->coord_mode == NC_PARSE_COORD_TILTED_PLANE) {
+        if ((pInfo->axis_index >= 0) && (pInfo->axis_index < 3)) {
+            pBlock->tilt_origin[pInfo->axis_index] = scaled;
+            return 0;
+        }
+        if (pInfo->axis_index == 3) {
+            pBlock->tilt_angle_deg[0] = scaled;
+            return 0;
+        }
+        return -4;
+    }
+    if (pCtx->coord_mode == NC_PARSE_COORD_TOOL_AXIS) {
+        if (pInfo->axis_index == 3) {
+            pBlock->tool_axis_angle_deg[0] = scaled;
+            return 0;
+        }
+        return -4;
+    }
+    if (pCtx->coord_mode == NC_PARSE_COORD_MIRROR_SETTING) {
+        if ((pInfo->axis_index >= 0) && (pInfo->axis_index < (int32_t)AXIS_MAX)) {
+            if (scaled != 0) {
+                pBlock->mirror_axis_mask |= (1UL << pInfo->axis_index);
+            }
+            return 0;
+        }
+        return -4;
+    }
+    if (pCtx->coord_mode == NC_PARSE_COORD_ROTATION_CENTER) {
+        if ((pInfo->axis_index == 0) || (pInfo->axis_index == 1)) {
+            pBlock->rotation_center[pInfo->axis_index] = scaled;
+            return 0;
+        }
+        return -4;
+    }
     if (pCtx->coord_mode == NC_PARSE_COORD_LOCAL_SHIFT) {
         return (NcCoordinate_SetLocalShiftAxis(pInfo->axis_index, scaled) == 0) ?
                0 : -4;
@@ -91,6 +147,27 @@ static int32_t ApplyAxis(const NC_ADDRESS_INFO* pInfo,
            0 : -4;
 }
 
+static int32_t ApplyIncrementalAxis(const NC_ADDRESS_INFO* pInfo,
+                                    int32_t scaled,
+                                    NC_EXEC_BLOCK* pBlock)
+{
+    int32_t base;
+
+    if ((pInfo->axis_index < 0) || (pInfo->axis_index >= (int32_t)AXIS_MAX)) {
+        return -4;
+    }
+    base = g_ncCoordinateState.program_position[pInfo->axis_index];
+    return (NcCoordinate_SetProgramAxis(pInfo->axis_index,
+                                        base + scaled,
+                                        pBlock) == 0) ? 0 : -4;
+}
+
+static uint8_t IsArcMotion(NC_MOTION_TYPE motion)
+{
+    return (uint8_t)((motion == NC_MOTION_ARC_CW) ||
+                     (motion == NC_MOTION_ARC_CCW));
+}
+
 static int32_t ApplyScaledToken(const NC_ADDRESS_INFO* pInfo,
                                 int32_t scaled,
                                 NC_EXEC_BLOCK* pBlock,
@@ -99,6 +176,9 @@ static int32_t ApplyScaledToken(const NC_ADDRESS_INFO* pInfo,
     if (pInfo->kind == NC_ADDRESS_KIND_AXIS) {
         return ApplyAxis(pInfo, scaled, pBlock, pCtx);
     }
+    if (pInfo->kind == NC_ADDRESS_KIND_INCREMENTAL_AXIS) {
+        return ApplyIncrementalAxis(pInfo, scaled, pBlock);
+    }
     if (pInfo->kind == NC_ADDRESS_KIND_ARC_OFFSET) {
         pBlock->arc_center[pInfo->axis_index] =
             pBlock->axis_start[pInfo->axis_index] + scaled;
@@ -106,8 +186,41 @@ static int32_t ApplyScaledToken(const NC_ADDRESS_INFO* pInfo,
         return 0;
     }
     if (pInfo->kind == NC_ADDRESS_KIND_ARC_RADIUS) {
-        pBlock->arc_radius = scaled;
-        pBlock->modal_flags |= NC_ARC_FLAG_R;
+        if (IsArcMotion(pBlock->motion_type) != 0U) {
+            pBlock->arc_radius = scaled;
+            pBlock->modal_flags |= NC_ARC_FLAG_R;
+        } else {
+            pBlock->r_value = scaled;
+            pBlock->feature_flags |= NC_FEATURE_FLAG_PARAM_R;
+        }
+        return 0;
+    }
+    if (pInfo->kind == NC_ADDRESS_KIND_OFFSET) {
+        if (pCtx->coord_mode == NC_PARSE_COORD_TILTED_PLANE) {
+            if (pInfo->address == 'B') {
+                pBlock->tilt_angle_deg[1] = scaled;
+                return 0;
+            }
+            if (pInfo->address == 'C') {
+                pBlock->tilt_angle_deg[2] = scaled;
+                return 0;
+            }
+        }
+        if (pCtx->coord_mode == NC_PARSE_COORD_TOOL_AXIS) {
+            if (pInfo->address == 'B') {
+                pBlock->tool_axis_angle_deg[1] = scaled;
+                return 0;
+            }
+            if (pInfo->address == 'C') {
+                pBlock->tool_axis_angle_deg[2] = scaled;
+                return 0;
+            }
+        }
+        if (pInfo->address == 'H') {
+            pBlock->h_offset_no = (uint16_t)(scaled / NC_POSITION_SCALE);
+        } else if (pInfo->address == 'D') {
+            pBlock->d_offset_no = (uint16_t)(scaled / NC_POSITION_SCALE);
+        }
         return 0;
     }
     NcParser_SetFeed(scaled, pBlock);
@@ -140,15 +253,34 @@ static int32_t ApplyPWord(double value,
         pBlock->interp_ticks = (uint32_t)(value + 0.5);
         return 0;
     }
-    if ((pCtx->coord_mode != NC_PARSE_COORD_G10_WORK_OFFSET) ||
-        (RoundToInt(value, &word) != 0)) {
-        return -1;
+    if (pCtx->coord_mode == NC_PARSE_COORD_G10_WORK_OFFSET) {
+        if (RoundToInt(value, &word) != 0) {
+            return -1;
+        }
+        if ((word < 1) || (word > (int32_t)NC_WORK_COORD_SYSTEMS)) {
+            return -2;
+        }
+        pCtx->g10_p_valid = 1U;
+        pCtx->g10_p_value = word;
+        return 0;
     }
-    if ((word < 1) || (word > (int32_t)NC_WORK_COORD_SYSTEMS)) {
+    if (value < 0.0) {
         return -2;
     }
-    pCtx->g10_p_valid = 1U;
-    pCtx->g10_p_value = word;
+    pBlock->p_word = (uint32_t)(value + 0.5);
+    pBlock->feature_flags |= NC_FEATURE_FLAG_PARAM_P;
+    return 0;
+}
+
+static int32_t ApplyQWord(double value, NC_EXEC_BLOCK* pBlock)
+{
+    int32_t scaled;
+
+    if (ScaleLinear(value, &scaled) != 0) {
+        return -2;
+    }
+    pBlock->q_value = scaled;
+    pBlock->feature_flags |= NC_FEATURE_FLAG_PARAM_Q;
     return 0;
 }
 
@@ -156,6 +288,9 @@ static int32_t ApplyAuxToken(const NC_ADDRESS_INFO* pInfo,
                              double value,
                              NC_EXEC_BLOCK* pBlock)
 {
+    if (pInfo->kind == NC_ADDRESS_KIND_NUMBER) {
+        return 0;
+    }
     if (value < 0.0) {
         return -2;
     }
@@ -174,10 +309,14 @@ static int32_t ApplyAuxToken(const NC_ADDRESS_INFO* pInfo,
 
         if ((NcCodes_GetMCodeInfo(code, &mInfo) != 0) ||
             (mInfo.supported_v1 == 0U)) {
+            NcCapability_RecordUnsupported(NC_CAPABILITY_KIND_M, code);
             return -1;
         }
         pBlock->aux_m_code = mInfo.code;
         pBlock->aux_flags |= NC_AUX_FLAG_M_CODE;
+        if (mInfo.waits_for_mfin != 0U) {
+            pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
+        }
         return 0;
     }
     return -1;
@@ -189,20 +328,44 @@ int32_t NcParser_ApplyToken(char address,
                             NC_PARSE_CONTEXT* pCtx)
 {
     int32_t scaled;
+    int32_t gCode10;
     NC_ADDRESS_INFO info;
 
     if ((NcCodes_GetAddressInfo(address, &info) != 0) ||
         (info.supported_v1 == 0U)) {
+        if ((address >= 'A') && (address <= 'Z')) {
+            NcCapability_RecordUnsupported(NC_CAPABILITY_KIND_ADDRESS,
+                                           (uint32_t)(address - 'A'));
+        }
         return -1;
     }
     if (info.kind == NC_ADDRESS_KIND_G_CODE) {
-        return NcParser_ApplyGCode((int32_t)(value + 0.5), pBlock, pCtx);
+        if (NormalizeGCode(value, &gCode10) != 0) {
+            return -2;
+        }
+        return NcParser_ApplyGCode(gCode10, pBlock, pCtx);
     }
     if (info.kind == NC_ADDRESS_KIND_L_WORD) {
         return ApplyLWord(value, pCtx);
     }
     if (info.kind == NC_ADDRESS_KIND_P_WORD) {
         return ApplyPWord(value, pBlock, pCtx);
+    }
+    if (info.kind == NC_ADDRESS_KIND_Q_WORD) {
+        return ApplyQWord(value, pBlock);
+    }
+    if ((info.address == 'K') &&
+        (pBlock->motion_type == NC_MOTION_CANNED_CYCLE)) {
+        return NcCycle_SetRepeatWord(value, pBlock);
+    }
+    if ((info.address == 'R') &&
+        (pCtx->coord_mode == NC_PARSE_COORD_ROTATION_CENTER)) {
+        int32_t angle;
+        if (RoundToInt(value * (double)NC_ANGLE_SCALE, &angle) != 0) {
+            return -2;
+        }
+        pBlock->rotation_angle_deg = angle;
+        return 0;
     }
     if (info.kind == NC_ADDRESS_KIND_FEED) {
         if (ScaleFeed(value, &scaled) != 0) {
@@ -211,8 +374,10 @@ int32_t NcParser_ApplyToken(char address,
         return ApplyScaledToken(&info, scaled, pBlock, pCtx);
     }
     if ((info.kind == NC_ADDRESS_KIND_AXIS) ||
+        (info.kind == NC_ADDRESS_KIND_INCREMENTAL_AXIS) ||
         (info.kind == NC_ADDRESS_KIND_ARC_OFFSET) ||
-        (info.kind == NC_ADDRESS_KIND_ARC_RADIUS)) {
+        (info.kind == NC_ADDRESS_KIND_ARC_RADIUS) ||
+        (info.kind == NC_ADDRESS_KIND_OFFSET)) {
         if (ScaleLinear(value, &scaled) != 0) {
             return -2;
         }

@@ -1,0 +1,20 @@
+{
+  "version": "v6",
+  "base": "ibm_bob_source_implemented_additional_features_v5.zip",
+  "generated_at": "2026-04-30T00:00:00+09:00",
+  "summary": "Adds TS-side 5-axis tilted plane, tool-axis vector, mirror, axis assignment, axis retract/recover status, and public diagnostics API.",
+  "added_files": [
+    "inc/nc_kinematics.h",
+    "src/nc_kinematics.c",
+    "docs/implementation_report_v6.md",
+    "docs/verification_output_v6.txt",
+    "docs/continuation_v6_diff.patch",
+    "docs/manifest_v6.json"
+  ],
+  "smoke_test": {
+    "build_command": "gcc -std=c99 -Wall -Wextra -Iinc src/*.c -lm -o build_v6_test",
+    "result": "pass",
+    "output_file": "docs/verification_output_v6.txt"
+  },
+  "file_count": 61
+}

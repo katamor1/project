@@ -1,0 +1,28 @@
+# v3 verification
+
+Build command:
+gcc -std=c99 -Wall -Wextra -Iinc src/*.c -lm -o build_v3_test
+
+Result:
+build: PASS
+run: PASS
+
+Observed smoke-test output:
+```text
+nc_state=6 nc_error=0 nc_error_line=0 nc_exec=27 nc_read=27 nc_buf=0 nc_x=1200 nc_y=2300 nc_z=3400 nc_m=130
+interp_segments=11 feed_profile=1 feed_override=100 dwell_ticks=1
+coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=1000
+feature_blocks=21 feature_flags=97 canned=2 skip=1 advanced=3
+cycle_completed=2 cycle_phase_count=1 skip_completed=1 skip_x=1300
+aux_completed=1 aux_wait_cycles=5 prestart_ok=0 prestart_mask=0x00000014
+trace_frozen=1 trace_captured=32 trace_trigger_cycle=261
+mode=1 state=3 alarm=9001 cycle=300
+coord_error_checks=5
+```
+
+Key confirmations:
+- NC program reaches NC_COMPLETED before the intentional pressure alarm.
+- G83/G70.7 canned-cycle blocks execute through internal RT segment plans.
+- G31 skip input is detected in RT and recorded in NC_CYCLE_STATUS.
+- M06 waits for MFIN and reports one completed M-code handshake.
+- I/O trace freezes when the later pressure alarm is injected.

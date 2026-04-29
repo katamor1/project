@@ -1,0 +1,2317 @@
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' orig_source/source/docs/implementation_report.md impl_work/source/docs/implementation_report.md
+--- orig_source/source/docs/implementation_report.md	1970-01-01 00:00:00.000000000 +0000
++++ impl_work/source/docs/implementation_report.md	2026-04-29 19:01:11.703518020 +0000
+@@ -0,0 +1,78 @@
++# IBM-Bob design-document implementation report
++
++## Scope implemented
++
++The uploaded basic/detail design documents describe a broad NC/machine-control feature set. This implementation adds a compiled, RT/TS-safe first implementation layer to the supplied `source` tree, focused on the shared execution model, NC block normalization, and fixed-cycle RT consumption rather than full machine-geometry fidelity for every specialized CNC function.
++
++This continuation builds on the previous implementation and adds the next safety/control layer requested by the design documents: pre-start interlock aggregation, M-code response wait handling, alarm I/O trace capture, and more decimal G-code coverage.
++
++## Main changes from the first implementation
++
++- Added pre-start interlock aggregation shared memory and API.
++  - New `PRESTART_INTERLOCK_STATUS g_prestartInterlockStatus`.
++  - New `Api_GetPrestartInterlockStatus()`.
++  - RT cycle now evaluates emergency stop, servo alarm, ready switch, pressure range, machine alarm, and NC buffer readiness before AUTO/NC start acceptance.
++- Added M-code MFIN response-wait handling.
++  - `M06` is identified as an MFIN-wait M-code through the M-code table.
++  - Parser now sets `NC_AUX_FLAG_MFIN_WAIT` on fixed `NC_EXEC_BLOCK` output.
++  - RT consumption outputs the M-code, stops consuming subsequent NC blocks, and resumes only after `SENSOR_SEQ_MFIN_BIT` appears in `g_ioIn.seq_bits`.
++  - New `NC_AUX_STATUS g_ncAuxStatus` and `Api_GetNcAuxStatus()` expose active M-code, wait line, wait cycles, completed M-codes, and generation.
++- Added alarm-triggered I/O trace ring buffer.
++  - New `IO_TRACE_BUFFER g_ioTraceBuffer` and `Api_GetIoTraceBuffer()`.
++  - RT captures sensor bits, sequence bits, command bits, aux command, spindle/tool outputs, axis targets, run mode, machine state, NC state, and alarm code each cycle.
++  - On machine alarm, the ring freezes with trigger cycle/alarm metadata so TS/UI/API can inspect the pre-alarm window without doing file I/O in RT.
++- Added decimal/advanced G-code coverage.
++  - Added `G06.2` for NURBS-like fixed-block handling.
++  - Added `G07.1`, `G12.1`, and `G13.1` for cylindrical/polar/advanced interpolation mode signaling.
++  - Added grinding-cycle range `G70.7` through `G75.7` as canned-cycle fixed blocks.
++  - Added `G76.7` as a special threading fixed block.
++- Extended smoke coverage.
++  - The smoke NC program now includes `M06 T2`, `G70.7`, `G06.2`, and `G12.1` in addition to the previous canned cycle, skip, high-precision smoothing, sync on/off, and decimal interpolation samples.
++
++## Main changes from the uploaded baseline source
++
++- Added normalized G-code handling for decimal G-codes such as `G02.3`, `G03.3`, `G05.2`, `G06.2`, `G07.1`, `G10.6`, `G12.1`, `G13.1`, `G12.4`, `G13.4`, `G50.4`, `G51.4`, `G50.5`, `G51.5`, `G50.6`, `G51.6`, and `G70.7` through `G76.7`.
++- Expanded the G-code table to cover canned cycles, grinding cycles, threading, skip/reference return, high-precision/smoothing, sync/compound/overlay, coordinate rotation, tool compensation, feed modes, return-plane modes, and advanced interpolation modes.
++- Added support for NC comments, percent delimiters, sequence/program numbers (`N`, `O`), `Q` words, and incremental `U/V/W` axis words.
++- Added shared-memory feature status `g_ncFeatureStatus` and public API `Api_GetNcFeatureStatus()`.
++- Extended `NC_EXEC_BLOCK` so TS parsing can pass feature flags, cycle codes, R/Q/P parameters, normalized G-code identity, and MFIN-wait auxiliary command identity to RT.
++- Extended RT block consumption so feature-state changes and M-code handshake waits are committed in RT and exposed to UI/API snapshots without doing file I/O or text parsing in RT.
++- Extended interpolation so canned-cycle, thread, skip, reference-return, and advanced-interpolation blocks execute through the fixed-size block pipeline using safe linearized target stepping in this sample implementation.
++- Updated the smoke program to cover comments, sequence numbers, canned cycle `G83`, grinding cycle `G70.7`, NURBS-like `G06.2`, polar/cylindrical sample `G12.1`, `G80`, MFIN-wait `M06`, `G05.2`, `G51.4/G50.4`, `G31`, and `G02.3`.
++
++## Verification
++
++The source was compiled and executed in the container with:
++
++```bash
++gcc -std=c99 -Wall -Wextra -Iinc src/*.c -lm -o build_test
++./build_test
++```
++
++Observed smoke-test output:
++
++```text
++nc_state=6 nc_exec=27 nc_x=1200 nc_y=2300 nc_z=3400 nc_m=130
++interp_segments=11 feed_profile=1 feed_override=100 dwell_ticks=1
++coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=1000
++feature_blocks=21 feature_flags=97 canned=2 skip=1 advanced=3
++aux_completed=1 aux_wait_cycles=43 prestart_ok=0 prestart_mask=0x00000014
++trace_frozen=1 trace_captured=32 trace_trigger_cycle=141
++mode=1 state=3 alarm=9001 cycle=160
++coord_error_checks=5
++```
++
++Interpretation:
++
++- `aux_completed=1` confirms the `M06`/MFIN wait path completed.
++- `aux_wait_cycles=43` confirms RT stopped consuming later NC blocks while waiting for MFIN.
++- `trace_frozen=1` and `trace_captured=32` confirm the alarm-triggered I/O trace ring froze after the pressure-high alarm.
++- `feature_blocks=21`, `canned=2`, and `advanced=3` confirm the additional G70.7/G06.2/G12.1 path is reaching the feature-status layer; `G06.2` and `G12.1` also execute as active advanced-interpolation blocks in the fixed RT pipeline.
++- `coord_error_checks=5` confirms the retained parser error checks still pass.
++
++## Known limits
++
++- Specialized geometric algorithms such as exact NURBS, true 3D interference checking, free-form high-precision contouring, grinding-cycle path decomposition, and machine-specific synchronized multi-axis behavior are represented by feature flags/status and safe linearized execution blocks in this sample layer.
++- The MFIN handshake currently uses a single active auxiliary wait slot, which matches the fixed-block sample architecture. A production machine-control implementation should add machine-specific timeout values, retry policy, and PLC sequence-code mapping.
++- The I/O trace ring captures fixed shared-memory snapshots only. Long-term persistence remains a TS-side responsibility.
++- The implementation keeps the original fixed-size shared-memory and RT constraints; no file I/O, dynamic allocation, or text parsing was added to RT code.
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' orig_source/source/docs/verification_output.txt impl_work/source/docs/verification_output.txt
+--- orig_source/source/docs/verification_output.txt	1970-01-01 00:00:00.000000000 +0000
++++ impl_work/source/docs/verification_output.txt	2026-04-29 19:01:03.001868074 +0000
+@@ -0,0 +1,13 @@
++Command:
++  gcc -std=c99 -Wall -Wextra -Iinc src/*.c -lm -o build_test
++  ./build_test
++
++Output:
++nc_state=6 nc_exec=27 nc_x=1200 nc_y=2300 nc_z=3400 nc_m=130
++interp_segments=11 feed_profile=1 feed_override=100 dwell_ticks=1
++coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=1000
++feature_blocks=21 feature_flags=97 canned=2 skip=1 advanced=3
++aux_completed=1 aux_wait_cycles=43 prestart_ok=0 prestart_mask=0x00000014
++trace_frozen=1 trace_captured=32 trace_trigger_cycle=141
++mode=1 state=3 alarm=9001 cycle=160
++coord_error_checks=5
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' orig_source/source/inc/control_api.h impl_work/source/inc/control_api.h
+--- orig_source/source/inc/control_api.h	2026-04-29 17:59:46.000000000 +0000
++++ impl_work/source/inc/control_api.h	2026-04-29 18:55:25.467631618 +0000
+@@ -7,8 +7,8 @@
+ 
+ #include <stdint.h>
+ #include "system_shared.h"
+-
+-int32_t Api_RequestRunModeChange(uint8_t requestedMode);
++
++int32_t Api_RequestRunModeChange(uint8_t requestedMode);
+ int32_t Api_GetStatusSnapshot(STATUS_SNAPSHOT* pOutSnapshot);
+ int32_t Api_RequestLogFlush(void);
+ int32_t Api_GetPrefetchStatus(uint8_t* pReady, uint16_t* pGeneration);
+@@ -22,5 +22,9 @@
+ int32_t Api_SetNcFeedOverride(uint16_t percent);
+ int32_t Api_GetNcFeedStatus(NC_FEED_STATUS* pOutStatus);
+ int32_t Api_GetNcCoordinateStatus(NC_COORDINATE_STATE* pOutStatus);
++int32_t Api_GetNcFeatureStatus(NC_FEATURE_STATUS* pOutStatus);
++int32_t Api_GetPrestartInterlockStatus(PRESTART_INTERLOCK_STATUS* pOutStatus);
++int32_t Api_GetNcAuxStatus(NC_AUX_STATUS* pOutStatus);
++int32_t Api_GetIoTraceBuffer(IO_TRACE_BUFFER* pOutBuffer);
+ 
+ #endif /* CONTROL_API_H */
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' orig_source/source/inc/nc_codes.h impl_work/source/inc/nc_codes.h
+--- orig_source/source/inc/nc_codes.h	2026-04-29 17:56:02.000000000 +0000
++++ impl_work/source/inc/nc_codes.h	2026-04-29 18:48:49.000000000 +0000
+@@ -20,7 +20,11 @@
+     NC_ADDRESS_KIND_ARC_RADIUS = 8,
+     NC_ADDRESS_KIND_DWELL      = 9,
+     NC_ADDRESS_KIND_L_WORD     = 10,
+-    NC_ADDRESS_KIND_P_WORD     = 11
++    NC_ADDRESS_KIND_P_WORD     = 11,
++    NC_ADDRESS_KIND_Q_WORD     = 12,
++    NC_ADDRESS_KIND_NUMBER     = 13,
++    NC_ADDRESS_KIND_OFFSET     = 14,
++    NC_ADDRESS_KIND_INCREMENTAL_AXIS = 15
+ } NC_ADDRESS_KIND;
+ 
+ typedef struct {
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' orig_source/source/inc/nc_program.h impl_work/source/inc/nc_program.h
+--- orig_source/source/inc/nc_program.h	2026-04-29 17:55:55.000000000 +0000
++++ impl_work/source/inc/nc_program.h	2026-04-29 18:48:49.000000000 +0000
+@@ -9,6 +9,25 @@
+ #include "system_shared.h"
+ 
+ #define NC_AUX_FLAG_M_CODE      (0x00000001UL)
++
++#define NC_G_CODE10(whole, tenths) ((int32_t)(((whole) * 10) + (tenths)))
++#define NC_G_CODE_WHOLE(whole)     NC_G_CODE10((whole), 0)
++#define NC_FEATURE_FLAG_CANNED_CYCLE      (0x00000001UL)
++#define NC_FEATURE_FLAG_THREAD            (0x00000002UL)
++#define NC_FEATURE_FLAG_SKIP              (0x00000004UL)
++#define NC_FEATURE_FLAG_REFERENCE_RETURN  (0x00000008UL)
++#define NC_FEATURE_FLAG_ADVANCED_INTERP   (0x00000010UL)
++#define NC_FEATURE_FLAG_HIGH_PRECISION    (0x00000020UL)
++#define NC_FEATURE_FLAG_SMOOTHING         (0x00000040UL)
++#define NC_FEATURE_FLAG_SYNC              (0x00000080UL)
++#define NC_FEATURE_FLAG_COMPOUND          (0x00000100UL)
++#define NC_FEATURE_FLAG_OVERLAY           (0x00000200UL)
++#define NC_FEATURE_FLAG_EXACT_STOP        (0x00000400UL)
++#define NC_FEATURE_FLAG_RETURN_INITIAL    (0x00000800UL)
++#define NC_FEATURE_FLAG_RETURN_R_PLANE    (0x00001000UL)
++#define NC_FEATURE_FLAG_PARAM_R           (0x00002000UL)
++#define NC_FEATURE_FLAG_PARAM_Q           (0x00004000UL)
++#define NC_FEATURE_FLAG_PARAM_P           (0x00008000UL)
+ #define NC_AUX_FLAG_SPINDLE     (0x00000002UL)
+ #define NC_AUX_FLAG_TOOL        (0x00000004UL)
+ #define NC_MODAL_FLAG_G00       (0x00000001UL)
+@@ -31,6 +50,8 @@
+ #define NC_MODAL_FLAG_G90       (0x00080000UL)
+ #define NC_MODAL_FLAG_G91       (0x00100000UL)
+ #define NC_MODAL_FLAG_G92       (0x00200000UL)
++#define NC_MODAL_FLAG_G98       (0x00400000UL)
++#define NC_MODAL_FLAG_G99       (0x00800000UL)
+ #define NC_ARC_FLAG_IJK         (0x00010000UL)
+ #define NC_ARC_FLAG_R           (0x00020000UL)
+ 
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' orig_source/source/inc/rt_control.h impl_work/source/inc/rt_control.h
+--- orig_source/source/inc/rt_control.h	2026-04-24 16:14:23.000000000 +0000
++++ impl_work/source/inc/rt_control.h	2026-04-29 18:56:38.530095315 +0000
+@@ -1,12 +1,14 @@
+-#ifndef RT_CONTROL_H
+-#define RT_CONTROL_H
+-
+-void RtDispatcher_ExecuteCycle(void);
+-void RtInput_ScanInputs(void);
+-void RtControl_UpdateMachineState(void);
+-void RtControl_ProcessModeRequest(void);
+-void RtControl_UpdateInterlock(void);
+-void RtControl_UpdateAxisTargets(void);
+-void RtOutput_CommitOutputs(void);
+-
+-#endif /* RT_CONTROL_H */
++#ifndef RT_CONTROL_H
++#define RT_CONTROL_H
++
++void RtDispatcher_ExecuteCycle(void);
++void RtInput_ScanInputs(void);
++void RtControl_UpdateMachineState(void);
++void RtControl_UpdatePrestartInterlock(void);
++void RtControl_CaptureIoTrace(void);
++void RtControl_ProcessModeRequest(void);
++void RtControl_UpdateInterlock(void);
++void RtControl_UpdateAxisTargets(void);
++void RtOutput_CommitOutputs(void);
++
++#endif /* RT_CONTROL_H */
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' orig_source/source/inc/system_config.h impl_work/source/inc/system_config.h
+--- orig_source/source/inc/system_config.h	2026-04-29 17:55:39.000000000 +0000
++++ impl_work/source/inc/system_config.h	2026-04-29 18:54:42.236535219 +0000
+@@ -8,10 +8,10 @@
+ #define AXIS_MAX                (4)
+ #define ANALOG_CH_MAX           (8)
+ #define LOG_QUEUE_MAX           (64)
+-#define PREFETCH_TABLE_SIZE     (64)
+-#define UI_MESSAGE_TEXT_MAX     (96)
+-
+-#define CYCLE_TICK_MS           (1)
++#define PREFETCH_TABLE_SIZE     (64)
++#define UI_MESSAGE_TEXT_MAX     (96)
++
++#define CYCLE_TICK_MS           (1)
+ #define SAFE_PRESSURE_LIMIT     (900)
+ #define READY_PRESSURE_MIN      (100)
+ #define READY_PRESSURE_MAX      (700)
+@@ -34,4 +34,8 @@
+ #define NC_WORK_COORD_SYSTEMS            (6U)
+ #define NC_G10_L_WORK_OFFSET             (2)
+ 
++#define IO_TRACE_RING_SIZE                (32U)
++#define SENSOR_SEQ_MFIN_BIT               (0x00000001UL)
++
++
+ #endif /* SYSTEM_CONFIG_H */
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' orig_source/source/inc/system_shared.h impl_work/source/inc/system_shared.h
+--- orig_source/source/inc/system_shared.h	2026-04-29 17:55:48.000000000 +0000
++++ impl_work/source/inc/system_shared.h	2026-04-29 18:58:23.700805471 +0000
+@@ -7,29 +7,29 @@
+ 
+ #include <stdint.h>
+ #include <stddef.h>
+-#include "system_config.h"
+-
+-typedef enum {
+-    RUN_MODE_MANUAL = 0,
+-    RUN_MODE_AUTO   = 1,
+-    RUN_MODE_MAINT  = 2
+-} RUN_MODE;
+-
+-typedef enum {
+-    MACHINE_STOPPED = 0,
+-    MACHINE_READY   = 1,
+-    MACHINE_RUNNING = 2,
+-    MACHINE_ALARM   = 3
+-} MACHINE_STATE;
+-
+-typedef enum {
+-    RESPONSE_NONE        = 0,
+-    RESPONSE_ACCEPTED    = 1,
+-    RESPONSE_REJECTED    = 2,
+-    RESPONSE_COMPLETED   = 3,
+-    RESPONSE_PARAM_ERROR = 4
+-} RESPONSE_CODE;
+-
++#include "system_config.h"
++
++typedef enum {
++    RUN_MODE_MANUAL = 0,
++    RUN_MODE_AUTO   = 1,
++    RUN_MODE_MAINT  = 2
++} RUN_MODE;
++
++typedef enum {
++    MACHINE_STOPPED = 0,
++    MACHINE_READY   = 1,
++    MACHINE_RUNNING = 2,
++    MACHINE_ALARM   = 3
++} MACHINE_STATE;
++
++typedef enum {
++    RESPONSE_NONE        = 0,
++    RESPONSE_ACCEPTED    = 1,
++    RESPONSE_REJECTED    = 2,
++    RESPONSE_COMPLETED   = 3,
++    RESPONSE_PARAM_ERROR = 4
++} RESPONSE_CODE;
++
+ typedef enum {
+     LOG_INFO  = 0,
+     LOG_WARN  = 1,
+@@ -67,13 +67,18 @@
+ } NC_ERROR_CODE;
+ 
+ typedef enum {
+-    NC_MOTION_NONE      = 0,
+-    NC_MOTION_RAPID     = 1,
+-    NC_MOTION_LINEAR    = 2,
+-    NC_MOTION_AUX_ONLY  = 3,
+-    NC_MOTION_ARC_CW    = 4,
+-    NC_MOTION_ARC_CCW   = 5,
+-    NC_MOTION_DWELL     = 6
++    NC_MOTION_NONE              = 0,
++    NC_MOTION_RAPID             = 1,
++    NC_MOTION_LINEAR            = 2,
++    NC_MOTION_AUX_ONLY          = 3,
++    NC_MOTION_ARC_CW            = 4,
++    NC_MOTION_ARC_CCW           = 5,
++    NC_MOTION_DWELL             = 6,
++    NC_MOTION_CANNED_CYCLE      = 7,
++    NC_MOTION_THREAD            = 8,
++    NC_MOTION_SKIP              = 9,
++    NC_MOTION_REFERENCE_RETURN  = 10,
++    NC_MOTION_ADVANCED_INTERP   = 11
+ } NC_MOTION_TYPE;
+ 
+ typedef enum {
+@@ -125,7 +130,7 @@
+     uint32_t seq_bits;
+     int32_t  analog[ANALOG_CH_MAX];
+ } IO_INPUT_AREA;
+-
++
+ typedef struct {
+     uint32_t command_bits;
+     int32_t  axis_target[AXIS_MAX];
+@@ -135,63 +140,63 @@
+     uint32_t tool_no;
+     uint32_t aux_flags;
+ } IO_OUTPUT_AREA;
+-
++
+ typedef struct {
+     RUN_MODE      run_mode;
+     MACHINE_STATE machine_state;
+     uint32_t      alarm_code;
+-    uint32_t      cycle_count;
+-    uint32_t      rt_total_ticks;
+-    uint32_t      rt_input_ticks;
+-    uint32_t      rt_control_ticks;
+-    uint32_t      rt_output_ticks;
+-} MACHINE_CONTEXT;
+-
+-typedef struct {
+-    uint8_t       mode_change_request;
+-    uint8_t       requested_mode;
+-    uint8_t       mode_response;
+-    uint8_t       log_flush_request;
+-    uint32_t      ui_message_id;
+-    char          ui_message_text[UI_MESSAGE_TEXT_MAX];
+-} UI_REQUEST_AREA;
+-
+-typedef struct {
+-    uint32_t event_type;
+-    uint32_t code;
+-    int32_t  value;
+-    uint32_t cycle;
+-} LOG_ITEM;
+-
+-typedef struct {
+-    uint16_t head;
+-    uint16_t tail;
+-    LOG_ITEM items[LOG_QUEUE_MAX];
+-} LOG_QUEUE;
+-
+-typedef struct {
+-    uint8_t  request;
+-    uint8_t  busy;
+-    uint8_t  ready;
+-    uint16_t section_id;
+-    uint16_t generation;
+-} PREFETCH_REQ_CTRL;
+-
+-typedef struct {
+-    uint16_t section_id;
+-    uint16_t generation;
+-    float    table[PREFETCH_TABLE_SIZE];
+-} PREFETCH_RESULT;
+-
+-typedef struct {
+-    RUN_MODE      run_mode;
+-    MACHINE_STATE machine_state;
+-    uint32_t      alarm_code;
+-    uint32_t      cycle_count;
+-    uint32_t      command_bits;
+-    uint32_t      sensor_bits;
+-    uint8_t       mode_response;
+-    uint8_t       prefetch_ready;
++    uint32_t      cycle_count;
++    uint32_t      rt_total_ticks;
++    uint32_t      rt_input_ticks;
++    uint32_t      rt_control_ticks;
++    uint32_t      rt_output_ticks;
++} MACHINE_CONTEXT;
++
++typedef struct {
++    uint8_t       mode_change_request;
++    uint8_t       requested_mode;
++    uint8_t       mode_response;
++    uint8_t       log_flush_request;
++    uint32_t      ui_message_id;
++    char          ui_message_text[UI_MESSAGE_TEXT_MAX];
++} UI_REQUEST_AREA;
++
++typedef struct {
++    uint32_t event_type;
++    uint32_t code;
++    int32_t  value;
++    uint32_t cycle;
++} LOG_ITEM;
++
++typedef struct {
++    uint16_t head;
++    uint16_t tail;
++    LOG_ITEM items[LOG_QUEUE_MAX];
++} LOG_QUEUE;
++
++typedef struct {
++    uint8_t  request;
++    uint8_t  busy;
++    uint8_t  ready;
++    uint16_t section_id;
++    uint16_t generation;
++} PREFETCH_REQ_CTRL;
++
++typedef struct {
++    uint16_t section_id;
++    uint16_t generation;
++    float    table[PREFETCH_TABLE_SIZE];
++} PREFETCH_RESULT;
++
++typedef struct {
++    RUN_MODE      run_mode;
++    MACHINE_STATE machine_state;
++    uint32_t      alarm_code;
++    uint32_t      cycle_count;
++    uint32_t      command_bits;
++    uint32_t      sensor_bits;
++    uint8_t       mode_response;
++    uint8_t       prefetch_ready;
+     uint16_t      prefetch_generation;
+ } STATUS_SNAPSHOT;
+ 
+@@ -240,6 +245,13 @@
+     uint32_t       aux_m_code;
+     uint32_t       aux_flags;
+     uint32_t       modal_flags;
++    uint32_t       feature_flags;
++    int32_t        r_value;
++    int32_t        q_value;
++    uint32_t       p_word;
++    uint16_t       g_code10;
++    uint16_t       cycle_code10;
++    uint8_t        return_mode;
+ } NC_EXEC_BLOCK;
+ 
+ typedef struct {
+@@ -287,6 +299,85 @@
+     uint32_t              generation;
+ } NC_FEED_STATUS;
+ 
++typedef struct {
++    uint32_t active_feature_flags;
++    uint32_t last_block_feature_flags;
++    uint32_t last_g_code10;
++    uint32_t last_cycle_code10;
++    uint32_t last_line_no;
++    uint32_t executed_feature_blocks;
++    uint32_t canned_cycle_blocks;
++    uint32_t thread_blocks;
++    uint32_t skip_blocks;
++    uint32_t reference_return_blocks;
++    uint32_t advanced_interp_blocks;
++    uint8_t  return_mode;
++    uint8_t  exact_stop_enabled;
++    uint8_t  high_precision_enabled;
++    uint8_t  smoothing_enabled;
++    uint8_t  sync_enabled;
++    uint8_t  compound_enabled;
++    uint8_t  overlay_enabled;
++    uint32_t generation;
++} NC_FEATURE_STATUS;
++
++#define PRESTART_ILK_ESTOP          (0x00000001UL)
++#define PRESTART_ILK_SERVO_ALARM    (0x00000002UL)
++#define PRESTART_ILK_PRESSURE_RANGE (0x00000004UL)
++#define PRESTART_ILK_READY_SWITCH   (0x00000008UL)
++#define PRESTART_ILK_MACHINE_ALARM  (0x00000010UL)
++#define PRESTART_ILK_NC_BUFFER      (0x00000020UL)
++
++#define NC_AUX_FLAG_MFIN_WAIT       (0x00000008UL)
++
++#define NC_AUX_STATE_IDLE           (0U)
++#define NC_AUX_STATE_WAIT_MFIN      (1U)
++
++typedef struct {
++    uint8_t  ok;
++    uint32_t mask;
++    uint32_t sensor_bits;
++    int32_t  pressure;
++    uint32_t buffered_blocks;
++    uint32_t generation;
++} PRESTART_INTERLOCK_STATUS;
++
++typedef struct {
++    uint8_t  state;
++    uint32_t active_m_code;
++    uint32_t wait_line_no;
++    uint32_t wait_cycles;
++    uint32_t last_wait_cycles;
++    uint32_t total_wait_cycles;
++    uint32_t completed_m_codes;
++    uint32_t generation;
++} NC_AUX_STATUS;
++
++typedef struct {
++    uint32_t cycle;
++    uint32_t sensor_bits;
++    uint32_t seq_bits;
++    uint32_t command_bits;
++    uint32_t aux_m_code;
++    uint32_t spindle_speed;
++    uint32_t tool_no;
++    RUN_MODE run_mode;
++    MACHINE_STATE machine_state;
++    NC_PROGRAM_STATE nc_state;
++    uint32_t alarm_code;
++    int32_t  axis_target[AXIS_MAX];
++} IO_TRACE_ITEM;
++
++typedef struct {
++    uint32_t write_index;
++    uint32_t captured_count;
++    uint8_t  frozen;
++    uint32_t trigger_cycle;
++    uint32_t trigger_alarm_code;
++    uint32_t generation;
++    IO_TRACE_ITEM items[IO_TRACE_RING_SIZE];
++} IO_TRACE_BUFFER;
++
+ extern volatile IO_INPUT_AREA      g_ioIn;
+ extern volatile IO_OUTPUT_AREA     g_ioOut;
+ extern volatile MACHINE_CONTEXT    g_machineCtx;
+@@ -300,6 +391,10 @@
+ extern volatile NC_COORDINATE_STATE g_ncCoordinateState;
+ extern volatile NC_INTERP_STATUS   g_ncInterpStatus;
+ extern volatile NC_FEED_STATUS     g_ncFeedStatus;
++extern volatile NC_FEATURE_STATUS  g_ncFeatureStatus;
++extern volatile PRESTART_INTERLOCK_STATUS g_prestartInterlockStatus;
++extern volatile NC_AUX_STATUS      g_ncAuxStatus;
++extern volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
+ 
+ void SystemShared_Initialize(void);
+ int32_t LogQueue_Push(uint32_t eventType, uint32_t code, int32_t value);
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' orig_source/source/src/control_api.c impl_work/source/src/control_api.c
+--- orig_source/source/src/control_api.c	2026-04-29 17:59:57.000000000 +0000
++++ impl_work/source/src/control_api.c	2026-04-29 18:55:25.467830516 +0000
+@@ -23,48 +23,48 @@
+ 
+ int32_t Api_RequestRunModeChange(uint8_t requestedMode)
+ {
+-    if (requestedMode > (uint8_t)RUN_MODE_MAINT) {
+-        g_uiRequest.mode_response = RESPONSE_PARAM_ERROR;
+-        return -1;
+-    }
+-
+-    g_uiRequest.requested_mode = requestedMode;
+-    g_uiRequest.mode_change_request = 1U;
+-    g_uiRequest.mode_response = RESPONSE_ACCEPTED;
+-    return 0;
+-}
+-
+-int32_t Api_GetStatusSnapshot(STATUS_SNAPSHOT* pOutSnapshot)
+-{
+-    if (pOutSnapshot == 0) {
+-        return -1;
+-    }
+-
+-    (void)memset(pOutSnapshot, 0, sizeof(*pOutSnapshot));
+-    pOutSnapshot->run_mode = g_machineCtx.run_mode;
+-    pOutSnapshot->machine_state = g_machineCtx.machine_state;
+-    pOutSnapshot->alarm_code = g_machineCtx.alarm_code;
+-    pOutSnapshot->cycle_count = g_machineCtx.cycle_count;
+-    pOutSnapshot->command_bits = g_ioOut.command_bits;
+-    pOutSnapshot->sensor_bits = g_ioIn.sensor_bits;
+-    pOutSnapshot->mode_response = g_uiRequest.mode_response;
+-    pOutSnapshot->prefetch_ready = g_prefetchReq.ready;
+-    pOutSnapshot->prefetch_generation = g_prefetchReq.generation;
+-    return 0;
+-}
+-
+-int32_t Api_RequestLogFlush(void)
+-{
+-    g_uiRequest.log_flush_request = 1U;
+-    return 0;
+-}
+-
+-int32_t Api_GetPrefetchStatus(uint8_t* pReady, uint16_t* pGeneration)
+-{
+-    if ((pReady == 0) || (pGeneration == 0)) {
+-        return -1;
+-    }
+-
++    if (requestedMode > (uint8_t)RUN_MODE_MAINT) {
++        g_uiRequest.mode_response = RESPONSE_PARAM_ERROR;
++        return -1;
++    }
++
++    g_uiRequest.requested_mode = requestedMode;
++    g_uiRequest.mode_change_request = 1U;
++    g_uiRequest.mode_response = RESPONSE_ACCEPTED;
++    return 0;
++}
++
++int32_t Api_GetStatusSnapshot(STATUS_SNAPSHOT* pOutSnapshot)
++{
++    if (pOutSnapshot == 0) {
++        return -1;
++    }
++
++    (void)memset(pOutSnapshot, 0, sizeof(*pOutSnapshot));
++    pOutSnapshot->run_mode = g_machineCtx.run_mode;
++    pOutSnapshot->machine_state = g_machineCtx.machine_state;
++    pOutSnapshot->alarm_code = g_machineCtx.alarm_code;
++    pOutSnapshot->cycle_count = g_machineCtx.cycle_count;
++    pOutSnapshot->command_bits = g_ioOut.command_bits;
++    pOutSnapshot->sensor_bits = g_ioIn.sensor_bits;
++    pOutSnapshot->mode_response = g_uiRequest.mode_response;
++    pOutSnapshot->prefetch_ready = g_prefetchReq.ready;
++    pOutSnapshot->prefetch_generation = g_prefetchReq.generation;
++    return 0;
++}
++
++int32_t Api_RequestLogFlush(void)
++{
++    g_uiRequest.log_flush_request = 1U;
++    return 0;
++}
++
++int32_t Api_GetPrefetchStatus(uint8_t* pReady, uint16_t* pGeneration)
++{
++    if ((pReady == 0) || (pGeneration == 0)) {
++        return -1;
++    }
++
+     *pReady = g_prefetchReq.ready;
+     *pGeneration = g_prefetchReq.generation;
+     return 0;
+@@ -193,3 +193,52 @@
+                  sizeof(*pOutStatus));
+     return 0;
+ }
++
++int32_t Api_GetNcFeatureStatus(NC_FEATURE_STATUS* pOutStatus)
++{
++    if (pOutStatus == 0) {
++        return -1;
++    }
++
++    (void)memcpy(pOutStatus,
++                 (const void*)&g_ncFeatureStatus,
++                 sizeof(*pOutStatus));
++    return 0;
++}
++
++
++int32_t Api_GetPrestartInterlockStatus(PRESTART_INTERLOCK_STATUS* pOutStatus)
++{
++    if (pOutStatus == 0) {
++        return -1;
++    }
++
++    (void)memcpy(pOutStatus,
++                 (const void*)&g_prestartInterlockStatus,
++                 sizeof(*pOutStatus));
++    return 0;
++}
++
++int32_t Api_GetNcAuxStatus(NC_AUX_STATUS* pOutStatus)
++{
++    if (pOutStatus == 0) {
++        return -1;
++    }
++
++    (void)memcpy(pOutStatus,
++                 (const void*)&g_ncAuxStatus,
++                 sizeof(*pOutStatus));
++    return 0;
++}
++
++int32_t Api_GetIoTraceBuffer(IO_TRACE_BUFFER* pOutBuffer)
++{
++    if (pOutBuffer == 0) {
++        return -1;
++    }
++
++    (void)memcpy(pOutBuffer,
++                 (const void*)&g_ioTraceBuffer,
++                 sizeof(*pOutBuffer));
++    return 0;
++}
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' orig_source/source/src/main.c impl_work/source/src/main.c
+--- orig_source/source/src/main.c	2026-04-29 18:00:45.000000000 +0000
++++ impl_work/source/src/main.c	2026-04-29 18:59:07.228155121 +0000
+@@ -19,7 +19,8 @@
+         return -1;
+     }
+ 
+-    (void)fprintf(pFile, "G21 G90\n");
++    (void)fprintf(pFile, "%%\n");
++    (void)fprintf(pFile, "N10 G21 G90 (unit and distance mode)\n");
+     (void)fprintf(pFile, "G54\n");
+     (void)fprintf(pFile, "G10 L2 P1 X0.1 Y0.2 Z0.3\n");
+     (void)fprintf(pFile, "G52 X0.01 Y0.02 Z0.03\n");
+@@ -33,6 +34,17 @@
+     (void)fprintf(pFile, "G92 X0.1354 Y0.2454 Z0.3554\n");
+     (void)fprintf(pFile, "G53 G00 X0 Y0 Z0\n");
+     (void)fprintf(pFile, "G54\n");
++    (void)fprintf(pFile, "G98 G83 X0.025 Y0.035 Z0.010 R0.050 Q0.002 F60000\n");
++    (void)fprintf(pFile, "G80\n");
++    (void)fprintf(pFile, "M06 T2 ; tool change waits for MFIN\n");
++    (void)fprintf(pFile, "G70.7 X0.028 Z0.012 R0.050 Q0.001 F60000\n");
++    (void)fprintf(pFile, "G06.2 X0.029 Y0.036 Z0.013 F60000 ; NURBS-like fixed block\n");
++    (void)fprintf(pFile, "G12.1 X0.030 Y0.037 F60000 ; polar/cylindrical mode sample\n");
++    (void)fprintf(pFile, "G05.2 ; high precision smoothing mode\n");
++    (void)fprintf(pFile, "G51.4\n");
++    (void)fprintf(pFile, "G31 X0.030 F60000\n");
++    (void)fprintf(pFile, "G02.3 X0.035 Y0.040 F60000\n");
++    (void)fprintf(pFile, "G50.4\n");
+     (void)fprintf(pFile, "G00 X0.02 Y0.03 Z0.04 M130\n");
+     (void)fclose(pFile);
+     return 0;
+@@ -74,7 +86,7 @@
+     if (cycle == 1U) {
+         g_ioIn.sensor_bits |= 0x00000008UL; /* READY */
+         g_ioIn.analog[0] = 300;
+-    }
++    }
+     if (cycle == 3U) {
+         (void)Api_RequestRunModeChange((uint8_t)RUN_MODE_AUTO);
+     }
+@@ -87,11 +99,17 @@
+     if (cycle == 6U) {
+         g_ioIn.sensor_bits |= 0x00000010UL; /* RUN */
+     }
+-    if (cycle == 15U) {
++    if (cycle == 55U) {
++        g_ioIn.seq_bits |= SENSOR_SEQ_MFIN_BIT; /* MFIN response */
++    }
++    if (cycle == 60U) {
++        g_ioIn.seq_bits &= ~SENSOR_SEQ_MFIN_BIT;
++    }
++    if (cycle == 140U) {
+         g_ioIn.analog[0] = 950; /* pressure high */
+     }
+-}
+-
++}
++
+ int main(void)
+ {
+     STATUS_SNAPSHOT snapshot;
+@@ -99,6 +117,10 @@
+     NC_INTERP_STATUS interpStatus;
+     NC_FEED_STATUS feedStatus;
+     NC_COORDINATE_STATE coordStatus;
++    NC_FEATURE_STATUS featureStatus;
++    PRESTART_INTERLOCK_STATUS prestartStatus;
++    NC_AUX_STATUS auxStatus;
++    IO_TRACE_BUFFER traceBuffer;
+     int32_t ncAxis[AXIS_MAX] = {0};
+     uint32_t ncMCode = 0U;
+     uint32_t interpSegments = 0U;
+@@ -110,6 +132,18 @@
+     uint32_t coordWork = 0U;
+     uint32_t coordLocal = 0U;
+     int32_t coordWorkX = 0;
++    uint32_t featureBlocks = 0U;
++    uint32_t featureFlags = 0U;
++    uint32_t cannedBlocks = 0U;
++    uint32_t skipBlocks = 0U;
++    uint32_t advancedBlocks = 0U;
++    uint32_t auxCompleted = 0U;
++    uint32_t auxWaitCycles = 0U;
++    uint32_t prestartMask = 0U;
++    uint32_t prestartOk = 0U;
++    uint32_t traceFrozen = 0U;
++    uint32_t traceCaptured = 0U;
++    uint32_t traceTriggerCycle = 0U;
+     uint8_t ncCaptured = 0U;
+     uint32_t cycle;
+ 
+@@ -118,7 +152,7 @@
+         return 1;
+     }
+ 
+-    for (cycle = 0U; cycle < 16U; ++cycle) {
++    for (cycle = 0U; cycle < 160U; ++cycle) {
+         SimulateExternalInputs(cycle);
+         RtDispatcher_ExecuteCycle();
+         TsService_ExecuteSlice();
+@@ -144,10 +178,39 @@
+                 coordLocal = coordStatus.active_local_mask;
+                 coordWorkX = coordStatus.work_offset[0][0];
+             }
++            if (Api_GetNcFeatureStatus(&featureStatus) == 0) {
++                featureBlocks = featureStatus.executed_feature_blocks;
++                featureFlags = featureStatus.active_feature_flags;
++                cannedBlocks = featureStatus.canned_cycle_blocks;
++                skipBlocks = featureStatus.skip_blocks;
++                advancedBlocks = featureStatus.advanced_interp_blocks;
++            }
++            if (Api_GetNcAuxStatus(&auxStatus) == 0) {
++                auxCompleted = auxStatus.completed_m_codes;
++                auxWaitCycles = auxStatus.last_wait_cycles;
++            }
++            if (Api_GetPrestartInterlockStatus(&prestartStatus) == 0) {
++                prestartMask = prestartStatus.mask;
++                prestartOk = prestartStatus.ok;
++            }
+             ncCaptured = 1U;
+         }
+     }
+ 
++    if (Api_GetNcAuxStatus(&auxStatus) == 0) {
++        auxCompleted = auxStatus.completed_m_codes;
++        auxWaitCycles = auxStatus.last_wait_cycles;
++    }
++    if (Api_GetPrestartInterlockStatus(&prestartStatus) == 0) {
++        prestartMask = prestartStatus.mask;
++        prestartOk = prestartStatus.ok;
++    }
++    if (Api_GetIoTraceBuffer(&traceBuffer) == 0) {
++        traceFrozen = traceBuffer.frozen;
++        traceCaptured = traceBuffer.captured_count;
++        traceTriggerCycle = traceBuffer.trigger_cycle;
++    }
++
+     if (Api_GetNcProgramStatus(&ncStatus) == 0) {
+         (void)printf("nc_state=%u nc_exec=%u nc_x=%d nc_y=%d nc_z=%d nc_m=%u\n",
+                      (unsigned int)(ncCaptured ? NC_COMPLETED : ncStatus.state),
+@@ -168,13 +231,28 @@
+                  (unsigned int)coordWork,
+                  (unsigned int)coordLocal,
+                  (int)coordWorkX);
++    (void)printf("feature_blocks=%u feature_flags=%u canned=%u skip=%u advanced=%u\n",
++                 (unsigned int)featureBlocks,
++                 (unsigned int)featureFlags,
++                 (unsigned int)cannedBlocks,
++                 (unsigned int)skipBlocks,
++                 (unsigned int)advancedBlocks);
++    (void)printf("aux_completed=%u aux_wait_cycles=%u prestart_ok=%u prestart_mask=0x%08x\n",
++                 (unsigned int)auxCompleted,
++                 (unsigned int)auxWaitCycles,
++                 (unsigned int)prestartOk,
++                 (unsigned int)prestartMask);
++    (void)printf("trace_frozen=%u trace_captured=%u trace_trigger_cycle=%u\n",
++                 (unsigned int)traceFrozen,
++                 (unsigned int)traceCaptured,
++                 (unsigned int)traceTriggerCycle);
+ 
+     if (Api_GetStatusSnapshot(&snapshot) == 0) {
+         (void)printf("mode=%u state=%u alarm=%u cycle=%u\n",
+                      (unsigned int)snapshot.run_mode,
+-                     (unsigned int)snapshot.machine_state,
+-                     (unsigned int)snapshot.alarm_code,
+-                     (unsigned int)snapshot.cycle_count);
++                     (unsigned int)snapshot.machine_state,
++                     (unsigned int)snapshot.alarm_code,
++                     (unsigned int)snapshot.cycle_count);
+     }
+ 
+     (void)Api_RequestLogFlush();
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' orig_source/source/src/nc_codes.c impl_work/source/src/nc_codes.c
+--- orig_source/source/src/nc_codes.c	2026-04-29 17:56:16.000000000 +0000
++++ impl_work/source/src/nc_codes.c	2026-04-29 18:59:07.227117574 +0000
+@@ -7,52 +7,127 @@
+ #include "nc_codes.h"
+ #include "nc_program.h"
+ 
++#define G(whole)       NC_G_CODE_WHOLE(whole)
++#define GD(whole, dec) NC_G_CODE10((whole), (dec))
++
+ static const NC_G_CODE_INFO s_gCodes[] = {
+-    {0, 1U, NC_MOTION_RAPID,  NC_MODAL_FLAG_G00},
+-    {1, 1U, NC_MOTION_LINEAR, NC_MODAL_FLAG_G01},
+-    {2, 1U, NC_MOTION_ARC_CW, NC_MODAL_FLAG_G02},
+-    {3, 1U, NC_MOTION_ARC_CCW, NC_MODAL_FLAG_G03},
+-    {4, 1U, NC_MOTION_DWELL,  NC_MODAL_FLAG_G04},
+-    {9, 1U, NC_MOTION_NONE,   NC_MODAL_FLAG_G09},
+-    {10, 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G10},
+-    {17, 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G17},
+-    {18, 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G18},
+-    {19, 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G19},
+-    {20, 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G20},
+-    {21, 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G21},
+-    {52, 1U, NC_MOTION_NONE,  0U},
+-    {53, 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G53},
+-    {54, 1U, NC_MOTION_NONE,  0U},
+-    {55, 1U, NC_MOTION_NONE,  0U},
+-    {56, 1U, NC_MOTION_NONE,  0U},
+-    {57, 1U, NC_MOTION_NONE,  0U},
+-    {58, 1U, NC_MOTION_NONE,  0U},
+-    {59, 1U, NC_MOTION_NONE,  0U},
+-    {61, 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G61},
+-    {63, 0U, NC_MOTION_NONE,  0U},
+-    {64, 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G64},
+-    {90, 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G90},
+-    {91, 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G91},
+-    {92, 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G92},
+-    {94, 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G94},
+-    {95, 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G95}
++    {G(0), 1U, NC_MOTION_RAPID,  NC_MODAL_FLAG_G00},
++    {G(1), 1U, NC_MOTION_LINEAR, NC_MODAL_FLAG_G01},
++    {G(2), 1U, NC_MOTION_ARC_CW, NC_MODAL_FLAG_G02},
++    {G(3), 1U, NC_MOTION_ARC_CCW, NC_MODAL_FLAG_G03},
++    {GD(2, 3), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
++    {GD(3, 3), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
++    {G(4), 1U, NC_MOTION_DWELL,  NC_MODAL_FLAG_G04},
++    {GD(5, 1), 1U, NC_MOTION_NONE, 0U},
++    {GD(6, 2), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
++    {GD(7, 1), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
++    {GD(5, 2), 1U, NC_MOTION_NONE, 0U},
++    {G(9), 1U, NC_MOTION_NONE,   NC_MODAL_FLAG_G09},
++    {G(10), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G10},
++    {GD(10, 6), 1U, NC_MOTION_REFERENCE_RETURN, 0U},
++    {GD(12, 1), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
++    {GD(13, 1), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
++    {GD(12, 4), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(13, 4), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(15), 1U, NC_MOTION_NONE,  0U},
++    {G(16), 1U, NC_MOTION_NONE,  0U},
++    {G(17), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G17},
++    {G(18), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G18},
++    {G(19), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G19},
++    {G(20), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G20},
++    {G(21), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G21},
++    {G(28), 1U, NC_MOTION_REFERENCE_RETURN, 0U},
++    {G(30), 1U, NC_MOTION_REFERENCE_RETURN, 0U},
++    {G(31), 1U, NC_MOTION_SKIP,  0U},
++    {G(32), 1U, NC_MOTION_THREAD, 0U},
++    {G(40), 1U, NC_MOTION_NONE,  0U},
++    {G(41), 1U, NC_MOTION_NONE,  0U},
++    {G(42), 1U, NC_MOTION_NONE,  0U},
++    {G(43), 1U, NC_MOTION_NONE,  0U},
++    {G(44), 1U, NC_MOTION_NONE,  0U},
++    {G(49), 1U, NC_MOTION_NONE,  0U},
++    {GD(50, 4), 1U, NC_MOTION_NONE, 0U},
++    {GD(50, 5), 1U, NC_MOTION_NONE, 0U},
++    {GD(50, 6), 1U, NC_MOTION_NONE, 0U},
++    {G(52), 1U, NC_MOTION_NONE,  0U},
++    {G(53), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G53},
++    {G(54), 1U, NC_MOTION_NONE,  0U},
++    {G(55), 1U, NC_MOTION_NONE,  0U},
++    {G(56), 1U, NC_MOTION_NONE,  0U},
++    {G(57), 1U, NC_MOTION_NONE,  0U},
++    {G(58), 1U, NC_MOTION_NONE,  0U},
++    {G(59), 1U, NC_MOTION_NONE,  0U},
++    {GD(51, 4), 1U, NC_MOTION_NONE, 0U},
++    {GD(51, 5), 1U, NC_MOTION_NONE, 0U},
++    {GD(51, 6), 1U, NC_MOTION_NONE, 0U},
++    {G(61), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G61},
++    {G(62), 1U, NC_MOTION_NONE,  0U},
++    {G(63), 1U, NC_MOTION_NONE,  0U},
++    {G(64), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G64},
++    {G(68), 1U, NC_MOTION_NONE,  0U},
++    {G(69), 1U, NC_MOTION_NONE,  0U},
++    {G(70), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(70, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(71), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(71, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(72), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(72, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(73), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(73, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(74), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(74, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(75), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(75, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(76), 1U, NC_MOTION_THREAD, 0U},
++    {GD(76, 7), 1U, NC_MOTION_THREAD, 0U},
++    {G(77), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(78), 1U, NC_MOTION_THREAD, 0U},
++    {G(79), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(80), 1U, NC_MOTION_NONE,  0U},
++    {G(81), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(82), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(83), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(84), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(85), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(86), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(87), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(88), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(89), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(90), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G90},
++    {G(91), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G91},
++    {G(92), 1U, NC_MOTION_THREAD, NC_MODAL_FLAG_G92},
++    {G(94), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G94},
++    {G(95), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G95},
++    {G(96), 1U, NC_MOTION_NONE,  0U},
++    {G(97), 1U, NC_MOTION_NONE,  0U},
++    {G(98), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G98},
++    {G(99), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G99}
+ };
+ 
+ static const NC_ADDRESS_INFO s_addresses[] = {
+     {'A', 1U, NC_ADDRESS_KIND_AXIS,    3},
+-    {'B', 0U, NC_ADDRESS_KIND_AXIS,   -1},
+-    {'C', 0U, NC_ADDRESS_KIND_AXIS,   -1},
++    {'B', 1U, NC_ADDRESS_KIND_OFFSET, -1},
++    {'C', 1U, NC_ADDRESS_KIND_OFFSET, -1},
++    {'D', 1U, NC_ADDRESS_KIND_OFFSET, -1},
++    {'E', 1U, NC_ADDRESS_KIND_OFFSET, -1},
+     {'F', 1U, NC_ADDRESS_KIND_FEED,   -1},
+     {'G', 1U, NC_ADDRESS_KIND_G_CODE, -1},
++    {'H', 1U, NC_ADDRESS_KIND_OFFSET, -1},
+     {'I', 1U, NC_ADDRESS_KIND_ARC_OFFSET, 0},
+     {'J', 1U, NC_ADDRESS_KIND_ARC_OFFSET, 1},
+     {'K', 1U, NC_ADDRESS_KIND_ARC_OFFSET, 2},
+     {'L', 1U, NC_ADDRESS_KIND_L_WORD, -1},
+     {'M', 1U, NC_ADDRESS_KIND_M_CODE, -1},
++    {'N', 1U, NC_ADDRESS_KIND_NUMBER, -1},
++    {'O', 1U, NC_ADDRESS_KIND_NUMBER, -1},
+     {'P', 1U, NC_ADDRESS_KIND_P_WORD, -1},
++    {'Q', 1U, NC_ADDRESS_KIND_Q_WORD, -1},
+     {'R', 1U, NC_ADDRESS_KIND_ARC_RADIUS, -1},
+     {'S', 1U, NC_ADDRESS_KIND_SPINDLE, -1},
+     {'T', 1U, NC_ADDRESS_KIND_TOOL,   -1},
++    {'U', 1U, NC_ADDRESS_KIND_INCREMENTAL_AXIS, 0},
++    {'V', 1U, NC_ADDRESS_KIND_INCREMENTAL_AXIS, 1},
++    {'W', 1U, NC_ADDRESS_KIND_INCREMENTAL_AXIS, 2},
+     {'X', 1U, NC_ADDRESS_KIND_AXIS,    0},
+     {'Y', 1U, NC_ADDRESS_KIND_AXIS,    1},
+     {'Z', 1U, NC_ADDRESS_KIND_AXIS,    2}
+@@ -69,6 +144,9 @@
+     {7U, 1U, 0U},
+     {8U, 1U, 0U},
+     {9U, 1U, 0U},
++    {30U, 1U, 0U},
++    {98U, 1U, 0U},
++    {99U, 1U, 0U},
+     {130U, 1U, 0U}
+ };
+ 
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' orig_source/source/src/nc_interpolation.c impl_work/source/src/nc_interpolation.c
+--- orig_source/source/src/nc_interpolation.c	2026-04-29 17:28:53.000000000 +0000
++++ impl_work/source/src/nc_interpolation.c	2026-04-29 18:50:20.000000000 +0000
+@@ -21,7 +21,12 @@
+     return (uint8_t)((motion == NC_MOTION_RAPID) ||
+                      (motion == NC_MOTION_LINEAR) ||
+                      (motion == NC_MOTION_ARC_CW) ||
+-                     (motion == NC_MOTION_ARC_CCW));
++                     (motion == NC_MOTION_ARC_CCW) ||
++                     (motion == NC_MOTION_CANNED_CYCLE) ||
++                     (motion == NC_MOTION_THREAD) ||
++                     (motion == NC_MOTION_SKIP) ||
++                     (motion == NC_MOTION_REFERENCE_RETURN) ||
++                     (motion == NC_MOTION_ADVANCED_INTERP));
+ }
+ 
+ static uint8_t IsActiveType(NC_MOTION_TYPE motion)
+@@ -85,6 +90,13 @@
+     if (IsMotion(pBlock->motion_type) == 0U) {
+         return 0;
+     }
++    if ((pBlock->motion_type == NC_MOTION_CANNED_CYCLE) ||
++        (pBlock->motion_type == NC_MOTION_THREAD) ||
++        (pBlock->motion_type == NC_MOTION_SKIP) ||
++        (pBlock->motion_type == NC_MOTION_REFERENCE_RETURN) ||
++        (pBlock->motion_type == NC_MOTION_ADVANCED_INTERP)) {
++        return NcFeed_PrepareMotionTs(pBlock, LinearLengthUnits(pBlock), pOutError);
++    }
+     if ((pBlock->motion_type == NC_MOTION_ARC_CW) ||
+         (pBlock->motion_type == NC_MOTION_ARC_CCW)) {
+         double pathLengthUnits;
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' orig_source/source/src/nc_parser.c impl_work/source/src/nc_parser.c
+--- orig_source/source/src/nc_parser.c	2026-04-29 18:03:33.000000000 +0000
++++ impl_work/source/src/nc_parser.c	2026-04-29 18:50:14.000000000 +0000
+@@ -71,9 +71,19 @@
+         while (isspace((unsigned char)*pCursor) != 0) {
+             pCursor++;
+         }
+-        if (*pCursor == '\0') {
++        if ((*pCursor == '\0') || (*pCursor == ';') || (*pCursor == '%')) {
+             break;
+         }
++        if (*pCursor == '(') {
++            pCursor++;
++            while ((*pCursor != '\0') && (*pCursor != ')')) {
++                pCursor++;
++            }
++            if (*pCursor == ')') {
++                pCursor++;
++            }
++            continue;
++        }
+         if (isalpha((unsigned char)*pCursor) == 0) {
+             *pOutError = NC_ERR_TOKEN;
+             return -1;
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' orig_source/source/src/nc_parser_modal.c impl_work/source/src/nc_parser_modal.c
+--- orig_source/source/src/nc_parser_modal.c	2026-04-29 17:58:14.000000000 +0000
++++ impl_work/source/src/nc_parser_modal.c	2026-04-29 19:00:43.513574355 +0000
+@@ -16,6 +16,10 @@
+ #define G_GROUP_STOP     (0x10U)
+ #define G_GROUP_UNIT     (0x20U)
+ #define G_GROUP_DISTANCE (0x40U)
++#define G_GROUP_RETURN   (0x80U)
++
++#define G(whole)       NC_G_CODE_WHOLE(whole)
++#define GD(whole, dec) NC_G_CODE10((whole), (dec))
+ 
+ static int32_t s_lastFeed;
+ static uint32_t s_lastSpindle;
+@@ -24,13 +28,19 @@
+ static NC_FEED_MODE s_feedMode;
+ static uint8_t s_exactStopMode;
+ static uint8_t s_oneShotExactStop;
++static uint8_t s_returnMode;
+ 
+ static uint8_t IsMotionType(NC_MOTION_TYPE motion)
+ {
+     return (uint8_t)((motion == NC_MOTION_RAPID) ||
+                      (motion == NC_MOTION_LINEAR) ||
+                      (motion == NC_MOTION_ARC_CW) ||
+-                     (motion == NC_MOTION_ARC_CCW));
++                     (motion == NC_MOTION_ARC_CCW) ||
++                     (motion == NC_MOTION_CANNED_CYCLE) ||
++                     (motion == NC_MOTION_THREAD) ||
++                     (motion == NC_MOTION_SKIP) ||
++                     (motion == NC_MOTION_REFERENCE_RETURN) ||
++                     (motion == NC_MOTION_ADVANCED_INTERP));
+ }
+ 
+ void NcParser_ResetModalState(void)
+@@ -42,6 +52,7 @@
+     s_feedMode = NC_FEED_MODE_PER_MIN;
+     s_exactStopMode = 0U;
+     s_oneShotExactStop = 0U;
++    s_returnMode = 0U;
+     NcCoordinate_Reset();
+ }
+ 
+@@ -56,6 +67,7 @@
+     pBlock->spindle_speed = s_lastSpindle;
+     pBlock->plane = s_plane;
+     pBlock->feed_mode = s_feedMode;
++    pBlock->return_mode = s_returnMode;
+     NcCoordinate_FillTargets(pBlock);
+     for (i = 0U; i < AXIS_MAX; ++i) {
+         pBlock->axis_start[i] = pBlock->axis_target[i];
+@@ -90,35 +102,36 @@
+                                 NC_EXEC_BLOCK* pBlock,
+                                 NC_PARSE_CONTEXT* pCtx)
+ {
+-    if ((code != 10) && (code != 52) && (code != 53) &&
+-        (code != 92) && ((code < 54) || (code > 59))) {
++    if ((code != G(10)) && (code != G(52)) && (code != G(53)) &&
++        (code != G(92)) && ((code < G(54)) || (code > G(59)))) {
+         return 1;
+     }
+     if (MarkGroup(pCtx, G_GROUP_COORD) != 0) {
+         return -3;
+     }
+-    if (code == 10) {
++    if (code == G(10)) {
+         pCtx->coord_mode = NC_PARSE_COORD_G10_WORK_OFFSET;
+         pBlock->motion_type = NC_MOTION_NONE;
+-    } else if (code == 52) {
++    } else if (code == G(52)) {
+         pCtx->coord_mode = NC_PARSE_COORD_LOCAL_SHIFT;
+         pBlock->motion_type = NC_MOTION_NONE;
+-    } else if (code == 53) {
++    } else if (code == G(53)) {
+         if (g_ncCoordinateState.distance_mode != NC_DISTANCE_ABSOLUTE) {
+             return -4;
+         }
+         pCtx->coord_mode = NC_PARSE_COORD_MACHINE_DIRECT;
+-    } else if (code == 92) {
++    } else if (code == G(92)) {
+         if (g_ncCoordinateState.distance_mode != NC_DISTANCE_ABSOLUTE) {
+             return -4;
+         }
+         pCtx->coord_mode = NC_PARSE_COORD_TEMPORARY_SHIFT;
+         pBlock->motion_type = NC_MOTION_NONE;
+     } else {
+-        NcCoordinate_SelectWork((uint8_t)(code - 54));
++        NcCoordinate_SelectWork((uint8_t)((code - G(54)) / 10));
+         pCtx->coord_mode = NC_PARSE_COORD_WORK_SELECT;
+         pBlock->motion_type = NC_MOTION_NONE;
+     }
++    pBlock->g_code10 = (uint16_t)code;
+     pBlock->modal_flags |= pInfo->modal_flag;
+     return 0;
+ }
+@@ -128,35 +141,45 @@
+                              NC_EXEC_BLOCK* pBlock,
+                              NC_PARSE_CONTEXT* pCtx)
+ {
+-    if ((code >= 17) && (code <= 19)) {
++    if ((code >= G(17)) && (code <= G(19))) {
+         if (MarkGroup(pCtx, G_GROUP_PLANE) != 0) {
+             return -3;
+         }
+-        s_plane = (code == 18) ? NC_PLANE_ZX :
+-                  ((code == 19) ? NC_PLANE_YZ : NC_PLANE_XY);
++        s_plane = (code == G(18)) ? NC_PLANE_ZX :
++                  ((code == G(19)) ? NC_PLANE_YZ : NC_PLANE_XY);
+         pBlock->plane = s_plane;
+-    } else if ((code == 20) || (code == 21)) {
++    } else if ((code == G(20)) || (code == G(21))) {
+         if (MarkGroup(pCtx, G_GROUP_UNIT) != 0) {
+             return -3;
+         }
+-        NcCoordinate_SetUnitMode((code == 20) ? NC_UNIT_INCH : NC_UNIT_MM);
+-    } else if ((code == 90) || (code == 91)) {
++        NcCoordinate_SetUnitMode((code == G(20)) ? NC_UNIT_INCH : NC_UNIT_MM);
++    } else if ((code == G(90)) || (code == G(91))) {
+         if (MarkGroup(pCtx, G_GROUP_DISTANCE) != 0) {
+             return -3;
+         }
+-        NcCoordinate_SetDistanceMode((code == 91) ?
++        NcCoordinate_SetDistanceMode((code == G(91)) ?
+                                      NC_DISTANCE_INCREMENTAL :
+                                      NC_DISTANCE_ABSOLUTE);
+-    } else if ((code == 94) || (code == 95)) {
++    } else if ((code == G(94)) || (code == G(95))) {
+         if (MarkGroup(pCtx, G_GROUP_FEED) != 0) {
+             return -3;
+         }
+-        s_feedMode = (code == 95) ? NC_FEED_MODE_PER_REV :
++        s_feedMode = (code == G(95)) ? NC_FEED_MODE_PER_REV :
+                                     NC_FEED_MODE_PER_MIN;
+         pBlock->feed_mode = s_feedMode;
++    } else if ((code == G(98)) || (code == G(99))) {
++        if (MarkGroup(pCtx, G_GROUP_RETURN) != 0) {
++            return -3;
++        }
++        s_returnMode = (uint8_t)((code == G(98)) ? 1U : 2U);
++        pBlock->return_mode = s_returnMode;
++        pBlock->feature_flags |= (code == G(98)) ?
++                                 NC_FEATURE_FLAG_RETURN_INITIAL :
++                                 NC_FEATURE_FLAG_RETURN_R_PLANE;
+     } else {
+         return 1;
+     }
++    pBlock->g_code10 = (uint16_t)code;
+     pBlock->modal_flags |= pInfo->modal_flag;
+     return 0;
+ }
+@@ -166,22 +189,80 @@
+                           NC_EXEC_BLOCK* pBlock,
+                           NC_PARSE_CONTEXT* pCtx)
+ {
+-    if ((code != 9) && (code != 61) && (code != 64)) {
++    if ((code != G(9)) && (code != G(61)) &&
++        (code != G(62)) && (code != G(64))) {
+         return 1;
+     }
+     if (MarkGroup(pCtx, G_GROUP_STOP) != 0) {
+         return -3;
+     }
+-    if (code == 9) {
++    if (code == G(9)) {
+         s_oneShotExactStop = 1U;
++    } else if ((code == G(61)) || (code == G(62))) {
++        s_exactStopMode = 1U;
++        s_oneShotExactStop = 0U;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_EXACT_STOP;
+     } else {
+-        s_exactStopMode = (uint8_t)(code == 61);
++        s_exactStopMode = 0U;
+         s_oneShotExactStop = 0U;
+     }
++    pBlock->g_code10 = (uint16_t)code;
+     pBlock->modal_flags |= pInfo->modal_flag;
+     return 0;
+ }
+ 
++static int32_t ApplyFeatureG(int32_t code,
++                             NC_EXEC_BLOCK* pBlock,
++                             NC_PARSE_CONTEXT* pCtx)
++{
++    (void)pCtx;
++    if ((code == GD(5, 1)) || (code == GD(5, 2))) {
++        pBlock->feature_flags |= (NC_FEATURE_FLAG_HIGH_PRECISION |
++                                  NC_FEATURE_FLAG_SMOOTHING);
++        pBlock->motion_type = NC_MOTION_NONE;
++    } else if (code == GD(51, 4)) {
++        pBlock->feature_flags |= NC_FEATURE_FLAG_SYNC;
++        pBlock->motion_type = NC_MOTION_NONE;
++    } else if (code == GD(50, 4)) {
++        pBlock->feature_flags |= NC_FEATURE_FLAG_SYNC;
++        pBlock->motion_type = NC_MOTION_NONE;
++    } else if (code == GD(51, 5)) {
++        pBlock->feature_flags |= NC_FEATURE_FLAG_COMPOUND;
++        pBlock->motion_type = NC_MOTION_NONE;
++    } else if (code == GD(50, 5)) {
++        pBlock->feature_flags |= NC_FEATURE_FLAG_COMPOUND;
++        pBlock->motion_type = NC_MOTION_NONE;
++    } else if (code == GD(51, 6)) {
++        pBlock->feature_flags |= NC_FEATURE_FLAG_OVERLAY;
++        pBlock->motion_type = NC_MOTION_NONE;
++    } else if (code == GD(50, 6)) {
++        pBlock->feature_flags |= NC_FEATURE_FLAG_OVERLAY;
++        pBlock->motion_type = NC_MOTION_NONE;
++    } else if ((code == GD(6, 2)) || (code == GD(7, 1)) ||
++               (code == GD(12, 1)) || (code == GD(13, 1))) {
++        pBlock->feature_flags |= NC_FEATURE_FLAG_ADVANCED_INTERP;
++        pBlock->motion_type = NC_MOTION_ADVANCED_INTERP;
++    } else if ((code == G(15)) || (code == G(16)) ||
++               (code == G(40)) || (code == G(41)) || (code == G(42)) ||
++               (code == G(43)) || (code == G(44)) || (code == G(49)) ||
++               (code == G(68)) || (code == G(69)) ||
++               (code == G(96)) || (code == G(97))) {
++        pBlock->feature_flags |= NC_FEATURE_FLAG_ADVANCED_INTERP;
++        pBlock->motion_type = NC_MOTION_NONE;
++    } else {
++        return 1;
++    }
++    pBlock->g_code10 = (uint16_t)code;
++    return 0;
++}
++
++static uint8_t IsCannedCycleCode(int32_t code)
++{
++    return (uint8_t)(((code >= G(70)) && (code <= G(89))) ||
++                     ((code >= GD(70, 7)) && (code <= GD(75, 7))) ||
++                     (code == GD(12, 4)) || (code == GD(13, 4)));
++}
++
+ int32_t NcParser_ApplyGCode(int32_t code,
+                             NC_EXEC_BLOCK* pBlock,
+                             NC_PARSE_CONTEXT* pCtx)
+@@ -205,15 +286,43 @@
+     if (result != 1) {
+         return result;
+     }
++    result = ApplyFeatureG(code, pBlock, pCtx);
++    if (result != 1) {
++        return result;
++    }
++
++    if (code == G(80)) {
++        if (MarkGroup(pCtx, G_GROUP_MOTION) != 0) {
++            return -3;
++        }
++        s_modalMotion = NC_MOTION_NONE;
++        pBlock->motion_type = NC_MOTION_NONE;
++        pBlock->g_code10 = (uint16_t)code;
++        return 0;
++    }
+     if (MarkGroup(pCtx, G_GROUP_MOTION) != 0) {
+         return -3;
+     }
+-    if (code == 4) {
++    if (code == G(4)) {
+         pBlock->motion_type = NC_MOTION_DWELL;
+     } else {
+         s_modalMotion = info.motion_type;
+         pBlock->motion_type = info.motion_type;
+     }
++    if (IsCannedCycleCode(code) != 0U) {
++        pBlock->feature_flags |= NC_FEATURE_FLAG_CANNED_CYCLE;
++        pBlock->cycle_code10 = (uint16_t)code;
++    }
++    if (info.motion_type == NC_MOTION_THREAD) {
++        pBlock->feature_flags |= NC_FEATURE_FLAG_THREAD;
++    } else if (info.motion_type == NC_MOTION_SKIP) {
++        pBlock->feature_flags |= NC_FEATURE_FLAG_SKIP;
++    } else if (info.motion_type == NC_MOTION_REFERENCE_RETURN) {
++        pBlock->feature_flags |= NC_FEATURE_FLAG_REFERENCE_RETURN;
++    } else if (info.motion_type == NC_MOTION_ADVANCED_INTERP) {
++        pBlock->feature_flags |= NC_FEATURE_FLAG_ADVANCED_INTERP;
++    }
++    pBlock->g_code10 = (uint16_t)code;
+     pBlock->modal_flags |= info.modal_flag;
+     return 0;
+ }
+@@ -225,7 +334,9 @@
+                                (NC_ARC_FLAG_IJK | NC_ARC_FLAG_R));
+ 
+     if (IsMotionType(pBlock->motion_type) != 0U) {
+-        if ((pBlock->axis_mask == 0U) && (hasArc == 0U)) {
++        if ((pBlock->axis_mask == 0U) && (hasArc == 0U) &&
++            (pBlock->motion_type != NC_MOTION_CANNED_CYCLE) &&
++            (pBlock->motion_type != NC_MOTION_REFERENCE_RETURN)) {
+             pBlock->motion_type = (pBlock->aux_flags != 0U) ?
+                                   NC_MOTION_AUX_ONLY : NC_MOTION_NONE;
+             return NcInterpolation_PrepareBlockTs(pBlock, pOutError);
+@@ -233,10 +344,12 @@
+         if ((s_oneShotExactStop != 0U) || (s_exactStopMode != 0U)) {
+             pBlock->modal_flags |= (s_oneShotExactStop != 0U) ?
+                                    NC_MODAL_FLAG_G09 : NC_MODAL_FLAG_G61;
++            pBlock->feature_flags |= NC_FEATURE_FLAG_EXACT_STOP;
+             s_oneShotExactStop = 0U;
+         }
+     } else if ((pBlock->motion_type != NC_MOTION_DWELL) &&
+-               (pBlock->axis_mask == 0U) && (hasArc == 0U)) {
++               (pBlock->axis_mask == 0U) && (hasArc == 0U) &&
++               (pBlock->feature_flags == 0U)) {
+         pBlock->motion_type = (pBlock->aux_flags != 0U) ?
+                               NC_MOTION_AUX_ONLY : NC_MOTION_NONE;
+     }
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' orig_source/source/src/nc_parser_tokens.c impl_work/source/src/nc_parser_tokens.c
+--- orig_source/source/src/nc_parser_tokens.c	2026-04-29 18:03:22.000000000 +0000
++++ impl_work/source/src/nc_parser_tokens.c	2026-04-29 18:55:37.819952960 +0000
+@@ -3,6 +3,7 @@
+ /* This exists so unit scaling and coordinate words stay out of modal code. */
+ /* RELEVANT FILES: ibm-bob/samples/base/source/src/nc_parser_modal.c, ibm-bob/samples/base/source/inc/nc_parser_internal.h, ibm-bob/samples/base/source/src/nc_coordinate.c */
+ #include <limits.h>
++#include <math.h>
+ #include "nc_codes.h"
+ #include "nc_coordinate.h"
+ #include "nc_parser_internal.h"
+@@ -20,6 +21,25 @@
+     return 0;
+ }
+ 
++static int32_t NormalizeGCode(double value, int32_t* pOutCode10)
++{
++    double scaled;
++    int32_t code10;
++
++    if ((value < 0.0) || (value > 999.9)) {
++        return -1;
++    }
++    scaled = (value * 10.0) + 0.5;
++    if (RoundToInt(scaled - 0.5, &code10) != 0) {
++        return -1;
++    }
++    if (fabs(((double)code10 / 10.0) - value) > 0.0001) {
++        return -1;
++    }
++    *pOutCode10 = code10;
++    return 0;
++}
++
+ static int32_t ScaleLinear(double value, int32_t* pOut)
+ {
+     double scaled = value * (double)NC_POSITION_SCALE;
+@@ -91,6 +111,27 @@
+            0 : -4;
+ }
+ 
++static int32_t ApplyIncrementalAxis(const NC_ADDRESS_INFO* pInfo,
++                                    int32_t scaled,
++                                    NC_EXEC_BLOCK* pBlock)
++{
++    int32_t base;
++
++    if ((pInfo->axis_index < 0) || (pInfo->axis_index >= (int32_t)AXIS_MAX)) {
++        return -4;
++    }
++    base = g_ncCoordinateState.program_position[pInfo->axis_index];
++    return (NcCoordinate_SetProgramAxis(pInfo->axis_index,
++                                        base + scaled,
++                                        pBlock) == 0) ? 0 : -4;
++}
++
++static uint8_t IsArcMotion(NC_MOTION_TYPE motion)
++{
++    return (uint8_t)((motion == NC_MOTION_ARC_CW) ||
++                     (motion == NC_MOTION_ARC_CCW));
++}
++
+ static int32_t ApplyScaledToken(const NC_ADDRESS_INFO* pInfo,
+                                 int32_t scaled,
+                                 NC_EXEC_BLOCK* pBlock,
+@@ -99,6 +140,9 @@
+     if (pInfo->kind == NC_ADDRESS_KIND_AXIS) {
+         return ApplyAxis(pInfo, scaled, pBlock, pCtx);
+     }
++    if (pInfo->kind == NC_ADDRESS_KIND_INCREMENTAL_AXIS) {
++        return ApplyIncrementalAxis(pInfo, scaled, pBlock);
++    }
+     if (pInfo->kind == NC_ADDRESS_KIND_ARC_OFFSET) {
+         pBlock->arc_center[pInfo->axis_index] =
+             pBlock->axis_start[pInfo->axis_index] + scaled;
+@@ -106,8 +150,16 @@
+         return 0;
+     }
+     if (pInfo->kind == NC_ADDRESS_KIND_ARC_RADIUS) {
+-        pBlock->arc_radius = scaled;
+-        pBlock->modal_flags |= NC_ARC_FLAG_R;
++        if (IsArcMotion(pBlock->motion_type) != 0U) {
++            pBlock->arc_radius = scaled;
++            pBlock->modal_flags |= NC_ARC_FLAG_R;
++        } else {
++            pBlock->r_value = scaled;
++            pBlock->feature_flags |= NC_FEATURE_FLAG_PARAM_R;
++        }
++        return 0;
++    }
++    if (pInfo->kind == NC_ADDRESS_KIND_OFFSET) {
+         return 0;
+     }
+     NcParser_SetFeed(scaled, pBlock);
+@@ -140,15 +192,34 @@
+         pBlock->interp_ticks = (uint32_t)(value + 0.5);
+         return 0;
+     }
+-    if ((pCtx->coord_mode != NC_PARSE_COORD_G10_WORK_OFFSET) ||
+-        (RoundToInt(value, &word) != 0)) {
+-        return -1;
++    if (pCtx->coord_mode == NC_PARSE_COORD_G10_WORK_OFFSET) {
++        if (RoundToInt(value, &word) != 0) {
++            return -1;
++        }
++        if ((word < 1) || (word > (int32_t)NC_WORK_COORD_SYSTEMS)) {
++            return -2;
++        }
++        pCtx->g10_p_valid = 1U;
++        pCtx->g10_p_value = word;
++        return 0;
++    }
++    if (value < 0.0) {
++        return -2;
+     }
+-    if ((word < 1) || (word > (int32_t)NC_WORK_COORD_SYSTEMS)) {
++    pBlock->p_word = (uint32_t)(value + 0.5);
++    pBlock->feature_flags |= NC_FEATURE_FLAG_PARAM_P;
++    return 0;
++}
++
++static int32_t ApplyQWord(double value, NC_EXEC_BLOCK* pBlock)
++{
++    int32_t scaled;
++
++    if (ScaleLinear(value, &scaled) != 0) {
+         return -2;
+     }
+-    pCtx->g10_p_valid = 1U;
+-    pCtx->g10_p_value = word;
++    pBlock->q_value = scaled;
++    pBlock->feature_flags |= NC_FEATURE_FLAG_PARAM_Q;
+     return 0;
+ }
+ 
+@@ -156,6 +227,9 @@
+                              double value,
+                              NC_EXEC_BLOCK* pBlock)
+ {
++    if (pInfo->kind == NC_ADDRESS_KIND_NUMBER) {
++        return 0;
++    }
+     if (value < 0.0) {
+         return -2;
+     }
+@@ -178,6 +252,9 @@
+         }
+         pBlock->aux_m_code = mInfo.code;
+         pBlock->aux_flags |= NC_AUX_FLAG_M_CODE;
++        if (mInfo.waits_for_mfin != 0U) {
++            pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        }
+         return 0;
+     }
+     return -1;
+@@ -189,6 +266,7 @@
+                             NC_PARSE_CONTEXT* pCtx)
+ {
+     int32_t scaled;
++    int32_t gCode10;
+     NC_ADDRESS_INFO info;
+ 
+     if ((NcCodes_GetAddressInfo(address, &info) != 0) ||
+@@ -196,7 +274,10 @@
+         return -1;
+     }
+     if (info.kind == NC_ADDRESS_KIND_G_CODE) {
+-        return NcParser_ApplyGCode((int32_t)(value + 0.5), pBlock, pCtx);
++        if (NormalizeGCode(value, &gCode10) != 0) {
++            return -2;
++        }
++        return NcParser_ApplyGCode(gCode10, pBlock, pCtx);
+     }
+     if (info.kind == NC_ADDRESS_KIND_L_WORD) {
+         return ApplyLWord(value, pCtx);
+@@ -204,6 +285,9 @@
+     if (info.kind == NC_ADDRESS_KIND_P_WORD) {
+         return ApplyPWord(value, pBlock, pCtx);
+     }
++    if (info.kind == NC_ADDRESS_KIND_Q_WORD) {
++        return ApplyQWord(value, pBlock);
++    }
+     if (info.kind == NC_ADDRESS_KIND_FEED) {
+         if (ScaleFeed(value, &scaled) != 0) {
+             return -2;
+@@ -211,8 +295,10 @@
+         return ApplyScaledToken(&info, scaled, pBlock, pCtx);
+     }
+     if ((info.kind == NC_ADDRESS_KIND_AXIS) ||
++        (info.kind == NC_ADDRESS_KIND_INCREMENTAL_AXIS) ||
+         (info.kind == NC_ADDRESS_KIND_ARC_OFFSET) ||
+-        (info.kind == NC_ADDRESS_KIND_ARC_RADIUS)) {
++        (info.kind == NC_ADDRESS_KIND_ARC_RADIUS) ||
++        (info.kind == NC_ADDRESS_KIND_OFFSET)) {
+         if (ScaleLinear(value, &scaled) != 0) {
+             return -2;
+         }
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' orig_source/source/src/nc_program.c impl_work/source/src/nc_program.c
+--- orig_source/source/src/nc_program.c	2026-04-29 18:04:15.000000000 +0000
++++ impl_work/source/src/nc_program.c	2026-04-29 18:58:23.701347376 +0000
+@@ -13,6 +13,8 @@
+ 
+ static FILE* s_ncFile = NULL;
+ 
++static void RtNcProgram_ResetAuxWait(void);
++
+ static void NcStatus_SetState(NC_PROGRAM_STATE state)
+ {
+     if (g_ncProgramStatus.state != state) {
+@@ -27,6 +29,7 @@
+     g_ncProgramStatus.error_code = errorCode;
+     g_ncProgramStatus.error_line_no = lineNo;
+     g_ncProgramStatus.response_code = RESPONSE_REJECTED;
++    RtNcProgram_ResetAuxWait();
+     NcStatus_SetState(NC_ERROR);
+     (void)LogQueue_Push(LOG_ALARM, NC_LOG_BASE + (uint32_t)errorCode, (int32_t)lineNo);
+ }
+@@ -44,7 +47,105 @@
+     return (uint8_t)((pBlock->motion_type == NC_MOTION_RAPID) ||
+                      (pBlock->motion_type == NC_MOTION_LINEAR) ||
+                      (pBlock->motion_type == NC_MOTION_ARC_CW) ||
+-                     (pBlock->motion_type == NC_MOTION_ARC_CCW));
++                     (pBlock->motion_type == NC_MOTION_ARC_CCW) ||
++                     (pBlock->motion_type == NC_MOTION_CANNED_CYCLE) ||
++                     (pBlock->motion_type == NC_MOTION_THREAD) ||
++                     (pBlock->motion_type == NC_MOTION_SKIP) ||
++                     (pBlock->motion_type == NC_MOTION_REFERENCE_RETURN) ||
++                     (pBlock->motion_type == NC_MOTION_ADVANCED_INTERP));
++}
++
++static void RtNcProgram_ResetAuxWait(void)
++{
++    g_ncAuxStatus.state = NC_AUX_STATE_IDLE;
++    g_ncAuxStatus.active_m_code = 0U;
++    g_ncAuxStatus.wait_line_no = 0U;
++    g_ncAuxStatus.wait_cycles = 0U;
++    g_ncAuxStatus.generation++;
++}
++
++static uint8_t RtNcProgram_ServiceAuxWait(void)
++{
++    if (g_ncAuxStatus.state != NC_AUX_STATE_WAIT_MFIN) {
++        return 0U;
++    }
++    if ((g_ioIn.seq_bits & SENSOR_SEQ_MFIN_BIT) != 0U) {
++        g_ncAuxStatus.last_wait_cycles = g_ncAuxStatus.wait_cycles;
++        g_ncAuxStatus.total_wait_cycles += g_ncAuxStatus.wait_cycles;
++        g_ncAuxStatus.completed_m_codes++;
++        RtNcProgram_ResetAuxWait();
++        return 0U;
++    }
++    g_ncAuxStatus.wait_cycles++;
++    g_ncAuxStatus.generation++;
++    return 1U;
++}
++
++static void RtNcProgram_UpdateFeatureStatus(const NC_EXEC_BLOCK* pBlock)
++{
++    uint32_t flags = pBlock->feature_flags;
++
++    if ((flags == 0U) && (pBlock->g_code10 == 0U) &&
++        (pBlock->cycle_code10 == 0U)) {
++        return;
++    }
++
++    g_ncFeatureStatus.last_block_feature_flags = flags;
++    g_ncFeatureStatus.last_g_code10 = pBlock->g_code10;
++    g_ncFeatureStatus.last_cycle_code10 = pBlock->cycle_code10;
++    g_ncFeatureStatus.last_line_no = pBlock->line_no;
++    g_ncFeatureStatus.executed_feature_blocks++;
++    g_ncFeatureStatus.return_mode = pBlock->return_mode;
++
++    if ((flags & NC_FEATURE_FLAG_CANNED_CYCLE) != 0U) {
++        g_ncFeatureStatus.canned_cycle_blocks++;
++        g_ncFeatureStatus.active_feature_flags |= NC_FEATURE_FLAG_CANNED_CYCLE;
++    }
++    if ((flags & NC_FEATURE_FLAG_THREAD) != 0U) {
++        g_ncFeatureStatus.thread_blocks++;
++        g_ncFeatureStatus.active_feature_flags |= NC_FEATURE_FLAG_THREAD;
++    }
++    if ((flags & NC_FEATURE_FLAG_SKIP) != 0U) {
++        g_ncFeatureStatus.skip_blocks++;
++    }
++    if ((flags & NC_FEATURE_FLAG_REFERENCE_RETURN) != 0U) {
++        g_ncFeatureStatus.reference_return_blocks++;
++    }
++    if ((flags & NC_FEATURE_FLAG_ADVANCED_INTERP) != 0U) {
++        g_ncFeatureStatus.advanced_interp_blocks++;
++    }
++    if ((flags & NC_FEATURE_FLAG_HIGH_PRECISION) != 0U) {
++        g_ncFeatureStatus.high_precision_enabled = 1U;
++        g_ncFeatureStatus.active_feature_flags |= NC_FEATURE_FLAG_HIGH_PRECISION;
++    }
++    if ((flags & NC_FEATURE_FLAG_SMOOTHING) != 0U) {
++        g_ncFeatureStatus.smoothing_enabled = 1U;
++        g_ncFeatureStatus.active_feature_flags |= NC_FEATURE_FLAG_SMOOTHING;
++    }
++    if ((flags & NC_FEATURE_FLAG_EXACT_STOP) != 0U) {
++        g_ncFeatureStatus.exact_stop_enabled = 1U;
++        g_ncFeatureStatus.active_feature_flags |= NC_FEATURE_FLAG_EXACT_STOP;
++    }
++    if ((flags & NC_FEATURE_FLAG_SYNC) != 0U) {
++        g_ncFeatureStatus.sync_enabled =
++            (uint8_t)(pBlock->g_code10 == NC_G_CODE10(50, 4) ? 0U : 1U);
++    }
++    if ((flags & NC_FEATURE_FLAG_COMPOUND) != 0U) {
++        g_ncFeatureStatus.compound_enabled =
++            (uint8_t)(pBlock->g_code10 == NC_G_CODE10(50, 5) ? 0U : 1U);
++    }
++    if ((flags & NC_FEATURE_FLAG_OVERLAY) != 0U) {
++        g_ncFeatureStatus.overlay_enabled =
++            (uint8_t)(pBlock->g_code10 == NC_G_CODE10(50, 6) ? 0U : 1U);
++    }
++    if (pBlock->g_code10 == NC_G_CODE_WHOLE(64)) {
++        g_ncFeatureStatus.exact_stop_enabled = 0U;
++        g_ncFeatureStatus.active_feature_flags &= ~NC_FEATURE_FLAG_EXACT_STOP;
++    }
++    if (pBlock->g_code10 == NC_G_CODE_WHOLE(80)) {
++        g_ncFeatureStatus.active_feature_flags &= ~NC_FEATURE_FLAG_CANNED_CYCLE;
++    }
++    g_ncFeatureStatus.generation++;
+ }
+ 
+ static uint8_t RtNcProgram_IsActiveBlock(const NC_EXEC_BLOCK* pBlock)
+@@ -58,6 +159,7 @@
+     uint32_t i;
+ 
+     g_ncProgramStatus.exec_line_no = pBlock->line_no;
++    RtNcProgram_UpdateFeatureStatus(pBlock);
+     if ((pBlock->motion_type == NC_MOTION_NONE) &&
+         (pBlock->axis_mask == 0U) &&
+         (pBlock->aux_flags == 0U)) {
+@@ -82,6 +184,13 @@
+         g_ioOut.tool_no = pBlock->tool_no;
+     }
+     g_ioOut.aux_flags |= pBlock->aux_flags;
++    if ((pBlock->aux_flags & NC_AUX_FLAG_MFIN_WAIT) != 0U) {
++        g_ncAuxStatus.state = NC_AUX_STATE_WAIT_MFIN;
++        g_ncAuxStatus.active_m_code = pBlock->aux_m_code;
++        g_ncAuxStatus.wait_line_no = pBlock->line_no;
++        g_ncAuxStatus.wait_cycles = 0U;
++        g_ncAuxStatus.generation++;
++    }
+ }
+ 
+ static void RtNcProgram_FinishIfComplete(void)
+@@ -129,6 +238,7 @@
+     if (g_ncProgramRequest.stop_request != 0U) {
+         g_ncProgramRequest.stop_request = 0U;
+         NcInterpolation_Cancel();
++        RtNcProgram_ResetAuxWait();
+         NcStatus_SetState(NC_COMPLETED);
+         g_ncProgramStatus.response_code = RESPONSE_COMPLETED;
+         return;
+@@ -174,6 +284,9 @@
+         RtNcProgram_FinishIfComplete();
+         return;
+     }
++    if (RtNcProgram_ServiceAuxWait() != 0U) {
++        return;
++    }
+ 
+     while (consumed < NC_RT_MAX_BLOCKS_PER_CYCLE) {
+         NC_EXEC_BLOCK block;
+@@ -198,6 +311,9 @@
+             return;
+         }
+         RtNcProgram_ApplyBlockAux(&block);
++        if (g_ncAuxStatus.state == NC_AUX_STATE_WAIT_MFIN) {
++            return;
++        }
+         consumed++;
+     }
+     RtNcProgram_FinishIfComplete();
+@@ -213,6 +329,9 @@
+     NcProgram_ClearBuffer();
+     NcParse_ResetModal();
+     NcInterpolation_Reset();
++    (void)memset((void*)&g_ncAuxStatus, 0, sizeof(g_ncAuxStatus));
++    RtNcProgram_ResetAuxWait();
++    (void)memset((void*)&g_ncFeatureStatus, 0, sizeof(g_ncFeatureStatus));
+     g_ncProgramStatus.error_code = NC_ERR_NONE;
+     g_ncProgramStatus.error_line_no = 0U;
+     g_ncProgramStatus.read_line_no = 0U;
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' orig_source/source/src/rt_control.c impl_work/source/src/rt_control.c
+--- orig_source/source/src/rt_control.c	2026-04-29 10:52:19.000000000 +0000
++++ impl_work/source/src/rt_control.c	2026-04-29 18:56:38.530767977 +0000
+@@ -6,182 +6,263 @@
+ #include "nc_program.h"
+ #include "system_shared.h"
+ #include "system_config.h"
+-
+-#define SENSOR_EMERGENCY_STOP   (0x00000001UL)
+-#define SENSOR_PRESSURE_HIGH    (0x00000002UL)
+-#define SENSOR_SERVO_ALARM      (0x00000004UL)
+-#define SENSOR_READY_SWITCH     (0x00000008UL)
+-#define SENSOR_RUN_SWITCH       (0x00000010UL)
+-
+-#define CMD_ENABLE_SERVO        (0x00000001UL)
+-#define CMD_START_MOTION        (0x00000002UL)
+-#define CMD_SAFE_OUTPUT         (0x80000000UL)
+-
+-static int32_t GetPressureFeedback(void)
+-{
+-    return g_ioIn.analog[0];
+-}
+-
+-void RtDispatcher_ExecuteCycle(void)
+-{
+-    g_machineCtx.cycle_count++;
+-
+-    RtInput_ScanInputs();
++
++#define SENSOR_EMERGENCY_STOP   (0x00000001UL)
++#define SENSOR_PRESSURE_HIGH    (0x00000002UL)
++#define SENSOR_SERVO_ALARM      (0x00000004UL)
++#define SENSOR_READY_SWITCH     (0x00000008UL)
++#define SENSOR_RUN_SWITCH       (0x00000010UL)
++
++#define CMD_ENABLE_SERVO        (0x00000001UL)
++#define CMD_START_MOTION        (0x00000002UL)
++#define CMD_SAFE_OUTPUT         (0x80000000UL)
++
++static int32_t GetPressureFeedback(void)
++{
++    return g_ioIn.analog[0];
++}
++
++static uint8_t IsPressureReadyRange(int32_t pressure)
++{
++    return (uint8_t)((pressure >= READY_PRESSURE_MIN) &&
++                     (pressure <= READY_PRESSURE_MAX));
++}
++
++void RtControl_UpdatePrestartInterlock(void)
++{
++    uint32_t mask = 0U;
++    uint32_t bits = g_ioIn.sensor_bits;
++    int32_t pressure = GetPressureFeedback();
++
++    if ((bits & SENSOR_EMERGENCY_STOP) != 0U) {
++        mask |= PRESTART_ILK_ESTOP;
++    }
++    if ((bits & SENSOR_SERVO_ALARM) != 0U) {
++        mask |= PRESTART_ILK_SERVO_ALARM;
++    }
++    if (IsPressureReadyRange(pressure) == 0U) {
++        mask |= PRESTART_ILK_PRESSURE_RANGE;
++    }
++    if ((bits & SENSOR_READY_SWITCH) == 0U) {
++        mask |= PRESTART_ILK_READY_SWITCH;
++    }
++    if (g_machineCtx.machine_state == MACHINE_ALARM) {
++        mask |= PRESTART_ILK_MACHINE_ALARM;
++    }
++    if ((g_ncProgramStatus.state == NC_READY) &&
++        (g_ncProgramStatus.buffered_blocks == 0U)) {
++        mask |= PRESTART_ILK_NC_BUFFER;
++    }
++
++    g_prestartInterlockStatus.mask = mask;
++    g_prestartInterlockStatus.ok = (uint8_t)(mask == 0U);
++    g_prestartInterlockStatus.sensor_bits = bits;
++    g_prestartInterlockStatus.pressure = pressure;
++    g_prestartInterlockStatus.buffered_blocks = g_ncProgramStatus.buffered_blocks;
++    g_prestartInterlockStatus.generation++;
++}
++
++void RtControl_CaptureIoTrace(void)
++{
++    IO_TRACE_ITEM* pItem;
++    uint32_t i;
++
++    if (g_ioTraceBuffer.frozen != 0U) {
++        return;
++    }
++
++    pItem = (IO_TRACE_ITEM*)&g_ioTraceBuffer.items[g_ioTraceBuffer.write_index];
++    pItem->cycle = g_machineCtx.cycle_count;
++    pItem->sensor_bits = g_ioIn.sensor_bits;
++    pItem->seq_bits = g_ioIn.seq_bits;
++    pItem->command_bits = g_ioOut.command_bits;
++    pItem->aux_m_code = g_ioOut.aux_m_code;
++    pItem->spindle_speed = g_ioOut.spindle_speed;
++    pItem->tool_no = g_ioOut.tool_no;
++    pItem->run_mode = g_machineCtx.run_mode;
++    pItem->machine_state = g_machineCtx.machine_state;
++    pItem->nc_state = g_ncProgramStatus.state;
++    pItem->alarm_code = g_machineCtx.alarm_code;
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        pItem->axis_target[i] = g_ioOut.axis_target[i];
++    }
++
++    g_ioTraceBuffer.write_index =
++        (g_ioTraceBuffer.write_index + 1U) % IO_TRACE_RING_SIZE;
++    if (g_ioTraceBuffer.captured_count < IO_TRACE_RING_SIZE) {
++        g_ioTraceBuffer.captured_count++;
++    }
++    if (g_machineCtx.machine_state == MACHINE_ALARM) {
++        g_ioTraceBuffer.frozen = 1U;
++        g_ioTraceBuffer.trigger_cycle = g_machineCtx.cycle_count;
++        g_ioTraceBuffer.trigger_alarm_code = g_machineCtx.alarm_code;
++    }
++    g_ioTraceBuffer.generation++;
++}
++
++void RtDispatcher_ExecuteCycle(void)
++{
++    g_machineCtx.cycle_count++;
++
++    RtInput_ScanInputs();
++    RtControl_UpdatePrestartInterlock();
+     RtControl_UpdateMachineState();
+     RtControl_ProcessModeRequest();
+     RtControl_UpdateInterlock();
+-    RtNcProgram_ProcessRequests((uint8_t)(g_machineCtx.machine_state != MACHINE_ALARM));
++    RtNcProgram_ProcessRequests((uint8_t)((g_machineCtx.machine_state != MACHINE_ALARM) &&
++                                          (g_prestartInterlockStatus.ok != 0U)));
+     RtControl_UpdateAxisTargets();
+     RtNcProgram_ConsumeBlocks();
+     RtOutput_CommitOutputs();
+-
+-    g_machineCtx.rt_input_ticks = 1U;
+-    g_machineCtx.rt_control_ticks = 2U;
+-    g_machineCtx.rt_output_ticks = 1U;
+-    g_machineCtx.rt_total_ticks = (g_machineCtx.rt_input_ticks +
+-                                   g_machineCtx.rt_control_ticks +
+-                                   g_machineCtx.rt_output_ticks);
+-}
+-
+-void RtInput_ScanInputs(void)
+-{
+-    /* 評価用コードでは外部入力ミラー更新を省略し、既存 g_ioIn を参照する。 */
+-    if (g_prefetchReq.ready == 0U) {
+-        g_prefetchReq.request = 1U;
+-        g_prefetchReq.section_id = (uint16_t)(g_machineCtx.cycle_count % 4U);
+-    }
+-}
+-
+-void RtControl_UpdateMachineState(void)
+-{
+-    int32_t pressure = GetPressureFeedback();
+-
+-    switch (g_machineCtx.machine_state) {
+-    case MACHINE_STOPPED:
+-        if (((g_ioIn.sensor_bits & SENSOR_READY_SWITCH) != 0U) &&
+-            (pressure >= READY_PRESSURE_MIN) &&
+-            (pressure <= READY_PRESSURE_MAX)) {
+-            g_machineCtx.machine_state = MACHINE_READY;
+-            (void)LogQueue_Push(LOG_INFO, 1001U, pressure);
+-        }
+-        break;
+-
+-    case MACHINE_READY:
+-        if (((g_ioIn.sensor_bits & SENSOR_RUN_SWITCH) != 0U) &&
+-            (g_machineCtx.run_mode == RUN_MODE_AUTO)) {
+-            g_machineCtx.machine_state = MACHINE_RUNNING;
+-            (void)LogQueue_Push(LOG_AUDIT, 1002U, 0);
+-        }
+-        break;
+-
+-    case MACHINE_RUNNING:
+-        if ((g_ioIn.sensor_bits & SENSOR_RUN_SWITCH) == 0U) {
+-            g_machineCtx.machine_state = MACHINE_STOPPED;
+-            (void)LogQueue_Push(LOG_AUDIT, 1003U, 0);
+-        }
+-        break;
+-
+-    case MACHINE_ALARM:
+-    default:
+-        break;
+-    }
+-}
+-
+-void RtControl_ProcessModeRequest(void)
+-{
+-    if (g_uiRequest.mode_change_request == 0U) {
+-        return;
+-    }
+-
+-    switch ((RUN_MODE)g_uiRequest.requested_mode) {
+-    case RUN_MODE_MANUAL:
+-        g_machineCtx.run_mode = RUN_MODE_MANUAL;
+-        g_uiRequest.mode_response = RESPONSE_COMPLETED;
+-        break;
+-
+-    case RUN_MODE_AUTO:
+-        if (g_machineCtx.machine_state == MACHINE_READY) {
+-            g_machineCtx.run_mode = RUN_MODE_AUTO;
+-            g_uiRequest.mode_response = RESPONSE_COMPLETED;
+-        } else {
+-            g_uiRequest.mode_response = RESPONSE_REJECTED;
+-        }
+-        break;
+-
+-    case RUN_MODE_MAINT:
+-        if (g_machineCtx.machine_state != MACHINE_RUNNING) {
+-            g_machineCtx.run_mode = RUN_MODE_MAINT;
+-            g_uiRequest.mode_response = RESPONSE_COMPLETED;
+-        } else {
+-            g_uiRequest.mode_response = RESPONSE_REJECTED;
+-        }
+-        break;
+-
+-    default:
+-        g_uiRequest.mode_response = RESPONSE_PARAM_ERROR;
+-        break;
+-    }
+-
+-    g_uiRequest.mode_change_request = 0U;
+-}
+-
+-void RtControl_UpdateInterlock(void)
+-{
+-    int32_t pressure = GetPressureFeedback();
+-    uint32_t bits = g_ioIn.sensor_bits;
+-
+-    if (((bits & SENSOR_EMERGENCY_STOP) != 0U) ||
+-        ((bits & SENSOR_SERVO_ALARM) != 0U) ||
+-        ((bits & SENSOR_PRESSURE_HIGH) != 0U) ||
+-        (pressure > SAFE_PRESSURE_LIMIT)) {
+-        g_machineCtx.machine_state = MACHINE_ALARM;
+-        g_machineCtx.alarm_code = 9001U;
+-        g_ioOut.command_bits = CMD_SAFE_OUTPUT;
+-        g_ioOut.lamp_bits = 0x00000004UL;
+-        (void)LogQueue_Push(LOG_ALARM, g_machineCtx.alarm_code, pressure);
+-    }
+-}
+-
+-void RtControl_UpdateAxisTargets(void)
+-{
+-    uint32_t i;
+-    int32_t baseTarget = 0;
+-
+-    if (g_machineCtx.machine_state == MACHINE_RUNNING) {
+-        g_ioOut.command_bits = (CMD_ENABLE_SERVO | CMD_START_MOTION);
+-        baseTarget = 1000;
+-    } else if (g_machineCtx.machine_state == MACHINE_READY) {
+-        g_ioOut.command_bits = CMD_ENABLE_SERVO;
+-        baseTarget = 100;
+-    } else {
+-        g_ioOut.command_bits = 0U;
+-        baseTarget = 0;
+-    }
+-
+-    if ((g_prefetchReq.ready != 0U) &&
+-        (g_prefetchResult.generation == g_prefetchReq.generation)) {
+-        baseTarget += (int32_t)(g_prefetchResult.table[0] * 10.0F);
+-    }
+-
+-    for (i = 0U; i < AXIS_MAX; ++i) {
+-        g_ioOut.axis_target[i] = baseTarget + ((int32_t)i * 25);
+-    }
+-
+-    if (g_machineCtx.machine_state == MACHINE_ALARM) {
+-        for (i = 0U; i < AXIS_MAX; ++i) {
+-            g_ioOut.axis_target[i] = 0;
+-        }
+-    }
+-}
+-
+-void RtOutput_CommitOutputs(void)
+-{
+-    if (g_machineCtx.machine_state == MACHINE_ALARM) {
+-        g_ioOut.command_bits |= CMD_SAFE_OUTPUT;
+-        g_ioOut.lamp_bits = 0x00000004UL;
+-    } else if (g_machineCtx.machine_state == MACHINE_RUNNING) {
+-        g_ioOut.lamp_bits = 0x00000002UL;
+-    } else {
+-        g_ioOut.lamp_bits = 0x00000001UL;
+-    }
+-}
++    RtControl_CaptureIoTrace();
++
++    g_machineCtx.rt_input_ticks = 1U;
++    g_machineCtx.rt_control_ticks = 2U;
++    g_machineCtx.rt_output_ticks = 1U;
++    g_machineCtx.rt_total_ticks = (g_machineCtx.rt_input_ticks +
++                                   g_machineCtx.rt_control_ticks +
++                                   g_machineCtx.rt_output_ticks);
++}
++
++void RtInput_ScanInputs(void)
++{
++    /* 評価用コードでは外部入力ミラー更新を省略し、既存 g_ioIn を参照する。 */
++    if (g_prefetchReq.ready == 0U) {
++        g_prefetchReq.request = 1U;
++        g_prefetchReq.section_id = (uint16_t)(g_machineCtx.cycle_count % 4U);
++    }
++}
++
++void RtControl_UpdateMachineState(void)
++{
++    int32_t pressure = GetPressureFeedback();
++
++    switch (g_machineCtx.machine_state) {
++    case MACHINE_STOPPED:
++        if (((g_ioIn.sensor_bits & SENSOR_READY_SWITCH) != 0U) &&
++            (IsPressureReadyRange(pressure) != 0U)) {
++            g_machineCtx.machine_state = MACHINE_READY;
++            (void)LogQueue_Push(LOG_INFO, 1001U, pressure);
++        }
++        break;
++
++    case MACHINE_READY:
++        if (((g_ioIn.sensor_bits & SENSOR_RUN_SWITCH) != 0U) &&
++            (g_machineCtx.run_mode == RUN_MODE_AUTO)) {
++            g_machineCtx.machine_state = MACHINE_RUNNING;
++            (void)LogQueue_Push(LOG_AUDIT, 1002U, 0);
++        }
++        break;
++
++    case MACHINE_RUNNING:
++        if ((g_ioIn.sensor_bits & SENSOR_RUN_SWITCH) == 0U) {
++            g_machineCtx.machine_state = MACHINE_STOPPED;
++            (void)LogQueue_Push(LOG_AUDIT, 1003U, 0);
++        }
++        break;
++
++    case MACHINE_ALARM:
++    default:
++        break;
++    }
++}
++
++void RtControl_ProcessModeRequest(void)
++{
++    if (g_uiRequest.mode_change_request == 0U) {
++        return;
++    }
++
++    switch ((RUN_MODE)g_uiRequest.requested_mode) {
++    case RUN_MODE_MANUAL:
++        g_machineCtx.run_mode = RUN_MODE_MANUAL;
++        g_uiRequest.mode_response = RESPONSE_COMPLETED;
++        break;
++
++    case RUN_MODE_AUTO:
++        if ((g_machineCtx.machine_state == MACHINE_READY) &&
++            (g_prestartInterlockStatus.ok != 0U)) {
++            g_machineCtx.run_mode = RUN_MODE_AUTO;
++            g_uiRequest.mode_response = RESPONSE_COMPLETED;
++        } else {
++            g_uiRequest.mode_response = RESPONSE_REJECTED;
++        }
++        break;
++
++    case RUN_MODE_MAINT:
++        if (g_machineCtx.machine_state != MACHINE_RUNNING) {
++            g_machineCtx.run_mode = RUN_MODE_MAINT;
++            g_uiRequest.mode_response = RESPONSE_COMPLETED;
++        } else {
++            g_uiRequest.mode_response = RESPONSE_REJECTED;
++        }
++        break;
++
++    default:
++        g_uiRequest.mode_response = RESPONSE_PARAM_ERROR;
++        break;
++    }
++
++    g_uiRequest.mode_change_request = 0U;
++}
++
++void RtControl_UpdateInterlock(void)
++{
++    int32_t pressure = GetPressureFeedback();
++    uint32_t bits = g_ioIn.sensor_bits;
++
++    if (((bits & SENSOR_EMERGENCY_STOP) != 0U) ||
++        ((bits & SENSOR_SERVO_ALARM) != 0U) ||
++        ((bits & SENSOR_PRESSURE_HIGH) != 0U) ||
++        (pressure > SAFE_PRESSURE_LIMIT)) {
++        g_machineCtx.machine_state = MACHINE_ALARM;
++        g_machineCtx.alarm_code = 9001U;
++        g_ioOut.command_bits = CMD_SAFE_OUTPUT;
++        g_ioOut.lamp_bits = 0x00000004UL;
++        (void)LogQueue_Push(LOG_ALARM, g_machineCtx.alarm_code, pressure);
++    }
++}
++
++void RtControl_UpdateAxisTargets(void)
++{
++    uint32_t i;
++    int32_t baseTarget = 0;
++
++    if (g_machineCtx.machine_state == MACHINE_RUNNING) {
++        g_ioOut.command_bits = (CMD_ENABLE_SERVO | CMD_START_MOTION);
++        baseTarget = 1000;
++    } else if (g_machineCtx.machine_state == MACHINE_READY) {
++        g_ioOut.command_bits = CMD_ENABLE_SERVO;
++        baseTarget = 100;
++    } else {
++        g_ioOut.command_bits = 0U;
++        baseTarget = 0;
++    }
++
++    if ((g_prefetchReq.ready != 0U) &&
++        (g_prefetchResult.generation == g_prefetchReq.generation)) {
++        baseTarget += (int32_t)(g_prefetchResult.table[0] * 10.0F);
++    }
++
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        g_ioOut.axis_target[i] = baseTarget + ((int32_t)i * 25);
++    }
++
++    if (g_machineCtx.machine_state == MACHINE_ALARM) {
++        for (i = 0U; i < AXIS_MAX; ++i) {
++            g_ioOut.axis_target[i] = 0;
++        }
++    }
++}
++
++void RtOutput_CommitOutputs(void)
++{
++    if (g_machineCtx.machine_state == MACHINE_ALARM) {
++        g_ioOut.command_bits |= CMD_SAFE_OUTPUT;
++        g_ioOut.lamp_bits = 0x00000004UL;
++    } else if (g_machineCtx.machine_state == MACHINE_RUNNING) {
++        g_ioOut.lamp_bits = 0x00000002UL;
++    } else {
++        g_ioOut.lamp_bits = 0x00000001UL;
++    }
++}
+diff -ruN '--exclude=build_test' '--exclude=runtime_log.csv' '--exclude=sample_nc_program.nc' '--exclude=*diff.patch' orig_source/source/src/system_shared.c impl_work/source/src/system_shared.c
+--- orig_source/source/src/system_shared.c	2026-04-29 17:26:39.000000000 +0000
++++ impl_work/source/src/system_shared.c	2026-04-29 18:55:13.425456210 +0000
+@@ -8,7 +8,7 @@
+ volatile IO_INPUT_AREA      g_ioIn;
+ volatile IO_OUTPUT_AREA     g_ioOut;
+ volatile MACHINE_CONTEXT    g_machineCtx;
+-volatile UI_REQUEST_AREA    g_uiRequest;
++volatile UI_REQUEST_AREA    g_uiRequest;
+ volatile LOG_QUEUE          g_logQueue;
+ volatile PREFETCH_REQ_CTRL  g_prefetchReq;
+ volatile PREFETCH_RESULT    g_prefetchResult;
+@@ -18,13 +18,17 @@
+ volatile NC_COORDINATE_STATE g_ncCoordinateState;
+ volatile NC_INTERP_STATUS   g_ncInterpStatus;
+ volatile NC_FEED_STATUS     g_ncFeedStatus;
++volatile NC_FEATURE_STATUS  g_ncFeatureStatus;
++volatile PRESTART_INTERLOCK_STATUS g_prestartInterlockStatus;
++volatile NC_AUX_STATUS      g_ncAuxStatus;
++volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
+ 
+ void SystemShared_Initialize(void)
+ {
+-    (void)memset((void*)&g_ioIn, 0, sizeof(g_ioIn));
+-    (void)memset((void*)&g_ioOut, 0, sizeof(g_ioOut));
+-    (void)memset((void*)&g_machineCtx, 0, sizeof(g_machineCtx));
+-    (void)memset((void*)&g_uiRequest, 0, sizeof(g_uiRequest));
++    (void)memset((void*)&g_ioIn, 0, sizeof(g_ioIn));
++    (void)memset((void*)&g_ioOut, 0, sizeof(g_ioOut));
++    (void)memset((void*)&g_machineCtx, 0, sizeof(g_machineCtx));
++    (void)memset((void*)&g_uiRequest, 0, sizeof(g_uiRequest));
+     (void)memset((void*)&g_logQueue, 0, sizeof(g_logQueue));
+     (void)memset((void*)&g_prefetchReq, 0, sizeof(g_prefetchReq));
+     (void)memset((void*)&g_prefetchResult, 0, sizeof(g_prefetchResult));
+@@ -34,6 +38,10 @@
+     (void)memset((void*)&g_ncCoordinateState, 0, sizeof(g_ncCoordinateState));
+     (void)memset((void*)&g_ncInterpStatus, 0, sizeof(g_ncInterpStatus));
+     (void)memset((void*)&g_ncFeedStatus, 0, sizeof(g_ncFeedStatus));
++    (void)memset((void*)&g_ncFeatureStatus, 0, sizeof(g_ncFeatureStatus));
++    (void)memset((void*)&g_prestartInterlockStatus, 0, sizeof(g_prestartInterlockStatus));
++    (void)memset((void*)&g_ncAuxStatus, 0, sizeof(g_ncAuxStatus));
++    (void)memset((void*)&g_ioTraceBuffer, 0, sizeof(g_ioTraceBuffer));
+ 
+     g_machineCtx.run_mode = RUN_MODE_MANUAL;
+     g_machineCtx.machine_state = MACHINE_STOPPED;
+@@ -45,23 +53,26 @@
+     g_ncInterpStatus.last_error = NC_ERR_NONE;
+     g_ncFeedStatus.state = NC_FEED_CTRL_IDLE;
+     g_ncFeedStatus.feed_override_percent = NC_FEED_OVERRIDE_DEFAULT_PERCENT;
++    g_prestartInterlockStatus.mask = PRESTART_ILK_READY_SWITCH | PRESTART_ILK_PRESSURE_RANGE;
++    g_prestartInterlockStatus.ok = 0U;
++    g_ncAuxStatus.state = NC_AUX_STATE_IDLE;
++}
++
++int32_t LogQueue_Push(uint32_t eventType, uint32_t code, int32_t value)
++{
++    uint16_t nextTail = (uint16_t)((g_logQueue.tail + 1U) % LOG_QUEUE_MAX);
++    LOG_ITEM* pItem;
++
++    if (nextTail == g_logQueue.head) {
++        return -1;
++    }
++
++    pItem = (LOG_ITEM*)&g_logQueue.items[g_logQueue.tail];
++    pItem->event_type = eventType;
++    pItem->code = code;
++    pItem->value = value;
++    pItem->cycle = g_machineCtx.cycle_count;
++    g_logQueue.tail = nextTail;
++
++    return 0;
+ }
+-
+-int32_t LogQueue_Push(uint32_t eventType, uint32_t code, int32_t value)
+-{
+-    uint16_t nextTail = (uint16_t)((g_logQueue.tail + 1U) % LOG_QUEUE_MAX);
+-    LOG_ITEM* pItem;
+-
+-    if (nextTail == g_logQueue.head) {
+-        return -1;
+-    }
+-
+-    pItem = (LOG_ITEM*)&g_logQueue.items[g_logQueue.tail];
+-    pItem->event_type = eventType;
+-    pItem->code = code;
+-    pItem->value = value;
+-    pItem->cycle = g_machineCtx.cycle_count;
+-    g_logQueue.tail = nextTail;
+-
+-    return 0;
+-}

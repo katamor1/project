@@ -1,0 +1,626 @@
+diff -ruN '--exclude=runtime_log.csv' '--exclude=build_gcc' ibm_bob_v9_prev/source/docs/implementation_report_v9.md ibm_bob_v9_work/source/docs/implementation_report_v9.md
+--- ibm_bob_v9_prev/source/docs/implementation_report_v9.md	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_v9_work/source/docs/implementation_report_v9.md	2026-04-29 20:34:57.312772526 +0000
+@@ -0,0 +1,72 @@
++# IBM-Bob 追加実装 v9 レポート
++
++## 目的
++
++v8で追加したモーション指令平滑化フィルターに対し、実機適用時に問題になりやすい以下を補強した。
++
++- フィルター後速度の軸別上限制限
++- フィルター後速度変化量、すなわち加速度相当量の軸別上限制限
++- フィルター遅れ量と最大遅れ量の状態公開
++- 終点近傍での残差補正と終点スナップ記録
++- 制限発生/終点補正の固定長イベントリング記録
++
++RT側は引き続き固定長配列のみを使用し、動的メモリ確保、ファイルI/O、Windows API呼び出しは行わない。
++
++## 追加・変更ファイル
++
++- `inc/system_config.h`
++  - モーションフィルター軸別制限、終点補正窓、終点許容残差の定数を追加。
++- `inc/system_shared.h`
++  - `NC_MOTION_FILTER_STATUS` に軸別速度/加速度上限、遅れ量、終点残差、制限イベント数を追加。
++  - `NC_EVENT_CODE_MOTION_FILTER_SATURATED`、`NC_EVENT_CODE_MOTION_FILTER_ENDPOINT_CORRECT` を追加。
++- `inc/nc_motion_filter.h`
++  - `NcMotionFilter_SetAxisLimitRt()` を追加。
++  - `NcMotionFilter_ApplyRt()` に残りtick数を渡す引数を追加。
++- `inc/control_api.h` / `src/control_api.c`
++  - `Api_SetNcMotionFilterAxisLimit()` を追加。
++- `src/nc_motion_filter.c`
++  - 速度リミット、加速度リミット、終点残差補正、フィルター遅れ計測を実装。
++- `src/nc_interpolation.c`
++  - 補間残りtickをモーションフィルターへ渡すように変更。
++- `src/system_shared.c`
++  - モーションフィルター状態の初期値に軸別制限値を追加。
++- `src/main.c`
++  - 軸別制限設定、状態表示、回帰確認を追加。
++
++## 実装方針
++
++補間器は従来どおり軸位置目標を生成する。モーションフィルターは、その位置目標から1周期ごとの速度成分を算出し、次の順に処理する。
++
++1. 第1段: 速度移動平均
++2. 第2段: 移動平均またはFIRによる加速度平滑化
++3. 軸別加速度上限制限
++4. 軸別速度上限制限
++5. 終点近傍の残差補正
++6. 最終tickでの終点一致保証
++
++最終tickでは目標終点との一致を優先する。ただし補正量は `endpoint_corrections` とイベントリングに記録し、フィルター設計の妥当性確認に使えるようにした。
++
++## 確認結果
++
++コンテナ内で以下を実行した。
++
++```text
++cd source
++./scripts/test_gcc_smoke.sh
++```
++
++実行結果の要点:
++
++```text
++nc_state=6 nc_error=0
++motion_filter_samples=83 mode=2 axis_mask=0x00000009 raw_vx=3661 smooth_vx=3661 out_x=3400
++motion_filter_limits vel_events=2 accel_events=12 endpoint_corrections=14 residual_samples=23 max_lag_x=1757 residual_x=-20
++tool_life_hold_state=5 tool_life_hold_error=15 tool_life_hold_line=4 events=34 lost=0 last_event=8201
++coord_error_checks=5
++```
++
++## 残課題
++
++- 最終tickの終点一致では、必要に応じて大きめの補正速度が発生するため、実機向けには残差補正窓をより長くし、終点前に完全吸収するS字プロファイル化が必要。
++- 軸別上限値は現在サンプル値。実機ではサーボ仕様、軸慣性、機械構成、単位系に基づく機種別パラメータ化が必要。
++- 現在のFIR係数は固定 `{1,2,3,2,1}`。実機では周波数特性と遅れ量を評価し、係数テーブルを機種別/加工モード別に切り替える必要がある。
+diff -ruN '--exclude=runtime_log.csv' '--exclude=build_gcc' ibm_bob_v9_prev/source/docs/manifest_v9.json ibm_bob_v9_work/source/docs/manifest_v9.json
+--- ibm_bob_v9_prev/source/docs/manifest_v9.json	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_v9_work/source/docs/manifest_v9.json	2026-04-29 20:34:21.725691841 +0000
+@@ -0,0 +1,31 @@
++{
++  "version": "v9",
++  "base_version": "v8",
++  "summary": "Motion filter enhanced with axis velocity/acceleration limits, endpoint residual correction, lag monitoring, event logging, and GCC smoke scripts.",
++  "added_public_api": ["Api_SetNcMotionFilterAxisLimit"],
++  "changed_files": [
++    "inc/system_config.h",
++    "inc/system_shared.h",
++    "inc/nc_motion_filter.h",
++    "inc/control_api.h",
++    "src/control_api.c",
++    "src/nc_motion_filter.c",
++    "src/nc_interpolation.c",
++    "src/system_shared.c",
++    "src/main.c",
++    "scripts/build_gcc_smoke.sh",
++    "scripts/test_gcc_smoke.sh"
++  ],
++  "verification": {
++    "compiler": "gcc",
++    "command": "cd source && ./scripts/test_gcc_smoke.sh",
++    "result_file": "docs/verification_output_v9.txt",
++    "passed": true
++  },
++  "rt_constraints": {
++    "dynamic_allocation": false,
++    "file_io_in_rt": false,
++    "windows_api_in_rt": false,
++    "fixed_size_buffers_only": true
++  }
++}
+diff -ruN '--exclude=runtime_log.csv' '--exclude=build_gcc' ibm_bob_v9_prev/source/docs/verification_output_v9.txt ibm_bob_v9_work/source/docs/verification_output_v9.txt
+--- ibm_bob_v9_prev/source/docs/verification_output_v9.txt	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_v9_work/source/docs/verification_output_v9.txt	2026-04-29 20:33:30.217712501 +0000
+@@ -0,0 +1,17 @@
++nc_state=6 nc_error=0 nc_error_line=0 nc_exec=45 nc_read=45 nc_buf=0 nc_x=3400 nc_y=2300 nc_z=3400 nc_m=130
++interp_segments=16 feed_profile=1 feed_override=45 dwell_ticks=1
++coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=1000
++feature_blocks=40 feature_flags=97 canned=2 skip=1 advanced=3
++comp_applied=11 comp_mask=0x00000007 comp_tool=0 comp_cutter=0 comp_rotation=0
++path_arc=2 path_helical=1 path_arc_segments=8 path_lookahead=16 path_slowdowns=11 path_corner_deg=171 path_override=60
++kin_transformed=16 kin_mirrored=11 kin_retracts=1 kin_singularity_warn=0 kin_mirror_mask=0x00000000 kin_retract_mask=0x00000004 kin_tool_z=9848 kin_last_x=3400 kin_last_a=-100
++diag_axis_warn=0x00000003 diag_axis_limit=0x00000001 diag_axis_critical=0x00000000 decel_level=2 decel_override=45 load_peak_x=847
++tool_active=2 tool2_uses=7 tool_warn=0x00000000 tool_expired=0x00000000 diag_decel=2 diag_tool_expired=0x00000000 diag_axis_warn=0x00000003
++motion_filter_samples=83 mode=2 axis_mask=0x00000009 raw_vx=3661 smooth_vx=3661 out_x=3400
++motion_filter_limits vel_events=2 accel_events=12 endpoint_corrections=14 residual_samples=23 max_lag_x=1757 residual_x=-20
++tool_life_hold_state=5 tool_life_hold_error=15 tool_life_hold_line=4 events=34 lost=0 last_event=8201
++cycle_completed=2 cycle_phase_count=1 skip_completed=1 skip_x=3551
++aux_completed=1 aux_wait_cycles=80 prestart_ok=1 prestart_mask=0x00000000
++trace_frozen=1 trace_captured=32 trace_trigger_cycle=589
++mode=1 state=3 alarm=9001 cycle=589
++coord_error_checks=5
+diff -ruN '--exclude=runtime_log.csv' '--exclude=build_gcc' ibm_bob_v9_prev/source/inc/control_api.h ibm_bob_v9_work/source/inc/control_api.h
+--- ibm_bob_v9_prev/source/inc/control_api.h	2026-04-29 20:16:38.000000000 +0000
++++ ibm_bob_v9_work/source/inc/control_api.h	2026-04-29 20:29:00.341428013 +0000
+@@ -46,6 +46,9 @@
+                                       uint8_t velocityWindow,
+                                       uint8_t accelWindow);
+ int32_t Api_GetNcMotionFilterStatus(NC_MOTION_FILTER_STATUS* pOutStatus);
++int32_t Api_SetNcMotionFilterAxisLimit(uint8_t axis,
++                                       int32_t maxVelocityPerTick,
++                                       int32_t maxAccelPerTick);
+ int32_t Api_GetNcEventRing(NC_EVENT_RING* pOutRing);
+ 
+ #endif /* CONTROL_API_H */
+diff -ruN '--exclude=runtime_log.csv' '--exclude=build_gcc' ibm_bob_v9_prev/source/inc/nc_motion_filter.h ibm_bob_v9_work/source/inc/nc_motion_filter.h
+--- ibm_bob_v9_prev/source/inc/nc_motion_filter.h	2026-04-29 20:16:51.000000000 +0000
++++ ibm_bob_v9_work/source/inc/nc_motion_filter.h	2026-04-29 20:29:00.401158878 +0000
+@@ -15,6 +15,10 @@
+                                    uint8_t accelWindow);
+ void NcMotionFilter_ApplyRt(volatile int32_t axisTarget[AXIS_MAX],
+                             uint32_t axisMask,
+-                            uint8_t forceEndpoint);
++                            uint8_t forceEndpoint,
++                            uint32_t remainingTicks);
++int32_t NcMotionFilter_SetAxisLimitRt(uint8_t axis,
++                                      int32_t maxVelocityPerTick,
++                                      int32_t maxAccelPerTick);
+ 
+ #endif /* NC_MOTION_FILTER_H */
+diff -ruN '--exclude=runtime_log.csv' '--exclude=build_gcc' ibm_bob_v9_prev/source/inc/system_config.h ibm_bob_v9_work/source/inc/system_config.h
+--- ibm_bob_v9_prev/source/inc/system_config.h	2026-04-29 20:15:57.000000000 +0000
++++ ibm_bob_v9_work/source/inc/system_config.h	2026-04-29 20:28:32.815283525 +0000
+@@ -57,5 +57,10 @@
+ #define NC_MOTION_FILTER_DEFAULT_VELOCITY_WINDOW (3U)
+ #define NC_MOTION_FILTER_DEFAULT_ACCEL_WINDOW    (5U)
+ #define NC_EVENT_RING_SIZE                   (64U)
++#define NC_MOTION_FILTER_AXIS_LIMIT_MAX       (1000000)
++#define NC_MOTION_FILTER_DEFAULT_MAX_VELOCITY (800)
++#define NC_MOTION_FILTER_DEFAULT_MAX_ACCEL    (240)
++#define NC_MOTION_FILTER_ENDPOINT_WINDOW      (4U)
++#define NC_MOTION_FILTER_ENDPOINT_TOLERANCE   (2)
+ 
+ #endif /* SYSTEM_CONFIG_H */
+diff -ruN '--exclude=runtime_log.csv' '--exclude=build_gcc' ibm_bob_v9_prev/source/inc/system_shared.h ibm_bob_v9_work/source/inc/system_shared.h
+--- ibm_bob_v9_prev/source/inc/system_shared.h	2026-04-29 20:16:22.000000000 +0000
++++ ibm_bob_v9_work/source/inc/system_shared.h	2026-04-29 20:28:53.756299532 +0000
+@@ -389,6 +389,8 @@
+ #define NC_EVENT_CODE_AXIS_DECEL_APPLIED             (8101U)
+ #define NC_EVENT_CODE_TOOL_LIFE_EXPIRED_HOLD         (8201U)
+ #define NC_EVENT_CODE_MOTION_FILTER_APPLIED          (8301U)
++#define NC_EVENT_CODE_MOTION_FILTER_SATURATED        (8302U)
++#define NC_EVENT_CODE_MOTION_FILTER_ENDPOINT_CORRECT (8303U)
+ 
+ #define NC_AUX_STATE_IDLE           (0U)
+ #define NC_AUX_STATE_WAIT_MFIN      (1U)
+@@ -554,6 +556,16 @@
+     int32_t  last_filtered_target[AXIS_MAX];
+     int32_t  max_raw_velocity[AXIS_MAX];
+     int32_t  max_filtered_velocity[AXIS_MAX];
++    int32_t  max_velocity_per_tick[AXIS_MAX];
++    int32_t  max_accel_per_tick[AXIS_MAX];
++    int32_t  last_lag_error[AXIS_MAX];
++    int32_t  max_lag_error[AXIS_MAX];
++    int32_t  endpoint_residual[AXIS_MAX];
++    uint32_t velocity_limit_events;
++    uint32_t accel_limit_events;
++    uint32_t endpoint_corrections;
++    uint32_t residual_correction_samples;
++    uint8_t  endpoint_correction_window;
+     uint32_t generation;
+ } NC_MOTION_FILTER_STATUS;
+ 
+diff -ruN '--exclude=runtime_log.csv' '--exclude=build_gcc' ibm_bob_v9_prev/source/scripts/build_gcc_smoke.sh ibm_bob_v9_work/source/scripts/build_gcc_smoke.sh
+--- ibm_bob_v9_prev/source/scripts/build_gcc_smoke.sh	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_v9_work/source/scripts/build_gcc_smoke.sh	2026-04-29 20:33:26.922176984 +0000
+@@ -0,0 +1,13 @@
++#!/usr/bin/env sh
++# Builds the IBM-Bob sample with GCC using one object per C file.
++# This exists so large shared-memory headers do not need to be compiled as a single translation batch.
++set -eu
++ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
++BUILD_DIR="$ROOT_DIR/build_gcc"
++rm -rf "$BUILD_DIR"
++mkdir -p "$BUILD_DIR"
++for src in "$ROOT_DIR"/src/*.c; do
++    obj="$BUILD_DIR/$(basename "$src" .c).o"
++    gcc -std=c99 -Wall -Wextra -I"$ROOT_DIR/inc" -c "$src" -o "$obj"
++done
++gcc "$BUILD_DIR"/*.o -lm -o "$BUILD_DIR/ibm_bob_sample"
+diff -ruN '--exclude=runtime_log.csv' '--exclude=build_gcc' ibm_bob_v9_prev/source/scripts/test_gcc_smoke.sh ibm_bob_v9_work/source/scripts/test_gcc_smoke.sh
+--- ibm_bob_v9_prev/source/scripts/test_gcc_smoke.sh	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_v9_work/source/scripts/test_gcc_smoke.sh	2026-04-29 20:33:26.930495303 +0000
+@@ -0,0 +1,6 @@
++#!/usr/bin/env sh
++# Builds and runs the IBM-Bob GCC smoke simulation.
++set -eu
++ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
++"$ROOT_DIR/scripts/build_gcc_smoke.sh"
++"$ROOT_DIR/build_gcc/ibm_bob_sample"
+diff -ruN '--exclude=runtime_log.csv' '--exclude=build_gcc' ibm_bob_v9_prev/source/src/control_api.c ibm_bob_v9_work/source/src/control_api.c
+--- ibm_bob_v9_prev/source/src/control_api.c	2026-04-29 20:16:38.000000000 +0000
++++ ibm_bob_v9_work/source/src/control_api.c	2026-04-29 20:29:52.814150904 +0000
+@@ -389,3 +389,10 @@
+     *pOutRing = g_ncEventRing;
+     return 0;
+ }
++
++int32_t Api_SetNcMotionFilterAxisLimit(uint8_t axis,
++                                       int32_t maxVelocityPerTick,
++                                       int32_t maxAccelPerTick)
++{
++    return NcMotionFilter_SetAxisLimitRt(axis, maxVelocityPerTick, maxAccelPerTick);
++}
+diff -ruN '--exclude=runtime_log.csv' '--exclude=build_gcc' ibm_bob_v9_prev/source/src/main.c ibm_bob_v9_work/source/src/main.c
+--- ibm_bob_v9_prev/source/src/main.c	2026-04-29 20:21:54.000000000 +0000
++++ ibm_bob_v9_work/source/src/main.c	2026-04-29 20:31:44.112608306 +0000
+@@ -239,6 +239,12 @@
+     int32_t filterRawVX = 0;
+     int32_t filterSmoothVX = 0;
+     int32_t filterOutX = 0;
++    uint32_t filterVelocityLimitEvents = 0U;
++    uint32_t filterAccelLimitEvents = 0U;
++    uint32_t filterEndpointCorrections = 0U;
++    uint32_t filterResidualSamples = 0U;
++    int32_t filterMaxLagX = 0;
++    int32_t filterResidualX = 0;
+     uint32_t eventCaptured = 0U;
+     uint32_t eventLost = 0U;
+     uint32_t lastEventCode = 0U;
+@@ -253,6 +259,10 @@
+     (void)Api_SetNcCutterRadiusOffset(1U, 300);
+     (void)Api_SetNcAxisAssignment(3U, 3U, -1, 0U);
+     (void)Api_SetNcMotionFilterConfig(1U, NC_MOTION_FILTER_SECOND_STAGE_FIR, 3U, 5U);
++    (void)Api_SetNcMotionFilterAxisLimit(0U, 450, 160);
++    (void)Api_SetNcMotionFilterAxisLimit(1U, 450, 160);
++    (void)Api_SetNcMotionFilterAxisLimit(2U, 350, 140);
++    (void)Api_SetNcMotionFilterAxisLimit(3U, 180, 80);
+     (void)Api_SetNcToolLifeLimit(2U, 100U);
+     (void)Api_SetNcToolLifeLimit(3U, 1U);
+     if (WriteNcSmokeFile() != 0) {
+@@ -430,6 +440,12 @@
+         filterRawVX = filterStatus.max_raw_velocity[0];
+         filterSmoothVX = filterStatus.max_filtered_velocity[0];
+         filterOutX = filterStatus.last_filtered_target[0];
++        filterVelocityLimitEvents = filterStatus.velocity_limit_events;
++        filterAccelLimitEvents = filterStatus.accel_limit_events;
++        filterEndpointCorrections = filterStatus.endpoint_corrections;
++        filterResidualSamples = filterStatus.residual_correction_samples;
++        filterMaxLagX = filterStatus.max_lag_error[0];
++        filterResidualX = filterStatus.endpoint_residual[0];
+     }
+     if (ncCaptured != 0U) {
+         if (WriteNcToolExpiredFile() == 0) {
+@@ -545,6 +561,13 @@
+                  (int)filterRawVX,
+                  (int)filterSmoothVX,
+                  (int)filterOutX);
++    (void)printf("motion_filter_limits vel_events=%u accel_events=%u endpoint_corrections=%u residual_samples=%u max_lag_x=%d residual_x=%d\n",
++                 (unsigned int)filterVelocityLimitEvents,
++                 (unsigned int)filterAccelLimitEvents,
++                 (unsigned int)filterEndpointCorrections,
++                 (unsigned int)filterResidualSamples,
++                 (int)filterMaxLagX,
++                 (int)filterResidualX);
+     (void)printf("tool_life_hold_state=%u tool_life_hold_error=%u tool_life_hold_line=%u events=%u lost=%u last_event=%u\n",
+                  (unsigned int)toolLifeHoldState,
+                  (unsigned int)toolLifeHoldError,
+diff -ruN '--exclude=runtime_log.csv' '--exclude=build_gcc' ibm_bob_v9_prev/source/src/nc_interpolation.c ibm_bob_v9_work/source/src/nc_interpolation.c
+--- ibm_bob_v9_prev/source/src/nc_interpolation.c	2026-04-29 20:17:26.000000000 +0000
++++ ibm_bob_v9_work/source/src/nc_interpolation.c	2026-04-29 20:29:40.760717241 +0000
+@@ -602,7 +602,9 @@
+     if (s_activeBlock.motion_type != NC_MOTION_DWELL) {
+         NcMotionFilter_ApplyRt(g_ioOut.axis_target,
+                                s_activeBlock.axis_mask,
+-                               (uint8_t)(s_activeTick == s_activeBlock.interp_ticks));
++                               (uint8_t)(s_activeTick == s_activeBlock.interp_ticks),
++                               (s_activeBlock.interp_ticks > s_activeTick) ?
++                                   (s_activeBlock.interp_ticks - s_activeTick) : 0U);
+     }
+     CheckSkipInput();
+     if (s_hasActive == 0U) {
+diff -ruN '--exclude=runtime_log.csv' '--exclude=build_gcc' ibm_bob_v9_prev/source/src/nc_motion_filter.c ibm_bob_v9_work/source/src/nc_motion_filter.c
+--- ibm_bob_v9_prev/source/src/nc_motion_filter.c	2026-04-29 20:17:26.000000000 +0000
++++ ibm_bob_v9_work/source/src/nc_motion_filter.c	2026-04-29 20:29:35.023712983 +0000
+@@ -1,6 +1,6 @@
+ /* ibm-bob/samples/base/source/src/nc_motion_filter.c */
+-/* Implements RT-safe two-stage smoothing for interpolated axis commands. */
+-/* This exists so motion-controller position targets have smoothed velocity and acceleration. */
++/* Implements RT-safe two-stage smoothing and axis-limit guarding for motion commands. */
++/* This exists so interpolated position targets are smoothed before motion-controller output. */
+ /* RELEVANT FILES: ibm-bob/samples/base/source/inc/nc_motion_filter.h, ibm-bob/samples/base/source/src/nc_interpolation.c, ibm-bob/samples/base/source/src/control_api.c */
+ #include <string.h>
+ #include "nc_motion_filter.h"
+@@ -8,6 +8,7 @@
+ static uint8_t s_initialized[AXIS_MAX];
+ static int32_t s_lastRawTarget[AXIS_MAX];
+ static int32_t s_filteredTarget[AXIS_MAX];
++static int32_t s_lastOutputVelocity[AXIS_MAX];
+ static int32_t s_velocityRing[AXIS_MAX][NC_MOTION_FILTER_VELOCITY_WINDOW_MAX];
+ static int32_t s_accelRing[AXIS_MAX][NC_MOTION_FILTER_ACCEL_WINDOW_MAX];
+ static int32_t s_firHistory[AXIS_MAX][NC_MOTION_FILTER_FIR_TAPS];
+@@ -33,6 +34,20 @@
+     return (value > maxValue) ? maxValue : value;
+ }
+ 
++static int32_t NormalizeLimit(int32_t value, int32_t fallback)
++{
++    if (value < 0) {
++        value = -value;
++    }
++    if (value == 0) {
++        value = fallback;
++    }
++    if (value > NC_MOTION_FILTER_AXIS_LIMIT_MAX) {
++        value = NC_MOTION_FILTER_AXIS_LIMIT_MAX;
++    }
++    return value;
++}
++
+ static int32_t DivRound64(int64_t value, int64_t denom)
+ {
+     if (denom <= 0) {
+@@ -44,12 +59,55 @@
+     return (int32_t)((value - (denom / 2)) / denom);
+ }
+ 
++static int32_t ClampSymmetric(int32_t value, int32_t limit, uint8_t* pLimited)
++{
++    int32_t normalized = NormalizeLimit(limit, NC_MOTION_FILTER_AXIS_LIMIT_MAX);
++    if (value > normalized) {
++        if (pLimited != 0) {
++            *pLimited = 1U;
++        }
++        return normalized;
++    }
++    if (value < -normalized) {
++        if (pLimited != 0) {
++            *pLimited = 1U;
++        }
++        return -normalized;
++    }
++    return value;
++}
++
++static void InitializeDefaultLimits(void)
++{
++    uint32_t i;
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        g_ncMotionFilterStatus.max_velocity_per_tick[i] = NC_MOTION_FILTER_DEFAULT_MAX_VELOCITY;
++        g_ncMotionFilterStatus.max_accel_per_tick[i] = NC_MOTION_FILTER_DEFAULT_MAX_ACCEL;
++    }
++    g_ncMotionFilterStatus.endpoint_correction_window = NC_MOTION_FILTER_ENDPOINT_WINDOW;
++}
++
+ void NcMotionFilter_ResetRt(void)
+ {
++    uint8_t enabled = g_ncMotionFilterStatus.enabled;
++    uint8_t secondStageMode = g_ncMotionFilterStatus.second_stage_mode;
++    uint8_t velocityWindow = g_ncMotionFilterStatus.velocity_window;
++    uint8_t accelWindow = g_ncMotionFilterStatus.accel_window;
++    int32_t maxVelocity[AXIS_MAX];
++    int32_t maxAccel[AXIS_MAX];
++    uint8_t correctionWindow = g_ncMotionFilterStatus.endpoint_correction_window;
++    uint32_t i;
++
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        maxVelocity[i] = g_ncMotionFilterStatus.max_velocity_per_tick[i];
++        maxAccel[i] = g_ncMotionFilterStatus.max_accel_per_tick[i];
++    }
++
+     (void)memset((void*)&g_ncMotionFilterStatus, 0, sizeof(g_ncMotionFilterStatus));
+     (void)memset(s_initialized, 0, sizeof(s_initialized));
+     (void)memset(s_lastRawTarget, 0, sizeof(s_lastRawTarget));
+     (void)memset(s_filteredTarget, 0, sizeof(s_filteredTarget));
++    (void)memset(s_lastOutputVelocity, 0, sizeof(s_lastOutputVelocity));
+     (void)memset(s_velocityRing, 0, sizeof(s_velocityRing));
+     (void)memset(s_accelRing, 0, sizeof(s_accelRing));
+     (void)memset(s_firHistory, 0, sizeof(s_firHistory));
+@@ -62,10 +120,32 @@
+     (void)memset(s_accelCount, 0, sizeof(s_accelCount));
+     (void)memset(s_firCount, 0, sizeof(s_firCount));
+ 
+-    g_ncMotionFilterStatus.enabled = 1U;
+-    g_ncMotionFilterStatus.second_stage_mode = NC_MOTION_FILTER_SECOND_STAGE_FIR;
+-    g_ncMotionFilterStatus.velocity_window = NC_MOTION_FILTER_DEFAULT_VELOCITY_WINDOW;
+-    g_ncMotionFilterStatus.accel_window = NC_MOTION_FILTER_DEFAULT_ACCEL_WINDOW;
++    g_ncMotionFilterStatus.enabled = (enabled == 0U) ? 1U : enabled;
++    g_ncMotionFilterStatus.second_stage_mode =
++        ((secondStageMode == NC_MOTION_FILTER_SECOND_STAGE_MOVING_AVERAGE) ||
++         (secondStageMode == NC_MOTION_FILTER_SECOND_STAGE_FIR)) ?
++        secondStageMode : NC_MOTION_FILTER_SECOND_STAGE_FIR;
++    g_ncMotionFilterStatus.velocity_window =
++        ClampWindow((velocityWindow == 0U) ? NC_MOTION_FILTER_DEFAULT_VELOCITY_WINDOW : velocityWindow,
++                    NC_MOTION_FILTER_VELOCITY_WINDOW_MAX);
++    g_ncMotionFilterStatus.accel_window =
++        ClampWindow((accelWindow == 0U) ? NC_MOTION_FILTER_DEFAULT_ACCEL_WINDOW : accelWindow,
++                    NC_MOTION_FILTER_ACCEL_WINDOW_MAX);
++    InitializeDefaultLimits();
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        if (maxVelocity[i] != 0) {
++            g_ncMotionFilterStatus.max_velocity_per_tick[i] =
++                NormalizeLimit(maxVelocity[i], NC_MOTION_FILTER_DEFAULT_MAX_VELOCITY);
++        }
++        if (maxAccel[i] != 0) {
++            g_ncMotionFilterStatus.max_accel_per_tick[i] =
++                NormalizeLimit(maxAccel[i], NC_MOTION_FILTER_DEFAULT_MAX_ACCEL);
++        }
++    }
++    if (correctionWindow != 0U) {
++        g_ncMotionFilterStatus.endpoint_correction_window =
++            ClampWindow(correctionWindow, NC_MOTION_FILTER_ENDPOINT_WINDOW);
++    }
+     g_ncMotionFilterStatus.generation++;
+ }
+ 
+@@ -85,7 +165,9 @@
+         ClampWindow(velocityWindow, NC_MOTION_FILTER_VELOCITY_WINDOW_MAX);
+     g_ncMotionFilterStatus.accel_window =
+         ClampWindow(accelWindow, NC_MOTION_FILTER_ACCEL_WINDOW_MAX);
+-    g_ncMotionFilterStatus.generation++;
++    if (g_ncMotionFilterStatus.endpoint_correction_window == 0U) {
++        g_ncMotionFilterStatus.endpoint_correction_window = NC_MOTION_FILTER_ENDPOINT_WINDOW;
++    }
+     NcMotionFilter_ResetRt();
+     g_ncMotionFilterStatus.enabled = (uint8_t)(enabled != 0U);
+     g_ncMotionFilterStatus.second_stage_mode = secondStageMode;
+@@ -96,6 +178,21 @@
+     return 0;
+ }
+ 
++int32_t NcMotionFilter_SetAxisLimitRt(uint8_t axis,
++                                      int32_t maxVelocityPerTick,
++                                      int32_t maxAccelPerTick)
++{
++    if (axis >= AXIS_MAX) {
++        return -1;
++    }
++    g_ncMotionFilterStatus.max_velocity_per_tick[axis] =
++        NormalizeLimit(maxVelocityPerTick, NC_MOTION_FILTER_DEFAULT_MAX_VELOCITY);
++    g_ncMotionFilterStatus.max_accel_per_tick[axis] =
++        NormalizeLimit(maxAccelPerTick, NC_MOTION_FILTER_DEFAULT_MAX_ACCEL);
++    g_ncMotionFilterStatus.generation++;
++    return 0;
++}
++
+ static int32_t Stage1VelocityAverage(uint32_t axis, int32_t rawVelocity)
+ {
+     uint8_t window = ClampWindow(g_ncMotionFilterStatus.velocity_window,
+@@ -153,11 +250,33 @@
+     return DivRound64(sum, denom);
+ }
+ 
++static int32_t ApplyEndpointResidualCorrection(uint32_t axis,
++                                               int32_t rawTarget,
++                                               int32_t filtered,
++                                               uint32_t remainingTicks)
++{
++    int32_t residual = rawTarget - filtered;
++    uint8_t window = g_ncMotionFilterStatus.endpoint_correction_window;
++
++    if (window == 0U) {
++        window = NC_MOTION_FILTER_ENDPOINT_WINDOW;
++    }
++    g_ncMotionFilterStatus.endpoint_residual[axis] = residual;
++    if ((remainingTicks > 0U) && (remainingTicks <= window)) {
++        int32_t correction = DivRound64(residual, (int64_t)remainingTicks + 1);
++        filtered += correction;
++        g_ncMotionFilterStatus.residual_correction_samples++;
++    }
++    return filtered;
++}
++
+ void NcMotionFilter_ApplyRt(volatile int32_t axisTarget[AXIS_MAX],
+                             uint32_t axisMask,
+-                            uint8_t forceEndpoint)
++                            uint8_t forceEndpoint,
++                            uint32_t remainingTicks)
+ {
+     uint32_t i;
++    uint8_t pushedLimitEvent = 0U;
+ 
+     if ((axisTarget == 0) || (g_ncMotionFilterStatus.enabled == 0U)) {
+         return;
+@@ -167,18 +286,25 @@
+         int32_t rawTarget = axisTarget[i];
+         int32_t rawVelocity;
+         int32_t stage1Velocity;
++        int32_t desiredVelocity;
++        int32_t accelLimitedVelocity;
+         int32_t stage2Velocity;
+         int32_t filtered;
++        int32_t lag;
++        uint8_t velocityLimited = 0U;
++        uint8_t accelLimited = 0U;
+ 
+         if ((axisMask & (1UL << i)) == 0U) {
+             s_lastRawTarget[i] = rawTarget;
+             s_filteredTarget[i] = rawTarget;
++            s_lastOutputVelocity[i] = 0;
+             s_initialized[i] = 1U;
+             continue;
+         }
+         if (s_initialized[i] == 0U) {
+             s_lastRawTarget[i] = rawTarget;
+             s_filteredTarget[i] = rawTarget;
++            s_lastOutputVelocity[i] = 0;
+             s_initialized[i] = 1U;
+             axisTarget[i] = rawTarget;
+             continue;
+@@ -188,27 +314,68 @@
+         s_lastRawTarget[i] = rawTarget;
+         stage1Velocity = Stage1VelocityAverage(i, rawVelocity);
+         if (g_ncMotionFilterStatus.second_stage_mode == NC_MOTION_FILTER_SECOND_STAGE_MOVING_AVERAGE) {
+-            stage2Velocity = Stage2MovingAverage(i, stage1Velocity);
++            desiredVelocity = Stage2MovingAverage(i, stage1Velocity);
+         } else {
+-            stage2Velocity = Stage2Fir(i, stage1Velocity);
++            desiredVelocity = Stage2Fir(i, stage1Velocity);
+         }
++
++        accelLimitedVelocity = s_lastOutputVelocity[i] +
++            ClampSymmetric(desiredVelocity - s_lastOutputVelocity[i],
++                           g_ncMotionFilterStatus.max_accel_per_tick[i],
++                           &accelLimited);
++        stage2Velocity = ClampSymmetric(accelLimitedVelocity,
++                                        g_ncMotionFilterStatus.max_velocity_per_tick[i],
++                                        &velocityLimited);
++        if (velocityLimited != 0U) {
++            g_ncMotionFilterStatus.velocity_limit_events++;
++        }
++        if (accelLimited != 0U) {
++            g_ncMotionFilterStatus.accel_limit_events++;
++        }
++        if (((velocityLimited != 0U) || (accelLimited != 0U)) &&
++            (pushedLimitEvent == 0U)) {
++            NcEvent_Push(NC_EVENT_CODE_MOTION_FILTER_SATURATED,
++                         (int32_t)i,
++                         stage2Velocity,
++                         g_ncProgramStatus.exec_line_no);
++            pushedLimitEvent = 1U;
++        }
++
+         filtered = s_filteredTarget[i] + stage2Velocity;
++        filtered = ApplyEndpointResidualCorrection(i, rawTarget, filtered, remainingTicks);
+         if (forceEndpoint != 0U) {
++            int32_t residual = rawTarget - filtered;
++            g_ncMotionFilterStatus.endpoint_residual[i] = residual;
++            if (residual != 0) {
++                g_ncMotionFilterStatus.endpoint_corrections++;
++                NcEvent_Push(NC_EVENT_CODE_MOTION_FILTER_ENDPOINT_CORRECT,
++                             (int32_t)i,
++                             residual,
++                             g_ncProgramStatus.exec_line_no);
++            }
+             filtered = rawTarget;
++            stage2Velocity = filtered - s_filteredTarget[i];
+         }
++
++        s_lastOutputVelocity[i] = stage2Velocity;
+         s_filteredTarget[i] = filtered;
+         axisTarget[i] = filtered;
+ 
++        lag = rawTarget - filtered;
+         g_ncMotionFilterStatus.last_raw_velocity[i] = rawVelocity;
+         g_ncMotionFilterStatus.last_velocity_stage1[i] = stage1Velocity;
+         g_ncMotionFilterStatus.last_velocity_stage2[i] = stage2Velocity;
+         g_ncMotionFilterStatus.last_filtered_target[i] = filtered;
++        g_ncMotionFilterStatus.last_lag_error[i] = lag;
+         if (Abs32Local(rawVelocity) > g_ncMotionFilterStatus.max_raw_velocity[i]) {
+             g_ncMotionFilterStatus.max_raw_velocity[i] = Abs32Local(rawVelocity);
+         }
+         if (Abs32Local(stage2Velocity) > g_ncMotionFilterStatus.max_filtered_velocity[i]) {
+             g_ncMotionFilterStatus.max_filtered_velocity[i] = Abs32Local(stage2Velocity);
+         }
++        if (Abs32Local(lag) > g_ncMotionFilterStatus.max_lag_error[i]) {
++            g_ncMotionFilterStatus.max_lag_error[i] = Abs32Local(lag);
++        }
+         g_ncMotionFilterStatus.filtered_axis_mask |= (1UL << i);
+     }
+ 
+diff -ruN '--exclude=runtime_log.csv' '--exclude=build_gcc' ibm_bob_v9_prev/source/src/system_shared.c ibm_bob_v9_work/source/src/system_shared.c
+--- ibm_bob_v9_prev/source/src/system_shared.c	2026-04-29 20:16:31.000000000 +0000
++++ ibm_bob_v9_work/source/src/system_shared.c	2026-04-29 20:29:58.926830292 +0000
+@@ -79,6 +79,11 @@
+     g_ncMotionFilterStatus.second_stage_mode = NC_MOTION_FILTER_SECOND_STAGE_FIR;
+     g_ncMotionFilterStatus.velocity_window = NC_MOTION_FILTER_DEFAULT_VELOCITY_WINDOW;
+     g_ncMotionFilterStatus.accel_window = NC_MOTION_FILTER_DEFAULT_ACCEL_WINDOW;
++    g_ncMotionFilterStatus.endpoint_correction_window = NC_MOTION_FILTER_ENDPOINT_WINDOW;
++    for (uint32_t axis = 0U; axis < AXIS_MAX; ++axis) {
++        g_ncMotionFilterStatus.max_velocity_per_tick[axis] = NC_MOTION_FILTER_DEFAULT_MAX_VELOCITY;
++        g_ncMotionFilterStatus.max_accel_per_tick[axis] = NC_MOTION_FILTER_DEFAULT_MAX_ACCEL;
++    }
+     for (uint32_t i = 0U; i < NC_TOOL_LIFE_TABLE_SIZE; ++i) {
+         g_ncToolLifeStatus.tool_life_limit[i] = NC_TOOL_LIFE_DEFAULT_LIMIT;
+     }

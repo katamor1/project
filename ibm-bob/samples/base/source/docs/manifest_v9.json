@@ -1,0 +1,31 @@
+{
+  "version": "v9",
+  "base_version": "v8",
+  "summary": "Motion filter enhanced with axis velocity/acceleration limits, endpoint residual correction, lag monitoring, event logging, and GCC smoke scripts.",
+  "added_public_api": ["Api_SetNcMotionFilterAxisLimit"],
+  "changed_files": [
+    "inc/system_config.h",
+    "inc/system_shared.h",
+    "inc/nc_motion_filter.h",
+    "inc/control_api.h",
+    "src/control_api.c",
+    "src/nc_motion_filter.c",
+    "src/nc_interpolation.c",
+    "src/system_shared.c",
+    "src/main.c",
+    "scripts/build_gcc_smoke.sh",
+    "scripts/test_gcc_smoke.sh"
+  ],
+  "verification": {
+    "compiler": "gcc",
+    "command": "cd source && ./scripts/test_gcc_smoke.sh",
+    "result_file": "docs/verification_output_v9.txt",
+    "passed": true
+  },
+  "rt_constraints": {
+    "dynamic_allocation": false,
+    "file_io_in_rt": false,
+    "windows_api_in_rt": false,
+    "fixed_size_buffers_only": true
+  }
+}
