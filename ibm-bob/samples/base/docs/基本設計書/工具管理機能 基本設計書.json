@@ -1,0 +1,117 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-211",
+    "feature_name": "工具管理機能",
+    "category": "工具・補助機能",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_工具管理機能.docx"
+  },
+  "purpose": "加工に使用する工具を識別・選択し、工具寿命、補正値、工具位置、交換可否を管理して工具起因の加工不良や設備停止を防止する。",
+  "overview": "Tコード、D/H補正番号、寿命カウンタ、工具管理テーブルを扱う。工具データの更新・保存・表示はTS_SERVICEが担当し、RT_CONTROLは現在工具スナップショットとインターロック判定のみを使用する。",
+  "interfaces": {
+    "codes": [
+      "Tコード: 工具番号選択",
+      "D/H番号: 工具径/工具長補正番号",
+      "工具寿命パラメータ",
+      "KEY信号: 工具情報保護"
+    ],
+    "inputs": [
+      "T指令",
+      "D/H補正番号",
+      "工具管理テーブル",
+      "寿命上限",
+      "工具交換完了信号",
+      "工具保護KEY信号"
+    ],
+    "outputs": [
+      "工具選択要求",
+      "現在工具情報",
+      "寿命カウント",
+      "交換予告/交換要求",
+      "補正値スナップショット"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語製のマルチスレッド機械制御基盤を前提とする。ハードウェア割込で起床するRT_INPUT/RT_CONTROL/RT_OUTPUTと、CPU余力で動作するTS_SERVICEを分離する。",
+    "rt_rules": "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキング、三角関数や探索など処理時間が変動する重計算を禁止し、1割込周期内に処理を完了する。",
+    "rt_responsibility": "固定長データ消費、周期内安全監視、フェイルセーフ出力",
+    "ts_responsibility": "NC解析、変換、先読み、ファイルI/O、ログ、HMI/API連携",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがTコードを解析し、工具管理テーブルから工具番号、補正番号、寿命状態を取得する。",
+    "交換が必要な場合はPLC向け工具交換要求を生成し、応答完了まで状態を監視する。",
+    "RT_CONTROLは現在工具の有効/無効、補正値、寿命警告状態を周期内インターロックに使用する。",
+    "加工完了または使用時間更新時にTS_SERVICEが寿命カウンタを更新し、必要に応じてログ保存する。"
+  ],
+  "constraints": [
+    "工具番号と補正番号の対応を明確化",
+    "工具寿命データはTS側で永続化",
+    "RT側はテーブル検索やファイルI/Oを行わない"
+  ],
+  "alarms": [
+    "未登録工具",
+    "寿命超過工具",
+    "補正番号不一致",
+    "工具交換タイムアウト",
+    "保護中データ更新要求"
+  ],
+  "acceptance_criteria": [
+    "Tコードに対応する工具情報が正しく選択される",
+    "寿命超過工具の加工開始を禁止する",
+    "工具データ更新がRT制御と整合する"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

@@ -1,0 +1,129 @@
+{
+  "document_type": "IBM-Bob Detail Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "DD-00",
+    "DD-01",
+    "DD-02",
+    "DD-03",
+    "DD-04",
+    "DD-05",
+    "DD-06",
+    "DD-07",
+    "DD-08",
+    "DD-09",
+    "DD-10",
+    "DD-11",
+    "DD-12",
+    "DD-13",
+    "DD-14",
+    "DD-15",
+    "DD-16",
+    "DD-17",
+    "DD-18",
+    "DD-19",
+    "DD-20",
+    "DD-21",
+    "DD-22",
+    "DD-23",
+    "DD-24"
+  ],
+  "metadata": {
+    "document_id": "DD-CNC-207",
+    "feature_name": "高速サイクル加工機能",
+    "category": "サイクル加工",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_basic_design": "高速サイクル加工機能_基本設計書.docx",
+    "source_document": "設計_高速サイクル加工機能.docx"
+  },
+  "traceability": {
+    "basic_design_id": "BD-CNC-207",
+    "requirements": [
+      "対応サイクルが高速モードで展開実行される",
+      "未対応サイクルを事前に拒否する",
+      "中断・停止時に安全退避できる"
+    ],
+    "codes": [
+      "G05 P3: 高速サイクル加工開始",
+      "G05 P0: 高速サイクル加工解除",
+      "G51.6/G50.6: 重ね合わせ制御開始/解除候補",
+      "G81〜G89: 対象固定サイクル"
+    ]
+  },
+  "module_design": {
+    "header": "include/cnc207_feature.h",
+    "source": "src/cnc207_feature.c",
+    "test": "tests/test_cnc207_feature.c",
+    "ts_functions": [
+      "Ts_CNC207_Prepare",
+      "Ts_CNC207_CommitExecBuffer"
+    ],
+    "rt_functions": [
+      "Rt_CNC207_ValidateSnapshot",
+      "Rt_CNC207_ExecuteCycle"
+    ],
+    "api_functions": [
+      "Api_GetCNC207Status",
+      "Api_RequestCNC207ConfigUpdate"
+    ]
+  },
+  "data_design": {
+    "config": "CNC207_FEATURE_CONFIG",
+    "request": "CNC207_FEATURE_REQUEST",
+    "status": "CNC207_FEATURE_STATUS",
+    "exec_block": "CNC207_EXEC_BLOCK",
+    "exec_buffer": "CNC207_EXEC_BUFFER",
+    "global": "g_cnc207Feature",
+    "consistency": "valid flag + generation_begin/generation_end + single writer policy"
+  },
+  "processing": {
+    "ts_service": [
+      "TS_SERVICEが高速サイクル開始を検出し、対象固定サイクルの対応可否を判定する。",
+      "各サイクルを位置決め、送り、戻り、ドウェル等の固定長ステップへ展開する。",
+      "RT_CONTROLがステップを順次実行し、各周期でインターロック、軸到達、スピンドル状態を監視する。",
+      "サイクル終了後、重ね合わせ制御解除、G05 P0解除により通常モードへ戻る。"
+    ],
+    "rt_control": [
+      "先読み、速度プロファイル、許容誤差判定、ジャーク/加速度制限計算はTS_SERVICEで行う。",
+      "RT_CONTROLは先読み充足率とプロファイル世代を監視し、アンダーラン時は安全側速度または停止へ遷移する。",
+      "サイクル展開、工具・補正・PLC条件の検証はTS_SERVICEで行い、RT_CONTROLは展開済みステップを実行する。",
+      "工具、主軸、冷却、PLC応答のタイムアウトを状態遷移として管理する。"
+    ],
+    "state_machine": [
+      "DISABLED",
+      "ARMED",
+      "PREPARED",
+      "ACTIVE",
+      "HOLD",
+      "COMPLETE",
+      "ALARM"
+    ]
+  },
+  "errors": [
+    "対象外サイクル",
+    "工具/主軸条件不成立",
+    "R点/Z点不正",
+    "サイクル中インターロック",
+    "軸到達タイムアウト"
+  ],
+  "constraints": [
+    "タッピングや重切削など高負荷加工には適用制限",
+    "ステップ展開はTS側で完了させる",
+    "サイクル中断時は復帰位置と退避位置を明確化"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "DDR-001",
+    "DDR-002",
+    "DDR-003",
+    "DDR-004",
+    "DDR-005",
+    "DDR-006",
+    "DDR-007",
+    "DDR-008"
+  ]
+}

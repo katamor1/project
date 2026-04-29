@@ -1,0 +1,125 @@
+{
+  "document_type": "IBM-Bob Detail Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "DD-00",
+    "DD-01",
+    "DD-02",
+    "DD-03",
+    "DD-04",
+    "DD-05",
+    "DD-06",
+    "DD-07",
+    "DD-08",
+    "DD-09",
+    "DD-10",
+    "DD-11",
+    "DD-12",
+    "DD-13",
+    "DD-14",
+    "DD-15",
+    "DD-16",
+    "DD-17",
+    "DD-18",
+    "DD-19",
+    "DD-20",
+    "DD-21",
+    "DD-22",
+    "DD-23",
+    "DD-24"
+  ],
+  "metadata": {
+    "document_id": "DD-CNC-201",
+    "feature_name": "座標回転機能",
+    "category": "座標変換",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_basic_design": "座標回転機能_基本設計書.docx",
+    "source_document": "設計_座標回転機能.docx"
+  },
+  "traceability": {
+    "basic_design_id": "BD-CNC-201",
+    "requirements": [
+      "G68/G69の開始・解除で座標変換状態が正しく遷移する",
+      "RT周期内で追加計算負荷が一定上限を超えない",
+      "禁止組合せ指令で安全にアラーム停止する"
+    ],
+    "codes": [
+      "G68: 座標回転モード開始。X/Y/Z等の平面内中心座標、R角度を指定",
+      "G69: 座標回転モード解除",
+      "G17/G18/G19: 回転対象平面の選択"
+    ]
+  },
+  "module_design": {
+    "header": "include/cnc201_feature.h",
+    "source": "src/cnc201_feature.c",
+    "test": "tests/test_cnc201_feature.c",
+    "ts_functions": [
+      "Ts_CNC201_Prepare",
+      "Ts_CNC201_CommitExecBuffer"
+    ],
+    "rt_functions": [
+      "Rt_CNC201_ValidateSnapshot",
+      "Rt_CNC201_ExecuteCycle"
+    ],
+    "api_functions": [
+      "Api_GetCNC201Status",
+      "Api_RequestCNC201ConfigUpdate"
+    ]
+  },
+  "data_design": {
+    "config": "CNC201_FEATURE_CONFIG",
+    "request": "CNC201_FEATURE_REQUEST",
+    "status": "CNC201_FEATURE_STATUS",
+    "exec_block": "CNC201_EXEC_BLOCK",
+    "exec_buffer": "CNC201_EXEC_BUFFER",
+    "global": "g_cnc201Feature",
+    "consistency": "valid flag + generation_begin/generation_end + single writer policy"
+  },
+  "processing": {
+    "ts_service": [
+      "TS_SERVICEがG68/G69を解析し、対象平面、中心点、角度、絶対/増分指定の妥当性を確認する。",
+      "TS_SERVICEが固定小数点または倍精度で回転行列を生成し、NC実行ブロックへ変換済み目標座標を格納する。",
+      "RT_CONTROLは変換済みの目標座標のみを使用し、周期内では三角関数計算を行わない。",
+      "G69受理時にTS_SERVICEが変換状態を解除し、解除直後ブロックの絶対座標明示をチェックする。"
+    ],
+    "rt_control": [
+      "座標・単位・指令方式の正規化はTS_SERVICEで完了し、RT_CONTROLには内部標準単位の絶対目標値だけを渡す。",
+      "座標変換モード中の禁止Gコード、補正、レファレンス点復帰、単位切換との競合を実行前に判定する。"
+    ],
+    "state_machine": [
+      "DISABLED",
+      "ARMED",
+      "PREPARED",
+      "ACTIVE",
+      "HOLD",
+      "COMPLETE",
+      "ALARM"
+    ]
+  },
+  "errors": [
+    "回転角未指定または範囲外",
+    "回転中の禁止Gコード指令",
+    "解除直後の位置不明確指令",
+    "変換結果が軸リミットを超過"
+  ],
+  "constraints": [
+    "座標回転中の座標系変更、レファレンス点復帰、平面変更は原則禁止",
+    "工具径補正、スケーリング、他の座標変換との併用順序を明確化",
+    "解除直後は絶対座標で現在位置を明示"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "DDR-001",
+    "DDR-002",
+    "DDR-003",
+    "DDR-004",
+    "DDR-005",
+    "DDR-006",
+    "DDR-007",
+    "DDR-008"
+  ]
+}

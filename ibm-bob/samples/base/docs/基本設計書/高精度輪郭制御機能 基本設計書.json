@@ -1,0 +1,114 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-208",
+    "feature_name": "高精度輪郭制御機能",
+    "category": "高速・高精度制御",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_高精度輪郭制御機能.docx"
+  },
+  "purpose": "複雑な輪郭や短線分加工において、先読み演算により加減速を最適化し、高速かつ高精度な輪郭加工を実現する。",
+  "overview": "G05 P10000でHPCCを開始し、G05 P0で解除する。TS_SERVICEが先読み解析、工具補正とのネスト確認、速度プロファイル生成を行い、RT_CONTROLは生成済み補間指令を実行する。",
+  "interfaces": {
+    "codes": [
+      "G05 P10000: HPCC開始",
+      "G05 P0: HPCC解除",
+      "G05 P3: 高速加工モードとの関係管理",
+      "G41/G42/G40: 工具径補正とのネスト管理"
+    ],
+    "inputs": [
+      "輪郭加工NCブロック",
+      "先読み数",
+      "許容誤差/速度制限",
+      "工具径補正状態",
+      "サーボ高速制御有効状態"
+    ],
+    "outputs": [
+      "HPCC有効状態",
+      "加減速最適化ブロック",
+      "補正ネスト判定結果",
+      "輪郭誤差警告"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語製のマルチスレッド機械制御基盤を前提とする。ハードウェア割込で起床するRT_INPUT/RT_CONTROL/RT_OUTPUTと、CPU余力で動作するTS_SERVICEを分離する。",
+    "rt_rules": "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキング、三角関数や探索など処理時間が変動する重計算を禁止し、1割込周期内に処理を完了する。",
+    "rt_responsibility": "固定長データ消費、周期内安全監視、フェイルセーフ出力",
+    "ts_responsibility": "NC解析、変換、先読み、ファイルI/O、ログ、HMI/API連携",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがG05 P10000を単独ブロックとして受理し、補正状態とネスト条件を検証する。",
+    "先読み範囲の線分長、曲率、コーナ角を評価し、送り速度と減速点を算出する。",
+    "オフセット値変更がある場合、Dワードブロックからの有効化タイミングを実行ブロックへ反映する。",
+    "RT_CONTROLはプロファイルに従い補間を実行し、G05 P0で通常補間へ戻る。"
+  ],
+  "constraints": [
+    "G05 P10000/P0を補正中に直接指令しない",
+    "先読み負荷とメモリ使用量を管理",
+    "粗加工や停止ブロックの多い領域では効果が限定"
+  ],
+  "alarms": [
+    "補正ネスト不正",
+    "オプション未有効",
+    "先読み不足",
+    "サーボ高速制御条件不成立"
+  ],
+  "acceptance_criteria": [
+    "HPCC開始/解除で軌跡の連続性が維持される",
+    "補正ネスト不正を検出する",
+    "短線分連続加工で速度安定化が確認できる"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

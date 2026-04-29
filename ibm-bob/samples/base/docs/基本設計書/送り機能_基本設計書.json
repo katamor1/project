@@ -1,0 +1,267 @@
+{
+  "document_control": {
+    "document_id": "BD-FEED-001",
+    "title": "送り機能_基本設計書",
+    "created_at": "2026-04-29",
+    "author": "AIドラフト",
+    "version": "0.1",
+    "source_document": "送り機能 基本設計書.docx"
+  },
+  "feature": {
+    "feature_id": "FX-FEED-001",
+    "name": "送り機能",
+    "purpose": "Fコード、G00早送り、G04ドウェル、G09/G61/G63/G64、G96/G97等により工具移動速度と速度制御モードを管理する。",
+    "background": "補間・主軸・オーバライド機能と連携し、移動速度と停止精度を安全に制御するための基本機能である。",
+    "key_specs": [
+      "Fコードにより送り速度を指定し、補間指令に従って各軸速度を制御する。",
+      "G00は早送り、G04はドウェル、G09/G61/G63/G64は速度制御モードを扱う。",
+      "G96/G97により周速一定制御/キャンセルを扱い、主軸速度制御と連携する。",
+      "早送りは工具とワークの干渉を避け、周速一定では最大回転数管理が必要である。"
+    ]
+  },
+  "template_usage": {
+    "template": "IBM-Bob 基本設計書テンプレート v2.0 相当",
+    "section_ids": [
+      "BD-00",
+      "BD-01",
+      "BD-02",
+      "BD-03",
+      "BD-04",
+      "BD-05",
+      "BD-06",
+      "BD-07",
+      "BD-08",
+      "BD-09",
+      "BD-10",
+      "BD-11",
+      "BD-12",
+      "BD-13",
+      "BD-14",
+      "BD-15",
+      "BD-16",
+      "BD-17",
+      "BD-18",
+      "BD-19",
+      "BD-20",
+      "BD-21",
+      "BD-22"
+    ],
+    "json_path_mapping": true,
+    "notes": "基本設計レベルとして、機能仕様、外部仕様、共有メモリ、RT/TS/API分担、安全設計、影響調査、受入条件を定義する。"
+  },
+  "requirements_traceability": [
+    {
+      "requirement_id": "REQ-FEED-001",
+      "summary": "Fコードを毎分送り/毎回転送りとして解釈し、送り状態へ反映する。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "Fコードが送りモードに応じて解釈されること。"
+    },
+    {
+      "requirement_id": "REQ-FEED-002",
+      "summary": "G00早送り、G01等の切削送り、G04ドウェルを制御する。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "G04ドウェルがRTをブロックせず完了すること。"
+    },
+    {
+      "requirement_id": "REQ-FEED-003",
+      "summary": "G09/G61/G63/G64の速度制御モードを管理する。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "周速一定制御の最大回転数制限が有効であること。"
+    },
+    {
+      "requirement_id": "REQ-FEED-004",
+      "summary": "G96/G97の周速一定制御を主軸機能と連携して扱う。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "周速一定制御の最大回転数制限が有効であること。"
+    }
+  ],
+  "system_context": {
+    "baseline": "Windows C multi-threaded machine-control baseline",
+    "rt_threads": [
+      "RT_INPUT",
+      "RT_CONTROL",
+      "RT_OUTPUT"
+    ],
+    "ts_threads": [
+      "TS_SERVICE"
+    ],
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "constraints": [
+      "RT処理は1割込間隔内に完了すること",
+      "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロックを禁止すること"
+    ]
+  },
+  "scope": {
+    "in_scope": [
+      "機能仕様の基盤システムへの反映",
+      "共有メモリ/API/RT/TS連携方針",
+      "状態遷移、異常安全、影響調査、受入条件"
+    ],
+    "out_of_scope": [
+      "サーボドライブ内部制御の詳細",
+      "機種別パラメータ最終値",
+      "詳細関数実装および実測済みRT処理時間"
+    ]
+  },
+  "state_design": {
+    "states": [
+      "FEED_IDLE",
+      "FEED_CUTTING",
+      "FEED_RAPID",
+      "FEED_DWELL",
+      "FEED_EXACT_STOP",
+      "FEED_ERROR"
+    ],
+    "initial_state": "FEED_IDLE",
+    "error_state": "FEED_ERROR",
+    "reset_conditions": [
+      "リセット要求",
+      "ALARM解除",
+      "モード変更",
+      "機能キャンセル"
+    ]
+  },
+  "data_design": {
+    "feature_shared_memory": [
+      "g_feedModalState",
+      "g_feedCommand",
+      "g_feedStatus"
+    ],
+    "ownership_policy": "TS_SERVICEが重計算・設定更新、RT_CONTROLが周期状態更新、APIが要求登録を担当する。詳細な所有者は詳細設計でフィールド単位に確定する。",
+    "consistency_policy": "データ本体更新後にgeneration/valid/stateを更新し、RT側は世代番号と状態を確認してから参照する。"
+  },
+  "api_design": {
+    "public_apis": [
+      "Api_SetFeedMode",
+      "Api_GetFeedStatus",
+      "Api_RequestDwellCancel"
+    ],
+    "compatibility_policy": "既存公開APIは変更せず、新規API追加または既存要求領域の末尾追加で互換性を維持する。"
+  },
+  "rt_ts_api_allocation": {
+    "TS_SERVICE": [
+      "Gコード/パラメータ解析",
+      "妥当性確認",
+      "重計算/先読み",
+      "ログ・ファイルI/O"
+    ],
+    "RT_INPUT": [
+      "入力信号/要求フラグの周期取込み"
+    ],
+    "RT_CONTROL": [
+      "状態遷移",
+      "安全判定",
+      "処理済みデータの軽量消費",
+      "出力値決定"
+    ],
+    "RT_OUTPUT": [
+      "g_ioOutへの反映",
+      "安全マスク適用"
+    ],
+    "API": [
+      "要求登録",
+      "状態スナップショット取得"
+    ]
+  },
+  "safety_design": [
+    "F値未指定や過大値は実行前に拒否または既定値継承ルールに従う。",
+    "G04ドウェルはRT内でブロック待ちせず、周期カウンタで管理する。",
+    "周速一定制御では主軸最大回転数を超えないよう制限する。"
+  ],
+  "impact_analysis": {
+    "headers": [
+      "include/system_config.h",
+      "include/system_shared.h",
+      "include/control_api.h"
+    ],
+    "sources": [
+      "src/system_shared.c",
+      "src/control_api.c",
+      "src/rt_control.c",
+      "src/ts_service.c",
+      "src/main.c"
+    ],
+    "tests": [
+      "tests/unit",
+      "tests/function"
+    ]
+  },
+  "build_test": {
+    "vc2026_build": "cmd /c scripts\\build_vc2026.bat",
+    "vc2026_test": "cmd /c scripts\\test_vc2026.bat",
+    "clang_build": "cmd /c scripts\\build_clang.bat",
+    "clang_test": "cmd /c scripts\\test_clang.bat"
+  },
+  "acceptance_criteria": [
+    "Fコードが送りモードに応じて解釈されること。",
+    "G04ドウェルがRTをブロックせず完了すること。",
+    "周速一定制御の最大回転数制限が有効であること。"
+  ],
+  "open_issues": [
+    "機種別パラメータ、信号割付、軸数上限は詳細設計または設備別台帳で確定する。",
+    "RT周期内処理時間のワーストケースは実装後に測定する。",
+    "既存回帰テストへの追加範囲は詳細設計で確定する。"
+  ],
+  "pre_review_checklist": [
+    {
+      "id": "BDR-RT-001",
+      "item": "RT/TS/API分担が明確である",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-SM-001",
+      "item": "共有メモリの所有者と整合性方針が記載されている",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-SAFE-001",
+      "item": "異常時の安全側遷移が定義されている",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-COMPAT-001",
+      "item": "既存API互換性に配慮している",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-TEST-001",
+      "item": "受入条件とbuild/test観点が記載されている",
+      "result": "OK"
+    }
+  ]
+}

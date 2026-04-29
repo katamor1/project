@@ -1,0 +1,173 @@
+{
+  "metadata": {
+    "document_id": "DD-AUTO-9CC620",
+    "document_type": "詳細設計書",
+    "version": "0.1",
+    "created_on": "2026-04-29",
+    "target_system": "IBM-Bob基盤システム",
+    "target_environment": "Windows / C言語 / RT + TS thread",
+    "feature_name": "Mコード補助機能一覧管理機能",
+    "source_basic_design": "Mコード補助機能一覧管理機能_基本設計書.docx",
+    "source_hash": "d1c043c312746683",
+    "section_range": "DD-00〜DD-24",
+    "note": "ユーザーが20件と指定したが、この実行で確認できたアップロード済み基本設計書は18件。確認できた18件を対象に生成。"
+  },
+  "traceability": {
+    "basic_design_summary": "RT_CONTROLはTS_SERVICEで事前変換された固定長データのみを周期内で扱う。",
+    "codes": [
+      "M00",
+      "M01",
+      "M02",
+      "M03",
+      "M04",
+      "M05",
+      "M06",
+      "M07",
+      "M08",
+      "M09",
+      "M10",
+      "M11",
+      "M13",
+      "M14",
+      "M15",
+      "M19",
+      "M20",
+      "M21",
+      "M22",
+      "M23",
+      "M24",
+      "M25",
+      "M26",
+      "M28",
+      "M29",
+      "M30",
+      "M31",
+      "M32",
+      "M33",
+      "M34",
+      "M35",
+      "M36"
+    ],
+    "category": "mcode"
+  },
+  "design": {
+    "identifier": "MCodeAuxRegistry",
+    "snake": "m_code_aux_registry",
+    "control_type": "Mコードを機種別補助機能テーブルで管理し、PMC/PLCハンドシェイクとMFIN待ちを明示する補助機能制御",
+    "algorithm": "TS_SERVICEがMコードをテーブルで引当て、RT_OUTPUTがPMC出力を確定する。MFIN入力はRT_INPUTで取得し、RT_CONTROLが待ち状態・タイムアウト・完了状態を更新する。",
+    "states": [
+      "IDLE",
+      "REQUESTED",
+      "PMC_OUTPUT",
+      "WAIT_MFIN",
+      "DONE",
+      "TIMEOUT",
+      "ALARM"
+    ],
+    "shared_memory": [
+      [
+        "g_m_code_aux_registryTable",
+        "MCODEAUXREGISTRY_TABLE",
+        "TS初期化 / TS読取",
+        "M番号、PMC出力ビット、完了待ち種別、排他条件"
+      ],
+      [
+        "g_m_code_aux_registryAuxState",
+        "MCODEAUXREGISTRY_AUX_STATE",
+        "RT更新 / TS・API読取",
+        "補助機能実行中、MFIN待ち、タイムアウト、異常コード"
+      ]
+    ],
+    "apis": [
+      [
+        "Api_GetMCodeAuxRegistryStatus",
+        "Mコード実行状態、MFIN待ち、異常を取得"
+      ]
+    ],
+    "modules": [
+      {
+        "module": "include/system_config.h",
+        "change": "機能有効/上限サイズ/RT予算マクロを追加または参照"
+      },
+      {
+        "module": "include/system_shared.h",
+        "change": "MCODEAUXREGISTRY_TABLE 等の共有構造体宣言を追加"
+      },
+      {
+        "module": "include/control_api.h",
+        "change": "状態取得APIおよび必要に応じた要求登録APIのプロトタイプを追加"
+      },
+      {
+        "module": "include/nc_interpreter.h",
+        "change": "NC解析テーブル、モーダル状態、内部実行ブロック型を追加/拡張"
+      },
+      {
+        "module": "src/nc_interpreter.c",
+        "change": "G/M/アドレス解析、パラメータ検証、実行ブロック生成を実装"
+      },
+      {
+        "module": "src/ts_service.c",
+        "change": "ファイルI/O、先読み、展開、ログ整形、HMI/API通知を実装"
+      },
+      {
+        "module": "src/rt_control.c",
+        "change": "周期内状態判定、固定長実行ブロック消費、安全遷移を実装"
+      },
+      {
+        "module": "src/rt_output.c",
+        "change": "軸/主軸/PMC出力、減速停止、フェイルセーフ出力を確定"
+      }
+    ],
+    "functions": [
+      {
+        "name": "m_code_aux_registry_init",
+        "thread": "TS/INIT",
+        "role": "共有メモリ初期化、定義テーブル読込、既定状態設定"
+      },
+      {
+        "name": "m_code_aux_registry_parse_block",
+        "thread": "TS_SERVICE",
+        "role": "NCブロックまたはAPI要求を検証し、内部命令へ変換"
+      },
+      {
+        "name": "m_code_aux_registry_prepare_rt_block",
+        "thread": "TS_SERVICE",
+        "role": "RTが周期内で扱える固定長実行ブロックへ展開"
+      },
+      {
+        "name": "m_code_aux_registry_rt_update",
+        "thread": "RT_CONTROL",
+        "role": "周期内状態更新、実行ブロック消費、安全条件判定"
+      },
+      {
+        "name": "m_code_aux_registry_rt_fail_safe",
+        "thread": "RT_CONTROL/RT_OUTPUT",
+        "role": "異常検出時の減速停止、出力遮断、ALARM遷移"
+      },
+      {
+        "name": "m_code_aux_registry_api_get_status",
+        "thread": "API",
+        "role": "世代番号付きスナップショットを返却"
+      }
+    ],
+    "hardware_inputs": [
+      "Mコード番号",
+      "PMC入力/出力",
+      "MFIN信号",
+      "主軸/クーラント/ATC状態"
+    ],
+    "errors": [
+      "DD-E701 未定義Mコード",
+      "DD-E702 PMC応答タイムアウト",
+      "DD-E703 補助機能排他違反",
+      "DD-E704 非常停止中のMコード要求"
+    ],
+    "rt_budget_us": "未確定。初期目標はRT_CONTROL差分で50us以下、最大でも1割込周期の10%以内。",
+    "build_commands": [
+      "cmd /c scripts\\build_vc2026.bat",
+      "cmd /c scripts\\test_vc2026.bat",
+      "cmd /c scripts\\build_clang.bat",
+      "cmd /c scripts\\test_clang.bat"
+    ]
+  }
+}

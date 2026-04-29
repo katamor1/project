@@ -1,3 +1,7 @@
+@REM ibm-bob/samples/base/source/scripts/test_vc2026.bat
+@REM Builds and runs the IBM BOB sample smoke test with cl.exe.
+@REM This exists so baseline and NC v4 coordinate/unit behavior are checked together.
+@REM RELEVANT FILES: ibm-bob/samples/base/source/scripts/build_vc2026.bat, ibm-bob/samples/base/source/src/main.c, ibm-bob/samples/base/source/src/nc_program.c
 @echo off
 setlocal
 cd /d "%~dp0.."
@@ -18,6 +22,34 @@ if errorlevel 1 (
 findstr /c:"mode=1 state=3 alarm=9001 cycle=16" build\test_output.txt >nul
 if errorlevel 1 (
   echo ERROR: expected output was not found.
+  type build\test_output.txt
+  exit /b 1
+)
+
+findstr /c:"nc_state=6 nc_exec=15 nc_x=1200 nc_y=2300 nc_z=3400 nc_m=130" build\test_output.txt >nul
+if errorlevel 1 (
+  echo ERROR: expected NC output was not found.
+  type build\test_output.txt
+  exit /b 1
+)
+
+findstr /c:"interp_segments=5 feed_profile=1 feed_override=100 dwell_ticks=1" build\test_output.txt >nul
+if errorlevel 1 (
+  echo ERROR: expected feed/interpolation output was not found.
+  type build\test_output.txt
+  exit /b 1
+)
+
+findstr /c:"coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=1000" build\test_output.txt >nul
+if errorlevel 1 (
+  echo ERROR: expected coordinate output was not found.
+  type build\test_output.txt
+  exit /b 1
+)
+
+findstr /c:"coord_error_checks=5" build\test_output.txt >nul
+if errorlevel 1 (
+  echo ERROR: expected coordinate error checks were not found.
   type build\test_output.txt
   exit /b 1
 )

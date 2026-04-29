@@ -1,0 +1,126 @@
+{
+  "document_type": "IBM-Bob Detail Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "DD-00",
+    "DD-01",
+    "DD-02",
+    "DD-03",
+    "DD-04",
+    "DD-05",
+    "DD-06",
+    "DD-07",
+    "DD-08",
+    "DD-09",
+    "DD-10",
+    "DD-11",
+    "DD-12",
+    "DD-13",
+    "DD-14",
+    "DD-15",
+    "DD-16",
+    "DD-17",
+    "DD-18",
+    "DD-19",
+    "DD-20",
+    "DD-21",
+    "DD-22",
+    "DD-23",
+    "DD-24"
+  ],
+  "metadata": {
+    "document_id": "DD-CNC-213",
+    "feature_name": "経路間干渉チェック機能",
+    "category": "安全監視",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_basic_design": "経路間干渉チェック機能_基本設計書.docx",
+    "source_document": "設計_経路間干渉チェック機能.docx"
+  },
+  "traceability": {
+    "basic_design_id": "BD-CNC-213",
+    "requirements": [
+      "登録領域の重なりをRT周期内で検出できる",
+      "干渉予測時に対象経路を安全停止できる",
+      "工具形状未登録時に加工開始を禁止できる"
+    ],
+    "codes": [
+      "専用パラメータ: 2経路/多経路チェック選択",
+      "干渉禁止領域登録画面/PMC入力",
+      "干渉検出動作設定: 警告/減速/停止"
+    ]
+  },
+  "module_design": {
+    "header": "include/cnc213_feature.h",
+    "source": "src/cnc213_feature.c",
+    "test": "tests/test_cnc213_feature.c",
+    "ts_functions": [
+      "Ts_CNC213_Prepare",
+      "Ts_CNC213_CommitExecBuffer"
+    ],
+    "rt_functions": [
+      "Rt_CNC213_ValidateSnapshot",
+      "Rt_CNC213_ExecuteCycle"
+    ],
+    "api_functions": [
+      "Api_GetCNC213Status",
+      "Api_RequestCNC213ConfigUpdate"
+    ]
+  },
+  "data_design": {
+    "config": "CNC213_FEATURE_CONFIG",
+    "request": "CNC213_FEATURE_REQUEST",
+    "status": "CNC213_FEATURE_STATUS",
+    "exec_block": "CNC213_EXEC_BLOCK",
+    "exec_buffer": "CNC213_EXEC_BUFFER",
+    "global": "g_cnc213Feature",
+    "consistency": "valid flag + generation_begin/generation_end + single writer policy"
+  },
+  "processing": {
+    "ts_service": [
+      "TS_SERVICEが工具形状と干渉禁止領域を登録し、RT監視用の簡略化境界ボックスへ変換する。",
+      "RT_CONTROLが各周期で対象経路の現在位置と境界領域の重なりを判定する。",
+      "干渉予測時は対象経路へ段階減速または即停止要求を出し、g_machineCtx相当のアラーム状態を設定する。",
+      "TS_SERVICEが詳細ログを保存し、再起動時の安全退避ルート確認を支援する。"
+    ],
+    "rt_control": [
+      "RT_CONTROLは周期内で軽量な監視・サンプル記録のみを行い、詳細解析・保存・統計処理はTS_SERVICEで行う。",
+      "安全監視はフェイルセーフ優先とし、診断ログはRT要求をTSが後段で永続化する。"
+    ],
+    "state_machine": [
+      "DISABLED",
+      "ARMED",
+      "PREPARED",
+      "ACTIVE",
+      "HOLD",
+      "COMPLETE",
+      "ALARM"
+    ]
+  },
+  "errors": [
+    "干渉予測",
+    "領域データ未登録",
+    "工具形状不整合",
+    "監視対象経路不正",
+    "退避ルート未設定"
+  ],
+  "constraints": [
+    "2経路以上のマルチパス制御機で有効",
+    "工具形状・領域登録精度が安全性を左右",
+    "RT計算量を抑えるため監視モデルの複雑度を制限"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "DDR-001",
+    "DDR-002",
+    "DDR-003",
+    "DDR-004",
+    "DDR-005",
+    "DDR-006",
+    "DDR-007",
+    "DDR-008"
+  ]
+}

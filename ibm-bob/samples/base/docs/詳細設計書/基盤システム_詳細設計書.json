@@ -1,0 +1,213 @@
+{
+  "document_control": {
+    "document_id": "DD-BASELINE-SYSTEM-001",
+    "title": "基盤システム 詳細設計書",
+    "feature_id": "FX-BASELINE-SYSTEM-001",
+    "source_basic_design": "ibm_bob_基盤システム_基本設計書.docx",
+    "created_at": "2026-04-29",
+    "author": "AIドラフト",
+    "version": "0.1"
+  },
+  "traceability": {
+    "source_summary": "文書情報 1. 目的 本書は、IBM BOB カスタムエージェントの評価用入力として利用する「既存基盤システム」の基本設計を定義するものである。 後続の仕様追加案件を評価した際に、エージェントが既存仕様書および既存ソースコードへの影響調査を実施できるよう、アーキテクチャ、責務分担、スレッド構成、共有メモリ、公開API、主要状態管理を整理して記載する。 2. システム概要 対象システムは、機械制御を行う Windows ベースの C 言語アプリケーションであり、リアルタイム制御と非リアルタイム処理を分離して構成する。リアルタイム処理はハードウェア割込信号で定間隔に起床し、1周期分の処理を行ったのちサスペンド状態へ戻る。非リアルタイム処理は、全リアルタイム処理が停止している空き時間にタイムスライス実行される。 3. 前提条件および制約 全リアルタイムスレッドの合計実行時間は、1割込間隔を超えてはならない。 リアルタイムスレッド内では、Windowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキング処理を禁止する。 共有メモリ領域はヘッダファイルで定義し、センサ、シーケンサ、モーションコントローラ等の通信先へ公開する。 他アプリ連携は API ヘッダファイルを公開し、モード変更、状態取得、ログ退避要求などを受け付ける。 スレッド間のデータ受け渡しは、原則としてグローバル変数のみで実施する。 4. 全体アーキテクチャ 本基盤は、制御入力取得、制御演算、制御出力反映、非リアルタイムサービスの4責務で構成する。リアルタイム側は、論理上 3 系統の周期処理で分担し、タイムシェア側は UI / ログ / ファイルI/O / 先読み補正を担当する。 5. スレッド構成 本設計では、実装上の既存基盤を以下の論理スレッドとして扱う。評価用ソースコードでは理解しやすさを優先し、リアルタイムディスパッチャが 1 周期内で各処理関数を順次呼び出すモデルを採用する。 6. 共有メモリ設計 基盤システムは、外部連携およびスレッド間連携の中心として共有メモリ構造体を利用する。共有メモリはヘッダで公開し、入出力ミラー、状態、要求、応答、先読み補正結果を格納する。 7. 機能概要 7.1 運転モード管理 運転モードは MANUAL / AUTO / MAINT の3種とする。 RT_CO...",
+    "requirements": [
+      "リアルタイム周期処理は1割込間隔以内に完了する。",
+      "RT側でWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロックを禁止する。",
+      "共有メモリ構造体をヘッダで公開し、APIは要求登録/状態取得に限定する。",
+      "TS_SERVICEでログ退避、UI連携、ファイルI/O、先読み重計算を行う。"
+    ]
+  },
+  "system_context": {
+    "baseline": "Windows C multi-threaded machine-control platform",
+    "rt_threads": [
+      "RT_INPUT",
+      "RT_CONTROL",
+      "RT_OUTPUT"
+    ],
+    "ts_threads": [
+      "TS_SERVICE"
+    ],
+    "rt_prohibitions": [
+      "Windows system calls",
+      "file I/O",
+      "dynamic allocation",
+      "long blocking"
+    ]
+  },
+  "feature": {
+    "name": "基盤システム",
+    "purpose": "RT_INPUT/RT_CONTROL/RT_OUTPUTとTS_SERVICEの責務分離、共有メモリ、公開API、ログ、先読み補正を詳細化し、後続機能追加の共通基盤として扱う。",
+    "states": [
+      "STOPPED",
+      "READY",
+      "RUNNING",
+      "ALARM"
+    ],
+    "shared_data": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "apis": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ],
+    "modules": [
+      "include/system_config.h",
+      "include/system_shared.h",
+      "include/control_api.h",
+      "include/rt_control.h",
+      "include/ts_service.h",
+      "src/system_shared.c",
+      "src/control_api.c",
+      "src/rt_control.c",
+      "src/ts_service.c",
+      "src/main.c"
+    ],
+    "functions": [
+      "SystemShared_Initialize",
+      "Api_RequestRunModeChange",
+      "RtInput_Scan",
+      "RtControl_RunCycle",
+      "RtOutput_Apply",
+      "TsService_RunOnce"
+    ]
+  },
+  "sections": [
+    {
+      "section_id": "DD-00",
+      "title": "テンプレート利用方針",
+      "json_path": "$.sections[0]"
+    },
+    {
+      "section_id": "DD-01",
+      "title": "文書管理",
+      "json_path": "$.sections[1]"
+    },
+    {
+      "section_id": "DD-02",
+      "title": "基本設計トレーサビリティ",
+      "json_path": "$.sections[2]"
+    },
+    {
+      "section_id": "DD-03",
+      "title": "詳細設計の前提と設計方針",
+      "json_path": "$.sections[3]"
+    },
+    {
+      "section_id": "DD-04",
+      "title": "対象範囲・非対象範囲",
+      "json_path": "$.sections[4]"
+    },
+    {
+      "section_id": "DD-05",
+      "title": "モジュール構成",
+      "json_path": "$.sections[5]"
+    },
+    {
+      "section_id": "DD-06",
+      "title": "データ構造・共有メモリ詳細",
+      "json_path": "$.sections[6]"
+    },
+    {
+      "section_id": "DD-07",
+      "title": "公開API詳細",
+      "json_path": "$.sections[7]"
+    },
+    {
+      "section_id": "DD-08",
+      "title": "RT処理詳細",
+      "json_path": "$.sections[8]"
+    },
+    {
+      "section_id": "DD-09",
+      "title": "TS処理詳細",
+      "json_path": "$.sections[9]"
+    },
+    {
+      "section_id": "DD-10",
+      "title": "API/外部連携処理詳細",
+      "json_path": "$.sections[10]"
+    },
+    {
+      "section_id": "DD-11",
+      "title": "状態遷移詳細",
+      "json_path": "$.sections[11]"
+    },
+    {
+      "section_id": "DD-12",
+      "title": "シーケンス詳細",
+      "json_path": "$.sections[12]"
+    },
+    {
+      "section_id": "DD-13",
+      "title": "入力仕様詳細",
+      "json_path": "$.sections[13]"
+    },
+    {
+      "section_id": "DD-14",
+      "title": "出力仕様詳細",
+      "json_path": "$.sections[14]"
+    },
+    {
+      "section_id": "DD-15",
+      "title": "エラー・アラーム詳細",
+      "json_path": "$.sections[15]"
+    },
+    {
+      "section_id": "DD-16",
+      "title": "安全・フェイルセーフ設計",
+      "json_path": "$.sections[16]"
+    },
+    {
+      "section_id": "DD-17",
+      "title": "排他・整合性・世代管理",
+      "json_path": "$.sections[17]"
+    },
+    {
+      "section_id": "DD-18",
+      "title": "パラメータ・設定詳細",
+      "json_path": "$.sections[18]"
+    },
+    {
+      "section_id": "DD-19",
+      "title": "ログ・診断・トレース",
+      "json_path": "$.sections[19]"
+    },
+    {
+      "section_id": "DD-20",
+      "title": "既存ソース影響",
+      "json_path": "$.sections[20]"
+    },
+    {
+      "section_id": "DD-21",
+      "title": "関数詳細仕様",
+      "json_path": "$.sections[21]"
+    },
+    {
+      "section_id": "DD-22",
+      "title": "テスト設計連携",
+      "json_path": "$.sections[22]"
+    },
+    {
+      "section_id": "DD-23",
+      "title": "ビルド・静的解析・レビュー",
+      "json_path": "$.sections[23]"
+    },
+    {
+      "section_id": "DD-24",
+      "title": "未決事項・プレレビュー結果",
+      "json_path": "$.sections[24]"
+    }
+  ],
+  "review_notes": [
+    "RT周期内処理時間は実装後に実測し、上限値を確定する。",
+    "共有メモリの世代番号更新順序は詳細実装レビューで確認する。",
+    "設備依存パラメータは機種別パラメータ台帳で最終確定する。"
+  ]
+}

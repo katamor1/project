@@ -1,0 +1,287 @@
+{
+  "document_type": "IBM-Bob Detail Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "DD-00",
+    "DD-01",
+    "DD-02",
+    "DD-03",
+    "DD-04",
+    "DD-05",
+    "DD-06",
+    "DD-07",
+    "DD-08",
+    "DD-09",
+    "DD-10",
+    "DD-11",
+    "DD-12",
+    "DD-13",
+    "DD-14",
+    "DD-15",
+    "DD-16",
+    "DD-17",
+    "DD-18",
+    "DD-19",
+    "DD-20",
+    "DD-21",
+    "DD-22",
+    "DD-23",
+    "DD-24"
+  ],
+  "metadata": {
+    "document_id": "DD-CNC-301",
+    "source_basic_design_id": "BD-CNC-301",
+    "feature_name": "ねじ切りサイクル機能",
+    "category": "ねじ切り・旋削サイクル",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_ねじ切りサイクル機能.docx"
+  },
+  "purpose": "G76による複数パス自動ねじ切りを安全に実行し、切込み量、仕上げ回数、逃げ量、ピッチをもとに安定したねじ山を生成する。",
+  "overview": "二行形式のG76を解析し、仕上げ回数・逃げ量・ねじ角・最小切込み量・仕上げしろ・ねじ深さ・初回切込み量・ピッチをもとにパス列を生成する。TS_SERVICEがサイクル展開し、RT_CONTROLは主軸同期済みの固定長ステップを実行する。",
+  "traceability": [
+    {
+      "basic_section": "BD-01/BD-02",
+      "detail_section": "DD-01/DD-05",
+      "content": "目的・機能要求の詳細化"
+    },
+    {
+      "basic_section": "BD-06/BD-07",
+      "detail_section": "DD-06/DD-11/DD-12",
+      "content": "RT/TS/API処理分担の具体化"
+    },
+    {
+      "basic_section": "BD-09",
+      "detail_section": "DD-07/DD-16",
+      "content": "共有メモリ・整合性方式の具体化"
+    },
+    {
+      "basic_section": "BD-14/BD-15",
+      "detail_section": "DD-14/DD-15",
+      "content": "異常検出・フェイルセーフ設計の具体化"
+    }
+  ],
+  "architecture": {
+    "group": "主軸同期ねじ切り",
+    "baseline": "Windows C言語マルチスレッド機械制御基盤。RT_INPUT/RT_CONTROL/RT_OUTPUTを割込周期内で実行し、TS_SERVICEがファイルI/O、NC解析、ログ、HMI/API連携を担当する。",
+    "rt_policy": "RT_INPUT/RT_CONTROL/RT_OUTPUTは固定周期内で完了し、Windows API、ファイルI/O、動的メモリ確保、長時間ブロッキングを使用しない。",
+    "ts_policy": "TS_SERVICEはNC解析、パラメータ検証、ログ、画面/API連携、事前計算を担当する。",
+    "api_policy": "公開APIは要求登録とスナップショット取得に限定し、最終状態確定はRT_CONTROLまたはTS_SERVICEで行う。"
+  },
+  "modules": [
+    [
+      "TS_NC_PARSE",
+      "Gコード/アドレスを解釈し、ねじ切り条件を正規化する"
+    ],
+    [
+      "TS_THREAD_PLAN",
+      "ピッチ、切込み、開始角、終端条件から実行ステップ列を生成する"
+    ],
+    [
+      "RT_SPINDLE_SYNC",
+      "主軸位相と送り軸指令を同期させる"
+    ],
+    [
+      "RT_AXIS_FEED",
+      "周期内で固定長実行ブロックを消費し、送り指令を出力する"
+    ]
+  ],
+  "shared_memory": [
+    {
+      "name": "g_threadRequest",
+      "owner": "API/TS_SERVICE",
+      "writer": "API, TS_SERVICE",
+      "reader": "TS_SERVICE, RT_CONTROL",
+      "period": "要求発生時",
+      "consistency": "request_idとgenerationの二相更新"
+    },
+    {
+      "name": "g_threadStatus",
+      "owner": "RT_CONTROL",
+      "writer": "RT_CONTROL, TS_SERVICE",
+      "reader": "API, UI, TS_SERVICE",
+      "period": "RT周期/TS周期",
+      "consistency": "state更新後にgenerationをインクリメント"
+    },
+    {
+      "name": "g_threadParam",
+      "owner": "TS_SERVICE",
+      "writer": "TS_SERVICE",
+      "reader": "RT_CONTROL",
+      "period": "設定変更時",
+      "consistency": "inactive領域で編集後にactive_indexを切替"
+    },
+    {
+      "name": "g_machineCtx",
+      "owner": "RT_CONTROL",
+      "writer": "RT_CONTROL",
+      "reader": "TS_SERVICE/API",
+      "period": "RT周期",
+      "consistency": "既存世代番号に追随"
+    },
+    {
+      "name": "g_logQueue",
+      "owner": "TS_SERVICE",
+      "writer": "RT_CONTROL/TS_SERVICE",
+      "reader": "TS_SERVICE",
+      "period": "イベント発生時",
+      "consistency": "固定長リング、上書き時は欠落カウンタ更新"
+    }
+  ],
+  "api": [
+    {
+      "name": "Api_RequestTHREADMode",
+      "direction": "UI/外部→TS",
+      "role": "機能有効化・解除または設定変更を要求する",
+      "rt_safe": "直接RT状態を書き換えない"
+    },
+    {
+      "name": "Api_GetTHREADStatus",
+      "direction": "外部←状態",
+      "role": "機能状態、アラーム、処理中ブロック番号を取得する",
+      "rt_safe": "スナップショットのみ"
+    },
+    {
+      "name": "Api_SetTHREADParameter",
+      "direction": "UI/保守→TS",
+      "role": "設備依存パラメータを検証キューへ登録する",
+      "rt_safe": "運転中変更不可項目をTSで拒否"
+    }
+  ],
+  "functional_details": {
+    "inputs": [
+      "G76二行ブロック",
+      "X/ZまたはU/W終点",
+      "P/Q/R/Fパラメータ",
+      "主軸回転状態",
+      "工具補正状態"
+    ],
+    "codes": [
+      "G76 Pabcded Q__ R__: 仕上げ回数、逃げ量、ねじ角、最小切込み量、仕上げしろを指定",
+      "G76 X__ Z__ P__ Q__ F__: 最終径、終点、ねじ深さ、初回切込み量、ピッチを指定",
+      "G97: 定速主軸回転を推奨",
+      "G00/G01: 退避・次パス準備"
+    ],
+    "outputs": [
+      "ねじ切りパス列",
+      "主軸同期送り指令",
+      "サイクル進行状態",
+      "パラメータ不正アラーム"
+    ],
+    "algorithm": "主軸エンコーダ位相を基準に、F指定のピッチまたは可変リード量から送り軸の目標位置を周期ごとに算出する。G76等の複数パス機能ではTS側で各パス深さを展開し、RT側は主軸同期済みの軌跡点のみを実行する。",
+    "rt_processing": "主軸位相読取り、同期開始判定、送り軸目標値出力、過大追従誤差検出を実施する。文字列解析、パス展開、浮動小数点の重い演算は実施しない。",
+    "ts_processing": "NCブロックを解析し、リード、切込み、開始角、終端条件、退避条件を検証してNC_EXEC_BLOCK列へ変換する。"
+  },
+  "state_machine": [
+    {
+      "state": "DISABLED",
+      "description": "機能無効。通常のNC/軸制御を行う。",
+      "entry": "初期状態または解除要求完了",
+      "exit": "有効化要求をTSが検証完了"
+    },
+    {
+      "state": "ARMED",
+      "description": "設定検証済み。次の対象ブロックまたは条件成立を待つ。",
+      "entry": "パラメータ/モード検証OK",
+      "exit": "対象ブロック実行開始"
+    },
+    {
+      "state": "ACTIVE",
+      "description": "機能がRT周期で反映中。",
+      "entry": "RT_CONTROLが有効世代を取得",
+      "exit": "対象区間終了、解除要求、異常検出"
+    },
+    {
+      "state": "HOLD",
+      "description": "一時停止・保留。出力は安全側に固定。",
+      "entry": "保持要求またはインターロック",
+      "exit": "再開条件成立または停止要求"
+    },
+    {
+      "state": "ALARM",
+      "description": "異常検出。安全出力へ遷移し復帰操作を待つ。",
+      "entry": "パラメータ不正、追従誤差、併用禁止、バッファ欠落",
+      "exit": "原因除去とリセット"
+    }
+  ],
+  "alarms": [
+    "P桁数不正",
+    "初回切込み量または最小切込み量不正",
+    "ピッチF未指定",
+    "主軸同期未確立",
+    "工具補正状態不正"
+  ],
+  "safety": [
+    "異常検出時はRT_CONTROLが新規軸指令を抑止し、既存のフェイルセーフ出力に従う。",
+    "運転中に変更できないパラメータはTS_SERVICEが拒否し、変更要求を保留またはアラーム化する。",
+    "外部APIからの要求は直接RT制御値を変更せず、要求キューと世代番号で反映タイミングを制御する。",
+    "未確定座標、原点未確立、サーボ未励磁、補正未解除などの前提不成立時は対象ブロックを実行しない。"
+  ],
+  "performance": [
+    "RT処理は1割込周期内に完了する固定長処理とし、最悪時間は実機またはHILで測定する。",
+    "TS側の幾何計算・パス展開は先読みバッファに投入し、RT側での突発的な計算量増大を防ぐ。",
+    "共有メモリ更新は世代番号方式と二重バッファ方式を使い、RT周期中の不完全読取りを防止する。"
+  ],
+  "source_impact": [
+    [
+      "include/system_config.h",
+      "機能有効化マクロ、上限数、バッファサイズ、周期上限usecを追加"
+    ],
+    [
+      "include/system_shared.h",
+      "要求・状態・パラメータ・実行ブロック用構造体を追加"
+    ],
+    [
+      "include/control_api.h",
+      "要求登録/状態取得APIプロトタイプを追加"
+    ],
+    [
+      "src/control_api.c",
+      "API入力検証、要求ID採番、スナップショット取得を実装"
+    ],
+    [
+      "src/rt_control.c",
+      "周期処理、状態遷移、安全停止、出力抑止を追加"
+    ],
+    [
+      "src/ts_service.c",
+      "NC解析、パラメータ検証、ログ、事前計算を追加"
+    ]
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "open_issues": [
+    "実機ごとの軸数、対象軸、パラメータ番号、PMC信号割付けを確定する。",
+    "RT周期内処理時間の上限値と測定方法を詳細設計レビューで確定する。",
+    "既存NC解析器の未対応Gコード/アドレスと併用禁止機能の優先順位を確定する。"
+  ],
+  "pre_review": [
+    {
+      "id": "DDR-RT-001",
+      "result": "WARN",
+      "comment": "RT処理時間の実測値は実装後に確定する。"
+    },
+    {
+      "id": "DDR-SHM-002",
+      "result": "OK",
+      "comment": "共有メモリは所有者、書込元、読取元、世代番号方式を定義した。"
+    },
+    {
+      "id": "DDR-SAFE-003",
+      "result": "OK",
+      "comment": "異常時の安全側遷移と出力抑止を定義した。"
+    },
+    {
+      "id": "DDR-API-004",
+      "result": "OK",
+      "comment": "APIは要求登録/状態取得に限定しRT直接更新を避けた。"
+    },
+    {
+      "id": "DDR-BLD-005",
+      "result": "WARN",
+      "comment": "VC2026/clangの実装対象ファイル追加後にCIコマンド確認が必要。"
+    }
+  ]
+}

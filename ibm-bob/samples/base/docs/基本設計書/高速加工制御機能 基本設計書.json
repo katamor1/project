@@ -1,0 +1,117 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-203",
+    "feature_name": "高速加工制御機能",
+    "category": "高速・高精度制御",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_高速加工制御機能.docx"
+  },
+  "purpose": "HPCC、高速加工モード、AI高精度輪郭制御、自由曲面高精度モード、高速スムージングを統合的に扱い、加工内容に応じて最適な軌跡制御を提供する。",
+  "overview": "G05/G05.1/G05.2/G08系の高速・高精度制御モードを管理する。モードの開始/終了、併用可否、ネスト順序をTS_SERVICEで検証し、RT_CONTROLには処理済みの実行ブロックと速度プロファイルのみを渡す。",
+  "interfaces": {
+    "codes": [
+      "G05 P10000: HPCC開始",
+      "G05 P3: 高速加工モード開始",
+      "G05 P0: G05系解除",
+      "G05.1 Q1/Q0: AI高精度輪郭制御開始/解除",
+      "G05.2 Q2: 自由曲面高精度モード開始",
+      "G08 P1/P2/P0: スムージング開始/解除"
+    ],
+    "inputs": [
+      "高速制御モード指令",
+      "加工区間のNCブロック",
+      "許容誤差E",
+      "先読み数",
+      "サーボ・機械パラメータ"
+    ],
+    "outputs": [
+      "統合高速制御モード状態",
+      "最適化済み軌跡・速度プロファイル",
+      "モード併用可否判定結果",
+      "アラーム/警告ログ"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語製のマルチスレッド機械制御基盤を前提とする。ハードウェア割込で起床するRT_INPUT/RT_CONTROL/RT_OUTPUTと、CPU余力で動作するTS_SERVICEを分離する。",
+    "rt_rules": "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキング、三角関数や探索など処理時間が変動する重計算を禁止し、1割込周期内に処理を完了する。",
+    "rt_responsibility": "固定長データ消費、周期内安全監視、フェイルセーフ出力",
+    "ts_responsibility": "NC解析、変換、先読み、ファイルI/O、ログ、HMI/API連携",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがモード指令を解析し、現在の補正・座標変換・サイクル状態との整合性を判定する。",
+    "HPCCを外側、AI/自由曲面/スムージングを内側として、許容された順序でモードを登録する。",
+    "先読み処理で曲率、送り、コーナ、補正値を評価し、RT向けの固定長ブロックへ変換する。",
+    "RT_CONTROLはモードビットと実行ブロックを使用して補間周期処理を行い、重い探索やメモリ確保は行わない。"
+  ],
+  "constraints": [
+    "高負荷粗加工、ドリル、タッピングでは適用範囲を限定",
+    "モードの単独ブロック指令を原則とする",
+    "工具径補正や座標変換とのネスト順序を保持"
+  ],
+  "alarms": [
+    "モード競合",
+    "サーボ高速制御未有効",
+    "許容誤差不正",
+    "先読み演算失敗",
+    "RTバッファ不足"
+  ],
+  "acceptance_criteria": [
+    "各高速モードの開始/解除が独立に検証できる",
+    "併用不可組合せを実行前に検出する",
+    "通常モードへの復帰後も位置連続性が保たれる"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-306",
+    "feature_name": "円筒補間機能",
+    "category": "補間・回転軸同期",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_円筒補間機能.docx"
+  },
+  "purpose": "回転軸の角度移動を円周上の移動量へ換算し、直線軸と回転軸の間で直線・円弧補間を行い、円筒面加工のプログラムを簡素化する。",
+  "overview": "G07.1 IP rで円筒補間を開始し、G07.1 IP0で解除する。TS_SERVICEがワーク半径、回転軸平行軸設定、平面選択を確認し、円筒展開面の座標を直線/回転同期指令へ変換する。",
+  "interfaces": {
+    "codes": [
+      "G07.1 IP r: 円筒補間モード開始",
+      "G07.1 IP 0: 円筒補間解除",
+      "G17/G18/G19: 補間平面選択",
+      "G01/G02/G03: 円筒面上の直線/円弧補間"
+    ],
+    "inputs": [
+      "回転軸アドレス",
+      "ワーク半径r",
+      "平面選択",
+      "直線/円弧指令",
+      "工具径補正状態"
+    ],
+    "outputs": [
+      "直線軸/回転軸同期ブロック",
+      "円筒補間状態",
+      "変換後送り速度",
+      "併用禁止アラーム"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語マルチスレッド機械制御基盤。RT_INPUT/RT_CONTROL/RT_OUTPUTを割込周期内で実行し、TS_SERVICEがファイルI/O、NC解析、ログ、HMI/API連携を担当する。",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ],
+    "rt_rules": [
+      "Windows API呼出禁止",
+      "ファイルI/O禁止",
+      "動的メモリ確保禁止",
+      "長時間ブロッキング禁止",
+      "1割込周期内完了"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがG07.1を単独ブロックで解析し、半径rと対象回転軸を検証する。",
+    "平面選択により直線軸と回転軸の組合せを決定し、展開面座標を同期指令へ変換する。",
+    "RT_CONTROLは変換済み指令を実行し、速度・軸リミット・補正状態を監視する。",
+    "G07.1 IP0で補間状態を解除し、無効化していたロールオーバ等を復帰する。"
+  ],
+  "constraints": [
+    "円筒補間中はG28/G53/固定サイクル等の位置決め系を使用しない。",
+    "回転軸は1軸のみ。",
+    "I/J/Kによる円弧中心指定を制限し、R指定を優先する。"
+  ],
+  "alarms": [
+    "半径未指定または0以外解除不正",
+    "複数回転軸指定",
+    "固定サイクル併用",
+    "座標系変更指令",
+    "工具補正状態不正"
+  ],
+  "acceptance_criteria": [
+    "G07.1で円筒補間状態が有効化される。",
+    "円筒面上の指令が直線/回転同期指令へ変換される。",
+    "併用禁止指令を検出できる。"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

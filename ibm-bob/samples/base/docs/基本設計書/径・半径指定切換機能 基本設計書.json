@@ -1,0 +1,115 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-214",
+    "feature_name": "径・半径指定切換機能",
+    "category": "座標指令方式",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_径半径指定切換機能.docx"
+  },
+  "purpose": "旋盤加工において外径/内径の座標値を径指令と半径指令のどちらで解釈するかを、プログラムまたは外部信号で安全に切り替える。",
+  "overview": "G10.9 IP_によるプログラム切換、または外部信号による切換を扱う。TS_SERVICEが停止条件とパラメータを確認し、内部座標は常に正規化単位へ変換してRT_CONTROLへ渡す。",
+  "interfaces": {
+    "codes": [
+      "G10.9 IP_: 指定軸の径/半径指定切換",
+      "PGD: プログラム切換有効化",
+      "DPA/DPM: 表示方式設定",
+      "DM1〜DM8: 切換中出力信号"
+    ],
+    "inputs": [
+      "G10.9指令",
+      "切換対象軸",
+      "径/半径指定値",
+      "PGD/DPA/DPM/DIAxパラメータ",
+      "外部切換信号"
+    ],
+    "outputs": [
+      "軸ごとの径/半径モード",
+      "表示基準情報",
+      "DM切換中信号",
+      "切換アラーム"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語製のマルチスレッド機械制御基盤を前提とする。ハードウェア割込で起床するRT_INPUT/RT_CONTROL/RT_OUTPUTと、CPU余力で動作するTS_SERVICEを分離する。",
+    "rt_rules": "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキング、三角関数や探索など処理時間が変動する重計算を禁止し、1割込周期内に処理を完了する。",
+    "rt_responsibility": "固定長データ消費、周期内安全監視、フェイルセーフ出力",
+    "ts_responsibility": "NC解析、変換、先読み、ファイルI/O、ログ、HMI/API連携",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがG10.9または外部信号を検出し、PGD設定と方式競合を確認する。",
+    "バッファ実行中、軸移動中、サイクル中でないことを確認し、対象軸の指定方式を更新する。",
+    "以降のNC座標値を内部半径基準または機械基準へ正規化し、RT実行ブロックへ格納する。",
+    "表示系にはDPA/DPM設定に応じた座標値を提供し、RT_CONTROLには正規化済み値のみを渡す。"
+  ],
+  "constraints": [
+    "軸移動中やバッファプログラム実行中の切換は禁止",
+    "切削送り速度は半径基準で管理",
+    "オフセットやワーク座標系は既存DIAx/ORC/ODI優先規則を尊重"
+  ],
+  "alarms": [
+    "移動中切換",
+    "PGDと外部信号方式競合",
+    "指令値小数点付き",
+    "対象軸不正",
+    "表示変換不整合"
+  ],
+  "acceptance_criteria": [
+    "G10.9により対象軸の指定方式が切り替わる",
+    "移動中切換はアラームになる",
+    "RT側では正規化済み座標のみを使用する"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

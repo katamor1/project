@@ -1,0 +1,126 @@
+{
+  "document_type": "IBM-Bob Detail Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "DD-00",
+    "DD-01",
+    "DD-02",
+    "DD-03",
+    "DD-04",
+    "DD-05",
+    "DD-06",
+    "DD-07",
+    "DD-08",
+    "DD-09",
+    "DD-10",
+    "DD-11",
+    "DD-12",
+    "DD-13",
+    "DD-14",
+    "DD-15",
+    "DD-16",
+    "DD-17",
+    "DD-18",
+    "DD-19",
+    "DD-20",
+    "DD-21",
+    "DD-22",
+    "DD-23",
+    "DD-24"
+  ],
+  "metadata": {
+    "document_id": "DD-CNC-204",
+    "feature_name": "高速バイナリプログラム運転機能",
+    "category": "NCプログラム実行",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_basic_design": "高速バイナリプログラム運転機能_基本設計書.docx",
+    "source_document": "設計_高速バイナリプログラム運転機能.docx"
+  },
+  "traceability": {
+    "basic_design_id": "BD-CNC-204",
+    "requirements": [
+      "同一プログラムの再運転で解析時間が短縮される",
+      "変換不整合を開始前に検出する",
+      "運転中はRT周期内で固定長ブロック消費のみを行う"
+    ],
+    "codes": [
+      "G05 P2: 高速バイナリプログラム運転開始",
+      "G05 P0: 高速バイナリ運転解除",
+      "G05 P3: 高速サイクル加工との併用候補"
+    ]
+  },
+  "module_design": {
+    "header": "include/cnc204_feature.h",
+    "source": "src/cnc204_feature.c",
+    "test": "tests/test_cnc204_feature.c",
+    "ts_functions": [
+      "Ts_CNC204_Prepare",
+      "Ts_CNC204_CommitExecBuffer"
+    ],
+    "rt_functions": [
+      "Rt_CNC204_ValidateSnapshot",
+      "Rt_CNC204_ExecuteCycle"
+    ],
+    "api_functions": [
+      "Api_GetCNC204Status",
+      "Api_RequestCNC204ConfigUpdate"
+    ]
+  },
+  "data_design": {
+    "config": "CNC204_FEATURE_CONFIG",
+    "request": "CNC204_FEATURE_REQUEST",
+    "status": "CNC204_FEATURE_STATUS",
+    "exec_block": "CNC204_EXEC_BLOCK",
+    "exec_buffer": "CNC204_EXEC_BUFFER",
+    "global": "g_cnc204Feature",
+    "consistency": "valid flag + generation_begin/generation_end + single writer policy"
+  },
+  "processing": {
+    "ts_service": [
+      "TS_SERVICEが対象プログラムを読み込み、構文解析とモード検証を行う。",
+      "変換済みブロック列へコンパイルし、チェックサム、世代番号、サイズを付与する。",
+      "運転開始要求時に変換済みデータの有効性を確認し、RT向けリングバッファへ供給する。",
+      "G05 P0または運転終了でバイナリモードを解除し、通常のNCプログラム運転へ戻す。"
+    ],
+    "rt_control": [
+      "先読み、速度プロファイル、許容誤差判定、ジャーク/加速度制限計算はTS_SERVICEで行う。",
+      "RT_CONTROLは先読み充足率とプロファイル世代を監視し、アンダーラン時は安全側速度または停止へ遷移する。"
+    ],
+    "state_machine": [
+      "DISABLED",
+      "ARMED",
+      "PREPARED",
+      "ACTIVE",
+      "HOLD",
+      "COMPLETE",
+      "ALARM"
+    ]
+  },
+  "errors": [
+    "変換未完了での開始",
+    "チェックサム不一致",
+    "未対応命令混在",
+    "RTバッファアンダーラン",
+    "運転中編集要求"
+  ],
+  "constraints": [
+    "変換処理は機械停止中または運転前に完了させる",
+    "運転中編集は不可",
+    "変換済みデータと元プログラムの整合性を世代番号で管理"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "DDR-001",
+    "DDR-002",
+    "DDR-003",
+    "DDR-004",
+    "DDR-005",
+    "DDR-006",
+    "DDR-007",
+    "DDR-008"
+  ]
+}

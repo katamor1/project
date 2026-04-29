@@ -1,0 +1,287 @@
+{
+  "document_type": "IBM-Bob Detail Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "DD-00",
+    "DD-01",
+    "DD-02",
+    "DD-03",
+    "DD-04",
+    "DD-05",
+    "DD-06",
+    "DD-07",
+    "DD-08",
+    "DD-09",
+    "DD-10",
+    "DD-11",
+    "DD-12",
+    "DD-13",
+    "DD-14",
+    "DD-15",
+    "DD-16",
+    "DD-17",
+    "DD-18",
+    "DD-19",
+    "DD-20",
+    "DD-21",
+    "DD-22",
+    "DD-23",
+    "DD-24"
+  ],
+  "metadata": {
+    "document_id": "DD-CNC-303",
+    "source_basic_design_id": "BD-CNC-303",
+    "feature_name": "回転軸仮想円速度指令・MCC信号制御機能",
+    "category": "回転軸・サーボ制御",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_回転軸仮想円速度指令機能_MCC信号制御機能.docx"
+  },
+  "purpose": "回転軸送りを仮想円上の線速度として扱い、直線軸との協調補間精度を向上させる。また、多軸アンプでの制御軸取り外し時にMCC信号を安全に制御する。",
+  "overview": "RFDxで回転軸の速度指令方式を選択し、仮想円半径に基づいて線速度と角速度を相互変換する。MCCxでは同一アンプ内の他軸状態に応じたサーボアンプMCC信号の落とし方を管理する。",
+  "traceability": [
+    {
+      "basic_section": "BD-01/BD-02",
+      "detail_section": "DD-01/DD-05",
+      "content": "目的・機能要求の詳細化"
+    },
+    {
+      "basic_section": "BD-06/BD-07",
+      "detail_section": "DD-06/DD-11/DD-12",
+      "content": "RT/TS/API処理分担の具体化"
+    },
+    {
+      "basic_section": "BD-09",
+      "detail_section": "DD-07/DD-16",
+      "content": "共有メモリ・整合性方式の具体化"
+    },
+    {
+      "basic_section": "BD-14/BD-15",
+      "detail_section": "DD-14/DD-15",
+      "content": "異常検出・フェイルセーフ設計の具体化"
+    }
+  ],
+  "architecture": {
+    "group": "回転軸制御",
+    "baseline": "Windows C言語マルチスレッド機械制御基盤。RT_INPUT/RT_CONTROL/RT_OUTPUTを割込周期内で実行し、TS_SERVICEがファイルI/O、NC解析、ログ、HMI/API連携を担当する。",
+    "rt_policy": "RT_INPUT/RT_CONTROL/RT_OUTPUTは固定周期内で完了し、Windows API、ファイルI/O、動的メモリ確保、長時間ブロッキングを使用しない。",
+    "ts_policy": "TS_SERVICEはNC解析、パラメータ検証、ログ、画面/API連携、事前計算を担当する。",
+    "api_policy": "公開APIは要求登録とスナップショット取得に限定し、最終状態確定はRT_CONTROLまたはTS_SERVICEで行う。"
+  },
+  "modules": [
+    [
+      "TS_ROTARY_PARAM",
+      "回転軸タイプ、ロールオーバ、仮想円速度設定を管理する"
+    ],
+    [
+      "RT_ROTARY_NORM",
+      "角度指令の丸め、近回り/符号方向選択を周期処理する"
+    ],
+    [
+      "RT_SERVO_MCC",
+      "MCC信号と制御軸取り外し状態を監視する"
+    ],
+    [
+      "API_ROTARY_STATUS",
+      "回転軸状態と丸め後指令を公開する"
+    ]
+  ],
+  "shared_memory": [
+    {
+      "name": "g_rotary_virtualRequest",
+      "owner": "API/TS_SERVICE",
+      "writer": "API, TS_SERVICE",
+      "reader": "TS_SERVICE, RT_CONTROL",
+      "period": "要求発生時",
+      "consistency": "request_idとgenerationの二相更新"
+    },
+    {
+      "name": "g_rotary_virtualStatus",
+      "owner": "RT_CONTROL",
+      "writer": "RT_CONTROL, TS_SERVICE",
+      "reader": "API, UI, TS_SERVICE",
+      "period": "RT周期/TS周期",
+      "consistency": "state更新後にgenerationをインクリメント"
+    },
+    {
+      "name": "g_rotary_virtualParam",
+      "owner": "TS_SERVICE",
+      "writer": "TS_SERVICE",
+      "reader": "RT_CONTROL",
+      "period": "設定変更時",
+      "consistency": "inactive領域で編集後にactive_indexを切替"
+    },
+    {
+      "name": "g_machineCtx",
+      "owner": "RT_CONTROL",
+      "writer": "RT_CONTROL",
+      "reader": "TS_SERVICE/API",
+      "period": "RT周期",
+      "consistency": "既存世代番号に追随"
+    },
+    {
+      "name": "g_logQueue",
+      "owner": "TS_SERVICE",
+      "writer": "RT_CONTROL/TS_SERVICE",
+      "reader": "TS_SERVICE",
+      "period": "イベント発生時",
+      "consistency": "固定長リング、上書き時は欠落カウンタ更新"
+    }
+  ],
+  "api": [
+    {
+      "name": "Api_RequestROTARYVIRTUALMode",
+      "direction": "UI/外部→TS",
+      "role": "機能有効化・解除または設定変更を要求する",
+      "rt_safe": "直接RT状態を書き換えない"
+    },
+    {
+      "name": "Api_GetROTARYVIRTUALStatus",
+      "direction": "外部←状態",
+      "role": "機能状態、アラーム、処理中ブロック番号を取得する",
+      "rt_safe": "スナップショットのみ"
+    },
+    {
+      "name": "Api_SetROTARYVIRTUALParameter",
+      "direction": "UI/保守→TS",
+      "role": "設備依存パラメータを検証キューへ登録する",
+      "rt_safe": "運転中変更不可項目をTSで拒否"
+    }
+  ],
+  "functional_details": {
+    "inputs": [
+      "回転軸送り指令",
+      "仮想円半径",
+      "直線軸との同期補間状態",
+      "多軸アンプ構成",
+      "制御軸取り外し状態"
+    ],
+    "codes": [
+      "RFDx: 回転軸の従来方式/仮想円上速度指令方式選択",
+      "MCCx: 多軸アンプで他軸取り外し時のMCC信号制御",
+      "仮想円半径パラメータ",
+      "制御軸取り外し状態信号"
+    ],
+    "outputs": [
+      "回転軸角速度指令",
+      "仮想円線速度表示",
+      "MCC出力制御状態",
+      "サーボ安全アラーム"
+    ],
+    "algorithm": "回転軸の指令値を軸タイプとロールオーバ設定に従って正規化する。MCC信号は同一アンプ内の他軸状態を考慮し、停止/保持の安全方針に従う。",
+    "rt_processing": "角度丸め、方向選択、MCC出力、サーボ許可信号を周期内で更新する。",
+    "ts_processing": "軸タイプ設定、パラメータ変更要求、設備依存値の検証を行う。"
+  },
+  "state_machine": [
+    {
+      "state": "DISABLED",
+      "description": "機能無効。通常のNC/軸制御を行う。",
+      "entry": "初期状態または解除要求完了",
+      "exit": "有効化要求をTSが検証完了"
+    },
+    {
+      "state": "ARMED",
+      "description": "設定検証済み。次の対象ブロックまたは条件成立を待つ。",
+      "entry": "パラメータ/モード検証OK",
+      "exit": "対象ブロック実行開始"
+    },
+    {
+      "state": "ACTIVE",
+      "description": "機能がRT周期で反映中。",
+      "entry": "RT_CONTROLが有効世代を取得",
+      "exit": "対象区間終了、解除要求、異常検出"
+    },
+    {
+      "state": "HOLD",
+      "description": "一時停止・保留。出力は安全側に固定。",
+      "entry": "保持要求またはインターロック",
+      "exit": "再開条件成立または停止要求"
+    },
+    {
+      "state": "ALARM",
+      "description": "異常検出。安全出力へ遷移し復帰操作を待つ。",
+      "entry": "パラメータ不正、追従誤差、併用禁止、バッファ欠落",
+      "exit": "原因除去とリセット"
+    }
+  ],
+  "alarms": [
+    "仮想半径不正",
+    "回転軸設定不正",
+    "MCC制御対象不正",
+    "サーボアンプ状態不整合",
+    "速度変換上限超過"
+  ],
+  "safety": [
+    "異常検出時はRT_CONTROLが新規軸指令を抑止し、既存のフェイルセーフ出力に従う。",
+    "運転中に変更できないパラメータはTS_SERVICEが拒否し、変更要求を保留またはアラーム化する。",
+    "外部APIからの要求は直接RT制御値を変更せず、要求キューと世代番号で反映タイミングを制御する。",
+    "未確定座標、原点未確立、サーボ未励磁、補正未解除などの前提不成立時は対象ブロックを実行しない。"
+  ],
+  "performance": [
+    "RT処理は1割込周期内に完了する固定長処理とし、最悪時間は実機またはHILで測定する。",
+    "TS側の幾何計算・パス展開は先読みバッファに投入し、RT側での突発的な計算量増大を防ぐ。",
+    "共有メモリ更新は世代番号方式と二重バッファ方式を使い、RT周期中の不完全読取りを防止する。"
+  ],
+  "source_impact": [
+    [
+      "include/system_config.h",
+      "機能有効化マクロ、上限数、バッファサイズ、周期上限usecを追加"
+    ],
+    [
+      "include/system_shared.h",
+      "要求・状態・パラメータ・実行ブロック用構造体を追加"
+    ],
+    [
+      "include/control_api.h",
+      "要求登録/状態取得APIプロトタイプを追加"
+    ],
+    [
+      "src/control_api.c",
+      "API入力検証、要求ID採番、スナップショット取得を実装"
+    ],
+    [
+      "src/rt_control.c",
+      "周期処理、状態遷移、安全停止、出力抑止を追加"
+    ],
+    [
+      "src/ts_service.c",
+      "NC解析、パラメータ検証、ログ、事前計算を追加"
+    ]
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "open_issues": [
+    "実機ごとの軸数、対象軸、パラメータ番号、PMC信号割付けを確定する。",
+    "RT周期内処理時間の上限値と測定方法を詳細設計レビューで確定する。",
+    "既存NC解析器の未対応Gコード/アドレスと併用禁止機能の優先順位を確定する。"
+  ],
+  "pre_review": [
+    {
+      "id": "DDR-RT-001",
+      "result": "WARN",
+      "comment": "RT処理時間の実測値は実装後に確定する。"
+    },
+    {
+      "id": "DDR-SHM-002",
+      "result": "OK",
+      "comment": "共有メモリは所有者、書込元、読取元、世代番号方式を定義した。"
+    },
+    {
+      "id": "DDR-SAFE-003",
+      "result": "OK",
+      "comment": "異常時の安全側遷移と出力抑止を定義した。"
+    },
+    {
+      "id": "DDR-API-004",
+      "result": "OK",
+      "comment": "APIは要求登録/状態取得に限定しRT直接更新を避けた。"
+    },
+    {
+      "id": "DDR-BLD-005",
+      "result": "WARN",
+      "comment": "VC2026/clangの実装対象ファイル追加後にCIコマンド確認が必要。"
+    }
+  ]
+}

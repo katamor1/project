@@ -1,0 +1,96 @@
+{
+  "schema_version": "ibm-bob-basic-design-v2.0",
+  "document": {
+    "document_id": "BD-SMP-003",
+    "title": "運転開始前インターロック集約判定機能",
+    "document_type": "basic_design",
+    "created_date": "2026-04-27",
+    "status": "draft",
+    "source": "sample_feature_generation"
+  },
+  "feature": {
+    "name": "運転開始前インターロック集約判定機能",
+    "summary": "運転開始要求前に複数条件を集約評価し、起動許可/禁止理由を共有メモリに公開する。",
+    "purpose": "運転開始不可の理由をRT側で一元判定し、UIや保守アプリから同一の禁止理由を参照できるようにする。",
+    "scope": "運転開始要求受付、インターロック条件集約、禁止理由ビット、状態遷移管理を対象とする。",
+    "estimated_new_steps": "100-500 C steps"
+  },
+  "architecture": {
+    "platform": "Windows / C language",
+    "thread_model": {
+      "RT": [
+        "起動前条件の周期評価",
+        "禁止理由ビット生成",
+        "起動許可状態への遷移",
+        "禁止中の要求拒否"
+      ],
+      "TS": [
+        "禁止理由の文言化",
+        "履歴ログ保存",
+        "UI通知イベント生成"
+      ],
+      "API": [
+        "Api_GetStartInterlockStatus()で起動許可状態と禁止理由を取得"
+      ]
+    },
+    "global_variables": [
+      {
+        "name": "g_startInterlockCtrl",
+        "type": "START_INTERLOCK_CTRL",
+        "access": "RT更新/TS読取/API読取",
+        "description": "起動許可状態、禁止理由、状態遷移"
+      },
+      {
+        "name": "g_startInterlockMask",
+        "type": "uint32_t",
+        "access": "TS/API更新/RT読取",
+        "description": "保守時に一部条件を診断無効化するマスク"
+      }
+    ],
+    "apis": [
+      {
+        "name": "Api_GetStartInterlockStatus",
+        "description": "起動可否、禁止理由ビット、現在状態を取得する。"
+      }
+    ]
+  },
+  "behavior": {
+    "state_transition": "IDLE→CHECKING→READYまたはBLOCKED。運転開始要求中に条件が崩れた場合はBLOCKEDへ戻す。解除後はCHECKINGを経由してREADYへ復帰する。",
+    "sequence": [
+      "周期ごとに扉閉、非常停止解除、サーボ準備完了、軸停止を評価する",
+      "禁止理由ビットを生成する",
+      "禁止理由なしの場合はREADYへ遷移する",
+      "禁止理由ありの場合はBLOCKEDへ遷移する",
+      "UI/TSへ変化通知フラグを立てる"
+    ],
+    "constraints": [
+      "安全条件はRT側で最終判定する",
+      "TS側文言は判定結果を変更してはならない",
+      "マスク可能条件とマスク不可安全条件を分離する"
+    ]
+  },
+  "impact_analysis": {
+    "affected_modules": [
+      "main_state.c",
+      "interlock.c",
+      "shared_memory.h",
+      "ui_event.c",
+      "public_api.h"
+    ],
+    "build_profiles": [
+      "ibm-bob-vc2026",
+      "ibm-bob-clang-win"
+    ],
+    "test_commands": [
+      "cmd /c scripts\\test_vc2026.bat",
+      "cmd /c scripts\\test_clang.bat"
+    ]
+  },
+  "pre_review_hint": {
+    "known_risks": [
+      "マスク対象に安全上マスク不可の条件が混入しないよう定義を固定すること",
+      "READYからBLOCKEDへ戻る条件の優先順位を詳細設計で定義すること",
+      "禁止理由ビットの台帳管理とメッセージIDの対応を整備すること"
+    ]
+  }
+}

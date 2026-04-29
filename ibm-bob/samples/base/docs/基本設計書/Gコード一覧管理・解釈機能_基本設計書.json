@@ -1,0 +1,150 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-417",
+    "feature_name": "Gコード一覧管理・解釈機能",
+    "category": "NCプログラム解釈",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "Gコード一覧.docx"
+  },
+  "purpose": "Gコード一覧 この資料では、CNC工作機械で使用される代表的なGコードを一覧形式で整理しています。各コードのカテゴリと主な機能を示しており、機種や制御装置によって細かな動作が異なる場合があります。",
+  "overview": "Gコード一覧 この資料では、CNC工作機械で使用される代表的なGコードを一覧形式で整理しています。各コードのカテゴリと主な機能を示しており、機種や制御装置によって細かな動作が異なる場合があります。",
+  "interfaces": {
+    "interface_items": [
+      "G00",
+      "G01",
+      "G02",
+      "G03",
+      "G04",
+      "G09",
+      "G10",
+      "G17",
+      "G18",
+      "G19",
+      "G00 | モーション | 早送りによる位置決め",
+      "G01 | モーション | 送り速度による直線補間",
+      "G02 | モーション | 時計回り円弧補間",
+      "G03 | モーション | 反時計回り円弧補間"
+    ],
+    "codes": [
+      "G00",
+      "G01",
+      "G02",
+      "G03",
+      "G04",
+      "G09",
+      "G10",
+      "G17",
+      "G18",
+      "G19",
+      "G20",
+      "G21",
+      "G22",
+      "G23",
+      "G27",
+      "G28",
+      "G30",
+      "G31"
+    ],
+    "inputs": [
+      "Gコードまたはアドレスコード",
+      "同一ブロック内アドレス値",
+      "モーダル状態",
+      "機種別Gコードグループ定義"
+    ],
+    "outputs": [
+      "正規化NC内部命令",
+      "モーダル状態更新",
+      "指令競合/未対応コードアラーム",
+      "解析ログ"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語マルチスレッド機械制御基盤。RT_INPUT / RT_CONTROL / RT_OUTPUT をハードウェア割込周期内で実行し、TS_SERVICE がファイルI/O、NC解析、ログ、HMI/API連携、先読み処理を担当する。",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ],
+    "rt_rules": [
+      "Windows API呼出禁止",
+      "ファイルI/O禁止",
+      "動的メモリ確保禁止",
+      "長時間ブロッキング禁止",
+      "1割込周期内完了"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがGコード一覧管理・解釈機能の指令ブロック、アドレス、パラメータを解析し、実行可否を判定する。",
+    "TS_SERVICEが座標変換、補間展開、サイクル展開、補助機能分離などの可変時間処理を行い、RT向け固定長データへ変換する。",
+    "RT_CONTROLは共有メモリ上のvalid/generationを確認し、周期内で固定長実行ブロックを消費する。",
+    "異常またはインターロック発生時はRT_OUTPUTで安全側出力を確定し、TS_SERVICEがログとHMI/API状態を更新する。"
+  ],
+  "constraints": [
+    "RT側では可変長文字列解析、ファイルI/O、動的メモリ確保を行わない。",
+    "併用禁止機能、補正状態、座標系状態、原点復帰状態は実行前に判定する。",
+    "機種依存パラメータとオプション有無は詳細設計で確定する。"
+  ],
+  "alarms": [
+    "パラメータ未指定または範囲外",
+    "モード競合または併用禁止",
+    "軸リミットまたは安全距離超過",
+    "RT実行バッファ不足/世代番号不一致",
+    "インターロックまたは主状態不一致"
+  ],
+  "acceptance_criteria": [
+    "正常なGコード指令または設定により、Gコード一覧管理・解釈機能の状態が準備→実行→完了へ遷移する。",
+    "入力不正、モード競合、未対応コード、インターロック発生時に実行前または周期内で安全側へ遷移する。",
+    "RT_CONTROLの処理は固定長データ参照と状態遷移に限定され、1割込周期内に完了する。",
+    "既存公開APIと既存共有メモリの互換性を破壊しない。",
+    "VC2026およびclang Windows版のbuild/testが成功する。"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

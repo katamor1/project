@@ -1,0 +1,125 @@
+{
+  "document_type": "IBM-Bob Detail Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "DD-00",
+    "DD-01",
+    "DD-02",
+    "DD-03",
+    "DD-04",
+    "DD-05",
+    "DD-06",
+    "DD-07",
+    "DD-08",
+    "DD-09",
+    "DD-10",
+    "DD-11",
+    "DD-12",
+    "DD-13",
+    "DD-14",
+    "DD-15",
+    "DD-16",
+    "DD-17",
+    "DD-18",
+    "DD-19",
+    "DD-20",
+    "DD-21",
+    "DD-22",
+    "DD-23",
+    "DD-24"
+  ],
+  "metadata": {
+    "document_id": "DD-CNC-202",
+    "feature_name": "高度プレビュー制御機能",
+    "category": "高速・高精度制御",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_basic_design": "高度プレビュー制御機能_基本設計書.docx",
+    "source_document": "設計_高度プレビュー制御機能.docx"
+  },
+  "traceability": {
+    "basic_design_id": "BD-CNC-202",
+    "requirements": [
+      "連続短線分で送り速度変動が抑制される",
+      "先読み不足時に安全側へ遷移する",
+      "G08 P0で通常制御に戻る"
+    ],
+    "codes": [
+      "G08 P1: 標準プレビュー/スムージング開始",
+      "G08 P2: 高精度プレビュー開始",
+      "G08 P0: プレビュー制御解除"
+    ]
+  },
+  "module_design": {
+    "header": "include/cnc202_feature.h",
+    "source": "src/cnc202_feature.c",
+    "test": "tests/test_cnc202_feature.c",
+    "ts_functions": [
+      "Ts_CNC202_Prepare",
+      "Ts_CNC202_CommitExecBuffer"
+    ],
+    "rt_functions": [
+      "Rt_CNC202_ValidateSnapshot",
+      "Rt_CNC202_ExecuteCycle"
+    ],
+    "api_functions": [
+      "Api_GetCNC202Status",
+      "Api_RequestCNC202ConfigUpdate"
+    ]
+  },
+  "data_design": {
+    "config": "CNC202_FEATURE_CONFIG",
+    "request": "CNC202_FEATURE_REQUEST",
+    "status": "CNC202_FEATURE_STATUS",
+    "exec_block": "CNC202_EXEC_BLOCK",
+    "exec_buffer": "CNC202_EXEC_BUFFER",
+    "global": "g_cnc202Feature",
+    "consistency": "valid flag + generation_begin/generation_end + single writer policy"
+  },
+  "processing": {
+    "ts_service": [
+      "TS_SERVICEがG08開始ブロックを検出し、先読みモードを有効化する。",
+      "TS_SERVICEが複数ブロックを解析し、コーナ減速量、加減速曲線、許容誤差内の通過速度を算出する。",
+      "算出済み速度プロファイルをg_prefetchResult相当の固定長領域へ格納する。",
+      "RT_CONTROLはプロファイルを周期ごとに読み出し、補間実行と送り速度制御に反映する。"
+    ],
+    "rt_control": [
+      "先読み、速度プロファイル、許容誤差判定、ジャーク/加速度制限計算はTS_SERVICEで行う。",
+      "RT_CONTROLは先読み充足率とプロファイル世代を監視し、アンダーラン時は安全側速度または停止へ遷移する。"
+    ],
+    "state_machine": [
+      "DISABLED",
+      "ARMED",
+      "PREPARED",
+      "ACTIVE",
+      "HOLD",
+      "COMPLETE",
+      "ALARM"
+    ]
+  },
+  "errors": [
+    "先読みバッファアンダーラン",
+    "許容誤差設定不正",
+    "非対応Gコード混在",
+    "モード解除漏れ"
+  ],
+  "constraints": [
+    "粗加工やタッピングなど急激な負荷変動領域では無効化する",
+    "先読み不足時は安全側速度に落とす",
+    "高精度輪郭制御、AI輪郭制御とのネスト順序を管理する"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "DDR-001",
+    "DDR-002",
+    "DDR-003",
+    "DDR-004",
+    "DDR-005",
+    "DDR-006",
+    "DDR-007",
+    "DDR-008"
+  ]
+}

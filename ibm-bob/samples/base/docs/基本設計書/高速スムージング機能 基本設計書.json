@@ -1,0 +1,114 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-205",
+    "feature_name": "高速スムージング機能",
+    "category": "軌跡整形",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_高速スムージング機能.docx"
+  },
+  "purpose": "CAMが生成する多数の短線分を許容誤差内で滑らかに接続し、加減速を抑えて3次元曲面加工や金型加工の面品位を向上させる。",
+  "overview": "G08 P1/P2でスムージングを開始し、G08 P0で解除する。TS_SERVICEがコーナ丸め、速度連続性、許容誤差を評価し、RT_CONTROLには平滑化済み軌跡を渡す。",
+  "interfaces": {
+    "codes": [
+      "G08 P1: 標準スムージング開始",
+      "G08 P2: 高精度スムージング開始",
+      "G08 P0: スムージング解除",
+      "G01/G02/G03: 対象補間命令"
+    ],
+    "inputs": [
+      "短線分NCブロック",
+      "許容丸め量",
+      "最大加速度/ジャーク",
+      "加工種別",
+      "スムージング強度設定"
+    ],
+    "outputs": [
+      "平滑化済み実行ブロック",
+      "コーナ通過速度",
+      "輪郭誤差見積り",
+      "スムージング状態"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語製のマルチスレッド機械制御基盤を前提とする。ハードウェア割込で起床するRT_INPUT/RT_CONTROL/RT_OUTPUTと、CPU余力で動作するTS_SERVICEを分離する。",
+    "rt_rules": "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキング、三角関数や探索など処理時間が変動する重計算を禁止し、1割込周期内に処理を完了する。",
+    "rt_responsibility": "固定長データ消費、周期内安全監視、フェイルセーフ出力",
+    "ts_responsibility": "NC解析、変換、先読み、ファイルI/O、ログ、HMI/API連携",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがG08開始を受理し、対象区間の先読みを開始する。",
+    "隣接ブロックの方向差、長さ、送り速度から丸め可否を判定する。",
+    "許容誤差内のブレンド曲線または補間点列を生成し、RT用バッファに登録する。",
+    "RT_CONTROLは登録済みブロックを周期実行し、G08 P0で通常ブロック消費へ戻る。"
+  ],
+  "constraints": [
+    "急激な方向変換、穴あけ、タッピング、重切削では解除する",
+    "加工品許容差より大きい丸めを禁止",
+    "CAM分割が細かすぎる場合のバッファ負荷を監視"
+  ],
+  "alarms": [
+    "許容誤差超過",
+    "非対応補間混在",
+    "先読み不足",
+    "モード解除漏れ"
+  ],
+  "acceptance_criteria": [
+    "短線分連続で減速停止が抑制される",
+    "許容誤差超過時に平滑化しない",
+    "G08 P0で通常軌跡に復帰する"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-305",
+    "feature_name": "仮想軸補間機能",
+    "category": "補間",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_仮想軸補間機能.docx"
+  },
+  "purpose": "実在しない仮想軸を用いて円弧補間中の実軸速度を正弦波状に制御し、特殊輪郭やフラクショナルリード加工を実現する。",
+  "overview": "G07 α0で仮想軸を設定し、G07 α1で解除する。TS_SERVICEが仮想軸設定と補間対象軸を検証し、RT_CONTROLが円弧補間中に生成済み速度プロファイルを適用する。",
+  "interfaces": {
+    "codes": [
+      "G07 α0: 仮想軸設定",
+      "G07 α1: 仮想軸解除",
+      "G02/G03: 仮想軸補間対象の円弧補間",
+      "F: 送り速度"
+    ],
+    "inputs": [
+      "G07指令",
+      "仮想軸対象軸",
+      "円弧補間ブロック",
+      "振幅/周波数パラメータ",
+      "送り速度"
+    ],
+    "outputs": [
+      "仮想軸補間状態",
+      "正弦波速度プロファイル",
+      "実軸補間指令",
+      "併用禁止アラーム"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語マルチスレッド機械制御基盤。RT_INPUT/RT_CONTROL/RT_OUTPUTを割込周期内で実行し、TS_SERVICEがファイルI/O、NC解析、ログ、HMI/API連携を担当する。",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ],
+    "rt_rules": [
+      "Windows API呼出禁止",
+      "ファイルI/O禁止",
+      "動的メモリ確保禁止",
+      "長時間ブロッキング禁止",
+      "1割込周期内完了"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがG07 α0を単独ブロックとして受理し、対象軸と機械オプションを確認する。",
+    "後続のG02/G03を解析し、仮想軸を内部変数として扱う補間プロファイルを生成する。",
+    "RT_CONTROLは生成済みプロファイルに従い、実軸速度を周期ごとに制御する。",
+    "G07 α1で仮想軸設定を解除し、通常補間へ戻す。"
+  ],
+  "constraints": [
+    "G07開始/解除は単独ブロックで指令する。",
+    "非対応機種では有効化しない。",
+    "他の特殊補間との併用可否を事前判定する。"
+  ],
+  "alarms": [
+    "仮想軸対象不正",
+    "オプション未有効",
+    "併用禁止補間",
+    "振幅/周波数範囲外",
+    "解除漏れ"
+  ],
+  "acceptance_criteria": [
+    "G07 α0/α1でモードが正しく遷移する。",
+    "円弧補間中に実軸速度プロファイルが生成される。",
+    "対象外軸ではアラームとなる。"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

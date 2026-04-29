@@ -1,0 +1,270 @@
+{
+  "document_control": {
+    "document_id": "BD-BASELINE-SYSTEM-001",
+    "title": "基盤システム機能_基本設計書",
+    "created_at": "2026-04-29",
+    "author": "AIドラフト",
+    "version": "0.1",
+    "source_document": "ibm_bob_基盤システム_基本設計書.docx"
+  },
+  "feature": {
+    "feature_id": "FX-BASELINE-SYSTEM-001",
+    "name": "基盤システム機能",
+    "purpose": "Windows上で動作するC言語製マルチスレッド機械制御基盤として、RT/TS分離、共有メモリ、公開API、安全側状態管理を提供する。",
+    "background": "後続機能追加時の共通前提となる既存基盤であり、リアルタイム周期処理と非リアルタイム処理の責務境界を明確化する。",
+    "key_specs": [
+      "RT_INPUT/RT_CONTROL/RT_OUTPUTはハードウェア割込に同期して1周期内で実行する。",
+      "TS_SERVICEはRT休止中にファイルI/O、UI連携、ログ保存、先読み補正を実施する。",
+      "g_ioIn、g_ioOut、g_machineCtx、g_uiRequest、g_logQueue、g_prefetchResultを共有メモリとして扱う。",
+      "RTスレッド内ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキングを禁止する。"
+    ]
+  },
+  "template_usage": {
+    "template": "IBM-Bob 基本設計書テンプレート v2.0 相当",
+    "section_ids": [
+      "BD-00",
+      "BD-01",
+      "BD-02",
+      "BD-03",
+      "BD-04",
+      "BD-05",
+      "BD-06",
+      "BD-07",
+      "BD-08",
+      "BD-09",
+      "BD-10",
+      "BD-11",
+      "BD-12",
+      "BD-13",
+      "BD-14",
+      "BD-15",
+      "BD-16",
+      "BD-17",
+      "BD-18",
+      "BD-19",
+      "BD-20",
+      "BD-21",
+      "BD-22"
+    ],
+    "json_path_mapping": true,
+    "notes": "基本設計レベルとして、機能仕様、外部仕様、共有メモリ、RT/TS/API分担、安全設計、影響調査、受入条件を定義する。"
+  },
+  "requirements_traceability": [
+    {
+      "requirement_id": "REQ-BASELINE-SYSTEM-001",
+      "summary": "RT/TS処理を責務分離し、RT処理を1割込間隔内に収める。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "RT/TS責務境界が各機能設計から参照可能であること。"
+    },
+    {
+      "requirement_id": "REQ-BASELINE-SYSTEM-002",
+      "summary": "共有メモリ構造体をヘッダで公開し、外部機器/外部アプリと連携する。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "共有メモリの所有者・参照者が明確であること。"
+    },
+    {
+      "requirement_id": "REQ-BASELINE-SYSTEM-003",
+      "summary": "公開APIは要求登録と状態取得を中心とし、既存互換性を維持する。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "既存公開APIの互換性が維持されること。"
+    },
+    {
+      "requirement_id": "REQ-BASELINE-SYSTEM-004",
+      "summary": "インターロック発生時にフェイルセーフ出力へ遷移する。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "既存公開APIの互換性が維持されること。"
+    }
+  ],
+  "system_context": {
+    "baseline": "Windows C multi-threaded machine-control baseline",
+    "rt_threads": [
+      "RT_INPUT",
+      "RT_CONTROL",
+      "RT_OUTPUT"
+    ],
+    "ts_threads": [
+      "TS_SERVICE"
+    ],
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "constraints": [
+      "RT処理は1割込間隔内に完了すること",
+      "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロックを禁止すること"
+    ]
+  },
+  "scope": {
+    "in_scope": [
+      "機能仕様の基盤システムへの反映",
+      "共有メモリ/API/RT/TS連携方針",
+      "状態遷移、異常安全、影響調査、受入条件"
+    ],
+    "out_of_scope": [
+      "サーボドライブ内部制御の詳細",
+      "機種別パラメータ最終値",
+      "詳細関数実装および実測済みRT処理時間"
+    ]
+  },
+  "state_design": {
+    "states": [
+      "SYSTEM_INIT",
+      "STOPPED",
+      "READY",
+      "RUNNING",
+      "ALARM"
+    ],
+    "initial_state": "SYSTEM_INIT",
+    "error_state": "ALARM",
+    "reset_conditions": [
+      "リセット要求",
+      "ALARM解除",
+      "モード変更",
+      "機能キャンセル"
+    ]
+  },
+  "data_design": {
+    "feature_shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "ownership_policy": "TS_SERVICEが重計算・設定更新、RT_CONTROLが周期状態更新、APIが要求登録を担当する。詳細な所有者は詳細設計でフィールド単位に確定する。",
+    "consistency_policy": "データ本体更新後にgeneration/valid/stateを更新し、RT側は世代番号と状態を確認してから参照する。"
+  },
+  "api_design": {
+    "public_apis": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ],
+    "compatibility_policy": "既存公開APIは変更せず、新規API追加または既存要求領域の末尾追加で互換性を維持する。"
+  },
+  "rt_ts_api_allocation": {
+    "TS_SERVICE": [
+      "Gコード/パラメータ解析",
+      "妥当性確認",
+      "重計算/先読み",
+      "ログ・ファイルI/O"
+    ],
+    "RT_INPUT": [
+      "入力信号/要求フラグの周期取込み"
+    ],
+    "RT_CONTROL": [
+      "状態遷移",
+      "安全判定",
+      "処理済みデータの軽量消費",
+      "出力値決定"
+    ],
+    "RT_OUTPUT": [
+      "g_ioOutへの反映",
+      "安全マスク適用"
+    ],
+    "API": [
+      "要求登録",
+      "状態スナップショット取得"
+    ]
+  },
+  "safety_design": [
+    "全RT処理時間が割込間隔を超過しないよう実装・計測する。",
+    "ALARM時は軸/PLC出力を安全側にマスクする。",
+    "APIはRT処理を直接ブロックせず、共有メモリ経由の要求登録に限定する。"
+  ],
+  "impact_analysis": {
+    "headers": [
+      "include/system_config.h",
+      "include/system_shared.h",
+      "include/control_api.h"
+    ],
+    "sources": [
+      "src/system_shared.c",
+      "src/control_api.c",
+      "src/rt_control.c",
+      "src/ts_service.c",
+      "src/main.c"
+    ],
+    "tests": [
+      "tests/unit",
+      "tests/function"
+    ]
+  },
+  "build_test": {
+    "vc2026_build": "cmd /c scripts\\build_vc2026.bat",
+    "vc2026_test": "cmd /c scripts\\test_vc2026.bat",
+    "clang_build": "cmd /c scripts\\build_clang.bat",
+    "clang_test": "cmd /c scripts\\test_clang.bat"
+  },
+  "acceptance_criteria": [
+    "RT/TS責務境界が各機能設計から参照可能であること。",
+    "共有メモリの所有者・参照者が明確であること。",
+    "既存公開APIの互換性が維持されること。"
+  ],
+  "open_issues": [
+    "機種別パラメータ、信号割付、軸数上限は詳細設計または設備別台帳で確定する。",
+    "RT周期内処理時間のワーストケースは実装後に測定する。",
+    "既存回帰テストへの追加範囲は詳細設計で確定する。"
+  ],
+  "pre_review_checklist": [
+    {
+      "id": "BDR-RT-001",
+      "item": "RT/TS/API分担が明確である",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-SM-001",
+      "item": "共有メモリの所有者と整合性方針が記載されている",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-SAFE-001",
+      "item": "異常時の安全側遷移が定義されている",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-COMPAT-001",
+      "item": "既存API互換性に配慮している",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-TEST-001",
+      "item": "受入条件とbuild/test観点が記載されている",
+      "result": "OK"
+    }
+  ]
+}

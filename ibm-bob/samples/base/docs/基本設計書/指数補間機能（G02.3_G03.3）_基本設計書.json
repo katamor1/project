@@ -1,0 +1,92 @@
+{
+  "schema_version": "IBM-Bob Basic Design v2.0 compatible",
+  "document": {
+    "id": "BD-008",
+    "title": "指数補間機能（G02.3/G03.3）_基本設計書",
+    "language": "ja-JP",
+    "created_at": "2026-04-29",
+    "source_file": "設計_指数補間機能.docx",
+    "status": "draft_for_review"
+  },
+  "feature": {
+    "name": "指数補間機能（G02.3/G03.3）",
+    "category": "補間・軌跡生成",
+    "overview": [
+      "指数補間は、回転軸と直線軸の関係を指数関数的に変化させることにより、一定のねじれ角を持つテーパ溝や特定の螺旋形状を加工するための機能である。通常の円弧補間に比べ、回転角が直線移動に対して指数的に増減するため、溝のピッチが徐々に変化する。"
+    ],
+    "source_interface_notes": [],
+    "source_flow": [
+      "1. 指数補間は指定された平面（G17/G18/G19）上で有効である。プログラム中で開始する前に平面を選択し、G02.3 または G03.3 を指定する。\n2. X/Y/Z で終点を指定し、I/J で指数角度、K で直線軸に対する分割、R で指数定数、F で開始送り速度、Q で終了送り速度を指定する。\n3. 制御装置は線形軸の進行に伴って回転軸の回転角を指数関数的に変化させる。\n4. 補間終了後、通常の補間モードに戻る。"
+    ],
+    "source_design_notes": [
+      "・指数補間は特殊な加工に用いるため、対応するオプションが必要となる場合がある。\n・I/J の角度や R の定数値には実機により入力範囲があり、仕様を確認して設定する【324834781460892†L126-L138】。\n・送り速度が開始から終了まで指数的に変化するため、加工物の材質や工具負荷に注意して値を設定する。",
+      "・G02.3/G03.3: 指数補間を開始する。終点をX,Y,Zで、I,J:指数角度; K:分割数; R:指数定数; F:開始送り; Q:終了送りを指定する。",
+      "・指数補間終了後はG01/G02/G03など通常の補間モードに戻ります。",
+      "・I/JやRの範囲は機械仕様により制限されるため、過大な値を指定しないようマニュアルを参照してください【324834781460892†L126-L138】。",
+      "・指数的な送り変化により工具負荷が大きく変動するため、実加工前にシミュレーションで確認します。"
+    ],
+    "g_codes": [
+      "G01",
+      "G02",
+      "G02.3",
+      "G03",
+      "G03.3",
+      "G17",
+      "G18",
+      "G19"
+    ],
+    "parameters": [],
+    "signals": []
+  },
+  "architecture": {
+    "platform": "Windows C multi-threaded machine-control platform",
+    "rt_thread": "RT_INPUT/RT_CONTROL/RT_OUTPUTをハードウェア割込周期内で実行する。RT側ではWindows API、ファイルI/O、動的メモリ確保、長時間ブロックを禁止する。",
+    "ts_thread": "TS_SERVICEでNC解析、パラメータ読出、ログ、UI/PMC連携、重い演算の先読みを行う。",
+    "api_policy": "公開APIは要求登録とスナップショット取得に限定し、状態確定はRT_CONTROLまたはTS_SERVICE側で行う。"
+  },
+  "shared_memory": {
+    "existing": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "candidate_additions": [
+      "g_featureConfig[8]",
+      "g_featureRequest[8]",
+      "g_featureStatus[8]",
+      "g_featureTrace[8]"
+    ]
+  },
+  "sections": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  }
+}

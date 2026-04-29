@@ -1,0 +1,120 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-320",
+    "feature_name": "ねじ切り機能_G32",
+    "category": "ねじ切り・主軸同期",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_ねじ切り機能_G32.docx"
+  },
+  "purpose": "G32による単一パスの直線またはテーパねじ切りを実行し、主軸回転と送り軸を同期させて指定ピッチのねじ山を生成する。",
+  "overview": "G32ブロックのX/Z終点とFピッチを解析し、主軸1回転あたりの送り量として同期制御を行う。複数パスの深さ制御はプログラム側で指定し、RT_CONTROLは単一パス同期送りを実行する。",
+  "interfaces": {
+    "codes": [
+      "G32 X__ Z__ F__: 単一パスねじ切り",
+      "X: 最終径またはテーパ終点",
+      "Z: ねじ長さ終点",
+      "F: ピッチ",
+      "G00/G01: 退避・モード解除"
+    ],
+    "inputs": [
+      "G32ブロック",
+      "X/Z終点",
+      "ピッチF",
+      "主軸回転数/位相",
+      "絶対/増分指定"
+    ],
+    "outputs": [
+      "主軸同期送り指令",
+      "ねじ切り有効状態",
+      "パス完了状態",
+      "ピッチ/同期アラーム"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語マルチスレッド機械制御基盤。RT_INPUT/RT_CONTROL/RT_OUTPUTを割込周期内で実行し、TS_SERVICEがファイルI/O、NC解析、ログ、HMI/API連携を担当する。",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ],
+    "rt_rules": [
+      "Windows API呼出禁止",
+      "ファイルI/O禁止",
+      "動的メモリ確保禁止",
+      "長時間ブロッキング禁止",
+      "1割込周期内完了"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがG32指令を解析し、終点、ピッチ、テーパ形状を検証する。",
+    "RT_CONTROL向けに単一パスの主軸同期送りブロックを生成する。",
+    "RT_CONTROLは主軸位相に同期して送り軸を制御し、追従誤差を監視する。",
+    "退避指令または別Gコードでねじ切り状態を解除し、次パスへ備える。"
+  ],
+  "constraints": [
+    "自動切込み減少や仕上げパスは行わない。",
+    "G32はモーダル扱いに注意し、終了後のモード解除を明確化する。",
+    "送りオーバライドやドライランは精度に影響するため制限する。"
+  ],
+  "alarms": [
+    "F未指定",
+    "主軸同期未確立",
+    "終点不正",
+    "モード解除漏れ",
+    "追従誤差超過"
+  ],
+  "acceptance_criteria": [
+    "G32指令で指定ピッチの単一パスねじ切りが実行される。",
+    "主軸同期未確立時はアラームになる。",
+    "テーパ終点指定が内部指令へ反映される。"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

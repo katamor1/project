@@ -1,0 +1,119 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-301",
+    "feature_name": "ねじ切りサイクル機能",
+    "category": "ねじ切り・旋削サイクル",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_ねじ切りサイクル機能.docx"
+  },
+  "purpose": "G76による複数パス自動ねじ切りを安全に実行し、切込み量、仕上げ回数、逃げ量、ピッチをもとに安定したねじ山を生成する。",
+  "overview": "二行形式のG76を解析し、仕上げ回数・逃げ量・ねじ角・最小切込み量・仕上げしろ・ねじ深さ・初回切込み量・ピッチをもとにパス列を生成する。TS_SERVICEがサイクル展開し、RT_CONTROLは主軸同期済みの固定長ステップを実行する。",
+  "interfaces": {
+    "codes": [
+      "G76 Pabcded Q__ R__: 仕上げ回数、逃げ量、ねじ角、最小切込み量、仕上げしろを指定",
+      "G76 X__ Z__ P__ Q__ F__: 最終径、終点、ねじ深さ、初回切込み量、ピッチを指定",
+      "G97: 定速主軸回転を推奨",
+      "G00/G01: 退避・次パス準備"
+    ],
+    "inputs": [
+      "G76二行ブロック",
+      "X/ZまたはU/W終点",
+      "P/Q/R/Fパラメータ",
+      "主軸回転状態",
+      "工具補正状態"
+    ],
+    "outputs": [
+      "ねじ切りパス列",
+      "主軸同期送り指令",
+      "サイクル進行状態",
+      "パラメータ不正アラーム"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語マルチスレッド機械制御基盤。RT_INPUT/RT_CONTROL/RT_OUTPUTを割込周期内で実行し、TS_SERVICEがファイルI/O、NC解析、ログ、HMI/API連携を担当する。",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ],
+    "rt_rules": [
+      "Windows API呼出禁止",
+      "ファイルI/O禁止",
+      "動的メモリ確保禁止",
+      "長時間ブロッキング禁止",
+      "1割込周期内完了"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがG76第1/第2ブロックを先読みし、パラメータ桁数と単位を検証する。",
+    "切込み配分、仕上げパス、逃げ動作、退避動作を固定長サイクルステップに展開する。",
+    "RT_CONTROLは主軸位相と同期しながら各パスを実行し、追従誤差とインターロックを監視する。",
+    "完了後、工具を退避し、サイクル状態を通常補間へ戻す。"
+  ],
+  "constraints": [
+    "工具径補正は開始前にキャンセルする。",
+    "周速一定制御より定速主軸を優先し、ピッチ精度を確保する。",
+    "G76二行目が不足する場合は実行しない。"
+  ],
+  "alarms": [
+    "P桁数不正",
+    "初回切込み量または最小切込み量不正",
+    "ピッチF未指定",
+    "主軸同期未確立",
+    "工具補正状態不正"
+  ],
+  "acceptance_criteria": [
+    "標準的な二行G76からパス列が生成される。",
+    "主軸同期未確立時に実行前アラームとなる。",
+    "切込み量の境界値で安全に拒否または警告できる。"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

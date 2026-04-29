@@ -1,0 +1,267 @@
+{
+  "document_control": {
+    "document_id": "BD-ABS-POS-001",
+    "title": "絶対位置検出機能_基本設計書",
+    "created_at": "2026-04-29",
+    "author": "AIドラフト",
+    "version": "0.1",
+    "source_document": "絶対位置検出機能 基本設計書.docx"
+  },
+  "feature": {
+    "feature_id": "FX-ABS-POS-001",
+    "name": "絶対位置検出機能",
+    "purpose": "絶対パルスコーダの絶対カウンタ値を用いて、電源投入時に機械座標およびワーク座標系を自動設定する。",
+    "background": "原点復帰時間を短縮しつつ、電池低下・データ異常時の誤起動を防ぐため、絶対位置の有効性を安全に判定する。",
+    "key_specs": [
+      "電源投入時に絶対パルスコーダの絶対カウンタ値から機械座標系とワーク座標系を設定する。",
+      "原点復帰を行わずに加工開始可能とする。",
+      "電源OFF中はバッテリで絶対位置データを保持する。",
+      "利用前には原点付けが必要であり、電池残量管理が必要である。"
+    ]
+  },
+  "template_usage": {
+    "template": "IBM-Bob 基本設計書テンプレート v2.0 相当",
+    "section_ids": [
+      "BD-00",
+      "BD-01",
+      "BD-02",
+      "BD-03",
+      "BD-04",
+      "BD-05",
+      "BD-06",
+      "BD-07",
+      "BD-08",
+      "BD-09",
+      "BD-10",
+      "BD-11",
+      "BD-12",
+      "BD-13",
+      "BD-14",
+      "BD-15",
+      "BD-16",
+      "BD-17",
+      "BD-18",
+      "BD-19",
+      "BD-20",
+      "BD-21",
+      "BD-22"
+    ],
+    "json_path_mapping": true,
+    "notes": "基本設計レベルとして、機能仕様、外部仕様、共有メモリ、RT/TS/API分担、安全設計、影響調査、受入条件を定義する。"
+  },
+  "requirements_traceability": [
+    {
+      "requirement_id": "REQ-ABS-POS-001",
+      "summary": "電源投入時に各軸の絶対カウンタ値を取得し、機械座標へ反映する。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "有効な絶対位置でREADYへ遷移できること。"
+    },
+    {
+      "requirement_id": "REQ-ABS-POS-002",
+      "summary": "原点付け済み/未実施、バッテリ低下、データ異常を判定する。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "電池低下/データ異常を検出できること。"
+    },
+    {
+      "requirement_id": "REQ-ABS-POS-003",
+      "summary": "絶対位置が有効な場合、原点復帰なしでREADY遷移可能とする。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "無効軸がある場合にAUTO開始を拒否できること。"
+    },
+    {
+      "requirement_id": "REQ-ABS-POS-004",
+      "summary": "絶対位置が無効な場合、AUTO運転開始を禁止する。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "無効軸がある場合にAUTO開始を拒否できること。"
+    }
+  ],
+  "system_context": {
+    "baseline": "Windows C multi-threaded machine-control baseline",
+    "rt_threads": [
+      "RT_INPUT",
+      "RT_CONTROL",
+      "RT_OUTPUT"
+    ],
+    "ts_threads": [
+      "TS_SERVICE"
+    ],
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "constraints": [
+      "RT処理は1割込間隔内に完了すること",
+      "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロックを禁止すること"
+    ]
+  },
+  "scope": {
+    "in_scope": [
+      "機能仕様の基盤システムへの反映",
+      "共有メモリ/API/RT/TS連携方針",
+      "状態遷移、異常安全、影響調査、受入条件"
+    ],
+    "out_of_scope": [
+      "サーボドライブ内部制御の詳細",
+      "機種別パラメータ最終値",
+      "詳細関数実装および実測済みRT処理時間"
+    ]
+  },
+  "state_design": {
+    "states": [
+      "ABS_UNINITIALIZED",
+      "ABS_READING",
+      "ABS_VALIDATING",
+      "ABS_VALID",
+      "ABS_INVALID",
+      "ABS_ERROR"
+    ],
+    "initial_state": "ABS_UNINITIALIZED",
+    "error_state": "ABS_ERROR",
+    "reset_conditions": [
+      "リセット要求",
+      "ALARM解除",
+      "モード変更",
+      "機能キャンセル"
+    ]
+  },
+  "data_design": {
+    "feature_shared_memory": [
+      "g_absPositionRaw",
+      "g_absPositionStatus",
+      "g_machineCoordinateInit"
+    ],
+    "ownership_policy": "TS_SERVICEが重計算・設定更新、RT_CONTROLが周期状態更新、APIが要求登録を担当する。詳細な所有者は詳細設計でフィールド単位に確定する。",
+    "consistency_policy": "データ本体更新後にgeneration/valid/stateを更新し、RT側は世代番号と状態を確認してから参照する。"
+  },
+  "api_design": {
+    "public_apis": [
+      "Api_GetAbsolutePositionStatus",
+      "Api_RequestAbsPositionInitialize",
+      "Api_ClearAbsPositionAlarm"
+    ],
+    "compatibility_policy": "既存公開APIは変更せず、新規API追加または既存要求領域の末尾追加で互換性を維持する。"
+  },
+  "rt_ts_api_allocation": {
+    "TS_SERVICE": [
+      "Gコード/パラメータ解析",
+      "妥当性確認",
+      "重計算/先読み",
+      "ログ・ファイルI/O"
+    ],
+    "RT_INPUT": [
+      "入力信号/要求フラグの周期取込み"
+    ],
+    "RT_CONTROL": [
+      "状態遷移",
+      "安全判定",
+      "処理済みデータの軽量消費",
+      "出力値決定"
+    ],
+    "RT_OUTPUT": [
+      "g_ioOutへの反映",
+      "安全マスク適用"
+    ],
+    "API": [
+      "要求登録",
+      "状態スナップショット取得"
+    ]
+  },
+  "safety_design": [
+    "絶対位置無効または電池低下時はAUTO運転開始を禁止する。",
+    "初期化完了前の座標参照は仮状態として扱い、加工動作には使わない。",
+    "軸ごとの有効/無効を明確にし、一部無効軸を含む運転は禁止または制限する。"
+  ],
+  "impact_analysis": {
+    "headers": [
+      "include/system_config.h",
+      "include/system_shared.h",
+      "include/control_api.h"
+    ],
+    "sources": [
+      "src/system_shared.c",
+      "src/control_api.c",
+      "src/rt_control.c",
+      "src/ts_service.c",
+      "src/main.c"
+    ],
+    "tests": [
+      "tests/unit",
+      "tests/function"
+    ]
+  },
+  "build_test": {
+    "vc2026_build": "cmd /c scripts\\build_vc2026.bat",
+    "vc2026_test": "cmd /c scripts\\test_vc2026.bat",
+    "clang_build": "cmd /c scripts\\build_clang.bat",
+    "clang_test": "cmd /c scripts\\test_clang.bat"
+  },
+  "acceptance_criteria": [
+    "有効な絶対位置でREADYへ遷移できること。",
+    "電池低下/データ異常を検出できること。",
+    "無効軸がある場合にAUTO開始を拒否できること。"
+  ],
+  "open_issues": [
+    "機種別パラメータ、信号割付、軸数上限は詳細設計または設備別台帳で確定する。",
+    "RT周期内処理時間のワーストケースは実装後に測定する。",
+    "既存回帰テストへの追加範囲は詳細設計で確定する。"
+  ],
+  "pre_review_checklist": [
+    {
+      "id": "BDR-RT-001",
+      "item": "RT/TS/API分担が明確である",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-SM-001",
+      "item": "共有メモリの所有者と整合性方針が記載されている",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-SAFE-001",
+      "item": "異常時の安全側遷移が定義されている",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-COMPAT-001",
+      "item": "既存API互換性に配慮している",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-TEST-001",
+      "item": "受入条件とbuild/test観点が記載されている",
+      "result": "OK"
+    }
+  ]
+}

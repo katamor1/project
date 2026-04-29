@@ -1,7 +1,7 @@
-REM ibm-bob/samples/base/source/scripts/build_clang.bat
-REM Builds the IBM BOB sample with clang-cl using the pinned sample workspace rules.
-REM This exists so the clang workspace profile compiles the sample without inventing alternate commands.
-REM RELEVANT FILES: ibm-bob/samples/base/source/AGENTS.md, ibm-bob/samples/base/source/scripts/test_clang.bat, ibm-bob/samples/base/source/scripts/build_vc2026.bat
+@REM ibm-bob/samples/base/source/scripts/build_clang.bat
+@REM Builds the IBM BOB sample with clang-cl using the pinned sample workspace rules.
+@REM This exists so the clang workspace profile compiles the sample without inventing alternate commands.
+@REM RELEVANT FILES: ibm-bob/samples/base/source/AGENTS.md, ibm-bob/samples/base/source/scripts/test_clang.bat, ibm-bob/samples/base/source/scripts/build_vc2026.bat
 @echo off
 setlocal
 cd /d "%~dp0.."
@@ -10,7 +10,7 @@ if not exist build mkdir build
 if not exist build\obj mkdir build\obj
 
 set "VS_DEV_SHELL=C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\Launch-VsDevShell.ps1"
-set "CLANG_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
+set "CLANG_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_codes.c src\nc_coordinate.c src\nc_feed.c src\nc_interp_math.c src\nc_interpolation.c src\nc_program.c src\nc_parser.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
 set "CLANG_CL="
 
 echo [build_clang] Checking compiler...

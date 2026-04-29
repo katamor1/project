@@ -1,0 +1,115 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-206",
+    "feature_name": "高速サイクル重ね合わせ制御機能",
+    "category": "サイクル・重ね合わせ",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_高速サイクル重ね合わせ制御機能.docx"
+  },
+  "purpose": "高速サイクル加工または高速バイナリ運転中に、同一軸または関連軸へ補助的な微小運動を重ね合わせ、複雑な輪郭や特殊加工を効率良く実行する。",
+  "overview": "高速サイクルの基準軌跡に対し、TS_SERVICEで生成した重ね合わせ波形または補助軌跡をRT_CONTROLが周期ごとに加算する。学習制御との組合せにより繰返し加工の精度を向上させる。",
+  "interfaces": {
+    "codes": [
+      "高速サイクル開始指令",
+      "高速バイナリプログラム運転開始指令",
+      "重ね合わせ開始/終了コマンドまたはPMC信号",
+      "通常の軸移動指令"
+    ],
+    "inputs": [
+      "基準サイクル軌跡",
+      "重ね合わせ対象軸",
+      "振幅/周期/位相",
+      "PMC開始/終了信号",
+      "学習補正データ"
+    ],
+    "outputs": [
+      "重ね合わせ済み軸指令",
+      "重ね合わせ有効状態",
+      "同期状態",
+      "干渉・振幅超過アラーム"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語製のマルチスレッド機械制御基盤を前提とする。ハードウェア割込で起床するRT_INPUT/RT_CONTROL/RT_OUTPUTと、CPU余力で動作するTS_SERVICEを分離する。",
+    "rt_rules": "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキング、三角関数や探索など処理時間が変動する重計算を禁止し、1割込周期内に処理を完了する。",
+    "rt_responsibility": "固定長データ消費、周期内安全監視、フェイルセーフ出力",
+    "ts_responsibility": "NC解析、変換、先読み、ファイルI/O、ログ、HMI/API連携",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEが基準サイクルと重ね合わせ条件を検証し、軸・振幅・周期の有効範囲を確認する。",
+    "重ね合わせ波形を固定長テーブルまたは差分ブロックとして生成し、世代番号付きで共有領域へ登録する。",
+    "RT_CONTROLは各周期で基準指令にテーブル値を加算し、軸リミットと追従誤差を監視する。",
+    "終了指令で波形をゼロクロスまたは安全停止点へ収束させて通常サイクルへ戻す。"
+  ],
+  "constraints": [
+    "高速サイクルまたは高速バイナリ運転が有効な場合のみ使用",
+    "補間機能・スムージング機能との併用可否を事前判定",
+    "重ね合わせ後の軸リミット、速度、加速度を超過しない"
+  ],
+  "alarms": [
+    "対象軸不正",
+    "振幅/周期範囲外",
+    "基準サイクル未有効",
+    "同期ずれ",
+    "干渉予測"
+  ],
+  "acceptance_criteria": [
+    "基準サイクルに対して指定振幅の重ね合わせが行われる",
+    "解除時に不連続な軸ジャンプが発生しない",
+    "異常時は重ね合わせを停止しフェイルセーフへ遷移する"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

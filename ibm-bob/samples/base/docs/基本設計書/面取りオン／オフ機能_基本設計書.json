@@ -1,0 +1,84 @@
+{
+  "schema_version": "IBM-Bob Basic Design v2.0 compatible",
+  "document": {
+    "id": "BD-020",
+    "title": "面取りオン／オフ機能_基本設計書",
+    "language": "ja-JP",
+    "created_at": "2026-04-29",
+    "source_file": "設計_面取りオンオフ機能.docx",
+    "status": "draft_for_review"
+  },
+  "feature": {
+    "name": "面取りオン／オフ機能",
+    "category": "補正・加工品質制御",
+    "overview": [
+      "ねじ切りサイクル(G76)やねじ切り機能(G92)で、ネジ山の終端に45度の面取りを施すか否かを選択する機能です。面取り信号を用いて有効・無効を切り替えることができます。"
+    ],
+    "source_interface_notes": [],
+    "source_flow": [
+      "ねじ切りサイクル開始前に面取り信号を有効にすると、各ねじ切りパスの終端に指定角度または半径で面取りが行われます。信号を無効にすると、面取りをせずにねじ切りが終了します。"
+    ],
+    "source_design_notes": [
+      "- 面取り量はパラメータまたは補正値で調整可能な場合があります。",
+      "- ねじ切りサイクル中に面取り信号を変更すると異常動作やアラームの原因になるため、サイクル開始前に設定してください。",
+      "引用: 【95414512717278†L13492-L13504】"
+    ],
+    "g_codes": [
+      "G76",
+      "G92"
+    ],
+    "parameters": [],
+    "signals": []
+  },
+  "architecture": {
+    "platform": "Windows C multi-threaded machine-control platform",
+    "rt_thread": "RT_INPUT/RT_CONTROL/RT_OUTPUTをハードウェア割込周期内で実行する。RT側ではWindows API、ファイルI/O、動的メモリ確保、長時間ブロックを禁止する。",
+    "ts_thread": "TS_SERVICEでNC解析、パラメータ読出、ログ、UI/PMC連携、重い演算の先読みを行う。",
+    "api_policy": "公開APIは要求登録とスナップショット取得に限定し、状態確定はRT_CONTROLまたはTS_SERVICE側で行う。"
+  },
+  "shared_memory": {
+    "existing": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "candidate_additions": [
+      "g_featureConfig[20]",
+      "g_featureRequest[20]",
+      "g_featureStatus[20]",
+      "g_featureTrace[20]"
+    ]
+  },
+  "sections": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  }
+}

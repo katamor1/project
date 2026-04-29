@@ -1,0 +1,91 @@
+{
+  "schema_version": "IBM-Bob Basic Design v2.0 compatible",
+  "document": {
+    "id": "BD-019",
+    "title": "重ね合わせ制御機能 (G51.6/G50.6)_基本設計書",
+    "language": "ja-JP",
+    "created_at": "2026-04-29",
+    "source_file": "設計_重ね合わせ制御機能.docx",
+    "status": "draft_for_review"
+  },
+  "feature": {
+    "name": "重ね合わせ制御機能 (G51.6/G50.6)",
+    "category": "協調軸制御・5軸制御",
+    "overview": [
+      "重ね合わせ制御機能は、サイクル加工や高速バイナリ運転で実行中の軸運動に対し、",
+      "別の軸指令を重ね合わせて複雑な加工パターンを実現するための機能です。",
+      "例えば、高速穴あけサイクルを行いながら軸を微少に振動させて円弧状の穴加工を行うなど、",
+      "既存のサイクルに追加の動きを重ねることができます。"
+    ],
+    "source_interface_notes": [],
+    "source_flow": [
+      "あらかじめサイクル加工を開始するブロックを準備します（例：高速サイクル加工）。",
+      "サイクル中に重ね合わせ動作を始める行で G51.6 P<p> Q<q> を指令します。",
+      "重ね合わせしたい軸（P軸）の移動指令を後続ブロックに記述すると、その動きがサイクル動作に上乗せされます。",
+      "重ね合わせ制御を終了する行で G50.6 Q<q> を指令し、通常のサイクル動作に戻します。"
+    ],
+    "source_design_notes": [
+      "重ね合わせ制御はサイクルや高速バイナリ運転など特定の動作中に使用します。",
+      "同期制御や複合制御と同時に使用することはできません。",
+      "重ね合わせ動作中は安全な干渉チェックや過負荷に注意し、サイクル終了後に必ず解除してください。",
+      "参照: 【770697668851713†L3143-L3161】【770697668851713†L3193-L3205】"
+    ],
+    "g_codes": [
+      "G50.6",
+      "G51.6"
+    ],
+    "parameters": [],
+    "signals": []
+  },
+  "architecture": {
+    "platform": "Windows C multi-threaded machine-control platform",
+    "rt_thread": "RT_INPUT/RT_CONTROL/RT_OUTPUTをハードウェア割込周期内で実行する。RT側ではWindows API、ファイルI/O、動的メモリ確保、長時間ブロックを禁止する。",
+    "ts_thread": "TS_SERVICEでNC解析、パラメータ読出、ログ、UI/PMC連携、重い演算の先読みを行う。",
+    "api_policy": "公開APIは要求登録とスナップショット取得に限定し、状態確定はRT_CONTROLまたはTS_SERVICE側で行う。"
+  },
+  "shared_memory": {
+    "existing": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "candidate_additions": [
+      "g_featureConfig[19]",
+      "g_featureRequest[19]",
+      "g_featureStatus[19]",
+      "g_featureTrace[19]"
+    ]
+  },
+  "sections": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  }
+}

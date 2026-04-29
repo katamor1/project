@@ -1,0 +1,92 @@
+{
+  "schema_version": "IBM-Bob Basic Design v2.0 compatible",
+  "document": {
+    "id": "BD-006",
+    "title": "双テーブル制御機能_基本設計書",
+    "language": "ja-JP",
+    "created_at": "2026-04-29",
+    "source_file": "設計_双テーブル制御機能.docx",
+    "status": "draft_for_review"
+  },
+  "feature": {
+    "name": "双テーブル制御機能",
+    "category": "協調軸制御・5軸制御",
+    "overview": [
+      "双テーブル制御機能は、2つの指定軸（テーブル）を同期運転・独立運転・通常運転に切り替えることができる機能である。",
+      "オペレータパネルのスイッチ操作によりモードを選択し、加工用途に応じて柔軟に運用できる【770697668851713†L3334-L3343】。"
+    ],
+    "source_interface_notes": [
+      "双テーブル制御はCNCオプションとして提供される。",
+      "同期・独立・通常モードの切替は機械側の操作パネルから行い、CNCは選択されたモードに応じて両テーブルの軌跡を制御する。",
+      "モード切替に対応したPMC信号やモード表示が用意される。"
+    ],
+    "source_flow": [
+      "加工に応じて、テーブルを同期させたい場合は操作パネルで同期モードを選択する。",
+      "同期モードでは、両テーブルが同じ指令に従い同時に移動する。",
+      "独立モードでは、各テーブルが個別にプログラムされた軌跡に従い動作する。",
+      "通常モードでは、テーブルは個別軸として他の軸と同じように制御される。",
+      "必要に応じてモードを切り替えながら加工を進めることができる。"
+    ],
+    "source_design_notes": [
+      "双テーブル制御は大きなワークを加工する機械や、同形状のワークを同時に加工する機械で生産性を向上させる。",
+      "モード切替時に軌跡が途切れないよう、モード変更ブロックでは軸の動きを停止するなどの安全対策が必要である。",
+      "他の協調制御や補間機能との併用に制限がある場合があるため、導入時に確認する。"
+    ],
+    "g_codes": [],
+    "parameters": [],
+    "signals": [
+      "CNCは選択されたモードに応じて両テーブルの軌跡を制御する"
+    ]
+  },
+  "architecture": {
+    "platform": "Windows C multi-threaded machine-control platform",
+    "rt_thread": "RT_INPUT/RT_CONTROL/RT_OUTPUTをハードウェア割込周期内で実行する。RT側ではWindows API、ファイルI/O、動的メモリ確保、長時間ブロックを禁止する。",
+    "ts_thread": "TS_SERVICEでNC解析、パラメータ読出、ログ、UI/PMC連携、重い演算の先読みを行う。",
+    "api_policy": "公開APIは要求登録とスナップショット取得に限定し、状態確定はRT_CONTROLまたはTS_SERVICE側で行う。"
+  },
+  "shared_memory": {
+    "existing": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "candidate_additions": [
+      "g_featureConfig[6]",
+      "g_featureRequest[6]",
+      "g_featureStatus[6]",
+      "g_featureTrace[6]"
+    ]
+  },
+  "sections": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  }
+}

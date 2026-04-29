@@ -1,0 +1,116 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-219",
+    "feature_name": "三次元円弧補間機能",
+    "category": "補間",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_三次元円弧補間機能.docx"
+  },
+  "purpose": "始点・中間点・終点の3点から三次元空間上の円弧を生成し、通常の2軸円弧補間では表現できない立体輪郭加工を可能にする。",
+  "overview": "G02.4/G03.4により3次元円弧補間モードへ入り、第1ブロックで中間点、第2ブロックで終点を指定する。TS_SERVICEが円弧幾何を算出し、RT_CONTROL向けに分割済み補間ブロックまたは制御点列を生成する。",
+  "interfaces": {
+    "codes": [
+      "G02.4/G03.4: 3次元円弧補間モード",
+      "第1ブロック: 中間点指定",
+      "第2ブロック: 終点指定",
+      "G01等: モード終了/切換"
+    ],
+    "inputs": [
+      "始点",
+      "中間点",
+      "終点",
+      "任意同時制御軸最大2軸",
+      "絶対/増分指定",
+      "接線速度F"
+    ],
+    "outputs": [
+      "三次元円弧実行ブロック",
+      "円弧半径/中心/法線情報",
+      "同時制御軸補間情報",
+      "幾何アラーム"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語製のマルチスレッド機械制御基盤を前提とする。ハードウェア割込で起床するRT_INPUT/RT_CONTROL/RT_OUTPUTと、CPU余力で動作するTS_SERVICEを分離する。",
+    "rt_rules": "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキング、三角関数や探索など処理時間が変動する重計算を禁止し、1割込周期内に処理を完了する。",
+    "rt_responsibility": "固定長データ消費、周期内安全監視、フェイルセーフ出力",
+    "ts_responsibility": "NC解析、変換、先読み、ファイルI/O、ログ、HMI/API連携",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがG02.4/G03.4を検出し、次ブロックを含む2ブロック構成を先読みする。",
+    "始点、中間点、終点から円弧平面、中心、半径を算出し、同一直線/点一致条件を判定する。",
+    "RT周期で処理しやすい補間セグメントまたはパラメトリックブロックへ変換する。",
+    "RT_CONTROLは生成済みブロックを実行し、別Gコード指令で通常補間へ戻る。"
+  ],
+  "constraints": [
+    "全円360度は指令不可",
+    "工具径補正など一部補正はキャンセルしておく",
+    "G20/G21、座標変換、固定サイクル、高速加工など多数の併用制限を事前チェック"
+  ],
+  "alarms": [
+    "3点不正",
+    "全円指令",
+    "補正状態不正",
+    "併用禁止Gコード",
+    "手動介入不許可状態"
+  ],
+  "acceptance_criteria": [
+    "3点指定から三次元円弧軌跡が生成される",
+    "不正幾何を実行前に検出する",
+    "RT側では生成済みブロックのみを実行する"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

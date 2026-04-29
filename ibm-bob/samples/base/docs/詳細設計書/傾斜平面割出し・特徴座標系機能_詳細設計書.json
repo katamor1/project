@@ -1,0 +1,128 @@
+{
+  "document_type": "IBM-Bob Detail Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "DD-00",
+    "DD-01",
+    "DD-02",
+    "DD-03",
+    "DD-04",
+    "DD-05",
+    "DD-06",
+    "DD-07",
+    "DD-08",
+    "DD-09",
+    "DD-10",
+    "DD-11",
+    "DD-12",
+    "DD-13",
+    "DD-14",
+    "DD-15",
+    "DD-16",
+    "DD-17",
+    "DD-18",
+    "DD-19",
+    "DD-20",
+    "DD-21",
+    "DD-22",
+    "DD-23",
+    "DD-24"
+  ],
+  "metadata": {
+    "document_id": "DD-CNC-215",
+    "feature_name": "傾斜平面割出し・特徴座標系機能",
+    "category": "5軸座標変換",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_basic_design": "傾斜平面割出し・特徴座標系機能_基本設計書.docx",
+    "source_document": "設計_傾斜平面割出し・特徴座標系機能.docx"
+  },
+  "traceability": {
+    "basic_design_id": "BD-CNC-215",
+    "requirements": [
+      "指定した傾斜面上の加工座標が正しく変換される",
+      "G69で変換状態が解除される",
+      "姿勢解なしの場合に加工開始前にアラームとなる"
+    ],
+    "codes": [
+      "G68.2 X Y Z I J K: オイラー角等による傾斜平面指定",
+      "G68.3: 工具軸方向指定",
+      "G68.4: 複数点/複数ブロックによる傾斜面設定",
+      "G69: 傾斜平面解除",
+      "G53.1/G53.6: 工具軸方向制御/工具中心点保持"
+    ]
+  },
+  "module_design": {
+    "header": "include/cnc215_feature.h",
+    "source": "src/cnc215_feature.c",
+    "test": "tests/test_cnc215_feature.c",
+    "ts_functions": [
+      "Ts_CNC215_Prepare",
+      "Ts_CNC215_CommitExecBuffer"
+    ],
+    "rt_functions": [
+      "Rt_CNC215_ValidateSnapshot",
+      "Rt_CNC215_ExecuteCycle"
+    ],
+    "api_functions": [
+      "Api_GetCNC215Status",
+      "Api_RequestCNC215ConfigUpdate"
+    ]
+  },
+  "data_design": {
+    "config": "CNC215_FEATURE_CONFIG",
+    "request": "CNC215_FEATURE_REQUEST",
+    "status": "CNC215_FEATURE_STATUS",
+    "exec_block": "CNC215_EXEC_BLOCK",
+    "exec_buffer": "CNC215_EXEC_BUFFER",
+    "global": "g_cnc215Feature",
+    "consistency": "valid flag + generation_begin/generation_end + single writer policy"
+  },
+  "processing": {
+    "ts_service": [
+      "TS_SERVICEがG68.2〜G68.4を単独ブロックとして解析し、指定方式に応じて特徴座標系を算出する。",
+      "機械構成、回転軸制限、工具中心点制御条件を確認し、変換行列を生成する。",
+      "後続ブロックを変換済み座標・姿勢へ正規化し、RT向け実行ブロックに格納する。",
+      "G69で変換状態を解除し、通常ワーク座標系へ戻す。"
+    ],
+    "rt_control": [
+      "座標・単位・指令方式の正規化はTS_SERVICEで完了し、RT_CONTROLには内部標準単位の絶対目標値だけを渡す。",
+      "座標変換モード中の禁止Gコード、補正、レファレンス点復帰、単位切換との競合を実行前に判定する。"
+    ],
+    "state_machine": [
+      "DISABLED",
+      "ARMED",
+      "PREPARED",
+      "ACTIVE",
+      "HOLD",
+      "COMPLETE",
+      "ALARM"
+    ]
+  },
+  "errors": [
+    "回転角範囲外",
+    "姿勢解なし",
+    "回転軸リミット超過",
+    "併用禁止モード",
+    "工具中心点制御未有効"
+  ],
+  "constraints": [
+    "5軸制御および工具中心点制御オプションが必要",
+    "傾斜平面中の他座標変換、座標系設定、スケーリングとの併用を制限",
+    "RT側で行列生成・逆運動学探索を行わない"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "DDR-001",
+    "DDR-002",
+    "DDR-003",
+    "DDR-004",
+    "DDR-005",
+    "DDR-006",
+    "DDR-007",
+    "DDR-008"
+  ]
+}

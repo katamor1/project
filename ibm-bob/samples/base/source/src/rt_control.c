@@ -1,4 +1,9 @@
+/* ibm-bob/samples/base/source/src/rt_control.c */
+/* Runs the real-time dispatcher and fixed-cycle machine control logic. */
+/* This exists so safety checks and fixed-size NC block consumption stay in RT. */
+/* RELEVANT FILES: ibm-bob/samples/base/source/inc/rt_control.h, ibm-bob/samples/base/source/inc/nc_program.h, ibm-bob/samples/base/source/src/system_shared.c */
 #include "rt_control.h"
+#include "nc_program.h"
 #include "system_shared.h"
 #include "system_config.h"
 
@@ -25,7 +30,9 @@ void RtDispatcher_ExecuteCycle(void)
     RtControl_UpdateMachineState();
     RtControl_ProcessModeRequest();
     RtControl_UpdateInterlock();
+    RtNcProgram_ProcessRequests((uint8_t)(g_machineCtx.machine_state != MACHINE_ALARM));
     RtControl_UpdateAxisTargets();
+    RtNcProgram_ConsumeBlocks();
     RtOutput_CommitOutputs();
 
     g_machineCtx.rt_input_ticks = 1U;

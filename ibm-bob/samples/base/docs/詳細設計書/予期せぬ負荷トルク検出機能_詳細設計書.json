@@ -1,0 +1,254 @@
+{
+  "schema_version": "IBM-Bob Detail Design v2.0 compatible",
+  "document": {
+    "id": "DD-002",
+    "title": "予期せぬ負荷トルク検出機能_詳細設計書",
+    "language": "ja-JP",
+    "created_at": "2026-04-29",
+    "source_basic_design": "予期せぬ負荷トルク検出機能_基本設計書",
+    "status": "draft_for_review"
+  },
+  "traceability": {
+    "feature_name": "予期せぬ負荷トルク検出機能",
+    "feature_id": "F002",
+    "basic_design_sections": [
+      "BD-00",
+      "BD-01",
+      "BD-02",
+      "BD-03",
+      "BD-04",
+      "BD-05",
+      "BD-06",
+      "BD-07",
+      "BD-08",
+      "BD-09",
+      "BD-10",
+      "BD-11",
+      "BD-12",
+      "BD-13",
+      "BD-14",
+      "BD-15",
+      "BD-16",
+      "BD-17",
+      "BD-18",
+      "BD-19",
+      "BD-20",
+      "BD-21",
+      "BD-22"
+    ],
+    "g_codes": [],
+    "parameters": [],
+    "signals": [
+      "CNCは加減速トルクを除いた推定負荷トルクを常時計算し",
+      "CNCは各モータの推定負荷トルクをリアルタイムに計算し",
+      "PMCがウィンドウ機能で読み取れるようにする",
+      "PMCに出力する"
+    ],
+    "source_overview": [
+      "予期せぬ負荷トルク検出機能は、機械の衝突や工具破損などによりサーボモータや主軸モータに大きな負荷が発生した場合、推定された負荷トルク値をPMCへ出力し、設定値を超えた際にはモータを停止または逆転させて機械の損傷を最小化する機能である。"
+    ],
+    "source_flow": [
+      "1. パラメータで負荷トルク検出機能および閾値を設定する。\n2. CNCは各モータの推定負荷トルクをリアルタイムに計算し、PMCに出力する。\n3. 推定値が設定値を超えるとアラーム機能が動作し、サーボモータを停止または逆転させる。\n4. アラーム後、オペレータは原因を確認し、必要に応じて軸や工具を点検する。\n5. 特定軸のみ無効化したい場合は、検出機能無効信号やパラメータを設定する。"
+    ],
+    "source_design_notes": [
+      "- 負荷トルク検出値や逆転量のパラメータ設定は、機械剛性や加工条件に応じて適切に設定する必要がある。",
+      "- 検出機能を無効化すると安全性が低下するため、無効化は必要最小限に留める。",
+      "- 主軸モータに対する逆転機能はないため、主軸に大きな負荷がかかる場合は早期停止のみが行われる。",
+      "引用",
+      "本機能は工具や機械の損傷を防ぐために負荷トルクを監視し、推定値をPMCに送信する。設定値を超えるとモータを停止または逆転させアラームを出力する【144831653495762†L10354-L10385】。特定軸のみ検出を無効化することもできる【144831653495762†L10382-L10385】。"
+    ]
+  },
+  "design_policy": {
+    "classification": "安全監視・入出力制御",
+    "rt_ts_policy": "RT_INPUTで信号を取得し、RT_CONTROLで安全判定と停止/逆転/出力抑止を行い、TS_SERVICEはログとUI通知を担当する。",
+    "realtime_constraints": [
+      "RT側ではWindows API、ファイルI/O、動的メモリ確保、待ち合わせ、可変長文字列処理を禁止する。",
+      "RT_CONTROLは1割込周期内で完了し、演算量が入力データ長に比例する処理はTS_SERVICEへ分離する。",
+      "安全停止、出力抑止、アラームラッチはRT_CONTROL側で確定し、TS_SERVICEは表示・記録に限定する。"
+    ]
+  },
+  "modules": [
+    {
+      "file": "include/system_config.h",
+      "role": "機能有効フラグ、配列上限、閾値の定数定義"
+    },
+    {
+      "file": "include/system_shared.h",
+      "role": "共有メモリ構造体定義と世代番号フィールド追加"
+    },
+    {
+      "file": "include/control_api.h",
+      "role": "要求登録APIとスナップショット取得APIの宣言"
+    },
+    {
+      "file": "src/control_api.c",
+      "role": "API入力検証と要求世代番号更新"
+    },
+    {
+      "file": "src/rt_control.c",
+      "role": "RT周期内状態評価、補間/補正/安全判定、出力反映"
+    },
+    {
+      "file": "src/ts_service.c",
+      "role": "パラメータ検証、先読み計算、ログ、UI/PMC連携"
+    }
+  ],
+  "shared_memory": {
+    "existing": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "new_structs": [
+      "FEATURE_002_CONFIG",
+      "FEATURE_002_REQUEST",
+      "FEATURE_002_STATUS",
+      "FEATURE_002_TRACE"
+    ],
+    "consistency": "TS/API書込の要求領域はseq/busy/validを持つ二相更新とし、RTはseq一致時のみ読み取る。RT書込の状態領域はsnapshot_seqで公開する。"
+  },
+  "api": [
+    {
+      "name": "Api_RequestF002ModeChange",
+      "type": "request",
+      "owner": "API",
+      "description": "機能開始/終了/キャンセル要求を共有メモリへ登録する。"
+    },
+    {
+      "name": "Api_SetF002Parameters",
+      "type": "request",
+      "owner": "API",
+      "description": "パラメータ候補値をTS検証キューへ登録する。"
+    },
+    {
+      "name": "Api_GetF002StatusSnapshot",
+      "type": "snapshot",
+      "owner": "API",
+      "description": "RT/TSが確定した状態を読み取り専用スナップショットとして返す。"
+    }
+  ],
+  "functions": [
+    {
+      "name": "Ts_ValidateF002Config",
+      "thread": "TS_SERVICE",
+      "input": "API要求、パラメータ、対象Gコード",
+      "output": "FEATURE_002_CONFIG",
+      "errors": "範囲外・併用不可・軸未設定"
+    },
+    {
+      "name": "Ts_PrecomputeF002",
+      "thread": "TS_SERVICE",
+      "input": "NCブロック、工具/軸設定、補正条件",
+      "output": "固定長実行データまたは補正結果",
+      "errors": "先読み不足・演算不能・未対応形式"
+    },
+    {
+      "name": "Rt_EvaluateF002",
+      "thread": "RT_CONTROL",
+      "input": "g_ioIn、g_machineCtx、確定済み設定",
+      "output": "FEATURE_002_STATUS",
+      "errors": "インターロック・過負荷・状態不整合"
+    },
+    {
+      "name": "Rt_ApplyF002Output",
+      "thread": "RT_OUTPUT",
+      "input": "RT_CONTROL確定指令",
+      "output": "g_ioOut",
+      "errors": "フェイルセーフ出力へ遷移"
+    },
+    {
+      "name": "Ts_LogF002Event",
+      "thread": "TS_SERVICE",
+      "input": "状態変化、アラーム、診断値",
+      "output": "g_logQueue",
+      "errors": "ログキュー満杯時は要約イベントへ縮退"
+    }
+  ],
+  "state_machine": [
+    [
+      "IDLE",
+      "REQUESTED",
+      "APIまたはNCブロックで開始要求を受理"
+    ],
+    [
+      "REQUESTED",
+      "VALIDATING",
+      "TS_SERVICEがパラメータ・併用条件を検証"
+    ],
+    [
+      "VALIDATING",
+      "ARMED",
+      "検証成功、RT参照可能な設定を公開"
+    ],
+    [
+      "ARMED",
+      "ACTIVE",
+      "RT_CONTROLが開始条件を満たして周期処理へ反映"
+    ],
+    [
+      "ACTIVE",
+      "HOLD",
+      "一時停止、バッファ待ち、外部信号待ち"
+    ],
+    [
+      "ACTIVE",
+      "DONE",
+      "終了Gコード/解除要求/完了条件を検出"
+    ],
+    [
+      "ANY",
+      "ALARM",
+      "範囲外、インターロック、過負荷、併用不可を検出"
+    ],
+    [
+      "ALARM",
+      "IDLE",
+      "リセット後、出力安全化と状態初期化が完了"
+    ]
+  ],
+  "errors": [
+    {
+      "code": "ALM-002-001",
+      "condition": "パラメータ範囲外または未設定",
+      "action": "要求を拒否し、既存状態を維持する。"
+    },
+    {
+      "code": "ALM-002-002",
+      "condition": "対象軸、経路、補正モードの併用不可",
+      "action": "ACTIVE遷移を禁止し、TSログに根拠を記録する。"
+    },
+    {
+      "code": "ALM-002-003",
+      "condition": "RT周期内で安全条件違反を検出",
+      "action": "g_ioOutを安全側へ遷移し、ALARM状態をラッチする。"
+    },
+    {
+      "code": "WARN-002-001",
+      "condition": "先読み不足またはTS計算遅延",
+      "action": "HOLDまたは減速要求へ移行し、復帰可能性を判定する。"
+    }
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat",
+    "static_analysis": [
+      "警告レベル/W4相当",
+      "RT禁止API使用検出",
+      "共有メモリ二相更新規約チェック"
+    ]
+  },
+  "pre_review": {
+    "result": "条件付き合格",
+    "ok": 14,
+    "warn": 3,
+    "ng": 0,
+    "warnings": [
+      "RT周期内処理時間の実測値を詳細設計完了後に確定すること。",
+      "設備依存パラメータの初期値は機種別設定表で確定すること。",
+      "併用不可機能の最終一覧はNC仕様書と照合すること。"
+    ]
+  }
+}

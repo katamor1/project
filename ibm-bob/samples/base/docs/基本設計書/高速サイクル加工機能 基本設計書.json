@@ -1,0 +1,115 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-207",
+    "feature_name": "高速サイクル加工機能",
+    "category": "サイクル加工",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_高速サイクル加工機能.docx"
+  },
+  "purpose": "穴あけ、面取り、軽切削サイクルなどを高速に実行し、サイクル起動・停止時の速度変動を抑えて加工時間を短縮する。",
+  "overview": "G05 P3により高速加工モードを有効化し、G81〜G89などのサイクルをTS_SERVICEで展開して、RT_CONTROLが周期内で処理可能なサイクルシーケンスとして実行する。必要に応じ重ね合わせ制御を併用する。",
+  "interfaces": {
+    "codes": [
+      "G05 P3: 高速サイクル加工開始",
+      "G05 P0: 高速サイクル加工解除",
+      "G51.6/G50.6: 重ね合わせ制御開始/解除候補",
+      "G81〜G89: 対象固定サイクル"
+    ],
+    "inputs": [
+      "サイクルGコード",
+      "R点/Z点/Q量/F送り",
+      "高速モード有効状態",
+      "重ね合わせ条件",
+      "工具/主軸状態"
+    ],
+    "outputs": [
+      "展開済みサイクル実行ブロック",
+      "高速サイクル状態",
+      "加工完了/中断ステータス",
+      "PLC補助指令"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語製のマルチスレッド機械制御基盤を前提とする。ハードウェア割込で起床するRT_INPUT/RT_CONTROL/RT_OUTPUTと、CPU余力で動作するTS_SERVICEを分離する。",
+    "rt_rules": "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキング、三角関数や探索など処理時間が変動する重計算を禁止し、1割込周期内に処理を完了する。",
+    "rt_responsibility": "固定長データ消費、周期内安全監視、フェイルセーフ出力",
+    "ts_responsibility": "NC解析、変換、先読み、ファイルI/O、ログ、HMI/API連携",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEが高速サイクル開始を検出し、対象固定サイクルの対応可否を判定する。",
+    "各サイクルを位置決め、送り、戻り、ドウェル等の固定長ステップへ展開する。",
+    "RT_CONTROLがステップを順次実行し、各周期でインターロック、軸到達、スピンドル状態を監視する。",
+    "サイクル終了後、重ね合わせ制御解除、G05 P0解除により通常モードへ戻る。"
+  ],
+  "constraints": [
+    "タッピングや重切削など高負荷加工には適用制限",
+    "ステップ展開はTS側で完了させる",
+    "サイクル中断時は復帰位置と退避位置を明確化"
+  ],
+  "alarms": [
+    "対象外サイクル",
+    "工具/主軸条件不成立",
+    "R点/Z点不正",
+    "サイクル中インターロック",
+    "軸到達タイムアウト"
+  ],
+  "acceptance_criteria": [
+    "対応サイクルが高速モードで展開実行される",
+    "未対応サイクルを事前に拒否する",
+    "中断・停止時に安全退避できる"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

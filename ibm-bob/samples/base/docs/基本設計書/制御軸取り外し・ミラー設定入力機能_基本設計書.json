@@ -1,0 +1,83 @@
+{
+  "schema_version": "IBM-Bob Basic Design v2.0 compatible",
+  "document": {
+    "id": "BD-005",
+    "title": "制御軸取り外し・ミラー設定入力機能_基本設計書",
+    "language": "ja-JP",
+    "created_at": "2026-04-29",
+    "source_file": "設計_制御軸取り外し_ミラー設定入力機能.docx",
+    "status": "draft_for_review"
+  },
+  "feature": {
+    "name": "制御軸取り外し・ミラー設定入力機能",
+    "category": "パラメータ・軸構成管理",
+    "overview": [
+      "この機能は、制御軸を外部信号で一時的に制御対象から外す「制御軸取り外し」と、ミラーイメージ加工のオン／オフを入力信号で切り替えるための設定に関するものである。各軸ごとに設定が可能であり、パラメータとセッティング入力の組み合わせによって有効化する。",
+      "設計時の注意点:\n\n* RMVxは、制御系が多軸アンプ構成のときに使用することで、特定の軸だけを制御対象から除外して機械構成を柔軟に変更できる。一方で、安全のため、軸取り外し中は該当軸への移動指令を停止し、復帰時には制御系を再起動するなどの手順が必要である。\n* MIRxはプログラマブルミラーイメージ機能(G50.1/G51.1)とは別に、外部信号で個別の軸にミラー動作を適用するための機能である。ミラーイメージを有効にすると、軸の移動方向や補正方向が反転するため、プログラム側でも方向を確認する。\n* RMBxを0に設定するとRMVx入力は無効となり、制御軸取り外し信号が無視される。軸の取り外し機能を使用する場合は、必ずRMBxを1に設定した上でRMVx入力を制御する。"
+    ],
+    "source_interface_notes": [],
+    "source_flow": [],
+    "source_design_notes": [],
+    "g_codes": [
+      "G50.1",
+      "G51.1"
+    ],
+    "parameters": [],
+    "signals": [
+      "MIRxはプログラマブルミラーイメージ機能",
+      "RMBxを0に設定するとRMVx入力は無効となり",
+      "RMVxは"
+    ]
+  },
+  "architecture": {
+    "platform": "Windows C multi-threaded machine-control platform",
+    "rt_thread": "RT_INPUT/RT_CONTROL/RT_OUTPUTをハードウェア割込周期内で実行する。RT側ではWindows API、ファイルI/O、動的メモリ確保、長時間ブロックを禁止する。",
+    "ts_thread": "TS_SERVICEでNC解析、パラメータ読出、ログ、UI/PMC連携、重い演算の先読みを行う。",
+    "api_policy": "公開APIは要求登録とスナップショット取得に限定し、状態確定はRT_CONTROLまたはTS_SERVICE側で行う。"
+  },
+  "shared_memory": {
+    "existing": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "candidate_additions": [
+      "g_featureConfig[5]",
+      "g_featureRequest[5]",
+      "g_featureStatus[5]",
+      "g_featureTrace[5]"
+    ]
+  },
+  "sections": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-217",
+    "feature_name": "軌跡制御機能",
+    "category": "軌跡記録・復帰",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_軌跡制御機能.docx"
+  },
+  "purpose": "加工軌跡の記録、デジタルツインでの再生、停止後の軌跡復帰を支援し、加工検証と安全な再開を可能にする。",
+  "overview": "RT_CONTROLが周期内で軸位置・送り・状態を固定長リングバッファへ記録し、TS_SERVICEがファイル保存、外部転送、再生データ生成、復帰ルート準備を行う。",
+  "interfaces": {
+    "codes": [
+      "専用操作/API: 軌跡記録開始/停止",
+      "専用操作/API: 軌跡再生データ出力",
+      "専用操作/API: 軌跡復帰要求",
+      "記録対象軸/サンプリング周期パラメータ"
+    ],
+    "inputs": [
+      "軸現在位置",
+      "送り速度",
+      "NC実行ブロック番号",
+      "アラーム状態",
+      "記録開始/停止要求",
+      "復帰要求"
+    ],
+    "outputs": [
+      "軌跡記録データ",
+      "復帰候補ルート",
+      "デジタルツイン向け出力",
+      "復帰可否判定"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語製のマルチスレッド機械制御基盤を前提とする。ハードウェア割込で起床するRT_INPUT/RT_CONTROL/RT_OUTPUTと、CPU余力で動作するTS_SERVICEを分離する。",
+    "rt_rules": "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキング、三角関数や探索など処理時間が変動する重計算を禁止し、1割込周期内に処理を完了する。",
+    "rt_responsibility": "固定長データ消費、周期内安全監視、フェイルセーフ出力",
+    "ts_responsibility": "NC解析、変換、先読み、ファイルI/O、ログ、HMI/API連携",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEが記録条件を設定し、RT用リングバッファを初期化する。",
+    "RT_CONTROLが各周期または指定間引き周期で位置・速度・状態を記録する。",
+    "TS_SERVICEがリングバッファを回収し、ファイル保存または外部PC転送形式へ変換する。",
+    "停止後は記録軌跡と現在位置から復帰候補を生成し、干渉チェック後にRT実行ブロックとして供給する。"
+  ],
+  "constraints": [
+    "RT側記録は固定長・非ブロッキング",
+    "詳細なファイルI/Oや圧縮はTS側で行う",
+    "復帰前に干渉、工具状態、ワーク状態を確認"
+  ],
+  "alarms": [
+    "記録バッファオーバーラン",
+    "復帰ルート生成不可",
+    "軌跡データ不整合",
+    "干渉リスク",
+    "記録容量不足"
+  ],
+  "acceptance_criteria": [
+    "指定周期で軌跡サンプルが記録される",
+    "ファイル保存がRT処理に影響しない",
+    "復帰時に安全確認を経て実行される"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

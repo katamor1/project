@@ -1,0 +1,127 @@
+{
+  "document_type": "IBM-Bob Detail Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "DD-00",
+    "DD-01",
+    "DD-02",
+    "DD-03",
+    "DD-04",
+    "DD-05",
+    "DD-06",
+    "DD-07",
+    "DD-08",
+    "DD-09",
+    "DD-10",
+    "DD-11",
+    "DD-12",
+    "DD-13",
+    "DD-14",
+    "DD-15",
+    "DD-16",
+    "DD-17",
+    "DD-18",
+    "DD-19",
+    "DD-20",
+    "DD-21",
+    "DD-22",
+    "DD-23",
+    "DD-24"
+  ],
+  "metadata": {
+    "document_id": "DD-CNC-214",
+    "feature_name": "径・半径指定切換機能",
+    "category": "座標指令方式",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_basic_design": "径・半径指定切換機能_基本設計書.docx",
+    "source_document": "設計_径半径指定切換機能.docx"
+  },
+  "traceability": {
+    "basic_design_id": "BD-CNC-214",
+    "requirements": [
+      "G10.9により対象軸の指定方式が切り替わる",
+      "移動中切換はアラームになる",
+      "RT側では正規化済み座標のみを使用する"
+    ],
+    "codes": [
+      "G10.9 IP_: 指定軸の径/半径指定切換",
+      "PGD: プログラム切換有効化",
+      "DPA/DPM: 表示方式設定",
+      "DM1〜DM8: 切換中出力信号"
+    ]
+  },
+  "module_design": {
+    "header": "include/cnc214_feature.h",
+    "source": "src/cnc214_feature.c",
+    "test": "tests/test_cnc214_feature.c",
+    "ts_functions": [
+      "Ts_CNC214_Prepare",
+      "Ts_CNC214_CommitExecBuffer"
+    ],
+    "rt_functions": [
+      "Rt_CNC214_ValidateSnapshot",
+      "Rt_CNC214_ExecuteCycle"
+    ],
+    "api_functions": [
+      "Api_GetCNC214Status",
+      "Api_RequestCNC214ConfigUpdate"
+    ]
+  },
+  "data_design": {
+    "config": "CNC214_FEATURE_CONFIG",
+    "request": "CNC214_FEATURE_REQUEST",
+    "status": "CNC214_FEATURE_STATUS",
+    "exec_block": "CNC214_EXEC_BLOCK",
+    "exec_buffer": "CNC214_EXEC_BUFFER",
+    "global": "g_cnc214Feature",
+    "consistency": "valid flag + generation_begin/generation_end + single writer policy"
+  },
+  "processing": {
+    "ts_service": [
+      "TS_SERVICEがG10.9または外部信号を検出し、PGD設定と方式競合を確認する。",
+      "バッファ実行中、軸移動中、サイクル中でないことを確認し、対象軸の指定方式を更新する。",
+      "以降のNC座標値を内部半径基準または機械基準へ正規化し、RT実行ブロックへ格納する。",
+      "表示系にはDPA/DPM設定に応じた座標値を提供し、RT_CONTROLには正規化済み値のみを渡す。"
+    ],
+    "rt_control": [
+      "座標・単位・指令方式の正規化はTS_SERVICEで完了し、RT_CONTROLには内部標準単位の絶対目標値だけを渡す。",
+      "座標変換モード中の禁止Gコード、補正、レファレンス点復帰、単位切換との競合を実行前に判定する。"
+    ],
+    "state_machine": [
+      "DISABLED",
+      "ARMED",
+      "PREPARED",
+      "ACTIVE",
+      "HOLD",
+      "COMPLETE",
+      "ALARM"
+    ]
+  },
+  "errors": [
+    "移動中切換",
+    "PGDと外部信号方式競合",
+    "指令値小数点付き",
+    "対象軸不正",
+    "表示変換不整合"
+  ],
+  "constraints": [
+    "軸移動中やバッファプログラム実行中の切換は禁止",
+    "切削送り速度は半径基準で管理",
+    "オフセットやワーク座標系は既存DIAx/ORC/ODI優先規則を尊重"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "DDR-001",
+    "DDR-002",
+    "DDR-003",
+    "DDR-004",
+    "DDR-005",
+    "DDR-006",
+    "DDR-007",
+    "DDR-008"
+  ]
+}

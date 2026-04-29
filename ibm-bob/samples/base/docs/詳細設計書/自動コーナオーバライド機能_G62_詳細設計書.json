@@ -1,0 +1,582 @@
+{
+  "schema_version": "ibm-bob-detail-design/2.0",
+  "review_status": "draft",
+  "document_control": {
+    "document_id": "DD-011",
+    "title": "自動コーナオーバライド機能（G62） 詳細設計書",
+    "target_system": "IBM-Bob baseline / Windows C realtime-control platform",
+    "target_version": "Ver.0.1",
+    "created_at": "2026-04-29",
+    "author": "IBM-Bob生成",
+    "reviewer": "",
+    "approver": "",
+    "revision_history": [
+      {
+        "version": "0.1",
+        "date": "2026-04-29",
+        "summary": "基本設計書から詳細設計ドラフトを生成",
+        "author": "IBM-Bob生成"
+      }
+    ]
+  },
+  "source_basic_design": {
+    "basic_design_id": "BD-011",
+    "title": "自動コーナオーバライド機能（G62） 基本設計書",
+    "version": "0.1",
+    "source_docx_path": "自動コーナオーバライド機能（G62）_基本設計書.docx",
+    "source_json_path": "",
+    "accepted_warnings": [
+      "設備別パラメータ値、信号ビット割付け、RT実測時間は未確定。"
+    ]
+  },
+  "feature": {
+    "feature_id": "FX-011",
+    "name": "自動コーナオーバライド機能（G62）",
+    "summary": "カッター半径補正中のコーナ部で切削量を一定化するため送りを自動オーバライドする。",
+    "estimated_new_steps": "250-900 step",
+    "classification": {
+      "realtime_control": true,
+      "time_share_processing": true,
+      "api_change": true,
+      "global_variable_change": true,
+      "state_machine": true,
+      "sequence_control": false,
+      "shared_memory_public_header_change": true,
+      "feature_category": "補正・加工品質制御"
+    }
+  },
+  "introduction": {
+    "purpose": "自動コーナオーバライド機能（G62）をIBM-Bob基盤へ実装可能な関数・構造体・処理順序へ具体化する。",
+    "scope": "対象指令/入力: G61, G62, G63, G64, G41, G42。対象パラメータ: 設備別台帳で確定。対象信号: コーナ検出。",
+    "out_of_scope": "サーボドライバ内部制御、PLCラダー詳細、設備別最終チューニング値、CAMポスト処理仕様。",
+    "assumptions": [
+      "RT_CONTROLは1割込周期内に完了する。",
+      "RT側ではWindows API、ファイルI/O、動的メモリ確保、長時間ブロッキングを行わない。",
+      "TS_SERVICEが解析・検査・ログ・重い演算を担当する。"
+    ]
+  },
+  "automation_policy": {
+    "generation_source": "basic_design_docx",
+    "roundtrip_policy": "SECTION_ID and JSON Path based extraction",
+    "pre_review_checklist": "ibm_bob_detail_design_pre_review_checklist.json"
+  },
+  "traceability": {
+    "basic_design_id": "BD-011",
+    "basic_design_sections": [
+      "BD-01",
+      "BD-03",
+      "BD-06",
+      "BD-07",
+      "BD-08",
+      "BD-15",
+      "BD-20"
+    ],
+    "expansion_policy": "基本設計の目的、外部仕様、RT/TS配置、共有メモリ、安全設計、受入条件をDD-01〜DD-24へ展開する。",
+    "matrix": [
+      {
+        "requirement_id": "REQ-011-01",
+        "basic_section_id": "BD-06",
+        "detail_section_id": "DD-11/DD-12",
+        "implementation_targets": [
+          "Ts_ParseBlock",
+          "Ts_ValidateConfig"
+        ],
+        "test_viewpoints": [
+          "正常指令解析",
+          "範囲外検出"
+        ]
+      },
+      {
+        "requirement_id": "REQ-011-02",
+        "basic_section_id": "BD-07/BD-08",
+        "detail_section_id": "DD-09/DD-10/DD-15",
+        "implementation_targets": [
+          "Rt_ExecuteCycle"
+        ],
+        "test_viewpoints": [
+          "周期時間",
+          "整合性"
+        ]
+      },
+      {
+        "requirement_id": "REQ-011-03",
+        "basic_section_id": "BD-15/BD-16",
+        "detail_section_id": "DD-16/DD-17",
+        "implementation_targets": [
+          "Rt_SetAlarmSafe",
+          "Ts_LogEvent"
+        ],
+        "test_viewpoints": [
+          "異常系",
+          "復旧"
+        ]
+      }
+    ]
+  },
+  "impact_analysis": {
+    "items": [
+      {
+        "id": "IA-01",
+        "target_type": "ヘッダ",
+        "target": "include/system_config.h",
+        "impact": "あり",
+        "change_policy": "FEATURE_SLOT_8、上限値、RT予算定数を追加/確認する。"
+      },
+      {
+        "id": "IA-02",
+        "target_type": "ヘッダ",
+        "target": "include/system_shared.h",
+        "impact": "あり",
+        "change_policy": "g_featureConfig[8] / g_featureStatus[8] の型、generation、valid、stateを定義する。"
+      },
+      {
+        "id": "IA-03",
+        "target_type": "ソース",
+        "target": "src/ts_service.c",
+        "impact": "あり",
+        "change_policy": "G62モーダル、G41/G42状態、前後ブロック角度からコーナ候補を抽出する。"
+      },
+      {
+        "id": "IA-04",
+        "target_type": "ソース",
+        "target": "src/rt_control.c",
+        "impact": "あり",
+        "change_policy": "コーナ候補と工具径補正状態に基づき送りオーバライド係数を適用する。"
+      },
+      {
+        "id": "IA-05",
+        "target_type": "公開API",
+        "target": "include/control_api.h / src/control_api.c",
+        "impact": "あり",
+        "change_policy": "設定要求登録と状態スナップショット取得のみ追加する。"
+      },
+      {
+        "id": "IA-06",
+        "target_type": "テスト",
+        "target": "tests/test_feature_011.c",
+        "impact": "あり",
+        "change_policy": "正常/境界/異常/性能/整合性テストを追加する。"
+      }
+    ]
+  },
+  "source_changes": {
+    "files": [
+      {
+        "id": "SC-01",
+        "path": "include/system_config.h",
+        "change_type": "変更",
+        "summary": "feature slotと上限定数の追加"
+      },
+      {
+        "id": "SC-02",
+        "path": "include/system_shared.h",
+        "change_type": "変更",
+        "summary": "設定/状態構造体とgeneration/validを追加"
+      },
+      {
+        "id": "SC-03",
+        "path": "src/ts_service.c",
+        "change_type": "変更",
+        "summary": "G62モーダル、G41/G42状態、前後ブロック角度からコーナ候補を抽出する。"
+      },
+      {
+        "id": "SC-04",
+        "path": "src/rt_control.c",
+        "change_type": "変更",
+        "summary": "コーナ候補と工具径補正状態に基づき送りオーバライド係数を適用する。"
+      },
+      {
+        "id": "SC-05",
+        "path": "src/control_api.c",
+        "change_type": "変更",
+        "summary": "API要求登録と状態取得を追加"
+      },
+      {
+        "id": "SC-06",
+        "path": "tests/test_feature_011.c",
+        "change_type": "追加",
+        "summary": "単体/結合/異常/性能テストを追加"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "id": "MOD-TS-01",
+      "name": "Feature011_Parser",
+      "file": "src/ts_service.c",
+      "responsibility": "NCブロック/設定要求を解析し固定長設定へ変換する。",
+      "execution_context": "TS"
+    },
+    {
+      "id": "MOD-TS-02",
+      "name": "Feature011_Validator",
+      "file": "src/ts_service.c",
+      "responsibility": "指令形式、軸/経路範囲、モード条件を検査する。",
+      "execution_context": "TS"
+    },
+    {
+      "id": "MOD-RT-01",
+      "name": "Feature011_RtPrepare",
+      "file": "src/rt_control.c",
+      "responsibility": "generation/validを確認しRT用スナップショットを確定する。",
+      "execution_context": "RT"
+    },
+    {
+      "id": "MOD-RT-02",
+      "name": "Feature011_RtExecute",
+      "file": "src/rt_control.c",
+      "responsibility": "コーナ候補と工具径補正状態に基づき送りオーバライド係数を適用する。",
+      "execution_context": "RT"
+    },
+    {
+      "id": "MOD-API-01",
+      "name": "Feature011_ApiSnapshot",
+      "file": "src/control_api.c",
+      "responsibility": "要求登録と状態スナップショット取得を行う。",
+      "execution_context": "API"
+    }
+  ],
+  "data_design": {
+    "items": [
+      {
+        "id": "DT-01",
+        "type": "constant",
+        "name": "FEATURE_SLOT_011",
+        "defined_in": "include/system_config.h",
+        "fields_or_values": "8"
+      },
+      {
+        "id": "DT-02",
+        "type": "enum",
+        "name": "FEATURE011_STATE",
+        "defined_in": "include/system_shared.h",
+        "fields_or_values": "DISABLED, ARMED, ACTIVE, HOLD, COMPLETE, ALARM"
+      },
+      {
+        "id": "DT-03",
+        "type": "struct",
+        "name": "FEATURE011_CONFIG",
+        "defined_in": "include/system_shared.h",
+        "fields_or_values": "valid,generation,enable,mode,axisMask,pathNo,param[8],limit[8]"
+      },
+      {
+        "id": "DT-04",
+        "type": "struct",
+        "name": "FEATURE011_STATUS",
+        "defined_in": "include/system_shared.h",
+        "fields_or_values": "valid,generation,state,alarmCode,activeAxisMask,diag[8],rtTimeUsMax"
+      }
+    ]
+  },
+  "shared_memory_globals": [
+    {
+      "name": "g_featureConfig[8]",
+      "owner": "TS_SERVICE",
+      "writers": [
+        "TS_SERVICE",
+        "API request finalizer"
+      ],
+      "readers": [
+        "RT_CONTROL"
+      ],
+      "consistency": "valid=0で編集、payload更新、generation++、valid=1の順に公開"
+    },
+    {
+      "name": "g_featureStatus[8]",
+      "owner": "RT_CONTROL",
+      "writers": [
+        "RT_CONTROL"
+      ],
+      "readers": [
+        "TS_SERVICE",
+        "API"
+      ],
+      "consistency": "payload更新後にgeneration更新"
+    },
+    {
+      "name": "g_machineCtx",
+      "owner": "RT_CONTROL",
+      "writers": [
+        "RT_CONTROL"
+      ],
+      "readers": [
+        "RT_CONTROL",
+        "TS_SERVICE",
+        "API"
+      ],
+      "consistency": "既存状態機械に統合"
+    },
+    {
+      "name": "g_ioIn / g_ioOut",
+      "owner": "RT_INPUT / RT_OUTPUT",
+      "writers": [
+        "RT_INPUT",
+        "RT_OUTPUT"
+      ],
+      "readers": [
+        "RT_CONTROL",
+        "TS_SERVICE"
+      ],
+      "consistency": "入力ラッチ後に制御、出力はフェイルセーフ優先"
+    }
+  ],
+  "api_design": {
+    "policy": "既存API互換を維持し、追加APIは要求登録/状態取得に限定する。",
+    "functions": [
+      {
+        "name": "Api_RequestFeature011Config",
+        "kind": "request",
+        "input": "config request",
+        "output": "ACCEPTED/REJECTED",
+        "note": "危険なRUNNING中変更は拒否または遅延"
+      },
+      {
+        "name": "Api_GetFeature011Status",
+        "kind": "snapshot",
+        "input": "none",
+        "output": "status snapshot",
+        "note": "RT状態をコピーするだけでI/Oや解析を行わない"
+      }
+    ]
+  },
+  "thread_design": {
+    "rt_input": "外部入力、サーボ状態、PMC/PLC信号を固定長構造体へラッチする。",
+    "rt_control": "コーナ候補と工具径補正状態に基づき送りオーバライド係数を適用する。",
+    "rt_output": "軸指令、アラーム、フェイルセーフ出力、PMC通知を反映する。",
+    "ts_service": "G62モーダル、G41/G42状態、前後ブロック角度からコーナ候補を抽出する。",
+    "api": "要求登録とスナップショットコピーのみを行う。"
+  },
+  "rt_design": {
+    "cycle_steps": [
+      "g_ioInラッチ済み状態を参照",
+      "config generation/validを確認",
+      "運転モード/主状態/インターロックを評価",
+      "コーナ候補と工具径補正状態に基づき送りオーバライド係数を適用する。",
+      "異常時は安全側出力とALARM要求を優先",
+      "g_featureStatusへ診断値を更新"
+    ],
+    "prohibited": [
+      "Windows API",
+      "file I/O",
+      "dynamic allocation",
+      "blocking wait",
+      "variable length loop over NC text"
+    ],
+    "max_processing_policy": "軸数/経路数の上限を定数化し、RTループ回数を固定上限内にする。"
+  },
+  "ts_design": {
+    "steps": [
+      "入力NCブロック/設定要求の取得",
+      "字句解析・Gコードグループ判定",
+      "パラメータ/信号/軸範囲の妥当性検査",
+      "固定長configまたは実行ブロックへ変換",
+      "ログ・UI通知を実施"
+    ],
+    "processing": "G62モーダル、G41/G42状態、前後ブロック角度からコーナ候補を抽出する。",
+    "io_policy": "ファイルI/O、ログI/O、UI連携はTS_SERVICEに限定する。"
+  },
+  "function_specs": [
+    {
+      "id": "FN-01",
+      "name": "Ts_ParseFeature011Block",
+      "file": "src/ts_service.c",
+      "context": "TS",
+      "input": "NC block / UI request",
+      "output": "FEATURE011_CONFIG draft",
+      "error": "SYNTAX, UNSUPPORTED_G, PARAM_MISSING"
+    },
+    {
+      "id": "FN-02",
+      "name": "Ts_ValidateFeature011Config",
+      "file": "src/ts_service.c",
+      "context": "TS",
+      "input": "config draft, machine state",
+      "output": "validated config or rejection code",
+      "error": "OUT_OF_RANGE, MODE_FORBIDDEN, AXIS_CONFLICT"
+    },
+    {
+      "id": "FN-03",
+      "name": "Rt_PrepareFeature011Config",
+      "file": "src/rt_control.c",
+      "context": "RT",
+      "input": "g_featureConfig slot",
+      "output": "local readonly snapshot",
+      "error": "CONFIG_INVALID"
+    },
+    {
+      "id": "FN-04",
+      "name": "Rt_ExecuteFeature011Cycle",
+      "file": "src/rt_control.c",
+      "context": "RT",
+      "input": "local config, g_machineCtx, g_ioIn",
+      "output": "axis delta / state update",
+      "error": "INTERLOCK, LIMIT, SEQUENCE_TIMEOUT"
+    },
+    {
+      "id": "FN-05",
+      "name": "Api_GetFeature011Status",
+      "file": "src/control_api.c",
+      "context": "API",
+      "input": "none",
+      "output": "stable status snapshot",
+      "error": "API_BUSY if generation changes repeatedly"
+    }
+  ],
+  "state_machines": {
+    "states": [
+      "DISABLED",
+      "ARMED",
+      "ACTIVE",
+      "HOLD",
+      "COMPLETE",
+      "ALARM"
+    ],
+    "transitions": [
+      "DISABLED --valid config enable--> ARMED",
+      "ARMED --execution start--> ACTIVE",
+      "ACTIVE --normal completion/cancel--> COMPLETE",
+      "* --fault/interlock/parameter conflict--> ALARM"
+    ]
+  },
+  "sequences": {
+    "handshakes": [
+      "設定反映: API/TS request -> TS validates -> RT accepts at safe boundary -> RT publishes status -> TS logs",
+      "異常停止: RT detects fault -> RT masks unsafe output -> RT sets alarm -> TS logs -> API/UI shows guidance"
+    ]
+  },
+  "concurrency": {
+    "policy": "単一writer原則。設定はTS/API側が作成しRTは読み取り専用。状態はRTが書き込みTS/APIは読み取り専用。",
+    "memory_visibility": [
+      "valid flag",
+      "generation counter",
+      "fixed-size struct copy",
+      "no pointer sharing",
+      "no dynamic memory in RT"
+    ],
+    "race_prevention": "valid=0中はRTが旧世代を継続使用し、valid=1かつgeneration一致時のみ新設定を採用する。"
+  },
+  "error_safety": {
+    "items": [
+      {
+        "id": "ERR-01",
+        "condition": "指令形式/パラメータ範囲外",
+        "detection": "TS validation",
+        "action": "要求拒否、RT未反映",
+        "recovery": "設定修正後に再要求"
+      },
+      {
+        "id": "ERR-02",
+        "condition": "RUNNING中の危険な設定変更",
+        "detection": "TS/API guard",
+        "action": "拒否または次ブロック境界へ遅延",
+        "recovery": "STOPPED/READYで再実行"
+      },
+      {
+        "id": "ERR-03",
+        "condition": "RT実行中のインターロック/外部信号不一致",
+        "detection": "RT_INPUT/RT_CONTROL",
+        "action": "異常時は機能無効化、減速停止、ALARM遷移を優先する。",
+        "recovery": "原因除去後、リセット/再開"
+      }
+    ],
+    "fail_safe_policy": "異常時は機能無効化、減速停止、ALARM遷移を優先する。"
+  },
+  "logging_diagnostics": {
+    "logs": [
+      "config accepted/rejected: featureId, requestId, reason, generation",
+      "runtime state transition: prevState, nextState, alarmCode, cycleNo",
+      "performance max update: rtTimeUsMax, cycleNo"
+    ],
+    "snapshot": "API status snapshot includes state, active axes, alarmCode, generation and diagnostic counters."
+  },
+  "parameters": {
+    "g_codes": [
+      "G61",
+      "G62",
+      "G63",
+      "G64",
+      "G41",
+      "G42"
+    ],
+    "parameters": [],
+    "signals": [
+      "コーナ検出"
+    ],
+    "setting_policy": "設備別の実値・単位・許容範囲はインターフェース台帳で確定する。"
+  },
+  "performance_budget": {
+    "rt_budget": "8-25 us/周期",
+    "ts_budget": "0.1-3.0 ms/ブロック",
+    "measurement": "VC2026/clang Windows Debug/Releaseで最大値を計測しQAログに残す。",
+    "degradation_policy": "RT予算超過時はTS側先読み量を増やし、RT側計算を固定長テーブル参照へ戻す。"
+  },
+  "initialization_reset": {
+    "init": "system_shared初期化でconfig/statusをzero clearし、state=DISABLED、valid=0とする。",
+    "reset": "ALARM解除時は対象feature status、診断カウンタ、pending requestをクリアする。",
+    "migration": "既存公開APIの構造体サイズ変更を避け、追加情報はバージョン付き拡張領域に格納する。"
+  },
+  "test_handoff": {
+    "unit_tests": [
+      "TS解析正常/異常",
+      "パラメータ境界値",
+      "RT generation整合性",
+      "状態遷移",
+      "フェイルセーフ"
+    ],
+    "integration_tests": [
+      "AUTO/RUNNINGでの通常動作",
+      "STOPPED/READYでの設定変更",
+      "外部信号不一致",
+      "API状態取得"
+    ],
+    "performance_tests": [
+      "RT周期最大時間",
+      "TS先読み処理時間",
+      "ログ負荷"
+    ],
+    "regression_tests": [
+      "既存運転モード",
+      "既存API",
+      "既存共有メモリ初期化"
+    ]
+  },
+  "build_test_static_analysis": {
+    "vc2026": [
+      "cmd /c scripts\\build_vc2026.bat",
+      "cmd /c scripts\\test_vc2026.bat"
+    ],
+    "clang_windows": [
+      "cmd /c scripts\\build_clang.bat",
+      "cmd /c scripts\\test_clang.bat"
+    ],
+    "static_analysis": [
+      "/W4 warning zero",
+      "clang -Wall -Wextra equivalent",
+      "RT禁止API grep"
+    ]
+  },
+  "open_issues": [
+    {
+      "id": "OI-01",
+      "issue": "設備別パラメータ範囲・単位の最終値が未確定",
+      "owner": "設計担当/設備担当",
+      "resolution_policy": "インターフェース台帳と照合しDD-18を更新"
+    },
+    {
+      "id": "OI-02",
+      "issue": "RT追加処理時間は実機周期での測定が必要",
+      "owner": "実装担当",
+      "resolution_policy": "DD-19の実測値へ差し替え"
+    },
+    {
+      "id": "OI-03",
+      "issue": "PMC/PLC信号名・ビット割付けは設備別定義が必要",
+      "owner": "PLC担当",
+      "resolution_policy": "信号台帳確定後にDD-14/DD-16を更新"
+    }
+  ],
+  "ai_review": {
+    "status": "条件付き合格",
+    "summary": "RT/TS分離、共有メモリ所有者、エラー安全、ビルド/テスト観点は展開済み。設備別パラメータ、信号ビット、RT実測値は要確認。"
+  }
+}

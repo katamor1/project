@@ -1,0 +1,144 @@
+{
+  "metadata": {
+    "document_id": "DD-AUTO-B33449",
+    "document_type": "詳細設計書",
+    "version": "0.1",
+    "created_on": "2026-04-29",
+    "target_system": "IBM-Bob基盤システム",
+    "target_environment": "Windows / C言語 / RT + TS thread",
+    "feature_name": "3D干渉チェック機能",
+    "source_basic_design": "3D干渉チェック機能_基本設計書.docx",
+    "source_hash": "9e9e393dafab16f2",
+    "section_range": "DD-00〜DD-24",
+    "note": "ユーザーが20件と指定したが、この実行で確認できたアップロード済み基本設計書は18件。確認できた18件を対象に生成。"
+  },
+  "traceability": {
+    "basic_design_summary": "3D干渉チェック機能は、機械の可動部が加工中または手動操作中に他の固定物や治具と衝突しないよう、CNC内部でリアルタイムに干渉を監視する機能である。 CNCは機械の重要な作業領域を平面・直方体・円筒などの幾何学要素としてモデル化し、工具形状データと組み合わせて干渉を検出する。 干渉の危険が検出されると、CNCは動作を停止して衝突を防止する。",
+    "codes": [],
+    "category": "collision"
+  },
+  "design": {
+    "identifier": "Collision3D",
+    "snake": "collision3_d",
+    "control_type": "TS側で3Dモデルを固定長近似データへ変換し、RT側は安全距離・干渉予測フラグのみを周期評価する干渉監視制御",
+    "algorithm": "TS_SERVICEで機械/治具/工具モデルを境界ボリュームへ分割し、RT_CONTROLでは現在位置と先読み位置に対して近傍セルのみを評価する。干渉閾値未満では減速、侵入予測では停止要求を生成する。",
+    "states": [
+      "DISABLED",
+      "MODEL_LOADING",
+      "MONITORING",
+      "WARNING",
+      "STOP_REQUESTED",
+      "ALARM"
+    ],
+    "shared_memory": [
+      [
+        "g_collision3_dModel",
+        "COLLISION3D_MODEL_RT",
+        "TS更新 / RT読取",
+        "RT評価用に圧縮した干渉領域、工具包絡、世代番号"
+      ],
+      [
+        "g_collision3_dState",
+        "COLLISION3D_STATE",
+        "RT更新 / TS・API読取",
+        "最小距離、干渉予測、停止要求、アラーム情報"
+      ]
+    ],
+    "apis": [
+      [
+        "Api_GetCollision3DStatus",
+        "干渉監視状態と最小距離を取得"
+      ],
+      [
+        "Api_RequestCollision3DModelReload",
+        "TS側のモデル再読込を要求"
+      ]
+    ],
+    "modules": [
+      {
+        "module": "include/system_config.h",
+        "change": "機能有効/上限サイズ/RT予算マクロを追加または参照"
+      },
+      {
+        "module": "include/system_shared.h",
+        "change": "COLLISION3D_MODEL_RT 等の共有構造体宣言を追加"
+      },
+      {
+        "module": "include/control_api.h",
+        "change": "状態取得APIおよび必要に応じた要求登録APIのプロトタイプを追加"
+      },
+      {
+        "module": "include/nc_interpreter.h",
+        "change": "NC解析テーブル、モーダル状態、内部実行ブロック型を追加/拡張"
+      },
+      {
+        "module": "src/nc_interpreter.c",
+        "change": "G/M/アドレス解析、パラメータ検証、実行ブロック生成を実装"
+      },
+      {
+        "module": "src/ts_service.c",
+        "change": "ファイルI/O、先読み、展開、ログ整形、HMI/API通知を実装"
+      },
+      {
+        "module": "src/rt_control.c",
+        "change": "周期内状態判定、固定長実行ブロック消費、安全遷移を実装"
+      },
+      {
+        "module": "src/rt_output.c",
+        "change": "軸/主軸/PMC出力、減速停止、フェイルセーフ出力を確定"
+      }
+    ],
+    "functions": [
+      {
+        "name": "collision3_d_init",
+        "thread": "TS/INIT",
+        "role": "共有メモリ初期化、定義テーブル読込、既定状態設定"
+      },
+      {
+        "name": "collision3_d_parse_block",
+        "thread": "TS_SERVICE",
+        "role": "NCブロックまたはAPI要求を検証し、内部命令へ変換"
+      },
+      {
+        "name": "collision3_d_prepare_rt_block",
+        "thread": "TS_SERVICE",
+        "role": "RTが周期内で扱える固定長実行ブロックへ展開"
+      },
+      {
+        "name": "collision3_d_rt_update",
+        "thread": "RT_CONTROL",
+        "role": "周期内状態更新、実行ブロック消費、安全条件判定"
+      },
+      {
+        "name": "collision3_d_rt_fail_safe",
+        "thread": "RT_CONTROL/RT_OUTPUT",
+        "role": "異常検出時の減速停止、出力遮断、ALARM遷移"
+      },
+      {
+        "name": "collision3_d_api_get_status",
+        "thread": "API",
+        "role": "世代番号付きスナップショットを返却"
+      }
+    ],
+    "hardware_inputs": [
+      "各軸現在位置",
+      "工具長/工具径/ホルダ形状",
+      "機械3Dモデル有効状態",
+      "手動/自動運転モード",
+      "安全距離パラメータ"
+    ],
+    "errors": [
+      "DD-E101 3Dモデル未登録",
+      "DD-E102 工具形状未確定",
+      "DD-E103 RT評価予算超過",
+      "DD-E104 干渉予測停止"
+    ],
+    "rt_budget_us": "未確定。初期目標はRT_CONTROL差分で50us以下、最大でも1割込周期の10%以内。",
+    "build_commands": [
+      "cmd /c scripts\\build_vc2026.bat",
+      "cmd /c scripts\\test_vc2026.bat",
+      "cmd /c scripts\\build_clang.bat",
+      "cmd /c scripts\\test_clang.bat"
+    ]
+  }
+}

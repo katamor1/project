@@ -1,0 +1,115 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-218",
+    "feature_name": "機械座標系機能",
+    "category": "座標系",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_機械座標系機能.docx"
+  },
+  "purpose": "機械原点を基準とした絶対位置へ一時的に移動し、工具交換、メンテナンス、基準点合わせなどを安全に実行する。",
+  "overview": "G53をワンショット指令として扱い、指定ブロックのみ機械座標系で移動する。レファレンス点復帰済みであること、補正や座標変換が解除されていることをTS_SERVICEが確認する。",
+  "interfaces": {
+    "codes": [
+      "G53: 機械座標系での一時移動",
+      "G28等: レファレンス点復帰状態との関係",
+      "G50/G51/G68等: 併用禁止対象"
+    ],
+    "inputs": [
+      "G53指令",
+      "機械座標の絶対値",
+      "レファレンス点復帰完了状態",
+      "補正/座標変換状態",
+      "軸リミット"
+    ],
+    "outputs": [
+      "機械座標移動ブロック",
+      "一時座標系選択状態",
+      "元ワーク座標系復帰状態",
+      "安全確認アラーム"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語製のマルチスレッド機械制御基盤を前提とする。ハードウェア割込で起床するRT_INPUT/RT_CONTROL/RT_OUTPUTと、CPU余力で動作するTS_SERVICEを分離する。",
+    "rt_rules": "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキング、三角関数や探索など処理時間が変動する重計算を禁止し、1割込周期内に処理を完了する。",
+    "rt_responsibility": "固定長データ消費、周期内安全監視、フェイルセーフ出力",
+    "ts_responsibility": "NC解析、変換、先読み、ファイルI/O、ログ、HMI/API連携",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがG53を検出し、アブソリュート指令であることとレファレンス点復帰済みであることを確認する。",
+    "補正、スケーリング、ミラー、座標回転などの併用禁止状態をチェックする。",
+    "移動先が機械リミット内であることを確認し、RT_CONTROL用の機械座標移動ブロックを生成する。",
+    "RT_CONTROLは指定ブロックを実行し、完了後は元のワーク座標系状態に戻る。"
+  ],
+  "constraints": [
+    "G53はモーダルではなくワンショット",
+    "インクレメンタル指令不可",
+    "レファレンス点復帰前は使用禁止",
+    "補正・座標変換との同一ブロック併用禁止"
+  ],
+  "alarms": [
+    "未原点復帰",
+    "インクレメンタルG53",
+    "補正/座標変換併用",
+    "機械リミット超過",
+    "安全領域外移動"
+  ],
+  "acceptance_criteria": [
+    "G53ブロックのみ機械座標系で移動する",
+    "次ブロックで元のワーク座標系に戻る",
+    "未原点復帰状態では実行されない"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

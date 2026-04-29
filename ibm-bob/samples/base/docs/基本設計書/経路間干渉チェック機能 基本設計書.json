@@ -1,0 +1,114 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-213",
+    "feature_name": "経路間干渉チェック機能",
+    "category": "安全監視",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_経路間干渉チェック機能.docx"
+  },
+  "purpose": "多経路制御機で複数ツールポストが同一ワークを同時加工する際の干渉を未然に検出し、工具・ワーク・機械の破損を防止する。",
+  "overview": "工具形状、ツールポスト位置、干渉禁止領域を登録し、RT_CONTROLで軽量な領域重なり監視を行う。TS_SERVICEは工具形状管理、領域更新、複雑な予測、ログ保存を担当する。",
+  "interfaces": {
+    "codes": [
+      "専用パラメータ: 2経路/多経路チェック選択",
+      "干渉禁止領域登録画面/PMC入力",
+      "干渉検出動作設定: 警告/減速/停止"
+    ],
+    "inputs": [
+      "各経路の現在位置",
+      "工具形状データ",
+      "干渉禁止領域",
+      "対象経路数設定",
+      "停止/警告動作設定"
+    ],
+    "outputs": [
+      "干渉予測状態",
+      "減速停止要求",
+      "対象経路識別子",
+      "アラーム/診断ログ"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語製のマルチスレッド機械制御基盤を前提とする。ハードウェア割込で起床するRT_INPUT/RT_CONTROL/RT_OUTPUTと、CPU余力で動作するTS_SERVICEを分離する。",
+    "rt_rules": "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキング、三角関数や探索など処理時間が変動する重計算を禁止し、1割込周期内に処理を完了する。",
+    "rt_responsibility": "固定長データ消費、周期内安全監視、フェイルセーフ出力",
+    "ts_responsibility": "NC解析、変換、先読み、ファイルI/O、ログ、HMI/API連携",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEが工具形状と干渉禁止領域を登録し、RT監視用の簡略化境界ボックスへ変換する。",
+    "RT_CONTROLが各周期で対象経路の現在位置と境界領域の重なりを判定する。",
+    "干渉予測時は対象経路へ段階減速または即停止要求を出し、g_machineCtx相当のアラーム状態を設定する。",
+    "TS_SERVICEが詳細ログを保存し、再起動時の安全退避ルート確認を支援する。"
+  ],
+  "constraints": [
+    "2経路以上のマルチパス制御機で有効",
+    "工具形状・領域登録精度が安全性を左右",
+    "RT計算量を抑えるため監視モデルの複雑度を制限"
+  ],
+  "alarms": [
+    "干渉予測",
+    "領域データ未登録",
+    "工具形状不整合",
+    "監視対象経路不正",
+    "退避ルート未設定"
+  ],
+  "acceptance_criteria": [
+    "登録領域の重なりをRT周期内で検出できる",
+    "干渉予測時に対象経路を安全停止できる",
+    "工具形状未登録時に加工開始を禁止できる"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

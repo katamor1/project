@@ -1,0 +1,272 @@
+{
+  "schema_version": "IBM-Bob Detail Design v2.0 compatible",
+  "document": {
+    "id": "DD-001",
+    "title": "三次元工具補正・正規化方向制御機能_詳細設計書",
+    "language": "ja-JP",
+    "created_at": "2026-04-29",
+    "source_basic_design": "三次元工具補正・正規化方向制御機能_基本設計書",
+    "status": "draft_for_review"
+  },
+  "traceability": {
+    "feature_name": "三次元工具補正・正規化方向制御機能",
+    "feature_id": "F001",
+    "basic_design_sections": [
+      "BD-00",
+      "BD-01",
+      "BD-02",
+      "BD-03",
+      "BD-04",
+      "BD-05",
+      "BD-06",
+      "BD-07",
+      "BD-08",
+      "BD-09",
+      "BD-10",
+      "BD-11",
+      "BD-12",
+      "BD-13",
+      "BD-14",
+      "BD-15",
+      "BD-16",
+      "BD-17",
+      "BD-18",
+      "BD-19",
+      "BD-20",
+      "BD-21",
+      "BD-22"
+    ],
+    "g_codes": [
+      "G40",
+      "G40.1",
+      "G41.1",
+      "G41.2",
+      "G41.3",
+      "G41.4",
+      "G41.6",
+      "G42.1",
+      "G42.2",
+      "G42.3",
+      "G42.4",
+      "G42.6"
+    ],
+    "parameters": [],
+    "signals": [
+      "CAMデータに対する補正方向が反転する場合に使用します",
+      "CNCは補正ベクトルを基に",
+      "CNC装置の仕様を確認して選択する",
+      "YZ平面では使用できないなどの制限を挙げている"
+    ],
+    "source_overview": [
+      "三次元工具補正は、工具径や工具姿勢の変化を考慮して、加工指令点から工具中心点を三次元ベクトルでオフセットする機能である。G41.2〜G41.6およびG42.2〜G42.6で指定する各タイプにより、左側／右側や補正方式（タイプ1/タイプ2）が異なる。正規化方向制御（G41.1/G42.1/G40.1）は、C軸を回転させ工具先端方向を送り方向の法線方向に自動制御する機能であり、五軸加工などで工具先端が常にワーク面に垂直になるように制御する。"
+    ],
+    "source_flow": [
+      "1. 工具補正を適用する際には、最初の補正開始ブロックで工具半径補正量や方向ベクトルを指定する（I/J/Kおよびオフセット番号D）。\n2. G41.2/G42.2等の3次元工具補正を指定すると、指定した工具ベクトルに基づき工具先端がプログラム軌跡に沿ってオフセットされる。\n3. 五軸加工などで工具姿勢を法線方向に保つ場合は、G41.1またはG42.1を指定し、C軸が自動的に回転して法線方向に整列する。\n4. 補正や正規化方向制御を終了する際は、G40/G40.1を指定して解除する。"
+    ],
+    "source_design_notes": [
+      "・3次元工具補正および正規化方向制御は、使用する機械の軸構成や制御オプションにより利用可否が異なる。\n・LinuxCNCのドキュメントでは、G41.1/G42.1をダイナミックなカッター補正として定義し、Dで工具径、Lで工具方向を指定し、YZ平面では使用できないなどの制限を挙げている【13736647356529†L1525-L1545】。\n・3次元工具補正のタイプごとに適用される補正ベクトルの計算方法が異なるため、CNC装置の仕様を確認して選択する。",
+      "・G41.2/G42.2：タイプ1 3次元工具補正。工具先端と姿勢ベクトルをI/J/Kで指定し、工具半径をDで指定します。",
+      "・G41.3/G42.3：タイプ2 3次元補正。工具軸方向と法線方向が直行する場合に用います。",
+      "・G41.4/G42.4：タイプ3 補正。CAMデータに対する補正方向が反転する場合に使用します。",
+      "・G41.1/G42.1：ダイナミックカッター補正（正規化方向制御）。D指定の工具半径で3Dパスに沿って動的に補正し、工具中心が常に加工指令曲線の法線方向となるようC軸を回転させます。",
+      "① 補正開始ブロックでG41.2〜G42.6を指令し、タイプごとに必要なI/J/KベクトルやD番号を指定します。",
+      "② CNCは補正ベクトルを基に、プログラム軌跡から工具先端までの三次元オフセットを計算します。",
+      "③ G41.1/G42.1を用いる場合は、補正と同時にC軸を回転させ、工具先端方向を送り方向の法線に合わせます。",
+      "④ 補正終了または正規化方向制御の終了はG40またはG40.1で行います。",
+      "・各タイプの補正で適用されるベクトル計算方法が異なるため、機種のマニュアルで補正のアルゴリズムを確認してください。"
+    ]
+  },
+  "design_policy": {
+    "classification": "補正演算",
+    "rt_ts_policy": "TS_SERVICEで補正ベクトル、工具長、工具半径、法線方向制御に必要な事前計算を実施し、RT_CONTROLは周期内で確定済み補正量を適用する。",
+    "realtime_constraints": [
+      "RT側ではWindows API、ファイルI/O、動的メモリ確保、待ち合わせ、可変長文字列処理を禁止する。",
+      "RT_CONTROLは1割込周期内で完了し、演算量が入力データ長に比例する処理はTS_SERVICEへ分離する。",
+      "安全停止、出力抑止、アラームラッチはRT_CONTROL側で確定し、TS_SERVICEは表示・記録に限定する。"
+    ]
+  },
+  "modules": [
+    {
+      "file": "include/system_config.h",
+      "role": "機能有効フラグ、配列上限、閾値の定数定義"
+    },
+    {
+      "file": "include/system_shared.h",
+      "role": "共有メモリ構造体定義と世代番号フィールド追加"
+    },
+    {
+      "file": "include/control_api.h",
+      "role": "要求登録APIとスナップショット取得APIの宣言"
+    },
+    {
+      "file": "src/control_api.c",
+      "role": "API入力検証と要求世代番号更新"
+    },
+    {
+      "file": "src/rt_control.c",
+      "role": "RT周期内状態評価、補間/補正/安全判定、出力反映"
+    },
+    {
+      "file": "src/ts_service.c",
+      "role": "パラメータ検証、先読み計算、ログ、UI/PMC連携"
+    }
+  ],
+  "shared_memory": {
+    "existing": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "new_structs": [
+      "FEATURE_001_CONFIG",
+      "FEATURE_001_REQUEST",
+      "FEATURE_001_STATUS",
+      "FEATURE_001_TRACE"
+    ],
+    "consistency": "TS/API書込の要求領域はseq/busy/validを持つ二相更新とし、RTはseq一致時のみ読み取る。RT書込の状態領域はsnapshot_seqで公開する。"
+  },
+  "api": [
+    {
+      "name": "Api_RequestF001ModeChange",
+      "type": "request",
+      "owner": "API",
+      "description": "機能開始/終了/キャンセル要求を共有メモリへ登録する。"
+    },
+    {
+      "name": "Api_SetF001Parameters",
+      "type": "request",
+      "owner": "API",
+      "description": "パラメータ候補値をTS検証キューへ登録する。"
+    },
+    {
+      "name": "Api_GetF001StatusSnapshot",
+      "type": "snapshot",
+      "owner": "API",
+      "description": "RT/TSが確定した状態を読み取り専用スナップショットとして返す。"
+    }
+  ],
+  "functions": [
+    {
+      "name": "Ts_ValidateF001Config",
+      "thread": "TS_SERVICE",
+      "input": "API要求、パラメータ、対象Gコード",
+      "output": "FEATURE_001_CONFIG",
+      "errors": "範囲外・併用不可・軸未設定"
+    },
+    {
+      "name": "Ts_PrecomputeF001",
+      "thread": "TS_SERVICE",
+      "input": "NCブロック、工具/軸設定、補正条件",
+      "output": "固定長実行データまたは補正結果",
+      "errors": "先読み不足・演算不能・未対応形式"
+    },
+    {
+      "name": "Rt_EvaluateF001",
+      "thread": "RT_CONTROL",
+      "input": "g_ioIn、g_machineCtx、確定済み設定",
+      "output": "FEATURE_001_STATUS",
+      "errors": "インターロック・過負荷・状態不整合"
+    },
+    {
+      "name": "Rt_ApplyF001Output",
+      "thread": "RT_OUTPUT",
+      "input": "RT_CONTROL確定指令",
+      "output": "g_ioOut",
+      "errors": "フェイルセーフ出力へ遷移"
+    },
+    {
+      "name": "Ts_LogF001Event",
+      "thread": "TS_SERVICE",
+      "input": "状態変化、アラーム、診断値",
+      "output": "g_logQueue",
+      "errors": "ログキュー満杯時は要約イベントへ縮退"
+    }
+  ],
+  "state_machine": [
+    [
+      "IDLE",
+      "REQUESTED",
+      "APIまたはNCブロックで開始要求を受理"
+    ],
+    [
+      "REQUESTED",
+      "VALIDATING",
+      "TS_SERVICEがパラメータ・併用条件を検証"
+    ],
+    [
+      "VALIDATING",
+      "ARMED",
+      "検証成功、RT参照可能な設定を公開"
+    ],
+    [
+      "ARMED",
+      "ACTIVE",
+      "RT_CONTROLが開始条件を満たして周期処理へ反映"
+    ],
+    [
+      "ACTIVE",
+      "HOLD",
+      "一時停止、バッファ待ち、外部信号待ち"
+    ],
+    [
+      "ACTIVE",
+      "DONE",
+      "終了Gコード/解除要求/完了条件を検出"
+    ],
+    [
+      "ANY",
+      "ALARM",
+      "範囲外、インターロック、過負荷、併用不可を検出"
+    ],
+    [
+      "ALARM",
+      "IDLE",
+      "リセット後、出力安全化と状態初期化が完了"
+    ]
+  ],
+  "errors": [
+    {
+      "code": "ALM-001-001",
+      "condition": "パラメータ範囲外または未設定",
+      "action": "要求を拒否し、既存状態を維持する。"
+    },
+    {
+      "code": "ALM-001-002",
+      "condition": "対象軸、経路、補正モードの併用不可",
+      "action": "ACTIVE遷移を禁止し、TSログに根拠を記録する。"
+    },
+    {
+      "code": "ALM-001-003",
+      "condition": "RT周期内で安全条件違反を検出",
+      "action": "g_ioOutを安全側へ遷移し、ALARM状態をラッチする。"
+    },
+    {
+      "code": "WARN-001-001",
+      "condition": "先読み不足またはTS計算遅延",
+      "action": "HOLDまたは減速要求へ移行し、復帰可能性を判定する。"
+    }
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat",
+    "static_analysis": [
+      "警告レベル/W4相当",
+      "RT禁止API使用検出",
+      "共有メモリ二相更新規約チェック"
+    ]
+  },
+  "pre_review": {
+    "result": "条件付き合格",
+    "ok": 14,
+    "warn": 3,
+    "ng": 0,
+    "warnings": [
+      "RT周期内処理時間の実測値を詳細設計完了後に確定すること。",
+      "設備依存パラメータの初期値は機種別設定表で確定すること。",
+      "併用不可機能の最終一覧はNC仕様書と照合すること。"
+    ]
+  }
+}

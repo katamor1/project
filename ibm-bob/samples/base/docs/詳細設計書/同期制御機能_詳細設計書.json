@@ -1,0 +1,204 @@
+{
+  "document_control": {
+    "document_id": "DD-SYNC-CONTROL-001",
+    "title": "同期制御機能 詳細設計書",
+    "feature_id": "FX-SYNC-CONTROL-001",
+    "source_basic_design": "同期制御機能 基本設計書.docx",
+    "created_at": "2026-04-29",
+    "author": "AIドラフト",
+    "version": "0.1"
+  },
+  "traceability": {
+    "source_summary": "同期制御機能 基本設計書 AIドラフト 2026-04-28 同期制御機能 基本設計書 本書は、入力資料「設計_同期制御機能.docx」を基に、IBM-Bob 基本設計書テンプレート v2.0 の構成へ展開した基本設計ドラフトである。 0. テンプレート利用方針 [SECTION_ID: BD-00] JSONパス: $.template_usage 必須区分: 必須 基本設計の粒度として、機能仕様、外部仕様、データ連携、状態、制約、影響範囲を明確化する。 詳細な関数実装、構造体フィールド確定、RT処理時間実測値は詳細設計へ移譲する。 1. 文書管理 [SECTION_ID: BD-01] 2. 要件トレーサビリティ [SECTION_ID: BD-02] 3. 目的・背景・設計方針 [SECTION_ID: BD-03] 3.1 入力資料からの主要仕様 G51.4で同期制御を開始し、G50.4で終了する。 マスター軸とスレーブ軸のペアを最大4組まで設定できる。 同期中はマスター軸へ移動指令し、スレーブ軸は同じ送り量で追従する。 複合制御や重ね合わせ制御と同時使用不可で、開始/終了ブロックでは工具補正や座標変換を同時指定しない。 4. 対象範囲・非対象範囲 [SECTION_ID: BD-04] 5. システム前提・既存構成 [SECTION_ID: BD-05] 6. 機能概要 [SECTION_ID: BD-06] 7. 機能要件 [SECTION_ID: BD-07] 8. 利用シナリオ・運用シナリオ [SECTION_ID: BD-08] 9. 状態遷移設計 [SECTION_ID: BD-09] 初期状態: SYNC_DISABLED 正常終了状態: 詳細設計で確定 異常終了状態: SYNC_ERROR 外部リセット条件: リセット要求、ALARM解除、機能キャンセル、モード変更 多重要求時の扱い: 停止/リセット/非常停止を開始・継続要求より優先する。 10. シーケンス・応答動作設計 [SECTION_ID: BD-10] 中断・停止・異常時は、非常停止、インターロック、RT周期超過兆候、共有データ破壊検出を最優先し、安全側出力へ遷移する。 11. データ設計・共有メモリ・グローバル変数 [SECTION_ID: BD-11] SystemShared...",
+    "requirements": [
+      "G51.4/G50.4により同期制御ペアを開始/終了する。",
+      "最大4組のマスター/スレーブ軸ペアを管理する。",
+      "同期中はマスター軸移動量に基づきスレーブ軸指令を生成する。",
+      "PMC信号による同期ON/OFF要求を扱う。",
+      "併用禁止機能、同時指令、追従異常を検出し安全側へ遷移する。"
+    ]
+  },
+  "system_context": {
+    "baseline": "Windows C multi-threaded machine-control platform",
+    "rt_threads": [
+      "RT_INPUT",
+      "RT_CONTROL",
+      "RT_OUTPUT"
+    ],
+    "ts_threads": [
+      "TS_SERVICE"
+    ],
+    "rt_prohibitions": [
+      "Windows system calls",
+      "file I/O",
+      "dynamic allocation",
+      "long blocking"
+    ]
+  },
+  "feature": {
+    "name": "同期制御機能",
+    "purpose": "G51.4/G50.4またはPMC信号によりマスター軸とスレーブ軸を同期させ、同一送り量または定義済み倍率で追従動作させる。",
+    "states": [
+      "SYNC_DISABLED",
+      "SYNC_ARMED",
+      "SYNC_ACTIVE",
+      "SYNC_STOPPING",
+      "SYNC_ERROR"
+    ],
+    "shared_data": [
+      "g_syncAxisConfig",
+      "g_syncAxisStatus",
+      "g_syncAxisCommand"
+    ],
+    "apis": [
+      "Api_StartAxisSync",
+      "Api_StopAxisSync",
+      "Api_GetAxisSyncStatus"
+    ],
+    "modules": [
+      "include/sync_control.h",
+      "src/sync_control.c",
+      "tests/test_sync_control.c"
+    ],
+    "functions": [
+      "SyncControl_Init",
+      "SyncControl_ValidatePairTs",
+      "SyncControl_ArmRt",
+      "SyncControl_UpdateSlaveCommandRt",
+      "SyncControl_CheckDeviationRt",
+      "SyncControl_StopRt"
+    ]
+  },
+  "sections": [
+    {
+      "section_id": "DD-00",
+      "title": "テンプレート利用方針",
+      "json_path": "$.sections[0]"
+    },
+    {
+      "section_id": "DD-01",
+      "title": "文書管理",
+      "json_path": "$.sections[1]"
+    },
+    {
+      "section_id": "DD-02",
+      "title": "基本設計トレーサビリティ",
+      "json_path": "$.sections[2]"
+    },
+    {
+      "section_id": "DD-03",
+      "title": "詳細設計の前提と設計方針",
+      "json_path": "$.sections[3]"
+    },
+    {
+      "section_id": "DD-04",
+      "title": "対象範囲・非対象範囲",
+      "json_path": "$.sections[4]"
+    },
+    {
+      "section_id": "DD-05",
+      "title": "モジュール構成",
+      "json_path": "$.sections[5]"
+    },
+    {
+      "section_id": "DD-06",
+      "title": "データ構造・共有メモリ詳細",
+      "json_path": "$.sections[6]"
+    },
+    {
+      "section_id": "DD-07",
+      "title": "公開API詳細",
+      "json_path": "$.sections[7]"
+    },
+    {
+      "section_id": "DD-08",
+      "title": "RT処理詳細",
+      "json_path": "$.sections[8]"
+    },
+    {
+      "section_id": "DD-09",
+      "title": "TS処理詳細",
+      "json_path": "$.sections[9]"
+    },
+    {
+      "section_id": "DD-10",
+      "title": "API/外部連携処理詳細",
+      "json_path": "$.sections[10]"
+    },
+    {
+      "section_id": "DD-11",
+      "title": "状態遷移詳細",
+      "json_path": "$.sections[11]"
+    },
+    {
+      "section_id": "DD-12",
+      "title": "シーケンス詳細",
+      "json_path": "$.sections[12]"
+    },
+    {
+      "section_id": "DD-13",
+      "title": "入力仕様詳細",
+      "json_path": "$.sections[13]"
+    },
+    {
+      "section_id": "DD-14",
+      "title": "出力仕様詳細",
+      "json_path": "$.sections[14]"
+    },
+    {
+      "section_id": "DD-15",
+      "title": "エラー・アラーム詳細",
+      "json_path": "$.sections[15]"
+    },
+    {
+      "section_id": "DD-16",
+      "title": "安全・フェイルセーフ設計",
+      "json_path": "$.sections[16]"
+    },
+    {
+      "section_id": "DD-17",
+      "title": "排他・整合性・世代管理",
+      "json_path": "$.sections[17]"
+    },
+    {
+      "section_id": "DD-18",
+      "title": "パラメータ・設定詳細",
+      "json_path": "$.sections[18]"
+    },
+    {
+      "section_id": "DD-19",
+      "title": "ログ・診断・トレース",
+      "json_path": "$.sections[19]"
+    },
+    {
+      "section_id": "DD-20",
+      "title": "既存ソース影響",
+      "json_path": "$.sections[20]"
+    },
+    {
+      "section_id": "DD-21",
+      "title": "関数詳細仕様",
+      "json_path": "$.sections[21]"
+    },
+    {
+      "section_id": "DD-22",
+      "title": "テスト設計連携",
+      "json_path": "$.sections[22]"
+    },
+    {
+      "section_id": "DD-23",
+      "title": "ビルド・静的解析・レビュー",
+      "json_path": "$.sections[23]"
+    },
+    {
+      "section_id": "DD-24",
+      "title": "未決事項・プレレビュー結果",
+      "json_path": "$.sections[24]"
+    }
+  ],
+  "review_notes": [
+    "RT周期内処理時間は実装後に実測し、上限値を確定する。",
+    "共有メモリの世代番号更新順序は詳細実装レビューで確認する。",
+    "設備依存パラメータは機種別パラメータ台帳で最終確定する。"
+  ]
+}

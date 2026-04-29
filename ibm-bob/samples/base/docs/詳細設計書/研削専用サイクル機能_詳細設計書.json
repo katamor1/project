@@ -1,0 +1,127 @@
+{
+  "document_type": "IBM-Bob Detail Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "DD-00",
+    "DD-01",
+    "DD-02",
+    "DD-03",
+    "DD-04",
+    "DD-05",
+    "DD-06",
+    "DD-07",
+    "DD-08",
+    "DD-09",
+    "DD-10",
+    "DD-11",
+    "DD-12",
+    "DD-13",
+    "DD-14",
+    "DD-15",
+    "DD-16",
+    "DD-17",
+    "DD-18",
+    "DD-19",
+    "DD-20",
+    "DD-21",
+    "DD-22",
+    "DD-23",
+    "DD-24"
+  ],
+  "metadata": {
+    "document_id": "DD-CNC-212",
+    "feature_name": "研削専用サイクル機能",
+    "category": "研削サイクル",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_basic_design": "研削専用サイクル機能_基本設計書.docx",
+    "source_document": "設計_研削専用サイクル機能.docx"
+  },
+  "traceability": {
+    "basic_design_id": "BD-CNC-212",
+    "requirements": [
+      "G77〜G79が指定条件に応じたステップへ展開される",
+      "負荷超過時に安全停止する",
+      "機種差分パラメータを分離して管理できる"
+    ],
+    "codes": [
+      "G77: 定寸プランジ研削サイクル",
+      "G78: 連続送り平面研削サイクル",
+      "G79: 間欠送り平面研削サイクル",
+      "G70.7〜G76.7: 研削向け荒/仕上げサイクル"
+    ]
+  },
+  "module_design": {
+    "header": "include/cnc212_feature.h",
+    "source": "src/cnc212_feature.c",
+    "test": "tests/test_cnc212_feature.c",
+    "ts_functions": [
+      "Ts_CNC212_Prepare",
+      "Ts_CNC212_CommitExecBuffer"
+    ],
+    "rt_functions": [
+      "Rt_CNC212_ValidateSnapshot",
+      "Rt_CNC212_ExecuteCycle"
+    ],
+    "api_functions": [
+      "Api_GetCNC212Status",
+      "Api_RequestCNC212ConfigUpdate"
+    ]
+  },
+  "data_design": {
+    "config": "CNC212_FEATURE_CONFIG",
+    "request": "CNC212_FEATURE_REQUEST",
+    "status": "CNC212_FEATURE_STATUS",
+    "exec_block": "CNC212_EXEC_BLOCK",
+    "exec_buffer": "CNC212_EXEC_BUFFER",
+    "global": "g_cnc212Feature",
+    "consistency": "valid flag + generation_begin/generation_end + single writer policy"
+  },
+  "processing": {
+    "ts_service": [
+      "TS_SERVICEが研削Gコードを解析し、指定範囲、余量、送り、バックオフ量を検証する。",
+      "輪郭範囲と研削条件から荒取り、仕上げ、戻り、間欠休止の各ステップを生成する。",
+      "RT_CONTROLがステップを順次実行し、軸負荷、スピンドル/砥石状態、冷却条件、インターロックを監視する。",
+      "サイクル完了後、仕上げ面品質確認のためのログと状態をTS側に通知する。"
+    ],
+    "rt_control": [
+      "サイクル展開、工具・補正・PLC条件の検証はTS_SERVICEで行い、RT_CONTROLは展開済みステップを実行する。",
+      "工具、主軸、冷却、PLC応答のタイムアウトを状態遷移として管理する。"
+    ],
+    "state_machine": [
+      "DISABLED",
+      "ARMED",
+      "PREPARED",
+      "ACTIVE",
+      "HOLD",
+      "COMPLETE",
+      "ALARM"
+    ]
+  },
+  "errors": [
+    "サイクルパラメータ不正",
+    "研削負荷超過",
+    "冷却条件不成立",
+    "砥石状態異常",
+    "退避量不足"
+  ],
+  "constraints": [
+    "機種ごとにアドレス構成が異なるためパラメータ化",
+    "焦げ、過熱、砥石負荷を考慮した送り上限設定",
+    "補正やスキップ機能との併用を事前判定"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "DDR-001",
+    "DDR-002",
+    "DDR-003",
+    "DDR-004",
+    "DDR-005",
+    "DDR-006",
+    "DDR-007",
+    "DDR-008"
+  ]
+}

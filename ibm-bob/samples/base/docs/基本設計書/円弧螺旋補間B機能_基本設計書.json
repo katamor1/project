@@ -1,0 +1,120 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-307",
+    "feature_name": "円弧螺旋補間B機能",
+    "category": "補間",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_円弧螺旋補間B機能.docx"
+  },
+  "purpose": "選択平面上の円弧運動と軸方向移動を同時に行い、螺旋溝や円弧状リード加工を実現する。",
+  "overview": "G02.4/G03.4相当の円弧螺旋補間B指令を解析し、円弧中心/半径、終点、軸方向ピッチをもとに三次元螺旋軌跡を生成する。TS_SERVICEで軌跡生成し、RT_CONTROLは分割済み補間ブロックを実行する。",
+  "interfaces": {
+    "codes": [
+      "G17/G18/G19: 螺旋平面選択",
+      "G02.4/G03.4: 円弧螺旋補間B開始",
+      "X/Y/Z/I/J/K/R/F/Pitch: 終点、中心、半径、送り、ピッチ",
+      "G00/G01: 補間終了後の通常移動"
+    ],
+    "inputs": [
+      "選択平面",
+      "円弧終点",
+      "中心または半径",
+      "軸方向ピッチ",
+      "送り速度F",
+      "工具補正状態"
+    ],
+    "outputs": [
+      "螺旋補間ブロック",
+      "軸方向同時移動指令",
+      "螺旋角/速度見積り",
+      "幾何不正アラーム"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語マルチスレッド機械制御基盤。RT_INPUT/RT_CONTROL/RT_OUTPUTを割込周期内で実行し、TS_SERVICEがファイルI/O、NC解析、ログ、HMI/API連携を担当する。",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ],
+    "rt_rules": [
+      "Windows API呼出禁止",
+      "ファイルI/O禁止",
+      "動的メモリ確保禁止",
+      "長時間ブロッキング禁止",
+      "1割込周期内完了"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEが平面、円弧中心/半径、終点、ピッチを検証する。",
+    "円弧角度と軸方向移動量から螺旋軌跡を生成し、RT周期で消費可能なブロックへ分割する。",
+    "RT_CONTROLは各ブロックを実行し、速度上限、加速度、軸リミットを監視する。",
+    "通常補間指令によりモードを終了し、次ブロックへ遷移する。"
+  ],
+  "constraints": [
+    "平面内円弧軸と軸方向移動軸を明確に分離する。",
+    "ピッチ過大による速度超過・形状誤差を防止する。",
+    "工具補正との組合せは詳細設計で制限表化する。"
+  ],
+  "alarms": [
+    "円弧幾何不正",
+    "ピッチ範囲外",
+    "速度/加速度超過",
+    "補正併用不正",
+    "軸リミット超過"
+  ],
+  "acceptance_criteria": [
+    "指定平面とピッチから螺旋軌跡が生成される。",
+    "過大ピッチを開始前に検出する。",
+    "RT側は分割済みブロックのみを実行する。"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

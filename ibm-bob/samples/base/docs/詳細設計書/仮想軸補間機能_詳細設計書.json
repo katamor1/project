@@ -1,0 +1,287 @@
+{
+  "document_type": "IBM-Bob Detail Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "DD-00",
+    "DD-01",
+    "DD-02",
+    "DD-03",
+    "DD-04",
+    "DD-05",
+    "DD-06",
+    "DD-07",
+    "DD-08",
+    "DD-09",
+    "DD-10",
+    "DD-11",
+    "DD-12",
+    "DD-13",
+    "DD-14",
+    "DD-15",
+    "DD-16",
+    "DD-17",
+    "DD-18",
+    "DD-19",
+    "DD-20",
+    "DD-21",
+    "DD-22",
+    "DD-23",
+    "DD-24"
+  ],
+  "metadata": {
+    "document_id": "DD-CNC-305",
+    "source_basic_design_id": "BD-CNC-305",
+    "feature_name": "仮想軸補間機能",
+    "category": "補間",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_仮想軸補間機能.docx"
+  },
+  "purpose": "実在しない仮想軸を用いて円弧補間中の実軸速度を正弦波状に制御し、特殊輪郭やフラクショナルリード加工を実現する。",
+  "overview": "G07 α0で仮想軸を設定し、G07 α1で解除する。TS_SERVICEが仮想軸設定と補間対象軸を検証し、RT_CONTROLが円弧補間中に生成済み速度プロファイルを適用する。",
+  "traceability": [
+    {
+      "basic_section": "BD-01/BD-02",
+      "detail_section": "DD-01/DD-05",
+      "content": "目的・機能要求の詳細化"
+    },
+    {
+      "basic_section": "BD-06/BD-07",
+      "detail_section": "DD-06/DD-11/DD-12",
+      "content": "RT/TS/API処理分担の具体化"
+    },
+    {
+      "basic_section": "BD-09",
+      "detail_section": "DD-07/DD-16",
+      "content": "共有メモリ・整合性方式の具体化"
+    },
+    {
+      "basic_section": "BD-14/BD-15",
+      "detail_section": "DD-14/DD-15",
+      "content": "異常検出・フェイルセーフ設計の具体化"
+    }
+  ],
+  "architecture": {
+    "group": "補間・軌跡生成",
+    "baseline": "Windows C言語マルチスレッド機械制御基盤。RT_INPUT/RT_CONTROL/RT_OUTPUTを割込周期内で実行し、TS_SERVICEがファイルI/O、NC解析、ログ、HMI/API連携を担当する。",
+    "rt_policy": "RT_INPUT/RT_CONTROL/RT_OUTPUTは固定周期内で完了し、Windows API、ファイルI/O、動的メモリ確保、長時間ブロッキングを使用しない。",
+    "ts_policy": "TS_SERVICEはNC解析、パラメータ検証、ログ、画面/API連携、事前計算を担当する。",
+    "api_policy": "公開APIは要求登録とスナップショット取得に限定し、最終状態確定はRT_CONTROLまたはTS_SERVICEで行う。"
+  },
+  "modules": [
+    [
+      "TS_INTERP_PARSE",
+      "補間モード、平面、回転軸、半径、ピッチ等を解析する"
+    ],
+    [
+      "TS_INTERP_PLAN",
+      "幾何条件を検証し、補間パラメータを固定長形式へ変換する"
+    ],
+    [
+      "RT_INTERP_EXEC",
+      "周期ごとに補間目標点を算出し、軸指令へ展開する"
+    ],
+    [
+      "RT_LIMIT_CHECK",
+      "速度・加速度・ストロークリミットを周期監視する"
+    ]
+  ],
+  "shared_memory": [
+    {
+      "name": "g_virtualRequest",
+      "owner": "API/TS_SERVICE",
+      "writer": "API, TS_SERVICE",
+      "reader": "TS_SERVICE, RT_CONTROL",
+      "period": "要求発生時",
+      "consistency": "request_idとgenerationの二相更新"
+    },
+    {
+      "name": "g_virtualStatus",
+      "owner": "RT_CONTROL",
+      "writer": "RT_CONTROL, TS_SERVICE",
+      "reader": "API, UI, TS_SERVICE",
+      "period": "RT周期/TS周期",
+      "consistency": "state更新後にgenerationをインクリメント"
+    },
+    {
+      "name": "g_virtualParam",
+      "owner": "TS_SERVICE",
+      "writer": "TS_SERVICE",
+      "reader": "RT_CONTROL",
+      "period": "設定変更時",
+      "consistency": "inactive領域で編集後にactive_indexを切替"
+    },
+    {
+      "name": "g_machineCtx",
+      "owner": "RT_CONTROL",
+      "writer": "RT_CONTROL",
+      "reader": "TS_SERVICE/API",
+      "period": "RT周期",
+      "consistency": "既存世代番号に追随"
+    },
+    {
+      "name": "g_logQueue",
+      "owner": "TS_SERVICE",
+      "writer": "RT_CONTROL/TS_SERVICE",
+      "reader": "TS_SERVICE",
+      "period": "イベント発生時",
+      "consistency": "固定長リング、上書き時は欠落カウンタ更新"
+    }
+  ],
+  "api": [
+    {
+      "name": "Api_RequestVIRTUALMode",
+      "direction": "UI/外部→TS",
+      "role": "機能有効化・解除または設定変更を要求する",
+      "rt_safe": "直接RT状態を書き換えない"
+    },
+    {
+      "name": "Api_GetVIRTUALStatus",
+      "direction": "外部←状態",
+      "role": "機能状態、アラーム、処理中ブロック番号を取得する",
+      "rt_safe": "スナップショットのみ"
+    },
+    {
+      "name": "Api_SetVIRTUALParameter",
+      "direction": "UI/保守→TS",
+      "role": "設備依存パラメータを検証キューへ登録する",
+      "rt_safe": "運転中変更不可項目をTSで拒否"
+    }
+  ],
+  "functional_details": {
+    "inputs": [
+      "G07指令",
+      "仮想軸対象軸",
+      "円弧補間ブロック",
+      "振幅/周波数パラメータ",
+      "送り速度"
+    ],
+    "codes": [
+      "G07 α0: 仮想軸設定",
+      "G07 α1: 仮想軸解除",
+      "G02/G03: 仮想軸補間対象の円弧補間",
+      "F: 送り速度"
+    ],
+    "outputs": [
+      "仮想軸補間状態",
+      "正弦波速度プロファイル",
+      "実軸補間指令",
+      "併用禁止アラーム"
+    ],
+    "algorithm": "TS側で補間平面、中心、半径、ワーク半径、仮想軸有無などを正規化し、RT側では事前計算済み係数から周期ごとの目標点を生成する。座標変換や補正の順序はモードテーブルで固定化する。",
+    "rt_processing": "補間係数の読出し、周期目標点計算、軸出力、リミット監視を実施する。メモリ確保やファイルアクセスは禁止。",
+    "ts_processing": "幾何条件・併用禁止条件の検証、補間区間の分割、リングバッファへの投入を行う。"
+  },
+  "state_machine": [
+    {
+      "state": "DISABLED",
+      "description": "機能無効。通常のNC/軸制御を行う。",
+      "entry": "初期状態または解除要求完了",
+      "exit": "有効化要求をTSが検証完了"
+    },
+    {
+      "state": "ARMED",
+      "description": "設定検証済み。次の対象ブロックまたは条件成立を待つ。",
+      "entry": "パラメータ/モード検証OK",
+      "exit": "対象ブロック実行開始"
+    },
+    {
+      "state": "ACTIVE",
+      "description": "機能がRT周期で反映中。",
+      "entry": "RT_CONTROLが有効世代を取得",
+      "exit": "対象区間終了、解除要求、異常検出"
+    },
+    {
+      "state": "HOLD",
+      "description": "一時停止・保留。出力は安全側に固定。",
+      "entry": "保持要求またはインターロック",
+      "exit": "再開条件成立または停止要求"
+    },
+    {
+      "state": "ALARM",
+      "description": "異常検出。安全出力へ遷移し復帰操作を待つ。",
+      "entry": "パラメータ不正、追従誤差、併用禁止、バッファ欠落",
+      "exit": "原因除去とリセット"
+    }
+  ],
+  "alarms": [
+    "仮想軸対象不正",
+    "オプション未有効",
+    "併用禁止補間",
+    "振幅/周波数範囲外",
+    "解除漏れ"
+  ],
+  "safety": [
+    "異常検出時はRT_CONTROLが新規軸指令を抑止し、既存のフェイルセーフ出力に従う。",
+    "運転中に変更できないパラメータはTS_SERVICEが拒否し、変更要求を保留またはアラーム化する。",
+    "外部APIからの要求は直接RT制御値を変更せず、要求キューと世代番号で反映タイミングを制御する。",
+    "未確定座標、原点未確立、サーボ未励磁、補正未解除などの前提不成立時は対象ブロックを実行しない。"
+  ],
+  "performance": [
+    "RT処理は1割込周期内に完了する固定長処理とし、最悪時間は実機またはHILで測定する。",
+    "TS側の幾何計算・パス展開は先読みバッファに投入し、RT側での突発的な計算量増大を防ぐ。",
+    "共有メモリ更新は世代番号方式と二重バッファ方式を使い、RT周期中の不完全読取りを防止する。"
+  ],
+  "source_impact": [
+    [
+      "include/system_config.h",
+      "機能有効化マクロ、上限数、バッファサイズ、周期上限usecを追加"
+    ],
+    [
+      "include/system_shared.h",
+      "要求・状態・パラメータ・実行ブロック用構造体を追加"
+    ],
+    [
+      "include/control_api.h",
+      "要求登録/状態取得APIプロトタイプを追加"
+    ],
+    [
+      "src/control_api.c",
+      "API入力検証、要求ID採番、スナップショット取得を実装"
+    ],
+    [
+      "src/rt_control.c",
+      "周期処理、状態遷移、安全停止、出力抑止を追加"
+    ],
+    [
+      "src/ts_service.c",
+      "NC解析、パラメータ検証、ログ、事前計算を追加"
+    ]
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "open_issues": [
+    "実機ごとの軸数、対象軸、パラメータ番号、PMC信号割付けを確定する。",
+    "RT周期内処理時間の上限値と測定方法を詳細設計レビューで確定する。",
+    "既存NC解析器の未対応Gコード/アドレスと併用禁止機能の優先順位を確定する。"
+  ],
+  "pre_review": [
+    {
+      "id": "DDR-RT-001",
+      "result": "WARN",
+      "comment": "RT処理時間の実測値は実装後に確定する。"
+    },
+    {
+      "id": "DDR-SHM-002",
+      "result": "OK",
+      "comment": "共有メモリは所有者、書込元、読取元、世代番号方式を定義した。"
+    },
+    {
+      "id": "DDR-SAFE-003",
+      "result": "OK",
+      "comment": "異常時の安全側遷移と出力抑止を定義した。"
+    },
+    {
+      "id": "DDR-API-004",
+      "result": "OK",
+      "comment": "APIは要求登録/状態取得に限定しRT直接更新を避けた。"
+    },
+    {
+      "id": "DDR-BLD-005",
+      "result": "WARN",
+      "comment": "VC2026/clangの実装対象ファイル追加後にCIコマンド確認が必要。"
+    }
+  ]
+}

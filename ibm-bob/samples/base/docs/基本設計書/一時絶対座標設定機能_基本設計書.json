@@ -1,0 +1,119 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-310",
+    "feature_name": "一時絶対座標設定機能",
+    "category": "絶対位置検出",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_一時絶対座標設定機能.docx"
+  },
+  "purpose": "絶対パルスコーダとインクリメンタルスケール併用システムで、原点復帰前でも仮の絶対座標を設定し、ストロークリミットチェックや位置スイッチを利用可能にする。",
+  "overview": "電源投入直後に絶対パルスコーダから粗い位置を取得し、原点復帰完了までの暫定機械座標として保持する。原点復帰後は正確な機械座標へ切り替える。",
+  "interfaces": {
+    "codes": [
+      "対象: シリアル絶対パルスコーダ+インクリメンタルスケール全閉ループ",
+      "仮絶対座標設定パラメータ",
+      "ストロークリミットチェック",
+      "位置スイッチ利用"
+    ],
+    "inputs": [
+      "絶対パルスコーダ粗位置",
+      "インクリメンタルスケール状態",
+      "電源投入状態",
+      "原点復帰状態",
+      "軸設定"
+    ],
+    "outputs": [
+      "仮絶対座標",
+      "原点復帰前リミット判定",
+      "位置スイッチ判定",
+      "座標精度警告"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語マルチスレッド機械制御基盤。RT_INPUT/RT_CONTROL/RT_OUTPUTを割込周期内で実行し、TS_SERVICEがファイルI/O、NC解析、ログ、HMI/API連携を担当する。",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ],
+    "rt_rules": [
+      "Windows API呼出禁止",
+      "ファイルI/O禁止",
+      "動的メモリ確保禁止",
+      "長時間ブロッキング禁止",
+      "1割込周期内完了"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEが起動時に軸構成と検出器状態を確認する。",
+    "RT_INPUT/RT_CONTROLが粗位置を仮機械座標として取り込み、ストロークリミット判定へ使用する。",
+    "原点復帰完了後、正確な機械座標に切り替え、仮座標フラグを解除する。",
+    "TS_SERVICEが仮座標期間と切替結果をログ化する。"
+  ],
+  "constraints": [
+    "仮座標では精度加工を許可しない。",
+    "原点復帰前に使用できる機能をストロークリミットと位置スイッチ等に限定する。",
+    "検出器異常時は仮座標を採用しない。"
+  ],
+  "alarms": [
+    "絶対パルスコーダ読取失敗",
+    "仮座標範囲外",
+    "原点復帰切替失敗",
+    "検出器構成不一致",
+    "仮座標での加工開始要求"
+  ],
+  "acceptance_criteria": [
+    "電源投入後に仮絶対座標が設定される。",
+    "原点復帰前でもリミットチェックが働く。",
+    "加工開始は原点復帰後のみ許可される。"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

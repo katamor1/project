@@ -1,5 +1,10 @@
+/* ibm-bob/samples/base/source/src/ts_service.c */
+/* Runs non-real-time service work for logs, prefetch, UI, and NC file parsing. */
+/* This exists so file I/O and variable-time parsing stay out of RT control. */
+/* RELEVANT FILES: ibm-bob/samples/base/source/inc/ts_service.h, ibm-bob/samples/base/source/inc/nc_program.h, ibm-bob/samples/base/source/src/nc_program.c */
 #include <stdio.h>
 #include <string.h>
+#include "nc_program.h"
 #include "ts_service.h"
 #include "system_shared.h"
 #include "system_config.h"
@@ -18,6 +23,7 @@ void TsService_ExecuteSlice(void)
     TsService_HandleLogFlush();
     TsService_WritePendingLogs();
     TsService_ExecutePrefetch();
+    TsNcProgram_ExecuteSlice();
     TsService_BuildUiSnapshot();
 }
 
@@ -45,7 +51,7 @@ void TsService_WritePendingLogs(void)
     }
 
     while (g_logQueue.head != g_logQueue.tail) {
-        const LOG_ITEM* pItem = &g_logQueue.items[g_logQueue.head];
+        const volatile LOG_ITEM* pItem = &g_logQueue.items[g_logQueue.head];
         (void)fprintf(s_logFile, "%u,%u,%d,%u\n",
                       pItem->event_type,
                       pItem->code,

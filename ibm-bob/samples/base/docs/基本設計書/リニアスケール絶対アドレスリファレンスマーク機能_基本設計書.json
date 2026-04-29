@@ -1,0 +1,119 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-317",
+    "feature_name": "リニアスケール絶対アドレスリファレンスマーク機能",
+    "category": "絶対位置検出",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_リニアスケール絶対アドレスリファレンスマーク機能.docx"
+  },
+  "purpose": "絶対アドレスリファレンスマーク付きリニアスケールにより、長距離の原点復帰を行わずに短距離移動で機械位置を推定・確立する。",
+  "overview": "電源投入後にリファレンスマーク間隔を測定し、絶対アドレスから機械座標を決定する。TS_SERVICEが軸設定と検出器条件を管理し、RT_CONTROLが短距離移動と位置確立状態を監視する。",
+  "interfaces": {
+    "codes": [
+      "絶対アドレスリファレンスマーク対応リニアスケール",
+      "高分解能シリアル出力",
+      "最大ストローク30m相当",
+      "リファレンスマーク検出信号"
+    ],
+    "inputs": [
+      "リニアスケール信号",
+      "リファレンスマーク間隔",
+      "軸移動量",
+      "検出器設定",
+      "電源投入状態"
+    ],
+    "outputs": [
+      "確立済み機械座標",
+      "リファレンスポイント確立状態",
+      "短距離原点復帰結果",
+      "検出失敗アラーム"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語マルチスレッド機械制御基盤。RT_INPUT/RT_CONTROL/RT_OUTPUTを割込周期内で実行し、TS_SERVICEがファイルI/O、NC解析、ログ、HMI/API連携を担当する。",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ],
+    "rt_rules": [
+      "Windows API呼出禁止",
+      "ファイルI/O禁止",
+      "動的メモリ確保禁止",
+      "長時間ブロッキング禁止",
+      "1割込周期内完了"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEが対応スケール、軸設定、最大ストロークを確認する。",
+    "RT_CONTROLが安全な短距離移動を実行し、リファレンスマーク信号を取り込む。",
+    "測定したマーク間隔と絶対アドレスから機械位置を算出する。",
+    "位置確立後、機械座標系有効状態を更新し、通常運転へ移行する。"
+  ],
+  "constraints": [
+    "対応スケール、検出器、アンプが必要。",
+    "短距離移動中もストロークリミットを監視する。",
+    "検出失敗時は通常の原点復帰へフォールバックする。"
+  ],
+  "alarms": [
+    "マーク未検出",
+    "間隔測定不正",
+    "検出器未対応",
+    "ストローク超過",
+    "位置確立失敗"
+  ],
+  "acceptance_criteria": [
+    "短距離移動で機械座標が確立される。",
+    "マーク未検出時に安全に停止する。",
+    "確立後に機械座標系機能が使用可能となる。"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

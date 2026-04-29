@@ -1,0 +1,120 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-304",
+    "feature_name": "可変リードねじ切り機能",
+    "category": "ねじ切り・主軸同期",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_可変リードねじ切り機能.docx"
+  },
+  "purpose": "G34により主軸1回転ごとにリードを増減させ、テーパ状または特殊ピッチのねじ加工を実現する。",
+  "overview": "始点リードF、リード増減量K/R、開始角Q、終点座標を解析し、主軸同期の可変ピッチ送り指令を生成する。TS_SERVICEがリード系列を展開し、RT_CONTROLは主軸位相に同期して実行する。",
+  "interfaces": {
+    "codes": [
+      "G34 IP_ F_ K_ Q_: 可変リードねじ切り",
+      "F: 初期リード",
+      "K/R: 1回転あたりのリード増減量",
+      "Q: ねじ切り開始角シフト"
+    ],
+    "inputs": [
+      "G34ブロック",
+      "終点座標",
+      "初期リードF",
+      "リード増減量K/R",
+      "開始角Q",
+      "主軸位相"
+    ],
+    "outputs": [
+      "可変リード同期送り指令",
+      "リード系列",
+      "加工進行状態",
+      "リード範囲アラーム"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語マルチスレッド機械制御基盤。RT_INPUT/RT_CONTROL/RT_OUTPUTを割込周期内で実行し、TS_SERVICEがファイルI/O、NC解析、ログ、HMI/API連携を担当する。",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ],
+    "rt_rules": [
+      "Windows API呼出禁止",
+      "ファイルI/O禁止",
+      "動的メモリ確保禁止",
+      "長時間ブロッキング禁止",
+      "1割込周期内完了"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがG34指令を解析し、リード変化量と終点までの回転数を見積もる。",
+    "リードが負値または上限超過とならないことを確認し、主軸回転ごとの送り計画を生成する。",
+    "RT_CONTROLは主軸位相に同期して可変リード送りを実行する。",
+    "終了後、退避ブロックへ遷移し、ねじ切り状態を解除する。"
+  ],
+  "constraints": [
+    "G34中はねじ切りサイクルリトラクトを使用しない。",
+    "リード増減によりリードが負値にならないこと。",
+    "主軸同期確立前には開始しない。"
+  ],
+  "alarms": [
+    "F未指定",
+    "K/R範囲外",
+    "リード負値化",
+    "Q角度範囲外",
+    "主軸同期異常"
+  ],
+  "acceptance_criteria": [
+    "G34指令から可変リード送りが生成される。",
+    "範囲外リードを開始前に検出する。",
+    "Q指定時に開始角シフトが反映される。"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

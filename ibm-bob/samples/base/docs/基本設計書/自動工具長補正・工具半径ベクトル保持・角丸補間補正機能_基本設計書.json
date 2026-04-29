@@ -1,0 +1,89 @@
+{
+  "schema_version": "IBM-Bob Basic Design v2.0 compatible",
+  "document": {
+    "id": "BD-012",
+    "title": "自動工具長補正・工具半径ベクトル保持・角丸補間補正機能_基本設計書",
+    "language": "ja-JP",
+    "created_at": "2026-04-29",
+    "source_file": "設計_自動工具長補正・工具半径ベクトル保持・角丸補間補正機能.docx",
+    "status": "draft_for_review"
+  },
+  "feature": {
+    "name": "自動工具長補正・工具半径ベクトル保持・角丸補間補正機能",
+    "category": "補間・軌跡生成",
+    "overview": [
+      "自動工具長補正（G37/G37.1/G37.2）は、工具をワークに当ててスキップ信号により工具長を自動測定し、工具長補正値を自動的に登録する機能である。工具半径ベクトル保持（G38）は、工具半径またはノーズRの補正量を一定のベクトル方向に維持する機能であり、工具補正中にベクトルを保持することで繋ぎ部の形状変化を抑える。角丸補間補正（G39）は、直線と直線の交点に円弧を自動的に挿入して角部を丸める機能である。"
+    ],
+    "source_interface_notes": [],
+    "source_flow": [
+      "【自動工具長補正】\n1. G37/G37.1/G37.2を指定すると、制御装置は指定軸方向に工具を送り込み、スキップ信号でワーク表面を検出する。\n2. 検出時の機械座標との差を計算し、工具長補正テーブルに自動登録する。\n3. 以降の加工では登録された工具長補正値が使用される。\n\n【工具半径ベクトル保持】\n1. 工具半径補正中にG38を指定すると、補正ベクトルを保持したまま切込み方向が変化しても工具先端の接触点を維持する。\n2. 曲面の連結部などで形状が変化しないようにするために用いる。\n\n【角丸補間補正】\n1. G39を指定すると、直線運動から直線運動への角部に自動的に半径Rの円弧を挿入する。\n2. プログラム上では角部の接線半径を指定するだけで、制御装置が円弧補間を挿入して段差のない加工を実現する。"
+    ],
+    "source_design_notes": [
+      "・自動工具長補正を使用する際は、機械にスキップ入力（計測スイッチ）と対応パラメータ設定が必要である。補正を行う軸に応じてG37/G37.1/G37.2を選択し、パラメータNo.3405のビット設定を確認する。\n・工具半径ベクトル保持や角丸補間補正は工具半径補正機能と組み合わせて使用されるため、G41/G42を適切にオン/オフしながら使用する。"
+    ],
+    "g_codes": [
+      "G37",
+      "G37.1",
+      "G37.2",
+      "G38",
+      "G39",
+      "G41",
+      "G42"
+    ],
+    "parameters": [
+      "No.3405"
+    ],
+    "signals": []
+  },
+  "architecture": {
+    "platform": "Windows C multi-threaded machine-control platform",
+    "rt_thread": "RT_INPUT/RT_CONTROL/RT_OUTPUTをハードウェア割込周期内で実行する。RT側ではWindows API、ファイルI/O、動的メモリ確保、長時間ブロックを禁止する。",
+    "ts_thread": "TS_SERVICEでNC解析、パラメータ読出、ログ、UI/PMC連携、重い演算の先読みを行う。",
+    "api_policy": "公開APIは要求登録とスナップショット取得に限定し、状態確定はRT_CONTROLまたはTS_SERVICE側で行う。"
+  },
+  "shared_memory": {
+    "existing": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "candidate_additions": [
+      "g_featureConfig[12]",
+      "g_featureRequest[12]",
+      "g_featureStatus[12]",
+      "g_featureTrace[12]"
+    ]
+  },
+  "sections": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  }
+}

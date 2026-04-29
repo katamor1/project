@@ -1,0 +1,145 @@
+{
+  "metadata": {
+    "document_id": "DD-AUTO-6881C4",
+    "document_type": "詳細設計書",
+    "version": "0.1",
+    "created_on": "2026-04-29",
+    "target_system": "IBM-Bob基盤システム",
+    "target_environment": "Windows / C言語 / RT + TS thread",
+    "feature_name": "EGB軸用スキップ機能",
+    "source_basic_design": "EGB軸用スキップ機能_基本設計書.docx",
+    "source_hash": "6c534c7448c13c13",
+    "section_range": "DD-00〜DD-24",
+    "note": "ユーザーが20件と指定したが、この実行で確認できたアップロード済み基本設計書は18件。確認できた18件を対象に生成。"
+  },
+  "traceability": {
+    "basic_design_summary": "EGB軸用スキップ機能 電子ギアボックス(EGB)同期モードでスレーブ軸に対してスキップ信号を利用するための機能である。EGB軸用スキップ機能では、スキップ信号が入力されてもブロックが終了せず、指定数のスキップ信号が入力されるまで同期モードを維持して移動を続ける。また、スキップ信号が入力された際の機械座標と入力回数をカスタムマクロ変数に記録できる。 スキップ信号が入力されると、EGBスレーブ軸は停止せず同期モードを維持したまま運動を続ける。指定したQ回分のスキップ信号が入力されるとブロックが終了し、記録された各スキップ位置はPで指定したカスタムマクロ変数列に保存され、Rで指定した変数には入力された信号数が格納される。",
+    "codes": [
+      "G31",
+      "G31.8",
+      "G81",
+      "G91"
+    ],
+    "category": "egb_skip"
+  },
+  "design": {
+    "identifier": "EgbSkip",
+    "snake": "egb_skip",
+    "control_type": "EGB同期運転中のスキップ入力をRT側で取り込み、TS側でマクロ変数反映・診断ログ化する同期スキップ制御",
+    "algorithm": "RT_INPUTでスキップ信号立上りをエッジ検出し、RT_CONTROLでスレーブ軸位置を固定配列へ保存する。指定回数に到達した時点でブロック完了を立て、TS_SERVICEがマクロ変数へ転記する。",
+    "states": [
+      "IDLE",
+      "WAIT_EGB_SYNC",
+      "CAPTURING",
+      "COMPLETE",
+      "CANCELLED",
+      "ALARM"
+    ],
+    "shared_memory": [
+      [
+        "g_egb_skipCmd",
+        "EGBSKIP_CMD",
+        "TS更新 / RT読取",
+        "P/Q/R、対象軸、許容入力回数、実行世代"
+      ],
+      [
+        "g_egb_skipCapture",
+        "EGBSKIP_CAPTURE",
+        "RT更新 / TS読取",
+        "スキップ検出回数、検出位置配列、完了フラグ"
+      ]
+    ],
+    "apis": [
+      [
+        "Api_GetEgbSkipStatus",
+        "スキップ取得状態と入力回数を取得"
+      ]
+    ],
+    "modules": [
+      {
+        "module": "include/system_config.h",
+        "change": "機能有効/上限サイズ/RT予算マクロを追加または参照"
+      },
+      {
+        "module": "include/system_shared.h",
+        "change": "EGBSKIP_CMD 等の共有構造体宣言を追加"
+      },
+      {
+        "module": "include/control_api.h",
+        "change": "状態取得APIおよび必要に応じた要求登録APIのプロトタイプを追加"
+      },
+      {
+        "module": "include/nc_interpreter.h",
+        "change": "NC解析テーブル、モーダル状態、内部実行ブロック型を追加/拡張"
+      },
+      {
+        "module": "src/nc_interpreter.c",
+        "change": "G/M/アドレス解析、パラメータ検証、実行ブロック生成を実装"
+      },
+      {
+        "module": "src/ts_service.c",
+        "change": "ファイルI/O、先読み、展開、ログ整形、HMI/API通知を実装"
+      },
+      {
+        "module": "src/rt_control.c",
+        "change": "周期内状態判定、固定長実行ブロック消費、安全遷移を実装"
+      },
+      {
+        "module": "src/rt_output.c",
+        "change": "軸/主軸/PMC出力、減速停止、フェイルセーフ出力を確定"
+      }
+    ],
+    "functions": [
+      {
+        "name": "egb_skip_init",
+        "thread": "TS/INIT",
+        "role": "共有メモリ初期化、定義テーブル読込、既定状態設定"
+      },
+      {
+        "name": "egb_skip_parse_block",
+        "thread": "TS_SERVICE",
+        "role": "NCブロックまたはAPI要求を検証し、内部命令へ変換"
+      },
+      {
+        "name": "egb_skip_prepare_rt_block",
+        "thread": "TS_SERVICE",
+        "role": "RTが周期内で扱える固定長実行ブロックへ展開"
+      },
+      {
+        "name": "egb_skip_rt_update",
+        "thread": "RT_CONTROL",
+        "role": "周期内状態更新、実行ブロック消費、安全条件判定"
+      },
+      {
+        "name": "egb_skip_rt_fail_safe",
+        "thread": "RT_CONTROL/RT_OUTPUT",
+        "role": "異常検出時の減速停止、出力遮断、ALARM遷移"
+      },
+      {
+        "name": "egb_skip_api_get_status",
+        "thread": "API",
+        "role": "世代番号付きスナップショットを返却"
+      }
+    ],
+    "hardware_inputs": [
+      "EGB同期状態",
+      "スキップ入力信号",
+      "マスタ軸位置",
+      "スレーブ軸位置",
+      "主軸/同期パルス"
+    ],
+    "errors": [
+      "DD-E301 EGB同期未成立",
+      "DD-E302 Q範囲外",
+      "DD-E303 キャプチャ配列満杯",
+      "DD-E304 スキップ入力チャタリング"
+    ],
+    "rt_budget_us": "未確定。初期目標はRT_CONTROL差分で50us以下、最大でも1割込周期の10%以内。",
+    "build_commands": [
+      "cmd /c scripts\\build_vc2026.bat",
+      "cmd /c scripts\\test_vc2026.bat",
+      "cmd /c scripts\\build_clang.bat",
+      "cmd /c scripts\\test_clang.bat"
+    ]
+  }
+}

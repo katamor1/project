@@ -1,0 +1,129 @@
+{
+  "document_type": "IBM-Bob Detail Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "DD-00",
+    "DD-01",
+    "DD-02",
+    "DD-03",
+    "DD-04",
+    "DD-05",
+    "DD-06",
+    "DD-07",
+    "DD-08",
+    "DD-09",
+    "DD-10",
+    "DD-11",
+    "DD-12",
+    "DD-13",
+    "DD-14",
+    "DD-15",
+    "DD-16",
+    "DD-17",
+    "DD-18",
+    "DD-19",
+    "DD-20",
+    "DD-21",
+    "DD-22",
+    "DD-23",
+    "DD-24"
+  ],
+  "metadata": {
+    "document_id": "DD-CNC-216",
+    "feature_name": "極座標補間機能",
+    "category": "補間",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_basic_design": "極座標補間機能_基本設計書.docx",
+    "source_document": "設計_極座標補間機能.docx"
+  },
+  "traceability": {
+    "basic_design_id": "BD-CNC-216",
+    "requirements": [
+      "直交座標指令が直線/回転同期指令へ変換される",
+      "禁止指令をモード中に検出する",
+      "G13.1で平面状態が復元される"
+    ],
+    "codes": [
+      "G12.1: 極座標補間モード開始",
+      "G13.1: 極座標補間モード解除",
+      "G01/G02/G03: 極座標平面内補間",
+      "G40〜G42: 工具径補正との関連管理"
+    ]
+  },
+  "module_design": {
+    "header": "include/cnc216_feature.h",
+    "source": "src/cnc216_feature.c",
+    "test": "tests/test_cnc216_feature.c",
+    "ts_functions": [
+      "Ts_CNC216_Prepare",
+      "Ts_CNC216_CommitExecBuffer"
+    ],
+    "rt_functions": [
+      "Rt_CNC216_ValidateSnapshot",
+      "Rt_CNC216_ExecuteCycle"
+    ],
+    "api_functions": [
+      "Api_GetCNC216Status",
+      "Api_RequestCNC216ConfigUpdate"
+    ]
+  },
+  "data_design": {
+    "config": "CNC216_FEATURE_CONFIG",
+    "request": "CNC216_FEATURE_REQUEST",
+    "status": "CNC216_FEATURE_STATUS",
+    "exec_block": "CNC216_EXEC_BLOCK",
+    "exec_buffer": "CNC216_EXEC_BUFFER",
+    "global": "g_cnc216Feature",
+    "consistency": "valid flag + generation_begin/generation_end + single writer policy"
+  },
+  "processing": {
+    "ts_service": [
+      "TS_SERVICEがG12.1を単独ブロックで受理し、パラメータ指定の直線軸・回転軸を選択する。",
+      "後続の直交座標指令を極座標関係式により直線軸移動量と回転軸角度へ変換する。",
+      "工具径補正が必要な場合は補正後の通路に対して変換し、RT実行ブロックへ格納する。",
+      "G13.1でモードを解除し、元の平面選択状態を復帰する。"
+    ],
+    "rt_control": [
+      "座標・単位・指令方式の正規化はTS_SERVICEで完了し、RT_CONTROLには内部標準単位の絶対目標値だけを渡す。",
+      "座標変換モード中の禁止Gコード、補正、レファレンス点復帰、単位切換との競合を実行前に判定する。",
+      "幾何計算、分割点生成、同時制御軸の補間テーブル化はTS_SERVICEで実施する。",
+      "RT_CONTROLは補間セグメントを固定長ブロックとして消費し、幾何再計算は行わない。"
+    ],
+    "state_machine": [
+      "DISABLED",
+      "ARMED",
+      "PREPARED",
+      "ACTIVE",
+      "HOLD",
+      "COMPLETE",
+      "ALARM"
+    ]
+  },
+  "errors": [
+    "対象軸未設定",
+    "補正状態不正",
+    "座標系変更指令",
+    "変換後速度超過",
+    "中心シフト設定不正"
+  ],
+  "constraints": [
+    "G12.1/G13.1は補正キャンセル状態で指令",
+    "モード中の座標系変更、平面変更、工具長補正変更を禁止",
+    "回転軸中心シフト時は表示座標との違いを明示"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "DDR-001",
+    "DDR-002",
+    "DDR-003",
+    "DDR-004",
+    "DDR-005",
+    "DDR-006",
+    "DDR-007",
+    "DDR-008"
+  ]
+}

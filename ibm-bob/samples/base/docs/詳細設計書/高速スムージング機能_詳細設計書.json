@@ -1,0 +1,126 @@
+{
+  "document_type": "IBM-Bob Detail Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "DD-00",
+    "DD-01",
+    "DD-02",
+    "DD-03",
+    "DD-04",
+    "DD-05",
+    "DD-06",
+    "DD-07",
+    "DD-08",
+    "DD-09",
+    "DD-10",
+    "DD-11",
+    "DD-12",
+    "DD-13",
+    "DD-14",
+    "DD-15",
+    "DD-16",
+    "DD-17",
+    "DD-18",
+    "DD-19",
+    "DD-20",
+    "DD-21",
+    "DD-22",
+    "DD-23",
+    "DD-24"
+  ],
+  "metadata": {
+    "document_id": "DD-CNC-205",
+    "feature_name": "高速スムージング機能",
+    "category": "軌跡整形",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_basic_design": "高速スムージング機能_基本設計書.docx",
+    "source_document": "設計_高速スムージング機能.docx"
+  },
+  "traceability": {
+    "basic_design_id": "BD-CNC-205",
+    "requirements": [
+      "短線分連続で減速停止が抑制される",
+      "許容誤差超過時に平滑化しない",
+      "G08 P0で通常軌跡に復帰する"
+    ],
+    "codes": [
+      "G08 P1: 標準スムージング開始",
+      "G08 P2: 高精度スムージング開始",
+      "G08 P0: スムージング解除",
+      "G01/G02/G03: 対象補間命令"
+    ]
+  },
+  "module_design": {
+    "header": "include/cnc205_feature.h",
+    "source": "src/cnc205_feature.c",
+    "test": "tests/test_cnc205_feature.c",
+    "ts_functions": [
+      "Ts_CNC205_Prepare",
+      "Ts_CNC205_CommitExecBuffer"
+    ],
+    "rt_functions": [
+      "Rt_CNC205_ValidateSnapshot",
+      "Rt_CNC205_ExecuteCycle"
+    ],
+    "api_functions": [
+      "Api_GetCNC205Status",
+      "Api_RequestCNC205ConfigUpdate"
+    ]
+  },
+  "data_design": {
+    "config": "CNC205_FEATURE_CONFIG",
+    "request": "CNC205_FEATURE_REQUEST",
+    "status": "CNC205_FEATURE_STATUS",
+    "exec_block": "CNC205_EXEC_BLOCK",
+    "exec_buffer": "CNC205_EXEC_BUFFER",
+    "global": "g_cnc205Feature",
+    "consistency": "valid flag + generation_begin/generation_end + single writer policy"
+  },
+  "processing": {
+    "ts_service": [
+      "TS_SERVICEがG08開始を受理し、対象区間の先読みを開始する。",
+      "隣接ブロックの方向差、長さ、送り速度から丸め可否を判定する。",
+      "許容誤差内のブレンド曲線または補間点列を生成し、RT用バッファに登録する。",
+      "RT_CONTROLは登録済みブロックを周期実行し、G08 P0で通常ブロック消費へ戻る。"
+    ],
+    "rt_control": [
+      "先読み、速度プロファイル、許容誤差判定、ジャーク/加速度制限計算はTS_SERVICEで行う。",
+      "RT_CONTROLは先読み充足率とプロファイル世代を監視し、アンダーラン時は安全側速度または停止へ遷移する。"
+    ],
+    "state_machine": [
+      "DISABLED",
+      "ARMED",
+      "PREPARED",
+      "ACTIVE",
+      "HOLD",
+      "COMPLETE",
+      "ALARM"
+    ]
+  },
+  "errors": [
+    "許容誤差超過",
+    "非対応補間混在",
+    "先読み不足",
+    "モード解除漏れ"
+  ],
+  "constraints": [
+    "急激な方向変換、穴あけ、タッピング、重切削では解除する",
+    "加工品許容差より大きい丸めを禁止",
+    "CAM分割が細かすぎる場合のバッファ負荷を監視"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "DDR-001",
+    "DDR-002",
+    "DDR-003",
+    "DDR-004",
+    "DDR-005",
+    "DDR-006",
+    "DDR-007",
+    "DDR-008"
+  ]
+}

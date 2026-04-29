@@ -1,0 +1,116 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-215",
+    "feature_name": "傾斜平面割出し・特徴座標系機能",
+    "category": "5軸座標変換",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_傾斜平面割出し・特徴座標系機能.docx"
+  },
+  "purpose": "回転軸を持つ機械で傾斜ワーク面を通常の平面座標としてプログラム可能にし、内部座標変換により正しい姿勢・位置で加工する。",
+  "overview": "G68.2/G68.3/G68.4で傾斜平面または特徴座標系を定義し、G69で解除する。TS_SERVICEが回転行列と工具軸方向を算出し、RT_CONTROLは変換済み目標座標を実行する。",
+  "interfaces": {
+    "codes": [
+      "G68.2 X Y Z I J K: オイラー角等による傾斜平面指定",
+      "G68.3: 工具軸方向指定",
+      "G68.4: 複数点/複数ブロックによる傾斜面設定",
+      "G69: 傾斜平面解除",
+      "G53.1/G53.6: 工具軸方向制御/工具中心点保持"
+    ],
+    "inputs": [
+      "特徴座標系原点",
+      "回転角/工具軸方向/定義点",
+      "回転軸構成",
+      "工具中心点制御有効状態",
+      "ワーク座標系"
+    ],
+    "outputs": [
+      "特徴座標系変換行列",
+      "変換済み目標座標",
+      "工具姿勢指令",
+      "5軸変換状態"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語製のマルチスレッド機械制御基盤を前提とする。ハードウェア割込で起床するRT_INPUT/RT_CONTROL/RT_OUTPUTと、CPU余力で動作するTS_SERVICEを分離する。",
+    "rt_rules": "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキング、三角関数や探索など処理時間が変動する重計算を禁止し、1割込周期内に処理を完了する。",
+    "rt_responsibility": "固定長データ消費、周期内安全監視、フェイルセーフ出力",
+    "ts_responsibility": "NC解析、変換、先読み、ファイルI/O、ログ、HMI/API連携",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがG68.2〜G68.4を単独ブロックとして解析し、指定方式に応じて特徴座標系を算出する。",
+    "機械構成、回転軸制限、工具中心点制御条件を確認し、変換行列を生成する。",
+    "後続ブロックを変換済み座標・姿勢へ正規化し、RT向け実行ブロックに格納する。",
+    "G69で変換状態を解除し、通常ワーク座標系へ戻す。"
+  ],
+  "constraints": [
+    "5軸制御および工具中心点制御オプションが必要",
+    "傾斜平面中の他座標変換、座標系設定、スケーリングとの併用を制限",
+    "RT側で行列生成・逆運動学探索を行わない"
+  ],
+  "alarms": [
+    "回転角範囲外",
+    "姿勢解なし",
+    "回転軸リミット超過",
+    "併用禁止モード",
+    "工具中心点制御未有効"
+  ],
+  "acceptance_criteria": [
+    "指定した傾斜面上の加工座標が正しく変換される",
+    "G69で変換状態が解除される",
+    "姿勢解なしの場合に加工開始前にアラームとなる"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

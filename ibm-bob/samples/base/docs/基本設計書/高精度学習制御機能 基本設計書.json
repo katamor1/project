@@ -1,0 +1,114 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-210",
+    "feature_name": "高精度学習制御機能",
+    "category": "学習・補正制御",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_高精度学習制御機能.docx"
+  },
+  "purpose": "繰返し加工で得られた軌跡誤差、同期誤差、切削データを記憶し、次回以降の加工指令へ反映して加工精度と速度を向上させる。",
+  "overview": "学習制御A/B/C、部品切削学習制御、剛性タッピング学習制御、スピンドル学習制御を統合的に扱う。データ保存・集計はTS_SERVICE、周期内補正適用はRT_CONTROLに分離する。",
+  "interfaces": {
+    "codes": [
+      "G5.6 P_ Q1: 剛性タッピング学習ON候補",
+      "G5.5 Q1: 学習OFF候補",
+      "専用パラメータ: 学習対象軸、メモリ、対象区間"
+    ],
+    "inputs": [
+      "対象加工区間",
+      "軌跡誤差/同期誤差サンプル",
+      "学習回数",
+      "補正上限",
+      "学習データ世代"
+    ],
+    "outputs": [
+      "学習補正テーブル",
+      "学習状態",
+      "補正適用量",
+      "学習データ保存ログ"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語製のマルチスレッド機械制御基盤を前提とする。ハードウェア割込で起床するRT_INPUT/RT_CONTROL/RT_OUTPUTと、CPU余力で動作するTS_SERVICEを分離する。",
+    "rt_rules": "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキング、三角関数や探索など処理時間が変動する重計算を禁止し、1割込周期内に処理を完了する。",
+    "rt_responsibility": "固定長データ消費、周期内安全監視、フェイルセーフ出力",
+    "ts_responsibility": "NC解析、変換、先読み、ファイルI/O、ログ、HMI/API連携",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ]
+  },
+  "process_flow": [
+    "初回加工でRT_CONTROLが固定長リングバッファへ誤差サンプルを記録する。",
+    "TS_SERVICEがサンプルを回収し、異常値除去、平均化、補正上限処理を行う。",
+    "生成した学習補正テーブルを世代番号付きで共有領域に登録する。",
+    "次回以降RT_CONTROLが補正テーブルを周期的に適用し、効果を再評価する。"
+  ],
+  "constraints": [
+    "一品物加工では効果が限定される",
+    "学習データのバックアップと世代管理が必要",
+    "補正量上限を超える場合は自動適用しない"
+  ],
+  "alarms": [
+    "学習データ不整合",
+    "補正量過大",
+    "対象区間不一致",
+    "メモリ不足",
+    "同期誤差悪化"
+  ],
+  "acceptance_criteria": [
+    "学習データの生成、保存、読出しが世代管理される",
+    "補正適用時にRT周期負荷が一定上限内に収まる",
+    "不整合データは適用されず警告される"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

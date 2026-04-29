@@ -1,0 +1,89 @@
+{
+  "schema_version": "IBM-Bob Basic Design v2.0 compatible",
+  "document": {
+    "id": "BD-011",
+    "title": "自動コーナオーバライド機能（G62）_基本設計書",
+    "language": "ja-JP",
+    "created_at": "2026-04-29",
+    "source_file": "設計_自動コーナオーバライド機能.docx",
+    "status": "draft_for_review"
+  },
+  "feature": {
+    "name": "自動コーナオーバライド機能（G62）",
+    "category": "補正・加工品質制御",
+    "overview": [
+      "カッター半径補正中にコーナ部を通過する際、切削量を一定に保つためにフィードレートを自動的にオーバライドする機能です。工具負荷の急増を抑え、工具寿命と加工面品質を向上させます。"
+    ],
+    "source_interface_notes": [],
+    "source_flow": [
+      "1. プログラムでカッター半径補正を有効にした後、連続したコーナが含まれる部分でG62を指定します。\n2. CNCはコーナ部を検出すると、自動的に切削送りを低下させ、コーナ通過中の切削量を一定に保ちます。\n3. コーナを通過するとフィードレートが元の値に戻り、次のブロックへ進みます【95414512717278†L23902-L23907】。\n4. モードを終了する場合は、G61（エグザクトストップ）、G63（タッピング）、またはG64（通常切削）を記述します。"
+    ],
+    "source_design_notes": [
+      "- この機能はカッター半径補正が有効な場合にのみ効果があります。",
+      "- 自動コーナオーバライドによって生じる減速量はパラメータで調整可能です。",
+      "- 高精度加工ではG61との使い分けを検討してください。",
+      "引用: 【95414512717278†L23902-L23909】"
+    ],
+    "g_codes": [
+      "G61",
+      "G62",
+      "G63",
+      "G64"
+    ],
+    "parameters": [],
+    "signals": [
+      "CNCはコーナ部を検出すると"
+    ]
+  },
+  "architecture": {
+    "platform": "Windows C multi-threaded machine-control platform",
+    "rt_thread": "RT_INPUT/RT_CONTROL/RT_OUTPUTをハードウェア割込周期内で実行する。RT側ではWindows API、ファイルI/O、動的メモリ確保、長時間ブロックを禁止する。",
+    "ts_thread": "TS_SERVICEでNC解析、パラメータ読出、ログ、UI/PMC連携、重い演算の先読みを行う。",
+    "api_policy": "公開APIは要求登録とスナップショット取得に限定し、状態確定はRT_CONTROLまたはTS_SERVICE側で行う。"
+  },
+  "shared_memory": {
+    "existing": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "candidate_additions": [
+      "g_featureConfig[11]",
+      "g_featureRequest[11]",
+      "g_featureStatus[11]",
+      "g_featureTrace[11]"
+    ]
+  },
+  "sections": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  }
+}

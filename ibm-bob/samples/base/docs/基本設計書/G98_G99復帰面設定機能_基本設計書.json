@@ -1,0 +1,137 @@
+{
+  "schema_version": "ibm-bob-basic-design/2.0",
+  "review_status": "draft",
+  "document_control": {
+    "document_id": "BD-207",
+    "title": "G98_G99復帰面設定機能 基本設計書",
+    "target_version": "Ver.0.1",
+    "created_at": "2026-04-29",
+    "author": "AIドラフト",
+    "reviewer": "未定",
+    "approver": "未定"
+  },
+  "feature": {
+    "feature_id": "FX-BD-207",
+    "name": "G98_G99復帰面設定機能",
+    "summary": "カンニングサイクル中の穴加工後の復帰高さを初期平面またはR平面に切り替える。",
+    "actor": "NCプログラム/外部UI/API/機械操作",
+    "priority": "High",
+    "related_requirement_ids": [
+      "REQ-001",
+      "REQ-002",
+      "REQ-003"
+    ],
+    "classification": {
+      "realtime_control": true,
+      "time_share_processing": true,
+      "api_change": true,
+      "global_variable_change": true,
+      "state_machine": true,
+      "sequence_control": true
+    }
+  },
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "summary": "有効指令を実行できること",
+      "design_policy": "RT/TS分担",
+      "acceptance": "正常完了"
+    },
+    {
+      "id": "REQ-002",
+      "summary": "不正指令を拒否できること",
+      "design_policy": "TS解析とRT安全確認",
+      "acceptance": "PARAM_ERRORまたはALARM"
+    },
+    {
+      "id": "REQ-003",
+      "summary": "異常時は安全側へ遷移すること",
+      "design_policy": "RT周期監視",
+      "acceptance": "安全出力とログ"
+    }
+  ],
+  "system_context": {
+    "system_name": "IBM-Bob baseline",
+    "environment": {
+      "os": "Windows",
+      "language": "C",
+      "compiler_candidates": [
+        "VC2026",
+        "clang Windows"
+      ]
+    },
+    "threads": {
+      "real_time": {},
+      "time_share": {}
+    },
+    "shared_memory": {},
+    "constraints": [
+      "1割込間隔内"
+    ]
+  },
+  "functional_requirements": {
+    "normal": [],
+    "abnormal": [],
+    "boundary": []
+  },
+  "thread_allocation": {
+    "tasks": []
+  },
+  "impact_analysis": {
+    "items": [
+      {
+        "id": "IMP-001",
+        "target_type": "header",
+        "target": "include/system_shared.h",
+        "impact": "共有状態/要求領域追加",
+        "change_required": "あり"
+      },
+      {
+        "id": "IMP-002",
+        "target_type": "source",
+        "target": "src/rt_control.c",
+        "impact": "RT状態遷移追加",
+        "change_required": "あり"
+      },
+      {
+        "id": "IMP-003",
+        "target_type": "source",
+        "target": "src/ts_service.c",
+        "impact": "解析/ログ/診断追加",
+        "change_required": "あり"
+      },
+      {
+        "id": "IMP-004",
+        "target_type": "source/header",
+        "target": "control_api.c/control_api.h",
+        "impact": "API追加",
+        "change_required": "あり"
+      }
+    ]
+  },
+  "test_acceptance": {
+    "cases": [],
+    "acceptance_criteria": []
+  },
+  "implementation_plan": {
+    "estimated_steps": "500-1500 step",
+    "modules": [
+      "include/system_config.h",
+      "include/system_shared.h",
+      "include/control_api.h",
+      "src/control_api.c",
+      "src/rt_control.c",
+      "src/ts_service.c"
+    ],
+    "open_issues": [
+      "装置別パラメータ",
+      "RT実測値",
+      "PLC信号割付"
+    ]
+  },
+  "appendix": {
+    "references": [
+      "設計_G98_G99復帰面設定機能.docx"
+    ]
+  }
+}

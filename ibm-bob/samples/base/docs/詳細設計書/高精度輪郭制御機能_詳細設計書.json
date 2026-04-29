@@ -1,0 +1,126 @@
+{
+  "document_type": "IBM-Bob Detail Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "DD-00",
+    "DD-01",
+    "DD-02",
+    "DD-03",
+    "DD-04",
+    "DD-05",
+    "DD-06",
+    "DD-07",
+    "DD-08",
+    "DD-09",
+    "DD-10",
+    "DD-11",
+    "DD-12",
+    "DD-13",
+    "DD-14",
+    "DD-15",
+    "DD-16",
+    "DD-17",
+    "DD-18",
+    "DD-19",
+    "DD-20",
+    "DD-21",
+    "DD-22",
+    "DD-23",
+    "DD-24"
+  ],
+  "metadata": {
+    "document_id": "DD-CNC-208",
+    "feature_name": "高精度輪郭制御機能",
+    "category": "高速・高精度制御",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_basic_design": "高精度輪郭制御機能_基本設計書.docx",
+    "source_document": "設計_高精度輪郭制御機能.docx"
+  },
+  "traceability": {
+    "basic_design_id": "BD-CNC-208",
+    "requirements": [
+      "HPCC開始/解除で軌跡の連続性が維持される",
+      "補正ネスト不正を検出する",
+      "短線分連続加工で速度安定化が確認できる"
+    ],
+    "codes": [
+      "G05 P10000: HPCC開始",
+      "G05 P0: HPCC解除",
+      "G05 P3: 高速加工モードとの関係管理",
+      "G41/G42/G40: 工具径補正とのネスト管理"
+    ]
+  },
+  "module_design": {
+    "header": "include/cnc208_feature.h",
+    "source": "src/cnc208_feature.c",
+    "test": "tests/test_cnc208_feature.c",
+    "ts_functions": [
+      "Ts_CNC208_Prepare",
+      "Ts_CNC208_CommitExecBuffer"
+    ],
+    "rt_functions": [
+      "Rt_CNC208_ValidateSnapshot",
+      "Rt_CNC208_ExecuteCycle"
+    ],
+    "api_functions": [
+      "Api_GetCNC208Status",
+      "Api_RequestCNC208ConfigUpdate"
+    ]
+  },
+  "data_design": {
+    "config": "CNC208_FEATURE_CONFIG",
+    "request": "CNC208_FEATURE_REQUEST",
+    "status": "CNC208_FEATURE_STATUS",
+    "exec_block": "CNC208_EXEC_BLOCK",
+    "exec_buffer": "CNC208_EXEC_BUFFER",
+    "global": "g_cnc208Feature",
+    "consistency": "valid flag + generation_begin/generation_end + single writer policy"
+  },
+  "processing": {
+    "ts_service": [
+      "TS_SERVICEがG05 P10000を単独ブロックとして受理し、補正状態とネスト条件を検証する。",
+      "先読み範囲の線分長、曲率、コーナ角を評価し、送り速度と減速点を算出する。",
+      "オフセット値変更がある場合、Dワードブロックからの有効化タイミングを実行ブロックへ反映する。",
+      "RT_CONTROLはプロファイルに従い補間を実行し、G05 P0で通常補間へ戻る。"
+    ],
+    "rt_control": [
+      "先読み、速度プロファイル、許容誤差判定、ジャーク/加速度制限計算はTS_SERVICEで行う。",
+      "RT_CONTROLは先読み充足率とプロファイル世代を監視し、アンダーラン時は安全側速度または停止へ遷移する。"
+    ],
+    "state_machine": [
+      "DISABLED",
+      "ARMED",
+      "PREPARED",
+      "ACTIVE",
+      "HOLD",
+      "COMPLETE",
+      "ALARM"
+    ]
+  },
+  "errors": [
+    "補正ネスト不正",
+    "オプション未有効",
+    "先読み不足",
+    "サーボ高速制御条件不成立"
+  ],
+  "constraints": [
+    "G05 P10000/P0を補正中に直接指令しない",
+    "先読み負荷とメモリ使用量を管理",
+    "粗加工や停止ブロックの多い領域では効果が限定"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "DDR-001",
+    "DDR-002",
+    "DDR-003",
+    "DDR-004",
+    "DDR-005",
+    "DDR-006",
+    "DDR-007",
+    "DDR-008"
+  ]
+}

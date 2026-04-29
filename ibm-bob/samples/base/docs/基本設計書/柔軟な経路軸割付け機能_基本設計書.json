@@ -1,0 +1,89 @@
+{
+  "schema_version": "IBM-Bob Basic Design v2.0 compatible",
+  "document": {
+    "id": "BD-009",
+    "title": "柔軟な経路軸割付け機能_基本設計書",
+    "language": "ja-JP",
+    "created_at": "2026-04-29",
+    "source_file": "設計_柔軟な経路軸割付け機能.docx",
+    "status": "draft_for_review"
+  },
+  "feature": {
+    "name": "柔軟な経路軸割付け機能",
+    "category": "パラメータ・軸構成管理",
+    "overview": [
+      "柔軟な経路軸割付け機能は、複数の制御経路を持つ機械において、特定の軸を別の経路に割り当て直すことを可能にする機能である。",
+      "これにより機械構成の自由度が高まり、ダミー軸を設けることなく柔軟に機械設計や加工プログラムを変更できる【770697668851713†L3239-L3245】。"
+    ],
+    "source_interface_notes": [
+      "経路割付けを変更したい軸に対し、CNCのパラメータを設定して新しい制御経路を指定する。",
+      "割付け変更は機械停止状態で行い、割付けを変更後は対応する経路でプログラムを実行する。"
+    ],
+    "source_flow": [
+      "制御軸を他の経路へ割り当てる必要が生じた場合、対象軸の割付けパラメータを変更し、割付け先の経路番号を設定する。",
+      "割付け後は、各経路で使用可能な軸名とアドレスを確認し、新たなプログラムを作成または既存プログラムを修正する。",
+      "加工時には新しい経路割付けに基づいて軸が動作するため、テスト運転で軌跡や動作を確認する。"
+    ],
+    "source_design_notes": [
+      "割付け変更は経路ごとに管理されるため、変更後は両経路の座標系や補正設定を確認し一致させる必要がある。",
+      "複数の制御経路を使用する際は経路間干渉を避けるため、経路間の機械干渉チェック機能と併用することが望ましい。",
+      "柔軟な経路軸割付け機能は、軸数の少ない制御装置や特殊機構を持つ機械において特に有効である。"
+    ],
+    "g_codes": [],
+    "parameters": [],
+    "signals": [
+      "CNCのパラメータを設定して新しい制御経路を指定する"
+    ]
+  },
+  "architecture": {
+    "platform": "Windows C multi-threaded machine-control platform",
+    "rt_thread": "RT_INPUT/RT_CONTROL/RT_OUTPUTをハードウェア割込周期内で実行する。RT側ではWindows API、ファイルI/O、動的メモリ確保、長時間ブロックを禁止する。",
+    "ts_thread": "TS_SERVICEでNC解析、パラメータ読出、ログ、UI/PMC連携、重い演算の先読みを行う。",
+    "api_policy": "公開APIは要求登録とスナップショット取得に限定し、状態確定はRT_CONTROLまたはTS_SERVICE側で行う。"
+  },
+  "shared_memory": {
+    "existing": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "candidate_additions": [
+      "g_featureConfig[9]",
+      "g_featureRequest[9]",
+      "g_featureStatus[9]",
+      "g_featureTrace[9]"
+    ]
+  },
+  "sections": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  }
+}

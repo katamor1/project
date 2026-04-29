@@ -1,0 +1,1853 @@
+{
+  "schema_version": "ibm-bob-detail-design/2.0",
+  "review_status": "draft",
+  "document_control": {
+    "document_id": "DD-209",
+    "title": "G88手動戻りボーリングサイクル機能 詳細設計書",
+    "target_system": "IBM-Bob baseline / Windows C realtime-control platform",
+    "target_version": "Ver.1.0",
+    "created_at": "2026-04-29",
+    "author": "AIドラフト",
+    "reviewer": "",
+    "approver": "",
+    "revision_history": [
+      {
+        "version": "0.1",
+        "date": "2026-04-29",
+        "change": "初版作成",
+        "author": "AIドラフト",
+        "review_status": "draft"
+      }
+    ]
+  },
+  "source_basic_design": {
+    "basic_design_id": "BD-209",
+    "title": "G88手動戻りボーリングサイクル機能 基本設計書",
+    "version": "0.1",
+    "source_json_path": "G88手動戻りボーリングサイクル機能_基本設計書.json",
+    "source_docx_path": "G88手動戻りボーリングサイクル機能_基本設計書.docx",
+    "accepted_warnings": []
+  },
+  "feature": {
+    "feature_id": "FX-BD-209",
+    "name": "G88手動戻りボーリングサイクル機能",
+    "summary": "穴底まで加工後に一時停止し、オペレータが手動で工具を引き抜いてから再開する。",
+    "classification": {
+      "realtime_control": true,
+      "time_share_processing": true,
+      "api_change": true,
+      "global_variable_change": true,
+      "state_machine": true,
+      "sequence_control": true
+    },
+    "estimated_new_steps": "300-900 step"
+  },
+  "introduction": {
+    "purpose": "G88手動戻りボーリングサイクル機能の基本設計を、IBM-Bob基盤上で実装可能なモジュール、データ構造、RT/TS/API処理、状態遷移、異常安全へ展開する。",
+    "scope": "G88 X Y Z R P F、オペレータ再開信号、G80 を対象に、NCプログラム/MDI/APIからの要求をRT制御で実行する範囲。",
+    "out_of_scope": "サーボドライブ内部制御、機械メーカー固有PMC詳細、最終加工条件の決定。",
+    "assumptions": [
+      "Windows C基盤",
+      "RT/TS分離",
+      "共有メモリ固定長構造体",
+      "RT内ファイルI/O禁止"
+    ],
+    "design_granularity_policy": "関数・構造体・処理順序まで具体化するが、ソースコード全文は記載しない。"
+  },
+  "automation_policy": {
+    "generation_source": "basic_design_json_or_docx",
+    "roundtrip_policy": "SECTION_ID and JSON Path based extraction",
+    "pre_review_checklist": "ibm_bob_detail_design_pre_review_checklist.json"
+  },
+  "section_map": [
+    {
+      "section_id": "DD-01",
+      "title": "はじめに",
+      "json_path": "$.introduction",
+      "required": "必須",
+      "focus": "目的・適用範囲・対象外"
+    },
+    {
+      "section_id": "DD-02",
+      "title": "入力文書・トレーサビリティ",
+      "json_path": "$.traceability",
+      "required": "必須",
+      "focus": "基本設計/要件/機能IDの対応"
+    },
+    {
+      "section_id": "DD-03",
+      "title": "既存仕様・コード影響調査",
+      "json_path": "$.impact_analysis",
+      "required": "必須",
+      "focus": "既存仕様書/ヘッダ/ソース/テスト影響"
+    },
+    {
+      "section_id": "DD-04",
+      "title": "ソース構成・変更対象ファイル",
+      "json_path": "$.source_changes",
+      "required": "必須",
+      "focus": "include/src/test/scriptsの変更"
+    },
+    {
+      "section_id": "DD-05",
+      "title": "モジュール構造設計",
+      "json_path": "$.modules",
+      "required": "必須",
+      "focus": "責務分割・依存関係"
+    },
+    {
+      "section_id": "DD-06",
+      "title": "データ構造・型定義設計",
+      "json_path": "$.data_design",
+      "required": "必須",
+      "focus": "enum/struct/定数"
+    },
+    {
+      "section_id": "DD-07",
+      "title": "グローバル変数・共有メモリ設計",
+      "json_path": "$.shared_memory_globals",
+      "required": "必須",
+      "focus": "所有者/読取元/書込元"
+    },
+    {
+      "section_id": "DD-08",
+      "title": "API・公開ヘッダ設計",
+      "json_path": "$.api_design",
+      "required": "条件必須",
+      "focus": "API追加/変更時必須"
+    },
+    {
+      "section_id": "DD-09",
+      "title": "スレッド配置・周期設計",
+      "json_path": "$.thread_design",
+      "required": "必須",
+      "focus": "RT/TS/API処理配置"
+    },
+    {
+      "section_id": "DD-10",
+      "title": "リアルタイム処理詳細",
+      "json_path": "$.rt_design",
+      "required": "必須",
+      "focus": "周期内処理・禁止事項"
+    },
+    {
+      "section_id": "DD-11",
+      "title": "タイムシェア処理詳細",
+      "json_path": "$.ts_design",
+      "required": "必須",
+      "focus": "I/O・重計算・ログ"
+    },
+    {
+      "section_id": "DD-12",
+      "title": "関数詳細仕様",
+      "json_path": "$.function_specs",
+      "required": "必須",
+      "focus": "関数単位IPO・擬似コード"
+    },
+    {
+      "section_id": "DD-13",
+      "title": "状態遷移設計",
+      "json_path": "$.state_machines",
+      "required": "条件必須",
+      "focus": "状態管理がある場合必須"
+    },
+    {
+      "section_id": "DD-14",
+      "title": "シーケンス/ハンドシェイク設計",
+      "json_path": "$.sequences",
+      "required": "条件必須",
+      "focus": "逐次応答・外部機器応答待ち"
+    },
+    {
+      "section_id": "DD-15",
+      "title": "排他・整合性・メモリ可視性",
+      "json_path": "$.concurrency",
+      "required": "必須",
+      "focus": "request/busy/ready/generation等"
+    },
+    {
+      "section_id": "DD-16",
+      "title": "エラー・フェイルセーフ設計",
+      "json_path": "$.error_safety",
+      "required": "必須",
+      "focus": "安全側出力・復帰"
+    },
+    {
+      "section_id": "DD-17",
+      "title": "ログ・診断設計",
+      "json_path": "$.logging_diagnostics",
+      "required": "必須",
+      "focus": "ログ/スナップショット/CSV"
+    },
+    {
+      "section_id": "DD-18",
+      "title": "パラメータ・設定設計",
+      "json_path": "$.parameters",
+      "required": "任意",
+      "focus": "設定値・範囲・初期値"
+    },
+    {
+      "section_id": "DD-19",
+      "title": "性能・リアルタイム予算",
+      "json_path": "$.performance_budget",
+      "required": "必須",
+      "focus": "RT追加時間・TS負荷"
+    },
+    {
+      "section_id": "DD-20",
+      "title": "初期化・リセット・移行",
+      "json_path": "$.initialization_reset",
+      "required": "必須",
+      "focus": "初期値/クリア条件/互換"
+    },
+    {
+      "section_id": "DD-21",
+      "title": "テスト設計への引継ぎ",
+      "json_path": "$.test_handoff",
+      "required": "必須",
+      "focus": "単体/統合/性能/異常系"
+    },
+    {
+      "section_id": "DD-22",
+      "title": "ビルド・テスト・静的解析",
+      "json_path": "$.build_test_static_analysis",
+      "required": "必須",
+      "focus": "VC2026/clang/CI"
+    },
+    {
+      "section_id": "DD-23",
+      "title": "未確定事項・リスク",
+      "json_path": "$.open_issues",
+      "required": "必須",
+      "focus": "要判断事項"
+    },
+    {
+      "section_id": "DD-24",
+      "title": "AIプレレビュー結果",
+      "json_path": "$.ai_review",
+      "required": "任意",
+      "focus": "レビュー結果格納"
+    }
+  ],
+  "traceability": {
+    "requirements": [
+      {
+        "id": "REQ-001",
+        "summary": "有効指令を実行できること",
+        "basic_design_section_ids": [
+          "BD-07",
+          "BD-13",
+          "BD-15"
+        ],
+        "detail_design_section_ids": [
+          "DD-09",
+          "DD-10",
+          "DD-16"
+        ]
+      },
+      {
+        "id": "REQ-002",
+        "summary": "不正指令を拒否できること",
+        "basic_design_section_ids": [
+          "BD-07",
+          "BD-13",
+          "BD-15"
+        ],
+        "detail_design_section_ids": [
+          "DD-09",
+          "DD-10",
+          "DD-16"
+        ]
+      },
+      {
+        "id": "REQ-003",
+        "summary": "異常時は安全側へ遷移すること",
+        "basic_design_section_ids": [
+          "BD-07",
+          "BD-13",
+          "BD-15"
+        ],
+        "detail_design_section_ids": [
+          "DD-09",
+          "DD-10",
+          "DD-16"
+        ]
+      }
+    ],
+    "matrix": [
+      {
+        "requirement_id": "REQ-001",
+        "basic_section_id": "BD-07",
+        "detail_section_id": "DD-12",
+        "implementation_targets": [
+          "FUNC-009-01",
+          "FUNC-009-03"
+        ],
+        "test_viewpoints": [
+          "TV-009-01",
+          "TV-009-02"
+        ]
+      },
+      {
+        "requirement_id": "REQ-002",
+        "basic_section_id": "BD-07",
+        "detail_section_id": "DD-12",
+        "implementation_targets": [
+          "FUNC-009-01",
+          "FUNC-009-03"
+        ],
+        "test_viewpoints": [
+          "TV-009-01",
+          "TV-009-02"
+        ]
+      },
+      {
+        "requirement_id": "REQ-003",
+        "basic_section_id": "BD-07",
+        "detail_section_id": "DD-12",
+        "implementation_targets": [
+          "FUNC-009-01",
+          "FUNC-009-03"
+        ],
+        "test_viewpoints": [
+          "TV-009-01",
+          "TV-009-02"
+        ]
+      }
+    ],
+    "basic_sections": [
+      {
+        "section_id": "BD-06",
+        "title": "基本設計参照章"
+      },
+      {
+        "section_id": "BD-07",
+        "title": "基本設計参照章"
+      },
+      {
+        "section_id": "BD-09",
+        "title": "基本設計参照章"
+      },
+      {
+        "section_id": "BD-10",
+        "title": "基本設計参照章"
+      },
+      {
+        "section_id": "BD-11",
+        "title": "基本設計参照章"
+      },
+      {
+        "section_id": "BD-13",
+        "title": "基本設計参照章"
+      },
+      {
+        "section_id": "BD-14",
+        "title": "基本設計参照章"
+      },
+      {
+        "section_id": "BD-15",
+        "title": "基本設計参照章"
+      },
+      {
+        "section_id": "BD-18",
+        "title": "基本設計参照章"
+      },
+      {
+        "section_id": "BD-19",
+        "title": "基本設計参照章"
+      }
+    ]
+  },
+  "impact_analysis": {
+    "items": [
+      {
+        "id": "IMP-009-01",
+        "target_type": "ヘッダ",
+        "target": "include/system_shared.h",
+        "impact": "あり",
+        "change_policy": "G88MAN_COMMAND/STATUS/PARAMとextern宣言を追加",
+        "evidence": "共有メモリ追加が必要"
+      },
+      {
+        "id": "IMP-009-02",
+        "target_type": "ヘッダ",
+        "target": "include/control_api.h",
+        "impact": "あり",
+        "change_policy": "Api_GetG88ManualReturnBoringStatus等の状態取得APIを追加",
+        "evidence": "外部UI/テストから状態確認が必要"
+      },
+      {
+        "id": "IMP-009-03",
+        "target_type": "ソース",
+        "target": "src/rt_control.c",
+        "impact": "あり",
+        "change_policy": "G88ManualReturnBoring_ApplyRtをRT_CONTROLに組み込み",
+        "evidence": "周期処理で状態・出力更新を行う"
+      },
+      {
+        "id": "IMP-009-04",
+        "target_type": "ソース",
+        "target": "src/ts_service.c",
+        "impact": "あり",
+        "change_policy": "G88ManualReturnBoring_ParseBlockTs/BuildPlanTsをTS側に組み込み",
+        "evidence": "NC解釈/重計算はTS側"
+      },
+      {
+        "id": "IMP-009-05",
+        "target_type": "テスト",
+        "target": "tests/feature",
+        "impact": "あり",
+        "change_policy": "単体/統合/性能/異常系テストを追加",
+        "evidence": "RT周期と安全動作の検証が必要"
+      },
+      {
+        "id": "IMP-009-06",
+        "target_type": "ビルド",
+        "target": "scripts/build_vc2026.bat, scripts/build_clang.bat",
+        "impact": "あり",
+        "change_policy": "追加src/testファイルをビルド対象へ追加",
+        "evidence": "VC2026/clang Windows双方で確認する"
+      }
+    ]
+  },
+  "source_changes": {
+    "files": [
+      {
+        "id": "SRC-009-01",
+        "path": "include/g88_manual_return_boring.h",
+        "change_type": "追加",
+        "summary": "機能固有のenum/struct/定数を定義",
+        "depends_on": [
+          "include/system_config.h"
+        ],
+        "review_focus": "固定長、公開範囲、単位"
+      },
+      {
+        "id": "SRC-009-02",
+        "path": "include/system_shared.h",
+        "change_type": "変更",
+        "summary": "共有メモリextern宣言と構造体参照を追加",
+        "depends_on": [
+          "include/g88_manual_return_boring.h"
+        ],
+        "review_focus": "ABI/サイズ互換性"
+      },
+      {
+        "id": "SRC-009-03",
+        "path": "src/g88_manual_return_boring_rt.c",
+        "change_type": "追加",
+        "summary": "RT実行制御、状態遷移、安全側出力",
+        "depends_on": [
+          "src/rt_control.c"
+        ],
+        "review_focus": "RT禁止事項違反なし"
+      },
+      {
+        "id": "SRC-009-04",
+        "path": "src/g88_manual_return_boring_ts.c",
+        "change_type": "追加",
+        "summary": "NC解釈、検証、実行計画生成、ログ",
+        "depends_on": [
+          "src/ts_service.c"
+        ],
+        "review_focus": "TS分割実行、I/O分離"
+      },
+      {
+        "id": "SRC-009-05",
+        "path": "tests/test_g88_manual_return_boring.c",
+        "change_type": "追加",
+        "summary": "単体・統合・異常系テスト",
+        "depends_on": [
+          "src/g88_manual_return_boring_rt.c",
+          "src/g88_manual_return_boring_ts.c"
+        ],
+        "review_focus": "境界値、異常、安全"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "id": "MOD-009-01",
+      "name": "G88手動戻りボーリングサイクル機能 NCブロック解析",
+      "file": "src/g88_manual_return_boring_ts.c",
+      "responsibility": "手動介入が必要なことをUIへ通知し、操作ログ、再開条件、タイムアウト設定を管理する。",
+      "callers": [
+        "TS_SERVICE"
+      ],
+      "callees": [
+        "G88ManualReturnBoring_BuildPlanTs"
+      ],
+      "execution_context": "TS_SERVICE"
+    },
+    {
+      "id": "MOD-009-02",
+      "name": "G88手動戻りボーリングサイクル機能 RT実行制御",
+      "file": "src/g88_manual_return_boring_rt.c",
+      "responsibility": "穴底加工後に主軸/送りを安全停止し、手動退避完了信号を待って次ブロックへ遷移する。",
+      "callers": [
+        "RT_CONTROL"
+      ],
+      "callees": [
+        "G88ManualReturnBoring_ApplyRt",
+        "G88ManualReturnBoring_UpdateStateRt"
+      ],
+      "execution_context": "RT_CONTROL"
+    },
+    {
+      "id": "MOD-009-03",
+      "name": "G88手動戻りボーリングサイクル機能 公開API/診断",
+      "file": "src/g88_manual_return_boring_api.c",
+      "responsibility": "外部アプリからの状態取得、テスト用要求登録、診断スナップショット取得を行う。",
+      "callers": [
+        "API呼出元"
+      ],
+      "callees": [
+        "Api_GetG88ManualReturnBoringStatus"
+      ],
+      "execution_context": "API"
+    },
+    {
+      "id": "MOD-009-04",
+      "name": "G88手動戻りボーリングサイクル機能 共通データ定義",
+      "file": "include/g88_manual_return_boring.h",
+      "responsibility": "コマンド、状態、パラメータ、エラーコードの固定長構造体を定義する。",
+      "callers": [
+        "COMMON"
+      ],
+      "callees": [],
+      "execution_context": "COMMON"
+    }
+  ],
+  "data_design": {
+    "items": [
+      {
+        "id": "TYPE-009-01",
+        "type": "enum",
+        "name": "G88MAN_STATE",
+        "defined_in": "include/g88_manual_return_boring.h",
+        "fields_or_values": [
+          "IDLE",
+          "RAPID_XY",
+          "RAPID_R",
+          "FEED_Z",
+          "DWELL",
+          "MANUAL_WAIT",
+          "RESUME_CHECK",
+          "DONE",
+          "ERROR"
+        ],
+        "range_unit": "状態ID",
+        "initial_value": "IDLE",
+        "visibility": "公開"
+      },
+      {
+        "id": "TYPE-009-02",
+        "type": "struct",
+        "name": "G88MAN_COMMAND",
+        "defined_in": "include/g88_manual_return_boring.h",
+        "fields_or_values": [
+          "request",
+          "block_no",
+          "command_code",
+          "axis_mask",
+          "parameter_index"
+        ],
+        "range_unit": "固定長",
+        "initial_value": "0クリア",
+        "visibility": "公開"
+      },
+      {
+        "id": "TYPE-009-03",
+        "type": "struct",
+        "name": "G88MAN_STATUS",
+        "defined_in": "include/g88_manual_return_boring.h",
+        "fields_or_values": [
+          "state",
+          "response",
+          "active_block",
+          "alarm_code",
+          "generation"
+        ],
+        "range_unit": "固定長",
+        "initial_value": "IDLE/NONE",
+        "visibility": "公開"
+      },
+      {
+        "id": "TYPE-009-04",
+        "type": "struct",
+        "name": "G88MAN_PARAM",
+        "defined_in": "include/g88_manual_return_boring.h",
+        "fields_or_values": [
+          "X/Y",
+          "Z",
+          "R",
+          "Pドウェル",
+          "F送り",
+          "手動退避完了信号",
+          "再開許可信号"
+        ],
+        "range_unit": "機能別単位",
+        "initial_value": "機種標準値",
+        "visibility": "公開"
+      }
+    ],
+    "structs": [
+      {
+        "name": "G88MAN_COMMAND",
+        "fields": [
+          {
+            "name": "request",
+            "type": "uint8_t",
+            "description": "TS/APIからRTへ処理要求を通知する。",
+            "unit": "flag",
+            "range": "0/1",
+            "writers": [
+              "TS_SERVICE",
+              "API"
+            ],
+            "readers": [
+              "RT_INPUT",
+              "RT_CONTROL"
+            ]
+          },
+          {
+            "name": "command_code",
+            "type": "uint16_t",
+            "description": "G88 X Y Z R P F、オペレータ再開信号、G80",
+            "unit": "code",
+            "range": "機能別",
+            "writers": [
+              "TS_SERVICE"
+            ],
+            "readers": [
+              "RT_CONTROL"
+            ]
+          },
+          {
+            "name": "axis_mask",
+            "type": "uint32_t",
+            "description": "対象軸ビット。主軸/PLC機能では対象デバイスビットとして利用する。",
+            "unit": "bit",
+            "range": "0-31",
+            "writers": [
+              "TS_SERVICE"
+            ],
+            "readers": [
+              "RT_CONTROL"
+            ]
+          },
+          {
+            "name": "generation",
+            "type": "uint32_t",
+            "description": "複数フィールド更新の確定世代番号。",
+            "unit": "count",
+            "range": "32bit",
+            "writers": [
+              "TS_SERVICE"
+            ],
+            "readers": [
+              "RT_CONTROL",
+              "API"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "G88MAN_STATUS",
+        "fields": [
+          {
+            "name": "state",
+            "type": "G88MAN_STATE",
+            "description": "RTが確定した機能状態。",
+            "unit": "enum",
+            "range": "状態定義",
+            "writers": [
+              "RT_CONTROL"
+            ],
+            "readers": [
+              "TS_SERVICE",
+              "API"
+            ]
+          },
+          {
+            "name": "alarm_code",
+            "type": "uint16_t",
+            "description": "機能固有異常コード。",
+            "unit": "code",
+            "range": "0=なし",
+            "writers": [
+              "RT_CONTROL"
+            ],
+            "readers": [
+              "TS_SERVICE",
+              "API"
+            ]
+          },
+          {
+            "name": "active_block",
+            "type": "uint32_t",
+            "description": "実行中NCブロック番号。",
+            "unit": "block",
+            "range": "0-99999999",
+            "writers": [
+              "RT_CONTROL"
+            ],
+            "readers": [
+              "TS_SERVICE",
+              "API"
+            ]
+          }
+        ]
+      }
+    ],
+    "enums": [
+      {
+        "name": "G88MAN_STATE",
+        "values": [
+          "IDLE",
+          "RAPID_XY",
+          "RAPID_R",
+          "FEED_Z",
+          "DWELL",
+          "MANUAL_WAIT",
+          "RESUME_CHECK",
+          "DONE",
+          "ERROR"
+        ]
+      }
+    ],
+    "constants": [
+      {
+        "name": "G88MAN_MAX_PARAM",
+        "value": 7,
+        "description": "機能パラメータ数"
+      }
+    ]
+  },
+  "shared_memory_globals": [
+    {
+      "id": "SHM-009-01",
+      "name": "g_g88_manual_return_boringCommand",
+      "type": "G88MAN_COMMAND",
+      "defined_in": "include/system_shared.h",
+      "owner": "TS_SERVICE/API要求登録",
+      "writers": [
+        "TS_SERVICE",
+        "API"
+      ],
+      "readers": [
+        "RT_INPUT",
+        "RT_CONTROL"
+      ],
+      "update_cycle": "NCブロック確定時/外部要求時",
+      "consistency_policy": "command全フィールド更新後にgenerationを更新し、最後にrequest=1を立てる。RTは世代番号を確認してローカルコピーする。",
+      "initial_value": "0クリア",
+      "reset_policy": "SystemShared_Initializeおよび異常リセットでクリア",
+      "public_header_impact": "公開ヘッダに固定長構造体を追加。既存構造体末尾追加で互換性確認が必要。"
+    },
+    {
+      "id": "SHM-009-02",
+      "name": "g_g88_manual_return_boringStatus",
+      "type": "G88MAN_STATUS",
+      "defined_in": "include/system_shared.h",
+      "owner": "RT_CONTROL",
+      "writers": [
+        "RT_CONTROL"
+      ],
+      "readers": [
+        "TS_SERVICE",
+        "API"
+      ],
+      "update_cycle": "毎RT周期",
+      "consistency_policy": "RTが単一書込主体。状態、応答、alarm_codeを同一周期で更新し、TS/APIはスナップショットコピーで読む。",
+      "initial_value": "IDLE",
+      "reset_policy": "機能停止、G80、異常リセットでIDLE化",
+      "public_header_impact": "状態スナップショットAPIの追加に伴い公開。"
+    },
+    {
+      "id": "SHM-009-03",
+      "name": "g_g88_manual_return_boringParam",
+      "type": "G88MAN_PARAM",
+      "defined_in": "include/system_shared.h",
+      "owner": "TS_SERVICE",
+      "writers": [
+        "TS_SERVICE"
+      ],
+      "readers": [
+        "RT_CONTROL",
+        "API"
+      ],
+      "update_cycle": "設定ロード時/保守変更時",
+      "consistency_policy": "TS側で二重バッファに書込み、validとgenerationでRTに公開する。",
+      "initial_value": "機種デフォルト",
+      "reset_policy": "設定再読込時に更新",
+      "public_header_impact": "パラメータ互換性と単位を文書化する。"
+    }
+  ],
+  "api_design": {
+    "applicable": true,
+    "apis": [
+      {
+        "id": "API-009-01",
+        "name": "Api_GetG88ManualReturnBoringStatus",
+        "header": "include/control_api.h",
+        "inputs": [
+          "pOutSnapshot"
+        ],
+        "outputs": [
+          "int32_t response"
+        ],
+        "side_effects": [
+          "なし。共有状態のコピーのみ。"
+        ],
+        "errors": [
+          "PARAM_ERROR: NULLポインタ"
+        ],
+        "call_constraints": "RT周期内処理を直接実行しない。API呼出元は状態取得のみ。"
+      },
+      {
+        "id": "API-009-02",
+        "name": "Api_RequestG88ManualReturnBoringAbort",
+        "header": "include/control_api.h",
+        "inputs": [
+          "abort_reason"
+        ],
+        "outputs": [
+          "int32_t response"
+        ],
+        "side_effects": [
+          "g_g88_manual_return_boringCommand.requestへ停止要求を登録"
+        ],
+        "errors": [
+          "REJECTED: 既に停止済み",
+          "PARAM_ERROR: 理由コード不正"
+        ],
+        "call_constraints": "要求登録のみ。安全側停止の確定はRT_CONTROLで行う。"
+      }
+    ],
+    "compatibility_policy": "既存APIの関数シグネチャは変更しない。新規APIはcontrol_api.h末尾へ追加し、戻り値は既存RESPONSE_CODEに合わせる。"
+  },
+  "thread_design": {
+    "tasks": [
+      {
+        "id": "THR-009-01",
+        "name": "要求取込",
+        "context": "RT_INPUT",
+        "trigger": "割込周期ごと",
+        "priority": "High",
+        "inputs": [
+          "g_g88_manual_return_boringCommand"
+        ],
+        "outputs": [
+          "RTローカル要求コピー"
+        ],
+        "prohibited_ops": [
+          "Windows API",
+          "file I/O",
+          "dynamic allocation",
+          "blocking wait"
+        ]
+      },
+      {
+        "id": "THR-009-02",
+        "name": "機能状態更新",
+        "context": "RT_CONTROL",
+        "trigger": "割込周期ごと",
+        "priority": "High",
+        "inputs": [
+          "RTローカル要求",
+          "g_machineCtx",
+          "g_ioIn"
+        ],
+        "outputs": [
+          "g_g88_manual_return_boringStatus",
+          "g_ioOut"
+        ],
+        "prohibited_ops": [
+          "長時間ループ",
+          "ファイルI/O"
+        ]
+      },
+      {
+        "id": "THR-009-03",
+        "name": "NC解釈/計画化",
+        "context": "TS_SERVICE",
+        "trigger": "NC先読みまたは設定変更",
+        "priority": "Mid",
+        "inputs": [
+          "NCプログラムブロック",
+          "設定パラメータ"
+        ],
+        "outputs": [
+          "g_g88_manual_return_boringCommand",
+          "g_g88_manual_return_boringParam"
+        ],
+        "prohibited_ops": [
+          "RT周期を待つブロッキング同期"
+        ]
+      },
+      {
+        "id": "THR-009-04",
+        "name": "状態取得API",
+        "context": "API",
+        "trigger": "外部アプリ呼出",
+        "priority": "Low",
+        "inputs": [
+          "g_g88_manual_return_boringStatus"
+        ],
+        "outputs": [
+          "スナップショット"
+        ],
+        "prohibited_ops": [
+          "RT確定処理の直接実行"
+        ]
+      }
+    ],
+    "rt_budget_policy": "RTは固定長データの消費と状態更新のみ。文字列解析、ファイルI/O、重計算はTS側。",
+    "ts_slice_policy": "TSは1スライスで処理量を制限し、割込再開に備えて中断可能なstep単位に分割する。"
+  },
+  "rt_design": {
+    "steps": [
+      {
+        "order": 1,
+        "function": "G88ManualReturnBoring_LatchRequestRt",
+        "inputs": [
+          "g_g88_manual_return_boringCommand"
+        ],
+        "process": "generationとrequestを確認し、固定長ローカル構造体へコピーする。",
+        "outputs": [
+          "local_request"
+        ],
+        "error_branch": "世代不一致なら前回要求を保持",
+        "estimated_us": "1-3"
+      },
+      {
+        "order": 2,
+        "function": "G88ManualReturnBoring_CheckInterlockRt",
+        "inputs": [
+          "g_machineCtx",
+          "g_ioIn",
+          "local_request"
+        ],
+        "process": "非常停止、サーボ異常、モード条件、併用不可機能を判定する。",
+        "outputs": [
+          "interlock_ok"
+        ],
+        "error_branch": "NG時はERROR/ALARMへ遷移",
+        "estimated_us": "2-5"
+      },
+      {
+        "order": 3,
+        "function": "G88ManualReturnBoring_UpdateStateRt",
+        "inputs": [
+          "local_request",
+          "current_state"
+        ],
+        "process": "穴底加工後に主軸/送りを安全停止し、手動退避完了信号を待って次ブロックへ遷移する。",
+        "outputs": [
+          "g_g88_manual_return_boringStatus"
+        ],
+        "error_branch": "異常時は安全側出力とログ要求",
+        "estimated_us": "5-20"
+      },
+      {
+        "order": 4,
+        "function": "G88ManualReturnBoring_CommitOutputRt",
+        "inputs": [
+          "state",
+          "command"
+        ],
+        "process": "g_ioOutへ軸/主軸/PLC指令を反映し、ALARM中は安全側マスクを適用する。",
+        "outputs": [
+          "g_ioOut"
+        ],
+        "error_branch": "安全側出力を優先",
+        "estimated_us": "2-8"
+      }
+    ],
+    "prohibited_operations": [
+      "Windows system call",
+      "file I/O",
+      "dynamic memory allocation",
+      "blocking wait",
+      "unbounded loop"
+    ],
+    "fallback_policy": "TS未準備、ready不成立、パラメータ不整合時は前回有効値または安全側停止へ遷移する。"
+  },
+  "ts_design": {
+    "steps": [
+      {
+        "order": 1,
+        "function": "G88ManualReturnBoring_ParseBlockTs",
+        "trigger": "NC先読み/MDI入力",
+        "process": "G88 X Y Z R P F、オペレータ再開信号、G80 を字句解析し、機能コードとアドレスを抽出する。",
+        "io": "ファイルI/OはTS側のみ",
+        "update_order": "解析結果はローカル領域に保持",
+        "failure_policy": "構文異常をNCアラームとして登録"
+      },
+      {
+        "order": 2,
+        "function": "G88ManualReturnBoring_ValidateParamTs",
+        "trigger": "解析完了",
+        "process": "X/Y、Z、R、Pドウェル、F送り、手動退避完了信号、再開許可信号 の範囲、単位、モード、併用不可条件を確認する。",
+        "io": "設定ファイル読込み可",
+        "update_order": "valid=falseのまま検証",
+        "failure_policy": "不正値はRTへ渡さずアラーム"
+      },
+      {
+        "order": 3,
+        "function": "G88ManualReturnBoring_BuildPlanTs",
+        "trigger": "検証OK",
+        "process": "複数RT周期に分割可能な固定長実行計画へ展開する。",
+        "io": "なし",
+        "update_order": "command/paramを書込み、generation更新後にrequest=1",
+        "failure_policy": "バッファ不足時はTS側で保留"
+      },
+      {
+        "order": 4,
+        "function": "G88ManualReturnBoring_WriteTraceTs",
+        "trigger": "状態変化/異常",
+        "process": "TS側でCSV/診断ログに記録する。",
+        "io": "ファイルI/Oあり",
+        "update_order": "g_logQueueを消費",
+        "failure_policy": "ログ保存失敗はWARN、RT処理は継続"
+      }
+    ],
+    "io_policy": "I/O and heavy calculation are TS only",
+    "interruption_policy": "各ステップは中間結果をローカルに保持し、共有メモリ公開は検証完了後に一括実施する。"
+  },
+  "function_specs": [
+    {
+      "id": "FUNC-009-01",
+      "name": "G88ManualReturnBoring_ParseBlockTs",
+      "file": "src/g88_manual_return_boring_ts.c",
+      "callers": [
+        "TsService_ExecuteSlice"
+      ],
+      "inputs": [
+        {
+          "name": "block_text",
+          "type": "const char*"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "parsed",
+          "type": "G88MAN_COMMAND"
+        }
+      ],
+      "return_value": "0=OK, negative=error",
+      "side_effects": [
+        "なし"
+      ],
+      "error_conditions": [
+        {
+          "condition": "未対応アドレス/範囲外",
+          "result": "parse error"
+        }
+      ],
+      "pseudo_code": [
+        "G/アドレスを走査する",
+        "機能コードを判定する",
+        "数値範囲を仮検証する",
+        "コマンド構造体へ格納する"
+      ],
+      "unit_test_viewpoints": [
+        "正常形式",
+        "アドレス不足",
+        "数値境界",
+        "未対応コード"
+      ]
+    },
+    {
+      "id": "FUNC-009-02",
+      "name": "G88ManualReturnBoring_ValidateParamTs",
+      "file": "src/g88_manual_return_boring_ts.c",
+      "callers": [
+        "G88ManualReturnBoring_BuildPlanTs"
+      ],
+      "inputs": [
+        {
+          "name": "cmd",
+          "type": "G88MAN_COMMAND"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "checked",
+          "type": "bool"
+        }
+      ],
+      "return_value": "0=OK, negative=error",
+      "side_effects": [
+        "open issue対象の未確定値を診断ログへ記録"
+      ],
+      "error_conditions": [
+        {
+          "condition": "モード/パラメータ不整合",
+          "result": "NC alarm"
+        }
+      ],
+      "pseudo_code": [
+        "運転モードを確認する",
+        "パラメータ範囲を確認する",
+        "併用不可機能を確認する",
+        "RT実行可能な固定長データに変換する"
+      ],
+      "unit_test_viewpoints": [
+        "併用不可",
+        "最大値/最小値",
+        "モード条件"
+      ]
+    },
+    {
+      "id": "FUNC-009-03",
+      "name": "G88ManualReturnBoring_ApplyRt",
+      "file": "src/g88_manual_return_boring_rt.c",
+      "callers": [
+        "RtControl_UpdateMachineState"
+      ],
+      "inputs": [
+        {
+          "name": "local_request",
+          "type": "G88MAN_COMMAND"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "status",
+          "type": "G88MAN_STATUS"
+        }
+      ],
+      "return_value": "void",
+      "side_effects": [
+        "g_ioOut更新",
+        "g_g88_manual_return_boringStatus更新"
+      ],
+      "error_conditions": [
+        {
+          "condition": "インターロックNG",
+          "result": "ALARM/安全側出力"
+        }
+      ],
+      "pseudo_code": [
+        "要求をラッチする",
+        "インターロックを確認する",
+        "状態別処理を実行する",
+        "出力と状態を公開する"
+      ],
+      "unit_test_viewpoints": [
+        "状態遷移",
+        "異常分岐",
+        "安全出力"
+      ]
+    },
+    {
+      "id": "FUNC-009-04",
+      "name": "Api_GetG88ManualReturnBoringStatus",
+      "file": "src/g88_manual_return_boring_api.c",
+      "callers": [
+        "外部アプリ",
+        "機能テスト"
+      ],
+      "inputs": [
+        {
+          "name": "pOutSnapshot",
+          "type": "pointer"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "snapshot",
+          "type": "G88MAN_STATUS"
+        }
+      ],
+      "return_value": "RESPONSE_CODE",
+      "side_effects": [
+        "なし"
+      ],
+      "error_conditions": [
+        {
+          "condition": "NULL pointer",
+          "result": "PARAM_ERROR"
+        }
+      ],
+      "pseudo_code": [
+        "引数を検査する",
+        "状態をローカルにコピーする",
+        "スナップショットを返却する"
+      ],
+      "unit_test_viewpoints": [
+        "NULL",
+        "正常コピー",
+        "同時更新中コピー"
+      ]
+    }
+  ],
+  "state_machines": [
+    {
+      "id": "SM-009-01",
+      "name": "G88手動戻りボーリングサイクル機能 状態機械",
+      "states": [
+        {
+          "id": "ST-009-01",
+          "name": "IDLE",
+          "description": "G88手動戻りボーリングサイクル機能のIDLE状態",
+          "entry": "前状態からの条件成立",
+          "do": "状態に応じたRT処理を1周期分だけ実行",
+          "exit_condition": "完了/異常/停止要求",
+          "error_transition": "ERRORまたはALARM",
+          "reset_condition": "G80/停止/リセット要求"
+        },
+        {
+          "id": "ST-009-02",
+          "name": "RAPID_XY",
+          "description": "G88手動戻りボーリングサイクル機能のRAPID_XY状態",
+          "entry": "前状態からの条件成立",
+          "do": "状態に応じたRT処理を1周期分だけ実行",
+          "exit_condition": "完了/異常/停止要求",
+          "error_transition": "ERRORまたはALARM",
+          "reset_condition": "G80/停止/リセット要求"
+        },
+        {
+          "id": "ST-009-03",
+          "name": "RAPID_R",
+          "description": "G88手動戻りボーリングサイクル機能のRAPID_R状態",
+          "entry": "前状態からの条件成立",
+          "do": "状態に応じたRT処理を1周期分だけ実行",
+          "exit_condition": "完了/異常/停止要求",
+          "error_transition": "ERRORまたはALARM",
+          "reset_condition": "G80/停止/リセット要求"
+        },
+        {
+          "id": "ST-009-04",
+          "name": "FEED_Z",
+          "description": "G88手動戻りボーリングサイクル機能のFEED_Z状態",
+          "entry": "前状態からの条件成立",
+          "do": "状態に応じたRT処理を1周期分だけ実行",
+          "exit_condition": "完了/異常/停止要求",
+          "error_transition": "ERRORまたはALARM",
+          "reset_condition": "G80/停止/リセット要求"
+        },
+        {
+          "id": "ST-009-05",
+          "name": "DWELL",
+          "description": "G88手動戻りボーリングサイクル機能のDWELL状態",
+          "entry": "前状態からの条件成立",
+          "do": "状態に応じたRT処理を1周期分だけ実行",
+          "exit_condition": "完了/異常/停止要求",
+          "error_transition": "ERRORまたはALARM",
+          "reset_condition": "G80/停止/リセット要求"
+        },
+        {
+          "id": "ST-009-06",
+          "name": "MANUAL_WAIT",
+          "description": "G88手動戻りボーリングサイクル機能のMANUAL_WAIT状態",
+          "entry": "前状態からの条件成立",
+          "do": "状態に応じたRT処理を1周期分だけ実行",
+          "exit_condition": "完了/異常/停止要求",
+          "error_transition": "ERRORまたはALARM",
+          "reset_condition": "G80/停止/リセット要求"
+        },
+        {
+          "id": "ST-009-07",
+          "name": "RESUME_CHECK",
+          "description": "G88手動戻りボーリングサイクル機能のRESUME_CHECK状態",
+          "entry": "前状態からの条件成立",
+          "do": "状態に応じたRT処理を1周期分だけ実行",
+          "exit_condition": "完了/異常/停止要求",
+          "error_transition": "ERRORまたはALARM",
+          "reset_condition": "G80/停止/リセット要求"
+        },
+        {
+          "id": "ST-009-08",
+          "name": "DONE",
+          "description": "G88手動戻りボーリングサイクル機能のDONE状態",
+          "entry": "前状態からの条件成立",
+          "do": "状態に応じたRT処理を1周期分だけ実行",
+          "exit_condition": "完了/異常/停止要求",
+          "error_transition": "ERRORまたはALARM",
+          "reset_condition": "G80/停止/リセット要求"
+        },
+        {
+          "id": "ST-009-09",
+          "name": "ERROR",
+          "description": "G88手動戻りボーリングサイクル機能のERROR状態",
+          "entry": "前状態からの条件成立",
+          "do": "状態に応じたRT処理を1周期分だけ実行",
+          "exit_condition": "完了/異常/停止要求",
+          "error_transition": "ERRORまたはALARM",
+          "reset_condition": "G80/停止/リセット要求"
+        }
+      ],
+      "transitions": [
+        {
+          "id": "TR-009-01",
+          "from": "IDLE",
+          "event": "正常条件成立",
+          "guard": "インターロックOK",
+          "action": "次状態の出力を準備",
+          "to": "RAPID_XY"
+        },
+        {
+          "id": "TR-009-02",
+          "from": "RAPID_XY",
+          "event": "正常条件成立",
+          "guard": "インターロックOK",
+          "action": "次状態の出力を準備",
+          "to": "RAPID_R"
+        },
+        {
+          "id": "TR-009-03",
+          "from": "RAPID_R",
+          "event": "正常条件成立",
+          "guard": "インターロックOK",
+          "action": "次状態の出力を準備",
+          "to": "FEED_Z"
+        },
+        {
+          "id": "TR-009-04",
+          "from": "FEED_Z",
+          "event": "正常条件成立",
+          "guard": "インターロックOK",
+          "action": "次状態の出力を準備",
+          "to": "DWELL"
+        },
+        {
+          "id": "TR-009-05",
+          "from": "DWELL",
+          "event": "正常条件成立",
+          "guard": "インターロックOK",
+          "action": "次状態の出力を準備",
+          "to": "MANUAL_WAIT"
+        },
+        {
+          "id": "TR-009-06",
+          "from": "MANUAL_WAIT",
+          "event": "正常条件成立",
+          "guard": "インターロックOK",
+          "action": "次状態の出力を準備",
+          "to": "RESUME_CHECK"
+        },
+        {
+          "id": "TR-009-07",
+          "from": "RESUME_CHECK",
+          "event": "正常条件成立",
+          "guard": "インターロックOK",
+          "action": "次状態の出力を準備",
+          "to": "DONE"
+        },
+        {
+          "id": "TR-009-08",
+          "from": "DONE",
+          "event": "正常条件成立",
+          "guard": "インターロックOK",
+          "action": "次状態の出力を準備",
+          "to": "ERROR"
+        },
+        {
+          "id": "TR-009-ERR",
+          "from": "ANY",
+          "event": "異常/非常停止/パラメータ不正",
+          "guard": "安全側遷移条件成立",
+          "action": "出力停止、アラーム設定、ログ要求",
+          "to": "ERROR"
+        }
+      ],
+      "initial_state": "IDLE",
+      "normal_terminal_states": [
+        "DONE"
+      ],
+      "error_terminal_states": [
+        "ERROR"
+      ],
+      "reset_policy": "G80、停止要求、異常リセットによりIDLEへ戻す。"
+    }
+  ],
+  "sequences": [
+    {
+      "id": "SEQ-009-01",
+      "name": "G88手動戻りボーリングサイクル機能 実行シーケンス",
+      "steps": [
+        {
+          "step_no": 1,
+          "actor": "TS_SERVICE",
+          "input_condition": "穴位置移動",
+          "process": "G88手動戻りボーリングサイクル機能の処理ステップ: 穴位置移動",
+          "output": "状態/出力/ログ要求を更新",
+          "next_ok": "Step 2",
+          "next_error": "ERROR/ALARM"
+        },
+        {
+          "step_no": 2,
+          "actor": "TS_SERVICE",
+          "input_condition": "Z深さまで送り",
+          "process": "G88手動戻りボーリングサイクル機能の処理ステップ: Z深さまで送り",
+          "output": "状態/出力/ログ要求を更新",
+          "next_ok": "Step 3",
+          "next_error": "ERROR/ALARM"
+        },
+        {
+          "step_no": 3,
+          "actor": "RT_CONTROL",
+          "input_condition": "Pドウェル",
+          "process": "G88手動戻りボーリングサイクル機能の処理ステップ: Pドウェル",
+          "output": "状態/出力/ログ要求を更新",
+          "next_ok": "Step 4",
+          "next_error": "ERROR/ALARM"
+        },
+        {
+          "step_no": 4,
+          "actor": "RT_CONTROL",
+          "input_condition": "プログラム一時停止",
+          "process": "G88手動戻りボーリングサイクル機能の処理ステップ: プログラム一時停止",
+          "output": "状態/出力/ログ要求を更新",
+          "next_ok": "Step 5",
+          "next_error": "ERROR/ALARM"
+        },
+        {
+          "step_no": 5,
+          "actor": "RT_CONTROL",
+          "input_condition": "手動退避完了待ち",
+          "process": "G88手動戻りボーリングサイクル機能の処理ステップ: 手動退避完了待ち",
+          "output": "状態/出力/ログ要求を更新",
+          "next_ok": "Step 6",
+          "next_error": "ERROR/ALARM"
+        },
+        {
+          "step_no": 6,
+          "actor": "RT_CONTROL",
+          "input_condition": "再開して次ブロック",
+          "process": "G88手動戻りボーリングサイクル機能の処理ステップ: 再開して次ブロック",
+          "output": "状態/出力/ログ要求を更新",
+          "next_ok": "DONE",
+          "next_error": "ERROR/ALARM"
+        }
+      ]
+    }
+  ],
+  "concurrency": {
+    "items": [
+      {
+        "id": "CON-009-01",
+        "target": "g_g88_manual_return_boringCommand",
+        "race_pattern": "TS/API書込中にRTが読み込む",
+        "method": "generation二重確認と最後にrequest=1を立てる単方向通知",
+        "update_order": "fields -> generation -> request",
+        "visibility_condition": "RT周期先頭でgeneration一致",
+        "prohibited": "RT側OSロック禁止"
+      },
+      {
+        "id": "CON-009-02",
+        "target": "g_g88_manual_return_boringStatus",
+        "race_pattern": "RT書込中にAPIが読む",
+        "method": "API側は短時間コピーし、不一致時は再読みによるスナップショット取得",
+        "update_order": "status fields -> response -> generation",
+        "visibility_condition": "generation前後一致",
+        "prohibited": "APIがRT状態を直接変更しない"
+      }
+    ],
+    "lock_order": [
+      "RTはロックなし",
+      "TSはI/O中に共有データロックを保持しない"
+    ],
+    "memory_visibility_policy": "volatileのみに依存せず、固定長コピー、generation、request/busy/readyで可視性を担保する。",
+    "multi_request_policy": "同一機能の多重要求はTS側キューまたは最新値上書き方針を機能ごとに選択し、RT実行中は原則REJECTED。"
+  },
+  "error_safety": {
+    "errors": [
+      {
+        "id": "ERR-009-01",
+        "detected_at": "TS_SERVICE",
+        "condition": "手動退避未完了",
+        "action": "要求拒否または安全側停止",
+        "fail_safe_output": "軸/主軸/PLC出力を既存安全値へ遷移",
+        "log_notify": "g_logQueueへALARM/WARN投入",
+        "recovery": "原因除去後にリセットまたはG80/停止要求"
+      },
+      {
+        "id": "ERR-009-02",
+        "detected_at": "TS_SERVICE",
+        "condition": "再開条件未成立",
+        "action": "要求拒否または安全側停止",
+        "fail_safe_output": "軸/主軸/PLC出力を既存安全値へ遷移",
+        "log_notify": "g_logQueueへALARM/WARN投入",
+        "recovery": "原因除去後にリセットまたはG80/停止要求"
+      },
+      {
+        "id": "ERR-009-03",
+        "detected_at": "RT_CONTROL",
+        "condition": "非常停止中再開要求",
+        "action": "要求拒否または安全側停止",
+        "fail_safe_output": "軸/主軸/PLC出力を既存安全値へ遷移",
+        "log_notify": "g_logQueueへALARM/WARN投入",
+        "recovery": "原因除去後にリセットまたはG80/停止要求"
+      },
+      {
+        "id": "ERR-009-04",
+        "detected_at": "RT_CONTROL",
+        "condition": "作業者介入タイムアウト",
+        "action": "要求拒否または安全側停止",
+        "fail_safe_output": "軸/主軸/PLC出力を既存安全値へ遷移",
+        "log_notify": "g_logQueueへALARM/WARN投入",
+        "recovery": "原因除去後にリセットまたはG80/停止要求"
+      }
+    ],
+    "fail_safe_policy": "非常停止、サーボ異常、インターロックは通常処理より優先し、g_ioOutを安全側既定値へ遷移する。",
+    "recovery_policy": "異常原因を除去後、リセット要求により状態と要求を初期化し、必要な場合は原点/位置/主軸状態を再確認する。"
+  },
+  "logging_diagnostics": {
+    "logs": [
+      {
+        "id": "LOG-009-01",
+        "event": "機能開始/終了",
+        "producer": "RT_CONTROL",
+        "destination": "g_logQueue -> TS CSV",
+        "fields": [
+          "timestamp",
+          "block_no",
+          "state",
+          "command_code"
+        ],
+        "format": "CSV/diagnostic snapshot",
+        "throttle_policy": "状態変化時のみ"
+      },
+      {
+        "id": "LOG-009-02",
+        "event": "パラメータ/構文異常",
+        "producer": "TS_SERVICE",
+        "destination": "ログファイル",
+        "fields": [
+          "block_no",
+          "address",
+          "value",
+          "reason"
+        ],
+        "format": "CSV",
+        "throttle_policy": "同一ブロック1回"
+      },
+      {
+        "id": "LOG-009-03",
+        "event": "安全側停止",
+        "producer": "RT_CONTROL",
+        "destination": "g_logQueue -> TS CSV",
+        "fields": [
+          "alarm_code",
+          "io_snapshot",
+          "machine_state"
+        ],
+        "format": "CSV",
+        "throttle_policy": "初回発生時と復旧時"
+      }
+    ],
+    "diagnostic_snapshots": [
+      {
+        "id": "DIAG-009-01",
+        "trigger": "API状態取得",
+        "fields": [
+          "state",
+          "active_block",
+          "alarm_code",
+          "generation",
+          "io_snapshot"
+        ]
+      }
+    ],
+    "throttle_policy": "RT側はキュー投入のみ。ファイル出力はTS側で実行し、同一異常の連続出力は抑止する。"
+  },
+  "parameters": [
+    {
+      "id": "PAR-009-01",
+      "name": "X/Y",
+      "type": "int32_t/double/config",
+      "default": "機種標準値",
+      "range": "詳細設計後に機種別確定",
+      "unit": "機能仕様に従う",
+      "apply_timing": "TS設定ロード後、RTはgeneration一致時に反映",
+      "permission": "保守権限"
+    },
+    {
+      "id": "PAR-009-02",
+      "name": "Z",
+      "type": "int32_t/double/config",
+      "default": "機種標準値",
+      "range": "詳細設計後に機種別確定",
+      "unit": "機能仕様に従う",
+      "apply_timing": "TS設定ロード後、RTはgeneration一致時に反映",
+      "permission": "保守権限"
+    },
+    {
+      "id": "PAR-009-03",
+      "name": "R",
+      "type": "int32_t/double/config",
+      "default": "機種標準値",
+      "range": "詳細設計後に機種別確定",
+      "unit": "機能仕様に従う",
+      "apply_timing": "TS設定ロード後、RTはgeneration一致時に反映",
+      "permission": "保守権限"
+    },
+    {
+      "id": "PAR-009-04",
+      "name": "Pドウェル",
+      "type": "int32_t/double/config",
+      "default": "機種標準値",
+      "range": "詳細設計後に機種別確定",
+      "unit": "機能仕様に従う",
+      "apply_timing": "TS設定ロード後、RTはgeneration一致時に反映",
+      "permission": "保守権限"
+    },
+    {
+      "id": "PAR-009-05",
+      "name": "F送り",
+      "type": "int32_t/double/config",
+      "default": "機種標準値",
+      "range": "詳細設計後に機種別確定",
+      "unit": "機能仕様に従う",
+      "apply_timing": "TS設定ロード後、RTはgeneration一致時に反映",
+      "permission": "保守権限"
+    },
+    {
+      "id": "PAR-009-06",
+      "name": "手動退避完了信号",
+      "type": "int32_t/double/config",
+      "default": "機種標準値",
+      "range": "詳細設計後に機種別確定",
+      "unit": "機能仕様に従う",
+      "apply_timing": "TS設定ロード後、RTはgeneration一致時に反映",
+      "permission": "保守権限"
+    },
+    {
+      "id": "PAR-009-07",
+      "name": "再開許可信号",
+      "type": "int32_t/double/config",
+      "default": "機種標準値",
+      "range": "詳細設計後に機種別確定",
+      "unit": "機能仕様に従う",
+      "apply_timing": "TS設定ロード後、RTはgeneration一致時に反映",
+      "permission": "保守権限"
+    }
+  ],
+  "performance_budget": {
+    "items": [
+      {
+        "id": "PERF-009-01",
+        "target": "RT追加処理時間",
+        "budget": "1周期予算内。機能別目標20us以下",
+        "estimate": "8-36us（ワーストケースは実機測定）",
+        "measurement": "RtControl_PublishPerformanceの周期カウンタ差分",
+        "worst_case": "多軸/最大ペック/異常検出同時",
+        "open_issue": "実機CPUと軸数で再見積が必要"
+      },
+      {
+        "id": "PERF-009-02",
+        "target": "TS計画生成時間",
+        "budget": "RT休止中のスライスで分割実行",
+        "estimate": "1ブロックあたり0.1-5ms",
+        "measurement": "TS_SERVICEログ",
+        "worst_case": "複雑輪郭/最大繰返し",
+        "open_issue": "NC先読みバッファ量との調整"
+      },
+      {
+        "id": "PERF-009-03",
+        "target": "共有メモリサイズ",
+        "budget": "固定長、動的割付なし",
+        "estimate": "数百バイト〜数KB",
+        "measurement": "sizeof確認",
+        "worst_case": "最大軸数/最大ペア",
+        "open_issue": "公開ヘッダ互換性確認"
+      }
+    ],
+    "rt_total_budget": "must not exceed one interrupt interval",
+    "measurement_method": "RT周期カウンタ、処理時間ログ、オーバランカウンタ、TS処理ログで測定する。"
+  },
+  "initialization_reset": {
+    "items": [
+      {
+        "id": "INIT-009-01",
+        "target": "g_g88_manual_return_boringCommand",
+        "initial_value": "0クリア/request=0",
+        "reset_condition": "SystemShared_Initialize、異常リセット、G80/停止",
+        "error_clear": "異常時にrequestをクリアし安全停止要求へ置換",
+        "compatibility": "既存構造体末尾追加を優先",
+        "verification": "起動直後APIスナップショット"
+      },
+      {
+        "id": "INIT-009-02",
+        "target": "g_g88_manual_return_boringStatus",
+        "initial_value": "IDLE",
+        "reset_condition": "リセットまたは機能キャンセル",
+        "error_clear": "alarm_codeを保持しつつstateをERROR/IDLEへ遷移",
+        "compatibility": "状態enumは値を固定",
+        "verification": "リセットテスト"
+      },
+      {
+        "id": "INIT-009-03",
+        "target": "g_g88_manual_return_boringParam",
+        "initial_value": "機種デフォルト",
+        "reset_condition": "設定再読込",
+        "error_clear": "不正設定時は旧世代値を維持",
+        "compatibility": "パラメータIDを安定化",
+        "verification": "設定ロードテスト"
+      }
+    ],
+    "compatibility_policy": "公開ヘッダの既存フィールド順序は維持し、追加は末尾または新規構造体で行う。バージョン番号を付与して外部連携先に通知する。"
+  },
+  "test_handoff": {
+    "viewpoints": [
+      {
+        "id": "TV-009-01",
+        "type": "unit",
+        "target": "G88ManualReturnBoring_ParseBlockTs",
+        "condition": "正常Gコード/パラメータ",
+        "expected": "COMMAND構造体へ正しく変換",
+        "stub_mock": "NCブロック文字列",
+        "requirement_id": "REQ-001"
+      },
+      {
+        "id": "TV-009-02",
+        "type": "integration",
+        "target": "RT_CONTROL状態遷移",
+        "condition": "正常シーケンス",
+        "expected": "状態が順番通り進み安全出力が維持",
+        "stub_mock": "I/Oシミュレータ",
+        "requirement_id": "REQ-002"
+      },
+      {
+        "id": "TV-009-03",
+        "type": "error",
+        "target": "異常/インターロック",
+        "condition": "非常停止またはパラメータ不正",
+        "expected": "ALARM/ERROR、安全側出力、ログ発行",
+        "stub_mock": "g_ioIn異常注入",
+        "requirement_id": "REQ-003"
+      },
+      {
+        "id": "TV-009-04",
+        "type": "performance",
+        "target": "RT追加処理時間",
+        "condition": "最大軸数/最大繰返し",
+        "expected": "1割込周期内、オーバラン0",
+        "stub_mock": "周期カウンタ",
+        "requirement_id": "REQ-003"
+      }
+    ],
+    "acceptance_criteria": [
+      {
+        "id": "AC-009-01",
+        "description": "正常シーケンスが期待通り完了すること"
+      },
+      {
+        "id": "AC-009-02",
+        "description": "異常時は安全側出力へ遷移しログが残ること"
+      },
+      {
+        "id": "AC-009-03",
+        "description": "RT追加処理が1周期内に収まること"
+      }
+    ],
+    "test_data": [
+      {
+        "id": "TD-009-01",
+        "type": "NC block/API",
+        "value": "G88 X Y Z R P F、オペレータ再開信号、G80",
+        "expected": "正常コマンド化"
+      },
+      {
+        "id": "TD-009-02",
+        "type": "abnormal",
+        "value": "手動退避未完了",
+        "expected": "ALARM/REJECTED"
+      }
+    ]
+  },
+  "build_test_static_analysis": {
+    "vc2026": {
+      "build_command": "cmd /c scripts\\build_vc2026.bat",
+      "test_command": "cmd /c scripts\\test_vc2026.bat",
+      "target": "src/g88_manual_return_boring_*.c tests/test_g88_manual_return_boring.c",
+      "failure_triage": "include追加漏れ、extern定義漏れ、警告を確認"
+    },
+    "clang_windows": {
+      "build_command": "cmd /c scripts\\build_clang.bat",
+      "test_command": "cmd /c scripts\\test_clang.bat",
+      "target": "src/g88_manual_return_boring_*.c tests/test_g88_manual_return_boring.c",
+      "failure_triage": "C標準、未使用変数、型変換警告を確認"
+    },
+    "static_analysis": {
+      "command": "clang-tidy / cppcheck 相当を任意実行",
+      "policy": "blocker警告なし"
+    },
+    "workspace_profiles": [
+      {
+        "name": "ibm-bob-vc2026"
+      },
+      {
+        "name": "ibm-bob-clang-win"
+      }
+    ]
+  },
+  "open_issues": [
+    {
+      "id": "ISS-009-01",
+      "category": "要確認",
+      "description": "機種別パラメータ範囲、軸数、オプション有無は実機構成で確定する。",
+      "impact": "TS検証条件とエラーコード表に影響",
+      "temporary_policy": "保守設定から取得し、未定義時はREJECTED/ALARMとする。",
+      "owner": "設計担当/機械仕様担当",
+      "due_date": "詳細レビュー時"
+    },
+    {
+      "id": "ISS-009-02",
+      "category": "リスク",
+      "description": "RT追加処理時間のワーストケースは実装後測定が必要。",
+      "impact": "周期オーバランのリスク",
+      "temporary_policy": "重計算と計画展開はTS側に限定し、RTは固定長データ消費のみとする。",
+      "owner": "実装担当",
+      "due_date": "単体性能テスト時"
+    },
+    {
+      "id": "ISS-009-03",
+      "category": "要確認",
+      "description": "既存NCプログラム運転機能の実行ブロック形式との統合点を確定する。",
+      "impact": "NC先読みバッファと機能別コマンド構造体の配置に影響",
+      "temporary_policy": "feature_code + parameter_index方式で暫定連携する。",
+      "owner": "アーキテクト",
+      "due_date": "実装着手前"
+    }
+  ],
+  "ai_review": {
+    "summary": {
+      "pass": 18,
+      "warn": 3,
+      "ng": 0,
+      "na": 1
+    },
+    "results": [
+      {
+        "checklist_id": "DDR-H02",
+        "result": "OK",
+        "severity": "blocker",
+        "section_id": "DD-10",
+        "evidence": "RT禁止事項を明記し、文字列解析/I/OはTSへ分離。",
+        "recommendation": "実装レビューで関数内呼出を再確認する。"
+      },
+      {
+        "checklist_id": "DDR-R01",
+        "result": "要確認",
+        "severity": "blocker",
+        "section_id": "DD-19",
+        "evidence": "RT時間は見積のみで実測前。",
+        "recommendation": "実装後に最大軸数/最大繰返しで測定する。"
+      },
+      {
+        "checklist_id": "DDR-F03",
+        "result": "要確認",
+        "severity": "major",
+        "section_id": "DD-07",
+        "evidence": "公開ヘッダへの追加がある。",
+        "recommendation": "外部アプリの再ビルド要否を確認する。"
+      }
+    ],
+    "overall_judgement": "条件付き合格"
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "schema_version": "IBM-Bob Basic Design v2.0 compatible",
+  "document": {
+    "id": "BD-017",
+    "title": "軸退避・復帰機能（G10.6）_基本設計書",
+    "language": "ja-JP",
+    "created_at": "2026-04-29",
+    "source_file": "設計_軸退避復帰機能.docx",
+    "status": "draft_for_review"
+  },
+  "feature": {
+    "name": "軸退避・復帰機能（G10.6）",
+    "category": "NC制御拡張機能",
+    "overview": [
+      "工具を安全に退避させるため、指定軸を一定距離移動させるワンショットGコードです。加工途中で測定や干渉回避のために軸を退避し、次のG10.6命令までその退避量を保持します。"
+    ],
+    "source_interface_notes": [],
+    "source_flow": [
+      "1. 加工プログラム中で退避が必要な位置にG10.6と移動量を記述します。\n2. 指定軸はその距離だけ現在位置から退避します。\n3. 退避後の加工や測定を行います。\n4. 退避を解除したい場合はG10.6 ; と記述し、退避量をキャンセルします。\n5. 退避後の復帰位置を明示的に指示する場合はG10.6で新しいIPを指定します。"
+    ],
+    "source_design_notes": [
+      "- G10.6はグループ00のワンショットGコードです。ほかのGコードと同一ブロックに記述しないでください。",
+      "- 退避軸は1軸のみ指定するのが一般的で、複数軸同時退避はサポートされません。",
+      "- 退避中は補間や補正機能に注意し、干渉が起きないようにします。",
+      "引用: 【95414512717278†L14012-L14028】"
+    ],
+    "g_codes": [
+      "G10.6"
+    ],
+    "parameters": [],
+    "signals": []
+  },
+  "architecture": {
+    "platform": "Windows C multi-threaded machine-control platform",
+    "rt_thread": "RT_INPUT/RT_CONTROL/RT_OUTPUTをハードウェア割込周期内で実行する。RT側ではWindows API、ファイルI/O、動的メモリ確保、長時間ブロックを禁止する。",
+    "ts_thread": "TS_SERVICEでNC解析、パラメータ読出、ログ、UI/PMC連携、重い演算の先読みを行う。",
+    "api_policy": "公開APIは要求登録とスナップショット取得に限定し、状態確定はRT_CONTROLまたはTS_SERVICE側で行う。"
+  },
+  "shared_memory": {
+    "existing": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "candidate_additions": [
+      "g_featureConfig[17]",
+      "g_featureRequest[17]",
+      "g_featureStatus[17]",
+      "g_featureTrace[17]"
+    ]
+  },
+  "sections": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  }
+}

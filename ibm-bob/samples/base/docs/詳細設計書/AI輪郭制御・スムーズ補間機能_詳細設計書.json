@@ -1,0 +1,155 @@
+{
+  "metadata": {
+    "document_id": "DD-AUTO-0F2BAC",
+    "document_type": "詳細設計書",
+    "version": "0.1",
+    "created_on": "2026-04-29",
+    "target_system": "IBM-Bob基盤システム",
+    "target_environment": "Windows / C言語 / RT + TS thread",
+    "feature_name": "AI輪郭制御・スムーズ補間機能",
+    "source_basic_design": "AI輪郭制御・スムーズ補間機能_基本設計書.docx",
+    "source_hash": "cbb0bc9c36bf2a40",
+    "section_range": "DD-00〜DD-24",
+    "note": "ユーザーが20件と指定したが、この実行で確認できたアップロード済み基本設計書は18件。確認できた18件を対象に生成。"
+  },
+  "traceability": {
+    "basic_design_summary": "AI輪郭制御（高速・高精度補間）およびスムーズ補間・ナノスムージングは、高速加工において加工精度と面粗さを改善するための機能である。制御装置はプログラムの輪郭を複数ブロック先読みし、加減速を最適化して滑らかな軌跡を生成する。また、スムーズ補間（G05.1 Q2）やナノスムージング（G05.1 Q3）は直線プログラムをNURBS曲線に変換することで、工具軌跡の角を除去し鏡面加工に近い表面を得る。",
+    "codes": [
+      "G05",
+      "G05.1",
+      "G08",
+      "G05 P10000"
+    ],
+    "category": "hpcc"
+  },
+  "design": {
+    "identifier": "AiSmoothInterp",
+    "snake": "ai_smooth_interp",
+    "control_type": "TS側先読み・平滑化計算とRT側固定長補間実行を分離した高速高精度輪郭制御",
+    "algorithm": "G05/G05.1/G08等のモード指令をTS_SERVICEで解釈し、線分列を許容誤差内の補間セグメントへ変換する。RT_CONTROLは事前生成済みセグメントを消費し、周期内では浮動小数の重計算やファイルI/Oを行わない。",
+    "states": [
+      "OFF",
+      "ARMED",
+      "PREFETCHING",
+      "ACTIVE",
+      "DRAINING",
+      "ALARM"
+    ],
+    "shared_memory": [
+      [
+        "g_ai_smooth_interpMode",
+        "AISMOOTHINTERP_MODE",
+        "TS/API更新 / RT読取",
+        "有効状態、許容誤差、先読み条件、モード世代番号"
+      ],
+      [
+        "g_ai_smooth_interpPrefetch",
+        "AISMOOTHINTERP_PREFETCH",
+        "TS更新 / RT読取",
+        "平滑化済み軌跡セグメント、速度/加速度/ジャーク制限"
+      ],
+      [
+        "g_ai_smooth_interpStatus",
+        "AISMOOTHINTERP_STATUS",
+        "RT更新 / TS・API読取",
+        "実行中セグメント、アンダーラン、補間状態"
+      ]
+    ],
+    "apis": [
+      [
+        "Api_GetAiSmoothInterpStatus",
+        "高精度制御モードと先読み状態を取得"
+      ],
+      [
+        "Api_RequestAiSmoothInterpFlush",
+        "先読みバッファのドレイン/再生成を要求"
+      ]
+    ],
+    "modules": [
+      {
+        "module": "include/system_config.h",
+        "change": "機能有効/上限サイズ/RT予算マクロを追加または参照"
+      },
+      {
+        "module": "include/system_shared.h",
+        "change": "AISMOOTHINTERP_MODE 等の共有構造体宣言を追加"
+      },
+      {
+        "module": "include/control_api.h",
+        "change": "状態取得APIおよび必要に応じた要求登録APIのプロトタイプを追加"
+      },
+      {
+        "module": "include/nc_interpreter.h",
+        "change": "NC解析テーブル、モーダル状態、内部実行ブロック型を追加/拡張"
+      },
+      {
+        "module": "src/nc_interpreter.c",
+        "change": "G/M/アドレス解析、パラメータ検証、実行ブロック生成を実装"
+      },
+      {
+        "module": "src/ts_service.c",
+        "change": "ファイルI/O、先読み、展開、ログ整形、HMI/API通知を実装"
+      },
+      {
+        "module": "src/rt_control.c",
+        "change": "周期内状態判定、固定長実行ブロック消費、安全遷移を実装"
+      },
+      {
+        "module": "src/rt_output.c",
+        "change": "軸/主軸/PMC出力、減速停止、フェイルセーフ出力を確定"
+      }
+    ],
+    "functions": [
+      {
+        "name": "ai_smooth_interp_init",
+        "thread": "TS/INIT",
+        "role": "共有メモリ初期化、定義テーブル読込、既定状態設定"
+      },
+      {
+        "name": "ai_smooth_interp_parse_block",
+        "thread": "TS_SERVICE",
+        "role": "NCブロックまたはAPI要求を検証し、内部命令へ変換"
+      },
+      {
+        "name": "ai_smooth_interp_prepare_rt_block",
+        "thread": "TS_SERVICE",
+        "role": "RTが周期内で扱える固定長実行ブロックへ展開"
+      },
+      {
+        "name": "ai_smooth_interp_rt_update",
+        "thread": "RT_CONTROL",
+        "role": "周期内状態更新、実行ブロック消費、安全条件判定"
+      },
+      {
+        "name": "ai_smooth_interp_rt_fail_safe",
+        "thread": "RT_CONTROL/RT_OUTPUT",
+        "role": "異常検出時の減速停止、出力遮断、ALARM遷移"
+      },
+      {
+        "name": "ai_smooth_interp_api_get_status",
+        "thread": "API",
+        "role": "世代番号付きスナップショットを返却"
+      }
+    ],
+    "hardware_inputs": [
+      "NC先読みブロック列",
+      "軸現在速度/加速度",
+      "サーボ制限値",
+      "許容誤差パラメータ",
+      "補間モード状態"
+    ],
+    "errors": [
+      "DD-E201 HPCC前提モード未成立",
+      "DD-E202 先読みバッファアンダーラン",
+      "DD-E203 許容誤差範囲外",
+      "DD-E204 補正/補間モード競合"
+    ],
+    "rt_budget_us": "未確定。初期目標はRT_CONTROL差分で50us以下、最大でも1割込周期の10%以内。",
+    "build_commands": [
+      "cmd /c scripts\\build_vc2026.bat",
+      "cmd /c scripts\\test_vc2026.bat",
+      "cmd /c scripts\\build_clang.bat",
+      "cmd /c scripts\\test_clang.bat"
+    ]
+  }
+}

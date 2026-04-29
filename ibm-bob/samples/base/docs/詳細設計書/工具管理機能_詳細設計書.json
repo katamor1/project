@@ -1,0 +1,127 @@
+{
+  "document_type": "IBM-Bob Detail Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "DD-00",
+    "DD-01",
+    "DD-02",
+    "DD-03",
+    "DD-04",
+    "DD-05",
+    "DD-06",
+    "DD-07",
+    "DD-08",
+    "DD-09",
+    "DD-10",
+    "DD-11",
+    "DD-12",
+    "DD-13",
+    "DD-14",
+    "DD-15",
+    "DD-16",
+    "DD-17",
+    "DD-18",
+    "DD-19",
+    "DD-20",
+    "DD-21",
+    "DD-22",
+    "DD-23",
+    "DD-24"
+  ],
+  "metadata": {
+    "document_id": "DD-CNC-211",
+    "feature_name": "工具管理機能",
+    "category": "工具・補助機能",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_basic_design": "工具管理機能_基本設計書.docx",
+    "source_document": "設計_工具管理機能.docx"
+  },
+  "traceability": {
+    "basic_design_id": "BD-CNC-211",
+    "requirements": [
+      "Tコードに対応する工具情報が正しく選択される",
+      "寿命超過工具の加工開始を禁止する",
+      "工具データ更新がRT制御と整合する"
+    ],
+    "codes": [
+      "Tコード: 工具番号選択",
+      "D/H番号: 工具径/工具長補正番号",
+      "工具寿命パラメータ",
+      "KEY信号: 工具情報保護"
+    ]
+  },
+  "module_design": {
+    "header": "include/cnc211_feature.h",
+    "source": "src/cnc211_feature.c",
+    "test": "tests/test_cnc211_feature.c",
+    "ts_functions": [
+      "Ts_CNC211_Prepare",
+      "Ts_CNC211_CommitExecBuffer"
+    ],
+    "rt_functions": [
+      "Rt_CNC211_ValidateSnapshot",
+      "Rt_CNC211_ExecuteCycle"
+    ],
+    "api_functions": [
+      "Api_GetCNC211Status",
+      "Api_RequestCNC211ConfigUpdate"
+    ]
+  },
+  "data_design": {
+    "config": "CNC211_FEATURE_CONFIG",
+    "request": "CNC211_FEATURE_REQUEST",
+    "status": "CNC211_FEATURE_STATUS",
+    "exec_block": "CNC211_EXEC_BLOCK",
+    "exec_buffer": "CNC211_EXEC_BUFFER",
+    "global": "g_cnc211Feature",
+    "consistency": "valid flag + generation_begin/generation_end + single writer policy"
+  },
+  "processing": {
+    "ts_service": [
+      "TS_SERVICEがTコードを解析し、工具管理テーブルから工具番号、補正番号、寿命状態を取得する。",
+      "交換が必要な場合はPLC向け工具交換要求を生成し、応答完了まで状態を監視する。",
+      "RT_CONTROLは現在工具の有効/無効、補正値、寿命警告状態を周期内インターロックに使用する。",
+      "加工完了または使用時間更新時にTS_SERVICEが寿命カウンタを更新し、必要に応じてログ保存する。"
+    ],
+    "rt_control": [
+      "サイクル展開、工具・補正・PLC条件の検証はTS_SERVICEで行い、RT_CONTROLは展開済みステップを実行する。",
+      "工具、主軸、冷却、PLC応答のタイムアウトを状態遷移として管理する。"
+    ],
+    "state_machine": [
+      "DISABLED",
+      "ARMED",
+      "PREPARED",
+      "ACTIVE",
+      "HOLD",
+      "COMPLETE",
+      "ALARM"
+    ]
+  },
+  "errors": [
+    "未登録工具",
+    "寿命超過工具",
+    "補正番号不一致",
+    "工具交換タイムアウト",
+    "保護中データ更新要求"
+  ],
+  "constraints": [
+    "工具番号と補正番号の対応を明確化",
+    "工具寿命データはTS側で永続化",
+    "RT側はテーブル検索やファイルI/Oを行わない"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "DDR-001",
+    "DDR-002",
+    "DDR-003",
+    "DDR-004",
+    "DDR-005",
+    "DDR-006",
+    "DDR-007",
+    "DDR-008"
+  ]
+}

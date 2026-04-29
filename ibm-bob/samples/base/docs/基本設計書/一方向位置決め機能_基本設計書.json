@@ -1,0 +1,119 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-309",
+    "feature_name": "一方向位置決め機能",
+    "category": "位置決め",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_一方向位置決め機能.docx"
+  },
+  "purpose": "バックラッシや片方向遊びの影響を抑えるため、常に指定方向から目標位置に進入して位置決め精度を安定させる。",
+  "overview": "G60 IP_で目標位置を指令し、パラメータ設定された過走量と方向に従って一旦目標点を通過または手前に移動した後、指定方向から目標点へ戻る。",
+  "interfaces": {
+    "codes": [
+      "G60 IP_: 一方向位置決め",
+      "過走量パラメータ",
+      "位置決め方向パラメータ",
+      "モーダル化パラメータ"
+    ],
+    "inputs": [
+      "G60目標座標",
+      "絶対/増分指定",
+      "過走量",
+      "進入方向",
+      "軸現在位置"
+    ],
+    "outputs": [
+      "過走点移動ブロック",
+      "目標点進入ブロック",
+      "位置決め完了状態",
+      "過走量不正アラーム"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語マルチスレッド機械制御基盤。RT_INPUT/RT_CONTROL/RT_OUTPUTを割込周期内で実行し、TS_SERVICEがファイルI/O、NC解析、ログ、HMI/API連携を担当する。",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ],
+    "rt_rules": [
+      "Windows API呼出禁止",
+      "ファイルI/O禁止",
+      "動的メモリ確保禁止",
+      "長時間ブロッキング禁止",
+      "1割込周期内完了"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがG60指令を解析し、目標位置と過走方向を決定する。",
+    "過走点が軸リミット内であることを確認し、過走点移動と戻り移動の2ステップを生成する。",
+    "RT_CONTROLはステップを順次実行し、同じ方向から目標に進入する。",
+    "完了後、位置決め状態をクリアし、必要に応じてモーダル状態を継続する。"
+  ],
+  "constraints": [
+    "補間加工ではなく位置決め用途に限定する。",
+    "過走量は機械バックラッシ量とストロークに合わせる。",
+    "過走点が安全領域外になる場合は実行しない。"
+  ],
+  "alarms": [
+    "過走量未設定",
+    "過走点リミット超過",
+    "対象軸不正",
+    "補間中G60指令",
+    "モーダル設定不整合"
+  ],
+  "acceptance_criteria": [
+    "G60で指定方向から目標位置へ進入する。",
+    "過走点リミット超過時に実行前アラームとなる。",
+    "モーダル設定時に継続動作が管理される。"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

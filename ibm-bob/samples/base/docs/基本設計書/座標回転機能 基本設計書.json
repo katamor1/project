@@ -1,0 +1,113 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-201",
+    "feature_name": "座標回転機能",
+    "category": "座標変換",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_座標回転機能.docx"
+  },
+  "purpose": "プログラムで定義された加工形状を、選択平面上の任意中心・任意角度で回転させ、ワークを傾けずに穴あけ、ポケット加工、輪郭加工を行えるようにする。",
+  "overview": "G68で2次元座標回転モードを開始し、G69で解除する。G17/G18/G19で選択された平面に対して、中心座標と回転角をもとに座標変換を行う。中心省略時はG68指令時点の工具位置を中心とする。",
+  "interfaces": {
+    "codes": [
+      "G68: 座標回転モード開始。X/Y/Z等の平面内中心座標、R角度を指定",
+      "G69: 座標回転モード解除",
+      "G17/G18/G19: 回転対象平面の選択"
+    ],
+    "inputs": [
+      "NCブロック中のG68/G69",
+      "回転中心座標",
+      "回転角R",
+      "絶対/増分指定G90/G91",
+      "パラメータRIN相当の角度解釈設定"
+    ],
+    "outputs": [
+      "回転後の内部目標座標",
+      "座標変換モード状態",
+      "モード不整合アラーム",
+      "操作画面向け変換状態表示"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語製のマルチスレッド機械制御基盤を前提とする。ハードウェア割込で起床するRT_INPUT/RT_CONTROL/RT_OUTPUTと、CPU余力で動作するTS_SERVICEを分離する。",
+    "rt_rules": "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキング、三角関数や探索など処理時間が変動する重計算を禁止し、1割込周期内に処理を完了する。",
+    "rt_responsibility": "固定長データ消費、周期内安全監視、フェイルセーフ出力",
+    "ts_responsibility": "NC解析、変換、先読み、ファイルI/O、ログ、HMI/API連携",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがG68/G69を解析し、対象平面、中心点、角度、絶対/増分指定の妥当性を確認する。",
+    "TS_SERVICEが固定小数点または倍精度で回転行列を生成し、NC実行ブロックへ変換済み目標座標を格納する。",
+    "RT_CONTROLは変換済みの目標座標のみを使用し、周期内では三角関数計算を行わない。",
+    "G69受理時にTS_SERVICEが変換状態を解除し、解除直後ブロックの絶対座標明示をチェックする。"
+  ],
+  "constraints": [
+    "座標回転中の座標系変更、レファレンス点復帰、平面変更は原則禁止",
+    "工具径補正、スケーリング、他の座標変換との併用順序を明確化",
+    "解除直後は絶対座標で現在位置を明示"
+  ],
+  "alarms": [
+    "回転角未指定または範囲外",
+    "回転中の禁止Gコード指令",
+    "解除直後の位置不明確指令",
+    "変換結果が軸リミットを超過"
+  ],
+  "acceptance_criteria": [
+    "G68/G69の開始・解除で座標変換状態が正しく遷移する",
+    "RT周期内で追加計算負荷が一定上限を超えない",
+    "禁止組合せ指令で安全にアラーム停止する"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

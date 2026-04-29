@@ -1,0 +1,119 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-318",
+    "feature_name": "リニアスケール距離コード付リファレンスマーク機能",
+    "category": "絶対位置検出",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_リニアスケール距離コード付リファレンスマーク機能.docx"
+  },
+  "purpose": "距離コード化されたリファレンスマークを用いて、短距離移動だけで高精度な絶対位置を決定し、原点復帰時間を短縮する。",
+  "overview": "距離コード付リニアスケールのマーク間隔を測定し、コード化された間隔パターンから絶対位置を算出する。RT_CONTROLは短距離移動と信号取得を行い、TS_SERVICEが検出器設定と診断を管理する。",
+  "interfaces": {
+    "codes": [
+      "距離コード付リファレンスマーク対応リニアスケール",
+      "高分解能シリアル出力回路",
+      "最大ストローク30m相当",
+      "マーク間隔測定"
+    ],
+    "inputs": [
+      "距離コード付マーク信号",
+      "短距離移動量",
+      "マーク間隔テーブル",
+      "軸設定",
+      "検出器状態"
+    ],
+    "outputs": [
+      "絶対位置算出結果",
+      "機械座標確立状態",
+      "マークコード診断結果",
+      "検出異常アラーム"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語マルチスレッド機械制御基盤。RT_INPUT/RT_CONTROL/RT_OUTPUTを割込周期内で実行し、TS_SERVICEがファイルI/O、NC解析、ログ、HMI/API連携を担当する。",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ],
+    "rt_rules": [
+      "Windows API呼出禁止",
+      "ファイルI/O禁止",
+      "動的メモリ確保禁止",
+      "長時間ブロッキング禁止",
+      "1割込周期内完了"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEが距離コードテーブルと軸設定を確認する。",
+    "RT_CONTROLが軸を短距離移動させ、複数マークの検出タイミングを取得する。",
+    "測定間隔から距離コードを照合し、絶対位置を算出する。",
+    "算出結果を機械座標系へ反映し、位置確立ログを保存する。"
+  ],
+  "constraints": [
+    "距離コード対応スケールと対応アンプが必要。",
+    "マーク間隔誤差の許容範囲を明確化する。",
+    "設定には専門調整値が必要。"
+  ],
+  "alarms": [
+    "距離コード照合失敗",
+    "マーク間隔許容外",
+    "検出器未対応",
+    "短距離移動不足",
+    "位置確立失敗"
+  ],
+  "acceptance_criteria": [
+    "距離コードから絶対位置が算出される。",
+    "誤った間隔では確立失敗となる。",
+    "通常原点復帰より短い移動で座標が確立する。"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

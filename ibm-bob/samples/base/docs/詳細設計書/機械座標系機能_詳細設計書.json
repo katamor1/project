@@ -1,0 +1,127 @@
+{
+  "document_type": "IBM-Bob Detail Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "DD-00",
+    "DD-01",
+    "DD-02",
+    "DD-03",
+    "DD-04",
+    "DD-05",
+    "DD-06",
+    "DD-07",
+    "DD-08",
+    "DD-09",
+    "DD-10",
+    "DD-11",
+    "DD-12",
+    "DD-13",
+    "DD-14",
+    "DD-15",
+    "DD-16",
+    "DD-17",
+    "DD-18",
+    "DD-19",
+    "DD-20",
+    "DD-21",
+    "DD-22",
+    "DD-23",
+    "DD-24"
+  ],
+  "metadata": {
+    "document_id": "DD-CNC-218",
+    "feature_name": "機械座標系機能",
+    "category": "座標系",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_basic_design": "機械座標系機能_基本設計書.docx",
+    "source_document": "設計_機械座標系機能.docx"
+  },
+  "traceability": {
+    "basic_design_id": "BD-CNC-218",
+    "requirements": [
+      "G53ブロックのみ機械座標系で移動する",
+      "次ブロックで元のワーク座標系に戻る",
+      "未原点復帰状態では実行されない"
+    ],
+    "codes": [
+      "G53: 機械座標系での一時移動",
+      "G28等: レファレンス点復帰状態との関係",
+      "G50/G51/G68等: 併用禁止対象"
+    ]
+  },
+  "module_design": {
+    "header": "include/cnc218_feature.h",
+    "source": "src/cnc218_feature.c",
+    "test": "tests/test_cnc218_feature.c",
+    "ts_functions": [
+      "Ts_CNC218_Prepare",
+      "Ts_CNC218_CommitExecBuffer"
+    ],
+    "rt_functions": [
+      "Rt_CNC218_ValidateSnapshot",
+      "Rt_CNC218_ExecuteCycle"
+    ],
+    "api_functions": [
+      "Api_GetCNC218Status",
+      "Api_RequestCNC218ConfigUpdate"
+    ]
+  },
+  "data_design": {
+    "config": "CNC218_FEATURE_CONFIG",
+    "request": "CNC218_FEATURE_REQUEST",
+    "status": "CNC218_FEATURE_STATUS",
+    "exec_block": "CNC218_EXEC_BLOCK",
+    "exec_buffer": "CNC218_EXEC_BUFFER",
+    "global": "g_cnc218Feature",
+    "consistency": "valid flag + generation_begin/generation_end + single writer policy"
+  },
+  "processing": {
+    "ts_service": [
+      "TS_SERVICEがG53を検出し、アブソリュート指令であることとレファレンス点復帰済みであることを確認する。",
+      "補正、スケーリング、ミラー、座標回転などの併用禁止状態をチェックする。",
+      "移動先が機械リミット内であることを確認し、RT_CONTROL用の機械座標移動ブロックを生成する。",
+      "RT_CONTROLは指定ブロックを実行し、完了後は元のワーク座標系状態に戻る。"
+    ],
+    "rt_control": [
+      "座標・単位・指令方式の正規化はTS_SERVICEで完了し、RT_CONTROLには内部標準単位の絶対目標値だけを渡す。",
+      "座標変換モード中の禁止Gコード、補正、レファレンス点復帰、単位切換との競合を実行前に判定する。"
+    ],
+    "state_machine": [
+      "DISABLED",
+      "ARMED",
+      "PREPARED",
+      "ACTIVE",
+      "HOLD",
+      "COMPLETE",
+      "ALARM"
+    ]
+  },
+  "errors": [
+    "未原点復帰",
+    "インクレメンタルG53",
+    "補正/座標変換併用",
+    "機械リミット超過",
+    "安全領域外移動"
+  ],
+  "constraints": [
+    "G53はモーダルではなくワンショット",
+    "インクレメンタル指令不可",
+    "レファレンス点復帰前は使用禁止",
+    "補正・座標変換との同一ブロック併用禁止"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "DDR-001",
+    "DDR-002",
+    "DDR-003",
+    "DDR-004",
+    "DDR-005",
+    "DDR-006",
+    "DDR-007",
+    "DDR-008"
+  ]
+}

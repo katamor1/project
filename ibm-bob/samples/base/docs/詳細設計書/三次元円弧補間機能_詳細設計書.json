@@ -1,0 +1,127 @@
+{
+  "document_type": "IBM-Bob Detail Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "DD-00",
+    "DD-01",
+    "DD-02",
+    "DD-03",
+    "DD-04",
+    "DD-05",
+    "DD-06",
+    "DD-07",
+    "DD-08",
+    "DD-09",
+    "DD-10",
+    "DD-11",
+    "DD-12",
+    "DD-13",
+    "DD-14",
+    "DD-15",
+    "DD-16",
+    "DD-17",
+    "DD-18",
+    "DD-19",
+    "DD-20",
+    "DD-21",
+    "DD-22",
+    "DD-23",
+    "DD-24"
+  ],
+  "metadata": {
+    "document_id": "DD-CNC-219",
+    "feature_name": "三次元円弧補間機能",
+    "category": "補間",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_basic_design": "三次元円弧補間機能_基本設計書.docx",
+    "source_document": "設計_三次元円弧補間機能.docx"
+  },
+  "traceability": {
+    "basic_design_id": "BD-CNC-219",
+    "requirements": [
+      "3点指定から三次元円弧軌跡が生成される",
+      "不正幾何を実行前に検出する",
+      "RT側では生成済みブロックのみを実行する"
+    ],
+    "codes": [
+      "G02.4/G03.4: 3次元円弧補間モード",
+      "第1ブロック: 中間点指定",
+      "第2ブロック: 終点指定",
+      "G01等: モード終了/切換"
+    ]
+  },
+  "module_design": {
+    "header": "include/cnc219_feature.h",
+    "source": "src/cnc219_feature.c",
+    "test": "tests/test_cnc219_feature.c",
+    "ts_functions": [
+      "Ts_CNC219_Prepare",
+      "Ts_CNC219_CommitExecBuffer"
+    ],
+    "rt_functions": [
+      "Rt_CNC219_ValidateSnapshot",
+      "Rt_CNC219_ExecuteCycle"
+    ],
+    "api_functions": [
+      "Api_GetCNC219Status",
+      "Api_RequestCNC219ConfigUpdate"
+    ]
+  },
+  "data_design": {
+    "config": "CNC219_FEATURE_CONFIG",
+    "request": "CNC219_FEATURE_REQUEST",
+    "status": "CNC219_FEATURE_STATUS",
+    "exec_block": "CNC219_EXEC_BLOCK",
+    "exec_buffer": "CNC219_EXEC_BUFFER",
+    "global": "g_cnc219Feature",
+    "consistency": "valid flag + generation_begin/generation_end + single writer policy"
+  },
+  "processing": {
+    "ts_service": [
+      "TS_SERVICEがG02.4/G03.4を検出し、次ブロックを含む2ブロック構成を先読みする。",
+      "始点、中間点、終点から円弧平面、中心、半径を算出し、同一直線/点一致条件を判定する。",
+      "RT周期で処理しやすい補間セグメントまたはパラメトリックブロックへ変換する。",
+      "RT_CONTROLは生成済みブロックを実行し、別Gコード指令で通常補間へ戻る。"
+    ],
+    "rt_control": [
+      "幾何計算、分割点生成、同時制御軸の補間テーブル化はTS_SERVICEで実施する。",
+      "RT_CONTROLは補間セグメントを固定長ブロックとして消費し、幾何再計算は行わない。"
+    ],
+    "state_machine": [
+      "DISABLED",
+      "ARMED",
+      "PREPARED",
+      "ACTIVE",
+      "HOLD",
+      "COMPLETE",
+      "ALARM"
+    ]
+  },
+  "errors": [
+    "3点不正",
+    "全円指令",
+    "補正状態不正",
+    "併用禁止Gコード",
+    "手動介入不許可状態"
+  ],
+  "constraints": [
+    "全円360度は指令不可",
+    "工具径補正など一部補正はキャンセルしておく",
+    "G20/G21、座標変換、固定サイクル、高速加工など多数の併用制限を事前チェック"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "DDR-001",
+    "DDR-002",
+    "DDR-003",
+    "DDR-004",
+    "DDR-005",
+    "DDR-006",
+    "DDR-007",
+    "DDR-008"
+  ]
+}

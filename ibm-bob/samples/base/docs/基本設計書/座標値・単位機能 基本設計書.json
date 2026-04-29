@@ -1,0 +1,117 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-220",
+    "feature_name": "座標値・単位機能",
+    "category": "NC基本指令",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_座標値・単位機能.docx"
+  },
+  "purpose": "NCプログラムにおけるアブソリュート/インクレメンタル指令、およびメートル/インチ入力を正しく解釈し、内部制御単位へ一貫して正規化する。",
+  "overview": "G90/G91により絶対/増分指令を、G20/G21によりインチ/メートル入力を選択する。TS_SERVICEが座標値と送り速度を内部単位へ正規化し、RT_CONTROLは正規化済み機械単位のみを扱う。",
+  "interfaces": {
+    "codes": [
+      "G90: アブソリュート指令",
+      "G91: インクレメンタル指令",
+      "G20: インチ入力",
+      "G21: メートル入力"
+    ],
+    "inputs": [
+      "座標アドレス値",
+      "G90/G91状態",
+      "G20/G21状態",
+      "体系A/B/C設定",
+      "径/半径指定状態",
+      "送り速度F"
+    ],
+    "outputs": [
+      "内部単位の絶対目標座標",
+      "単位状態",
+      "指令方式状態",
+      "重複指令/単位切換警告"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語製のマルチスレッド機械制御基盤を前提とする。ハードウェア割込で起床するRT_INPUT/RT_CONTROL/RT_OUTPUTと、CPU余力で動作するTS_SERVICEを分離する。",
+    "rt_rules": "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキング、三角関数や探索など処理時間が変動する重計算を禁止し、1割込周期内に処理を完了する。",
+    "rt_responsibility": "固定長データ消費、周期内安全監視、フェイルセーフ出力",
+    "ts_responsibility": "NC解析、変換、先読み、ファイルI/O、ログ、HMI/API連携",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがプログラム冒頭またはブロック中のG20/G21、G90/G91を解析し、モーダル状態を更新する。",
+    "座標アドレスを体系A/B/Cおよび径/半径指定に基づいて絶対目標値へ変換する。",
+    "インチ/メートル値と送り速度を内部標準単位へ正規化し、RT実行ブロックへ格納する。",
+    "同一軸の絶対/増分混在や単位切換時の影響を検出し、必要に応じ警告またはアラームとする。"
+  ],
+  "constraints": [
+    "G20/G21はプログラム途中での頻繁な切換を避ける",
+    "同一軸の重複指令は後勝ち規則を明確化",
+    "RT側で単位換算を行わない",
+    "径/半径指定機能との整合性を確保"
+  ],
+  "alarms": [
+    "単位切換タイミング不正",
+    "使用不可アドレス",
+    "同一軸指令矛盾",
+    "内部単位換算オーバーフロー",
+    "径/半径指定不整合"
+  ],
+  "acceptance_criteria": [
+    "G90/G91が座標解釈に正しく反映される",
+    "G20/G21が座標・送り単位に反映される",
+    "RT側には内部標準単位のみが渡る"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

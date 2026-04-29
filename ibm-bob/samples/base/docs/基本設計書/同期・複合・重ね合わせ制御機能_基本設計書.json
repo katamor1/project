@@ -1,0 +1,103 @@
+{
+  "schema_version": "IBM-Bob Basic Design v2.0 compatible",
+  "document": {
+    "id": "BD-007",
+    "title": "同期・複合・重ね合わせ制御機能_基本設計書",
+    "language": "ja-JP",
+    "created_at": "2026-04-29",
+    "source_file": "設計_同期・複合・重ね合わせ制御機能.docx",
+    "status": "draft_for_review"
+  },
+  "feature": {
+    "name": "同期・複合・重ね合わせ制御機能",
+    "category": "協調軸制御・5軸制御",
+    "overview": [
+      "複数の軸や経路を協調させるための機能で、同期制御・複合制御・重ね合わせ制御の3種類が用意されている。",
+      "同期制御はマスタ軸の移動に対しスレーブ軸が同じ動きを追従し、複合制御はマスタ軸の動きにオフセット量を加えた動きをスレーブ軸に与える。",
+      "重ね合わせ制御は、マスタ軸の運動に別の運動を重ねて同時に実行する機能である【770697668851713†L3193-L3205】。"
+    ],
+    "source_interface_notes": [
+      "同期制御開始：\tG51.4 P<マスタ経路> Q<スレーブ経路>。",
+      "同期制御終了：\tG50.4 Q<スレーブ経路>。",
+      "複合制御開始：\tG51.5 P<マスタ経路> Q<スレーブ経路>。",
+      "複合制御終了：\tG50.5 Q<スレーブ経路>。",
+      "重ね合わせ制御開始：\tG51.6 P<マスタ経路> Q<スレーブ経路>。",
+      "重ね合わせ制御終了：\tG50.6 Q<スレーブ経路>。",
+      "各コマンドのPはマスタ側の経路番号または軸グループを示し、Qはスレーブ側の経路番号を示す。開始・終了コマンドは同じブロック内で単独で記述する。"
+    ],
+    "source_flow": [
+      "プログラムの準備段階で対象となるマスタ経路・スレーブ経路を決定し、PとQの値を設定する。",
+      "G51.4/G51.5/G51.6のいずれかを指定して同期・複合・重ね合わせ制御を開始する。",
+      "開始後は指定した経路や軸が協調動作を行い、マスタ経路の動きに対してスレーブ経路が追従またはオフセット・重ね合わせを行う。",
+      "制御を終了するときは対応するG50.4/G50.5/G50.6を指定し、スレーブ経路を通常状態に戻す。"
+    ],
+    "source_design_notes": [
+      "同期制御・複合制御・重ね合わせ制御はプログラムコマンドだけでなく、PMC信号によって開始・終了することもできる【770697668851713†L3193-L3205】。",
+      "各制御は1経路対1経路の組み合わせで使用され、複数の組み合わせを同時に動作させる場合は注意が必要である。",
+      "これらの機能を使用する際は、経路間干渉チェックや軸同期制御など他の協調機能との組み合わせに制限があるため、マニュアルの注意事項を確認すること。"
+    ],
+    "g_codes": [
+      "G50.4",
+      "G50.5",
+      "G50.6",
+      "G51.4",
+      "G51.5",
+      "G51.6"
+    ],
+    "parameters": [],
+    "signals": [
+      "PMC信号によって開始"
+    ]
+  },
+  "architecture": {
+    "platform": "Windows C multi-threaded machine-control platform",
+    "rt_thread": "RT_INPUT/RT_CONTROL/RT_OUTPUTをハードウェア割込周期内で実行する。RT側ではWindows API、ファイルI/O、動的メモリ確保、長時間ブロックを禁止する。",
+    "ts_thread": "TS_SERVICEでNC解析、パラメータ読出、ログ、UI/PMC連携、重い演算の先読みを行う。",
+    "api_policy": "公開APIは要求登録とスナップショット取得に限定し、状態確定はRT_CONTROLまたはTS_SERVICE側で行う。"
+  },
+  "shared_memory": {
+    "existing": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "candidate_additions": [
+      "g_featureConfig[7]",
+      "g_featureRequest[7]",
+      "g_featureStatus[7]",
+      "g_featureTrace[7]"
+    ]
+  },
+  "sections": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  }
+}

@@ -1,0 +1,157 @@
+{
+  "metadata": {
+    "document_id": "DD-AUTO-4B1292",
+    "document_type": "詳細設計書",
+    "version": "0.1",
+    "created_on": "2026-04-29",
+    "target_system": "IBM-Bob基盤システム",
+    "target_environment": "Windows / C言語 / RT + TS thread",
+    "feature_name": "G94端面切削機能",
+    "source_basic_design": "G94端面切削機能_基本設計書.docx",
+    "source_hash": "3f04c6bee289bc6e",
+    "section_range": "DD-00〜DD-24",
+    "note": "ユーザーが20件と指定したが、この実行で確認できたアップロード済み基本設計書は18件。確認できた18件を対象に生成。"
+  },
+  "traceability": {
+    "basic_design_summary": "RT_CONTROLはTS_SERVICEで事前変換された固定長データのみを周期内で扱う。",
+    "codes": [
+      "G00",
+      "G01",
+      "G70",
+      "G94"
+    ],
+    "category": "cycle"
+  },
+  "design": {
+    "identifier": "G94FaceCutting",
+    "snake": "g94_face_cutting",
+    "control_type": "NC固定サイクル/旋盤サイクルをTS側で実行ブロック列へ展開し、RT側は展開済み移動・主軸・補助指令を周期実行する加工サイクル制御",
+    "algorithm": "TS_SERVICEがNCブロックのP/Q/X/Z/U/W/R/F/S等を検証し、複数パスの移動列へ展開する。RT_CONTROLはNC_EXEC_QUEUEから1周期単位で実行指令を消費し、インターロック発生時は減速停止・退避状態へ遷移する。",
+    "states": [
+      "IDLE",
+      "VALIDATING",
+      "EXPANDING",
+      "READY",
+      "EXECUTING",
+      "RETRACTING",
+      "COMPLETE",
+      "ALARM"
+    ],
+    "shared_memory": [
+      [
+        "g_g94_face_cuttingCycleCmd",
+        "G94FACECUTTING_CYCLE_CMD",
+        "TS更新 / RT読取",
+        "解析済みサイクル引数、輪郭範囲、送り/主軸条件、世代番号"
+      ],
+      [
+        "g_g94_face_cuttingCycleState",
+        "G94FACECUTTING_CYCLE_STATE",
+        "RT更新 / TS・API読取",
+        "サイクル進行状態、現在パス、完了/異常状態"
+      ],
+      [
+        "g_g94_face_cuttingBlockQueue",
+        "NC_EXEC_QUEUE",
+        "TS更新 / RT消費",
+        "展開済み固定長実行ブロックリングバッファ"
+      ]
+    ],
+    "apis": [
+      [
+        "Api_GetG94FaceCuttingStatus",
+        "固定サイクル進行状態を取得"
+      ],
+      [
+        "Api_CancelG94FaceCutting",
+        "停止要求を登録"
+      ]
+    ],
+    "modules": [
+      {
+        "module": "include/system_config.h",
+        "change": "機能有効/上限サイズ/RT予算マクロを追加または参照"
+      },
+      {
+        "module": "include/system_shared.h",
+        "change": "G94FACECUTTING_CYCLE_CMD 等の共有構造体宣言を追加"
+      },
+      {
+        "module": "include/control_api.h",
+        "change": "状態取得APIおよび必要に応じた要求登録APIのプロトタイプを追加"
+      },
+      {
+        "module": "include/nc_interpreter.h",
+        "change": "NC解析テーブル、モーダル状態、内部実行ブロック型を追加/拡張"
+      },
+      {
+        "module": "src/nc_interpreter.c",
+        "change": "G/M/アドレス解析、パラメータ検証、実行ブロック生成を実装"
+      },
+      {
+        "module": "src/ts_service.c",
+        "change": "ファイルI/O、先読み、展開、ログ整形、HMI/API通知を実装"
+      },
+      {
+        "module": "src/rt_control.c",
+        "change": "周期内状態判定、固定長実行ブロック消費、安全遷移を実装"
+      },
+      {
+        "module": "src/rt_output.c",
+        "change": "軸/主軸/PMC出力、減速停止、フェイルセーフ出力を確定"
+      }
+    ],
+    "functions": [
+      {
+        "name": "g94_face_cutting_init",
+        "thread": "TS/INIT",
+        "role": "共有メモリ初期化、定義テーブル読込、既定状態設定"
+      },
+      {
+        "name": "g94_face_cutting_parse_block",
+        "thread": "TS_SERVICE",
+        "role": "NCブロックまたはAPI要求を検証し、内部命令へ変換"
+      },
+      {
+        "name": "g94_face_cutting_prepare_rt_block",
+        "thread": "TS_SERVICE",
+        "role": "RTが周期内で扱える固定長実行ブロックへ展開"
+      },
+      {
+        "name": "g94_face_cutting_rt_update",
+        "thread": "RT_CONTROL",
+        "role": "周期内状態更新、実行ブロック消費、安全条件判定"
+      },
+      {
+        "name": "g94_face_cutting_rt_fail_safe",
+        "thread": "RT_CONTROL/RT_OUTPUT",
+        "role": "異常検出時の減速停止、出力遮断、ALARM遷移"
+      },
+      {
+        "name": "g94_face_cutting_api_get_status",
+        "thread": "API",
+        "role": "世代番号付きスナップショットを返却"
+      }
+    ],
+    "hardware_inputs": [
+      "NCブロック引数",
+      "現在座標/モーダル状態",
+      "主軸状態",
+      "送りモード",
+      "工具補正状態"
+    ],
+    "errors": [
+      "DD-E401 P/Q範囲不正",
+      "DD-E402 引数不足または競合",
+      "DD-E403 サイクル展開バッファ不足",
+      "DD-E404 工具/主軸/送り条件不成立"
+    ],
+    "rt_budget_us": "未確定。初期目標はRT_CONTROL差分で50us以下、最大でも1割込周期の10%以内。",
+    "build_commands": [
+      "cmd /c scripts\\build_vc2026.bat",
+      "cmd /c scripts\\test_vc2026.bat",
+      "cmd /c scripts\\build_clang.bat",
+      "cmd /c scripts\\test_clang.bat"
+    ]
+  }
+}

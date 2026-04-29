@@ -1,0 +1,116 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-212",
+    "feature_name": "研削専用サイクル機能",
+    "category": "研削サイクル",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_研削専用サイクル機能.docx"
+  },
+  "purpose": "研削盤向けの定寸プランジ研削、連続送り平面研削、間欠送り平面研削、および研削向け多回りサイクルを制御ソフトウェア上で安全に実行する。",
+  "overview": "G77〜G79およびG70.7〜G76.7を対象に、TS_SERVICEでサイクルパラメータを検証し、複数工程の実行ステップへ展開する。RT_CONTROLは展開済みステップを実行し、研削負荷と安全条件を監視する。",
+  "interfaces": {
+    "codes": [
+      "G77: 定寸プランジ研削サイクル",
+      "G78: 連続送り平面研削サイクル",
+      "G79: 間欠送り平面研削サイクル",
+      "G70.7〜G76.7: 研削向け荒/仕上げサイクル"
+    ],
+    "inputs": [
+      "P/Q範囲",
+      "R戻り量",
+      "U/W余量",
+      "F送り",
+      "K間欠条件",
+      "砥石/冷却条件"
+    ],
+    "outputs": [
+      "展開済み研削ステップ",
+      "研削サイクル状態",
+      "研削負荷監視結果",
+      "サイクル完了/異常ログ"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語製のマルチスレッド機械制御基盤を前提とする。ハードウェア割込で起床するRT_INPUT/RT_CONTROL/RT_OUTPUTと、CPU余力で動作するTS_SERVICEを分離する。",
+    "rt_rules": "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキング、三角関数や探索など処理時間が変動する重計算を禁止し、1割込周期内に処理を完了する。",
+    "rt_responsibility": "固定長データ消費、周期内安全監視、フェイルセーフ出力",
+    "ts_responsibility": "NC解析、変換、先読み、ファイルI/O、ログ、HMI/API連携",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEが研削Gコードを解析し、指定範囲、余量、送り、バックオフ量を検証する。",
+    "輪郭範囲と研削条件から荒取り、仕上げ、戻り、間欠休止の各ステップを生成する。",
+    "RT_CONTROLがステップを順次実行し、軸負荷、スピンドル/砥石状態、冷却条件、インターロックを監視する。",
+    "サイクル完了後、仕上げ面品質確認のためのログと状態をTS側に通知する。"
+  ],
+  "constraints": [
+    "機種ごとにアドレス構成が異なるためパラメータ化",
+    "焦げ、過熱、砥石負荷を考慮した送り上限設定",
+    "補正やスキップ機能との併用を事前判定"
+  ],
+  "alarms": [
+    "サイクルパラメータ不正",
+    "研削負荷超過",
+    "冷却条件不成立",
+    "砥石状態異常",
+    "退避量不足"
+  ],
+  "acceptance_criteria": [
+    "G77〜G79が指定条件に応じたステップへ展開される",
+    "負荷超過時に安全停止する",
+    "機種差分パラメータを分離して管理できる"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

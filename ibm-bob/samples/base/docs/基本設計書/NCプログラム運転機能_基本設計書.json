@@ -1,0 +1,1437 @@
+{
+  "schema_version": "ibm-bob-basic-design/2.0",
+  "review_status": "draft",
+  "document_control": {
+    "document_id": "BD-NC-PROG-001",
+    "title": "NCプログラム運転機能 基本設計書",
+    "target_version": "Ver.0.1",
+    "created_at": "2026-04-28",
+    "author": "AIドラフト",
+    "reviewer": "未定",
+    "approver": "未定",
+    "revision_history": [
+      {
+        "version": "0.1",
+        "date": "2026-04-28",
+        "summary": "初版作成",
+        "author": "AIドラフト",
+        "reviewer": "未定",
+        "approver": "未定"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "REQ-NC-001",
+      "summary": "AUTO運転モード時にNCプログラムファイルを読み込み、運転に使用できること。",
+      "design_policy": "API要求は登録のみとし、TS_SERVICEがファイルI/Oと先読みを実施し、RT_CONTROLが実行確定する。",
+      "acceptance": "AUTOかつ安全条件成立時に、読み込み済みNC実行ブロックに基づきRUNNINGへ遷移し出力が更新される。"
+    },
+    {
+      "id": "REQ-NC-002",
+      "summary": "NCプログラムファイルはテキストファイルとし、1行をアルファベット+数値の組として解釈できること。",
+      "design_policy": "TS_SERVICE側で字句解析・構文解析・Gコード機能確定・補助アドレス解釈を行う。",
+      "acceptance": "例「G01 X123.1234Y345.3 Z.456 M130」をG機能、座標、M補助指令へ分解できる。"
+    },
+    {
+      "id": "REQ-NC-003",
+      "summary": "Gコードは数値ごとに特定機能を表し、同一行の他アドレスはGコード機能ごとに異なる補助指令として扱うこと。",
+      "design_policy": "Gコード機能テーブルと有効機能状態をTS_SERVICEに保持し、必要なアドレス、単位、既定値を機能単位に検証する。",
+      "acceptance": "未対応Gコード、不足アドレス、重複指定、範囲外値が検出される。"
+    },
+    {
+      "id": "REQ-NC-004",
+      "summary": "S/T/MコードはPLC経由で周辺機器を制御する独立指令として単独指令可能であること。",
+      "design_policy": "Gコード系と独立した補助指令キュー/フィールドに確定し、RT_OUTPUTからPLC向け出力へ反映する。",
+      "acceptance": "S/T/M単独行、Gコード同行のS/T/Mがそれぞれ期待するPLC指令として出力される。"
+    },
+    {
+      "id": "REQ-NC-005",
+      "summary": "TS_SERVICEはNCプログラムファイルを最大1万行先まで先読み可能であること。",
+      "design_policy": "固定長リングバッファを採用し、最大先読み行数はNC_MAX_LOOKAHEAD_LINES=10000としてsystem_config.hに定義する。",
+      "acceptance": "1万行先読み条件でバッファ満杯・EOF・消費後再充填を正常に扱える。"
+    },
+    {
+      "id": "REQ-NC-006",
+      "summary": "相対位置指令や有効機能中の座標変換を、実行前に処理済みデータへ変換してバッファリングすること。",
+      "design_policy": "TS_SERVICEが前行確定位置とモーダル状態を使い、文字列解釈→有効機能確定→機能実現済みのNC実行ブロックを生成する。",
+      "acceptance": "RT側は文字列解釈や座標変換を行わず、確定済み位置・補助指令のみを読み出す。"
+    },
+    {
+      "id": "REQ-NC-007",
+      "summary": "RT_CONTROLは1周期に複数行相当の処理が必要な場合でも、周期内完了可能な処理量に制限すること。",
+      "design_policy": "RT側の1周期消費上限を設定し、処理済みブロック読出しと出力反映に限定する。",
+      "acceptance": "ワーストケースでRT追加処理時間が周期予算内であり、上限超過時は次周期へ繰り越す。"
+    },
+    {
+      "id": "REQ-NC-008",
+      "summary": "ファイル異常、構文異常、バッファアンダーラン、インターロック発生時は安全側へ遷移すること。",
+      "design_policy": "異常分類ごとにALARM/HOLD/REJECTEDを定義し、安全側出力とログ記録を行う。",
+      "acceptance": "異常発生時に安全側出力、状態遷移、ログ、復旧条件が観測できる。"
+    }
+  ],
+  "feature": {
+    "feature_id": "FX-NC-PROG-001",
+    "name": "NCプログラム運転機能",
+    "summary": "AUTO運転モードにおいて、NCプログラムテキストファイルをTS_SERVICE側で先読み・解析・機能実現し、RT_CONTROLが処理済み実行ブロックを周期内に読み出して機械制御を行う機能。",
+    "actor": "外部UI/保守アプリ/API呼出元、RT_CONTROL、TS_SERVICE、PLC/モーションコントローラ",
+    "priority": "High",
+    "related_requirement_ids": [
+      "REQ-NC-001",
+      "REQ-NC-002",
+      "REQ-NC-003",
+      "REQ-NC-004",
+      "REQ-NC-005",
+      "REQ-NC-006",
+      "REQ-NC-007",
+      "REQ-NC-008"
+    ],
+    "classification": {
+      "realtime_control": true,
+      "time_share_processing": true,
+      "api_change": true,
+      "global_variable_change": true,
+      "state_machine": true,
+      "sequence_control": true
+    }
+  },
+  "purpose_background": {
+    "purpose": "NCプログラムファイルに記述されたG/S/T/M等の指令を、AUTO運転時に安全かつリアルタイム周期を守って実行する。",
+    "background": "NCプログラムの文字列解釈、モーダル状態管理、相対位置解決、座標変換、補助指令展開をRT側で直接実行すると、1周期に複数行を処理する条件で割込周期を超過する危険がある。",
+    "problems": [
+      "RT側でテキスト解析・座標変換・複数機能重ね掛けを行うと処理時間が不安定になる。",
+      "相対位置指令やモーダルG機能では前後行依存があるため、単純な逐次解釈では先読み・安全確認が不足する。",
+      "S/T/MのPLC補助指令はGコードと独立実行可能であり、モーション系と補助機器系の整合が必要である。"
+    ],
+    "design_principles": [
+      "ファイルI/Oと文字列解析はTS_SERVICEに限定する。",
+      "RT_CONTROLは処理済み固定長実行ブロックの読出し、状態確認、出力反映に限定する。",
+      "共有メモリは固定長構造体とし、世代番号、head/tail、ready/busyで整合性を管理する。",
+      "既存公開APIとの互換性を維持し、新規APIは追加方式とする。",
+      "バッファ異常、構文異常、インターロック時は運転継続より安全側停止を優先する。"
+    ],
+    "expected_effects": [
+      "RT周期内処理時間の安定化。",
+      "NCプログラム実行前の構文・機能・座標変換検証の強化。",
+      "最大1万行の先読みデータを用いた滑らかな運転継続。",
+      "機能追加時のGコード解釈処理とRT出力処理の分離。"
+    ]
+  },
+  "scope": {
+    "in_scope": [
+      {
+        "name": "NCプログラムファイル読込み",
+        "description": "TS_SERVICEによるテキストファイルオープン、読込み、行単位管理。"
+      },
+      {
+        "name": "NC行解析",
+        "description": "アルファベット+数値トークンの解析、G/S/T/Mの分類、補助アドレス解釈。"
+      },
+      {
+        "name": "先読み・機能実現",
+        "description": "有効G機能、相対位置、座標変換、補助指令を処理済み実行ブロックへ展開。"
+      },
+      {
+        "name": "RT実行制御",
+        "description": "処理済み実行ブロックの周期内消費、状態遷移、出力反映。"
+      },
+      {
+        "name": "異常・安全・ログ",
+        "description": "構文異常、バッファ異常、インターロックの安全側遷移と診断ログ。"
+      }
+    ],
+    "out_of_scope": [
+      {
+        "name": "個別Gコード全機能の詳細仕様",
+        "description": "G01等の基本的な解釈枠組みは扱うが、各Gコードの詳細演算式は詳細設計または個別機能設計へ移譲する。"
+      },
+      {
+        "name": "高精度補間アルゴリズム詳細",
+        "description": "補間周期ごとの軌跡生成式は本基本設計の対象外。"
+      },
+      {
+        "name": "実ファイルフォーマットの全拡張",
+        "description": "コメント、サブプログラム、マクロ等の拡張構文は未確定事項として扱う。"
+      },
+      {
+        "name": "PLC個別Mコード一覧の確定",
+        "description": "S/T/Mの枠組みを定義し、個別コード割付は別台帳参照とする。"
+      }
+    ],
+    "assumptions": [
+      "既存基盤はWindows/C言語、RT_INPUT/RT_CONTROL/RT_OUTPUT/TS_SERVICE分離構成である。",
+      "RT側ではWindows API、ファイルI/O、動的メモリ確保、長時間ブロッキングを行わない。",
+      "NCプログラムファイルパスは外部UI/APIから指定される。",
+      "ファイル文字コード、改行コード、コメント構文、対応Gコード一覧は詳細設計で確定する。"
+    ],
+    "constraints": [
+      "全RT処理時間は1割込間隔を超えてはならない。",
+      "最大先読み行数は1万行で固定長管理する。",
+      "RT/TS共有データは世代番号とコミット順序で中間状態を公開しない。",
+      "AUTO以外の運転モードではNC運転開始要求を拒否する。"
+    ]
+  },
+  "system_context": {
+    "system_name": "IBM-Bob baseline / Windows C realtime-control platform",
+    "environment": {
+      "os": "Windows",
+      "language": "C",
+      "compiler_candidates": [
+        "VC2026",
+        "clang Windows"
+      ]
+    },
+    "environment_relation": "NCファイルI/OはWindows上でTS_SERVICEのみが実施し、RT側は固定長メモリ参照のみを行う。",
+    "threads": {
+      "real_time": {
+        "role": "RT_INPUT/RT_CONTROL/RT_OUTPUTが割込周期ごとに実行され、NC実行ブロックの消費と出力反映を行う。"
+      },
+      "time_share": {
+        "role": "TS_SERVICEがファイル読込み、文字列解析、有効機能確定、座標変換、先読みバッファ生成を行う。"
+      }
+    },
+    "rt_thread_relation": "RT_CONTROLにNC実行ブロック消費処理とバッファ異常判定を追加する。",
+    "ts_thread_relation": "TS_SERVICEにNCプログラム読込み・解析・先読み処理を追加する。",
+    "shared_memory": {
+      "policy": "固定長構造体を公開ヘッダに追加し、request/busy/ready/generation/head/tailで整合性を管理する。"
+    },
+    "shared_memory_relation": "g_uiRequest、g_machineCtx、g_ioOut、g_logQueueに加え、NCプログラム制御・状態・実行バッファの共有領域を追加する。",
+    "public_api": {
+      "policy": "既存APIは変更せず、新規NC運転APIを追加する。"
+    },
+    "api_relation": "API呼出元はファイル読込み/開始/停止/状態取得を要求するが、状態確定はTS_SERVICEまたはRT_CONTROLが行う。",
+    "constraints": [
+      "全リアルタイムスレッドの合計実行時間は1割込間隔を超えない",
+      "RT側でファイルI/O/文字列解析を行わない"
+    ],
+    "realtime_constraints": "RT側はNC実行ブロックを最大NC_RT_MAX_BLOCKS_PER_CYCLE件まで処理し、超過分は次周期へ繰り越す。"
+  },
+  "functional_requirements": {
+    "normal": [
+      {
+        "id": "FR-NC-N01",
+        "description": "AUTOモード、STOPPED/READY、安全条件成立時にNCプログラム読込み要求を受け付ける。",
+        "input": "Api_RequestNcProgramLoad(path)",
+        "output": "読込み要求登録、TS_SERVICEでload_busy=1",
+        "condition": "pathは固定長上限内。"
+      },
+      {
+        "id": "FR-NC-N02",
+        "description": "TS_SERVICEがNCプログラム行を字句解析し、Gコード機能と補助アドレスを確定する。",
+        "input": "NCテキスト行",
+        "output": "NC_EXEC_BLOCK候補",
+        "condition": "未対応/不足/範囲外を検出する。"
+      },
+      {
+        "id": "FR-NC-N03",
+        "description": "相対位置指令と有効中座標変換をTS_SERVICE側で解決し、RT実行可能な確定位置に変換する。",
+        "input": "前行確定位置、モーダル状態、行トークン",
+        "output": "axis_target、transform_flags",
+        "condition": "RT側で文字列・座標変換を行わない。"
+      },
+      {
+        "id": "FR-NC-N04",
+        "description": "S/T/M指令をGコードと独立にPLC補助指令として確定し、単独行でも実行可能にする。",
+        "input": "S/T/Mトークン",
+        "output": "aux_command",
+        "condition": "PLC応答待ちが必要なMコードは詳細設計でハンドシェイク条件を定義する。"
+      },
+      {
+        "id": "FR-NC-N05",
+        "description": "RT_CONTROLは処理済み実行ブロックを読み出し、1周期に必要な複数行相当の出力を反映できる。",
+        "input": "g_ncProgramBuffer",
+        "output": "g_ioOut、g_machineCtx",
+        "condition": "NC_RT_MAX_BLOCKS_PER_CYCLE以内。"
+      },
+      {
+        "id": "FR-NC-N06",
+        "description": "EOF到達かつ全ブロック消費完了時にNC_COMPLETEDへ遷移し、RUNNINGを解除する。",
+        "input": "eof_reached=1, buffer_empty=1",
+        "output": "NC_COMPLETED/READYまたはSTOPPED",
+        "condition": "異常なし。"
+      }
+    ],
+    "abnormal": [
+      {
+        "id": "FR-NC-A01",
+        "description": "AUTO以外でNC運転開始要求が来た場合は拒否する。",
+        "input": "run_mode != AUTO",
+        "output": "REJECTED、状態維持、ログ",
+        "condition": "既存モード変更方針に従う。"
+      },
+      {
+        "id": "FR-NC-A02",
+        "description": "ファイルオープン失敗、読込み失敗、文字コード/行長異常を検出する。",
+        "input": "NCプログラムファイル",
+        "output": "NC_ERROR、ログ、開始不可",
+        "condition": "TS_SERVICEで検出。"
+      },
+      {
+        "id": "FR-NC-A03",
+        "description": "不正トークン、未対応G/S/T/M、必須アドレス不足、範囲外値を検出する。",
+        "input": "NC行トークン",
+        "output": "NC_ERROR、エラー行番号、ログ",
+        "condition": "TS_SERVICEで検出。"
+      },
+      {
+        "id": "FR-NC-A04",
+        "description": "RUNNING中にバッファアンダーランした場合は制御保持または減速停止へ移行する。",
+        "input": "buffer_empty and eof_reached=0",
+        "output": "NC_HOLDまたはALARM、安全側出力、ログ",
+        "condition": "方針は詳細設計で停止カテゴリと連動。"
+      },
+      {
+        "id": "FR-NC-A05",
+        "description": "インターロック発生時はNC運転より安全側出力を優先する。",
+        "input": "非常停止/サーボ異常/圧力異常",
+        "output": "ALARM、安全側出力、ログ",
+        "condition": "既存RT_CONTROLのインターロックを優先。"
+      }
+    ],
+    "boundary": [
+      {
+        "id": "FR-NC-B01",
+        "description": "最大1万行先読み時の満杯判定と消費後再充填を扱う。",
+        "input": "NC_MAX_LOOKAHEAD_LINES=10000",
+        "output": "overrunなし、ready維持",
+        "condition": "固定長リングバッファ。"
+      },
+      {
+        "id": "FR-NC-B02",
+        "description": "行長、トークン数、数値桁数、座標範囲の境界値を検証する。",
+        "input": "最大長行/最小表記/小数点省略表記",
+        "output": "受理または明確なエラー",
+        "condition": "例 Z.456 を 0.456 として扱うかは詳細設計で確定。"
+      },
+      {
+        "id": "FR-NC-B03",
+        "description": "1周期で処理可能な最大NCブロック数を超えた場合、次周期へ繰り越す。",
+        "input": "複数短ブロック",
+        "output": "RT周期超過なし",
+        "condition": "NC_RT_MAX_BLOCKS_PER_CYCLEを適用。"
+      },
+      {
+        "id": "FR-NC-B04",
+        "description": "API多重要求時の上書き/拒否を扱う。",
+        "input": "load中のload/start/stop要求",
+        "output": "REJECTEDまたは最新要求採用",
+        "condition": "危険側に進まない。"
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "SC-NC-001",
+      "actor": "外部UI/API呼出元",
+      "preconditions": [
+        "run_mode=AUTO",
+        "machine_state=STOPPEDまたはREADY",
+        "インターロックなし"
+      ],
+      "steps_summary": "NCファイルパス指定→TS先読み→READY→開始要求→RT実行→EOF完了",
+      "success_end": "NC_COMPLETED、機械状態READY/STOPPED、ログ出力",
+      "exceptions": "ファイル異常、構文異常、バッファアンダーラン、インターロック"
+    },
+    {
+      "id": "SC-NC-002",
+      "actor": "TS_SERVICE",
+      "preconditions": [
+        "load_request=1"
+      ],
+      "steps_summary": "ファイルをチャンク読込みし、最大1万行先まで処理済みブロックを生成してリングバッファへコミットする。",
+      "success_end": "buffer_ready=1、prefetch_generation更新",
+      "exceptions": "構文エラー時NC_ERROR"
+    },
+    {
+      "id": "SC-NC-003",
+      "actor": "RT_CONTROL",
+      "preconditions": [
+        "NC_RUNNING",
+        "buffer_ready=1"
+      ],
+      "steps_summary": "周期ごとに実行ブロックを読み出し、モーション/PLC補助出力をg_ioOutへ反映する。",
+      "success_end": "exec_line_no更新、cycle_count更新",
+      "exceptions": "アンダーラン時NC_HOLD/ALARM"
+    }
+  ],
+  "state_machine": {
+    "applicable": true,
+    "states": [
+      {
+        "id": "NC_IDLE",
+        "name": "未読込み",
+        "description": "NCプログラム未選択または初期状態。",
+        "entry_condition": "初期化/リセット/完了後クリア",
+        "actions": "要求待ち",
+        "transitions": [
+          {
+            "condition": "load_request",
+            "target": "NC_LOAD_REQUESTED"
+          }
+        ],
+        "timer": "なし"
+      },
+      {
+        "id": "NC_LOAD_REQUESTED",
+        "name": "読込み要求受付",
+        "description": "APIからファイル読込み要求を受け付けた状態。",
+        "entry_condition": "path登録完了",
+        "actions": "TS_SERVICEへ読込み開始通知",
+        "transitions": [
+          {
+            "condition": "TSがファイルオープン開始",
+            "target": "NC_PREFETCHING"
+          },
+          {
+            "condition": "要求不正",
+            "target": "NC_ERROR"
+          }
+        ],
+        "timer": "要求受付監視"
+      },
+      {
+        "id": "NC_PREFETCHING",
+        "name": "先読み中",
+        "description": "TS_SERVICEがファイル読込み・解析・実行ブロック生成を行う。",
+        "entry_condition": "load_busy=1",
+        "actions": "リングバッファへコミット",
+        "transitions": [
+          {
+            "condition": "開始可能量到達",
+            "target": "NC_READY"
+          },
+          {
+            "condition": "EOFかつ有効ブロックあり",
+            "target": "NC_READY"
+          },
+          {
+            "condition": "解析異常",
+            "target": "NC_ERROR"
+          }
+        ],
+        "timer": "TSスライス監視"
+      },
+      {
+        "id": "NC_READY",
+        "name": "運転準備完了",
+        "description": "実行可能な処理済みブロックが存在し、開始要求を待つ。",
+        "entry_condition": "buffer_ready=1",
+        "actions": "開始要求待ち",
+        "transitions": [
+          {
+            "condition": "start_request and AUTO and safety_ok",
+            "target": "NC_RUNNING"
+          },
+          {
+            "condition": "reset/unload",
+            "target": "NC_IDLE"
+          }
+        ],
+        "timer": "なし"
+      },
+      {
+        "id": "NC_RUNNING",
+        "name": "NC運転中",
+        "description": "RT_CONTROLが実行ブロックを消費して出力する。",
+        "entry_condition": "RT_CONTROLが開始確定",
+        "actions": "ブロック消費、出力反映、TS補充",
+        "transitions": [
+          {
+            "condition": "EOF and buffer_empty",
+            "target": "NC_COMPLETED"
+          },
+          {
+            "condition": "hold_request or buffer_underrun",
+            "target": "NC_HOLD"
+          },
+          {
+            "condition": "interlock/error",
+            "target": "NC_ERROR"
+          }
+        ],
+        "timer": "RT周期監視"
+      },
+      {
+        "id": "NC_HOLD",
+        "name": "一時停止/保持",
+        "description": "要求または一時的な先読み不足により安全に保持する。",
+        "entry_condition": "hold_requestまたは一時的アンダーラン",
+        "actions": "出力保持/減速停止、再開条件監視",
+        "transitions": [
+          {
+            "condition": "resume and buffer_ready and safety_ok",
+            "target": "NC_RUNNING"
+          },
+          {
+            "condition": "stop/reset",
+            "target": "NC_IDLE"
+          },
+          {
+            "condition": "timeout/error",
+            "target": "NC_ERROR"
+          }
+        ],
+        "timer": "アンダーラン許容時間"
+      },
+      {
+        "id": "NC_COMPLETED",
+        "name": "運転完了",
+        "description": "ファイル終端まで正常実行完了。",
+        "entry_condition": "EOFかつ全ブロック消費",
+        "actions": "完了ログ、状態通知",
+        "transitions": [
+          {
+            "condition": "clear/reset",
+            "target": "NC_IDLE"
+          }
+        ],
+        "timer": "なし"
+      },
+      {
+        "id": "NC_ERROR",
+        "name": "異常",
+        "description": "構文・ファイル・バッファ・安全異常により実行不可。",
+        "entry_condition": "異常検出",
+        "actions": "安全側出力、ログ、エラー行番号保存",
+        "transitions": [
+          {
+            "condition": "reset and safe",
+            "target": "NC_IDLE"
+          }
+        ],
+        "timer": "なし"
+      }
+    ],
+    "initial_state": "NC_IDLE",
+    "terminal_states": {
+      "normal": [
+        "NC_COMPLETED"
+      ],
+      "error": [
+        "NC_ERROR"
+      ]
+    },
+    "reset_conditions": [
+      "外部リセット要求",
+      "ALARM解除後のクリア要求",
+      "ファイル再読込み要求前のunload"
+    ],
+    "concurrent_request_policy": "RUNNING中のload要求は拒否する。stop/holdはstartより優先する。多重startは無視またはREJECTEDとする。"
+  },
+  "sequence_design": {
+    "applicable": true,
+    "steps": [
+      {
+        "step": 1,
+        "actor": "API呼出元",
+        "input": "NCファイルパス",
+        "action": "Api_RequestNcProgramLoadを呼び出す",
+        "output": "g_uiRequest拡張領域に要求登録",
+        "next_step": 2,
+        "error_transition": "引数不正でPARAM_ERROR"
+      },
+      {
+        "step": 2,
+        "actor": "TS_SERVICE",
+        "input": "load_request",
+        "action": "ファイルオープン、行読込み、字句解析を開始",
+        "output": "load_busy=1, status=NC_PREFETCHING",
+        "next_step": 3,
+        "error_transition": "ファイル異常でNC_ERROR"
+      },
+      {
+        "step": 3,
+        "actor": "TS_SERVICE",
+        "input": "NC行テキスト",
+        "action": "G機能確定、S/T/M分類、相対位置解決、座標変換、実行ブロック生成",
+        "output": "NC_EXEC_BLOCK",
+        "next_step": 4,
+        "error_transition": "構文/機能異常でNC_ERROR"
+      },
+      {
+        "step": 4,
+        "actor": "TS_SERVICE",
+        "input": "NC_EXEC_BLOCK",
+        "action": "リングバッファ空き確認後、ブロック本体→generation→valid/readyの順でコミット",
+        "output": "g_ncProgramBuffer更新",
+        "next_step": 5,
+        "error_transition": "バッファ満杯時は次TSスライスへ延期"
+      },
+      {
+        "step": 5,
+        "actor": "RT_CONTROL",
+        "input": "start_request, buffer_ready, AUTO, safety_ok",
+        "action": "NC_RUNNINGへ遷移し、周期ごとにブロックを最大上限件数まで消費",
+        "output": "g_ioOut, g_machineCtx, exec_line_no更新",
+        "next_step": 6,
+        "error_transition": "アンダーラン/世代不一致/インターロックでNC_HOLDまたはNC_ERROR"
+      },
+      {
+        "step": 6,
+        "actor": "RT_OUTPUT",
+        "input": "g_ioOut",
+        "action": "モーション/PLC補助出力を外部公開領域へ反映",
+        "output": "axis command, M/S/T command, lamp",
+        "next_step": 7,
+        "error_transition": "ALARM時は安全側出力マスク"
+      },
+      {
+        "step": 7,
+        "actor": "TS_SERVICE",
+        "input": "ログ要求/状態",
+        "action": "ログ保存、UIスナップショット更新、追加先読み",
+        "output": "CSVログ、状態表示",
+        "next_step": "完了まで継続",
+        "error_transition": "ログ失敗はWARNとして再試行"
+      }
+    ],
+    "abort_policy": "非常停止・インターロック・RT周期超過兆候・バッファ破壊検出時は、NC出力より既存安全側出力を優先し、必要に応じてALARMへ遷移する。"
+  },
+  "data_design": {
+    "items": [
+      {
+        "id": "DATA-NC-001",
+        "name": "g_ncProgramRequest",
+        "kind": "shared_memory",
+        "type": "NC_PROGRAM_REQUEST",
+        "owner_thread": "API",
+        "readers": [
+          "TS_SERVICE",
+          "RT_INPUT"
+        ],
+        "writers": [
+          "API"
+        ],
+        "initial_value": "all zero",
+        "is_public": true,
+        "compatibility": "新規追加。既存構造体末尾追加または独立externで互換性維持。"
+      },
+      {
+        "id": "DATA-NC-002",
+        "name": "g_ncProgramStatus",
+        "kind": "shared_memory",
+        "type": "NC_PROGRAM_STATUS",
+        "owner_thread": "RT_CONTROL/TS_SERVICE責務分担",
+        "readers": [
+          "API",
+          "TS_SERVICE",
+          "RT_CONTROL"
+        ],
+        "writers": [
+          "RT_CONTROL",
+          "TS_SERVICE"
+        ],
+        "initial_value": "state=NC_IDLE",
+        "is_public": true,
+        "compatibility": "新規追加。"
+      },
+      {
+        "id": "DATA-NC-003",
+        "name": "g_ncProgramBuffer",
+        "kind": "shared_memory",
+        "type": "NC_EXEC_BUFFER",
+        "owner_thread": "TS_SERVICE生成/RT_CONTROL消費",
+        "readers": [
+          "RT_CONTROL",
+          "API診断"
+        ],
+        "writers": [
+          "TS_SERVICE",
+          "RT_CONTROL(head更新)"
+        ],
+        "initial_value": "empty, generation=0",
+        "is_public": false,
+        "compatibility": "内部共有領域。構造体サイズ増加に注意。"
+      },
+      {
+        "id": "DATA-NC-004",
+        "name": "NC_EXEC_BLOCK",
+        "kind": "struct",
+        "type": "fixed length struct",
+        "owner_thread": "TS_SERVICE",
+        "readers": [
+          "RT_CONTROL"
+        ],
+        "writers": [
+          "TS_SERVICE"
+        ],
+        "initial_value": "valid=0",
+        "is_public": false,
+        "compatibility": "RTで読める固定長表現に限定。"
+      },
+      {
+        "id": "DATA-NC-005",
+        "name": "NC_MODAL_STATE",
+        "kind": "local/shared_memory",
+        "type": "struct",
+        "owner_thread": "TS_SERVICE",
+        "readers": [
+          "TS_SERVICE",
+          "API診断"
+        ],
+        "writers": [
+          "TS_SERVICE"
+        ],
+        "initial_value": "G機能既定状態、位置0または機械座標初期値",
+        "is_public": false,
+        "compatibility": "詳細設計で公開範囲確定。"
+      }
+    ],
+    "structs": [
+      {
+        "name": "NC_PROGRAM_REQUEST",
+        "fields": [
+          {
+            "name": "load_request",
+            "type": "uint8_t",
+            "description": "ファイル読込み要求",
+            "writer": "API",
+            "readers": [
+              "TS_SERVICE"
+            ]
+          },
+          {
+            "name": "start_request",
+            "type": "uint8_t",
+            "description": "NC運転開始要求",
+            "writer": "API",
+            "readers": [
+              "RT_CONTROL"
+            ]
+          },
+          {
+            "name": "hold_request",
+            "type": "uint8_t",
+            "description": "一時停止要求",
+            "writer": "API",
+            "readers": [
+              "RT_CONTROL"
+            ]
+          },
+          {
+            "name": "stop_request",
+            "type": "uint8_t",
+            "description": "停止要求",
+            "writer": "API",
+            "readers": [
+              "RT_CONTROL"
+            ]
+          },
+          {
+            "name": "file_path[]",
+            "type": "char[NC_MAX_PATH]",
+            "description": "NCプログラムファイルパス",
+            "writer": "API",
+            "readers": [
+              "TS_SERVICE"
+            ]
+          },
+          {
+            "name": "request_generation",
+            "type": "uint32_t",
+            "description": "要求世代番号",
+            "writer": "API",
+            "readers": [
+              "TS_SERVICE",
+              "RT_CONTROL"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "NC_PROGRAM_STATUS",
+        "fields": [
+          {
+            "name": "state",
+            "type": "NC_PROGRAM_STATE",
+            "description": "NC運転状態",
+            "writer": "RT_CONTROL/TS_SERVICE",
+            "readers": [
+              "API",
+              "UI"
+            ]
+          },
+          {
+            "name": "read_line_no",
+            "type": "uint32_t",
+            "description": "TS読込み済み行番号",
+            "writer": "TS_SERVICE",
+            "readers": [
+              "API",
+              "RT_CONTROL"
+            ]
+          },
+          {
+            "name": "exec_line_no",
+            "type": "uint32_t",
+            "description": "RT実行済み行番号",
+            "writer": "RT_CONTROL",
+            "readers": [
+              "API",
+              "TS_SERVICE"
+            ]
+          },
+          {
+            "name": "error_code",
+            "type": "uint32_t",
+            "description": "NC異常コード",
+            "writer": "TS_SERVICE/RT_CONTROL",
+            "readers": [
+              "API",
+              "UI"
+            ]
+          },
+          {
+            "name": "buffer_level",
+            "type": "uint32_t",
+            "description": "バッファ有効ブロック数",
+            "writer": "TS_SERVICE/RT_CONTROL",
+            "readers": [
+              "API",
+              "UI"
+            ]
+          },
+          {
+            "name": "eof_reached",
+            "type": "uint8_t",
+            "description": "ファイル終端到達",
+            "writer": "TS_SERVICE",
+            "readers": [
+              "RT_CONTROL",
+              "API"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "NC_EXEC_BLOCK",
+        "fields": [
+          {
+            "name": "line_no",
+            "type": "uint32_t",
+            "description": "元NC行番号",
+            "writer": "TS_SERVICE",
+            "readers": [
+              "RT_CONTROL"
+            ]
+          },
+          {
+            "name": "g_code",
+            "type": "int16_t",
+            "description": "主Gコード。S/T/M単独時はNONE。",
+            "writer": "TS_SERVICE",
+            "readers": [
+              "RT_CONTROL"
+            ]
+          },
+          {
+            "name": "axis_target[]",
+            "type": "double[NC_AXIS_MAX]",
+            "description": "機能実現済み軸目標",
+            "writer": "TS_SERVICE",
+            "readers": [
+              "RT_CONTROL"
+            ]
+          },
+          {
+            "name": "aux_code",
+            "type": "NC_AUX_COMMAND",
+            "description": "S/T/M補助指令",
+            "writer": "TS_SERVICE",
+            "readers": [
+              "RT_CONTROL"
+            ]
+          },
+          {
+            "name": "function_flags",
+            "type": "uint32_t",
+            "description": "有効機能・座標変換済みフラグ",
+            "writer": "TS_SERVICE",
+            "readers": [
+              "RT_CONTROL"
+            ]
+          },
+          {
+            "name": "generation",
+            "type": "uint32_t",
+            "description": "ブロック世代番号",
+            "writer": "TS_SERVICE",
+            "readers": [
+              "RT_CONTROL"
+            ]
+          },
+          {
+            "name": "valid",
+            "type": "uint8_t",
+            "description": "コミット完了フラグ",
+            "writer": "TS_SERVICE",
+            "readers": [
+              "RT_CONTROL"
+            ]
+          }
+        ]
+      }
+    ],
+    "initialization_policy": "SystemShared_Initializeで全NC共有領域をゼロクリアし、state=NC_IDLE、head=tail=0、generation=0、valid=0とする。",
+    "compatibility_policy": "既存g_ioIn/g_ioOut/g_machineCtx/g_uiRequest/g_logQueue/g_prefetchResultの既存フィールド意味を変更しない。新規構造体は独立externまたは末尾追加とし、公開APIは追加方式とする。"
+  },
+  "interfaces": {
+    "apis": [
+      {
+        "id": "API-NC-001",
+        "name": "NCプログラム読込み要求",
+        "consumer": "外部UI/保守アプリ",
+        "direction": "IN",
+        "summary": "固定長パスを要求領域へ登録し、TS_SERVICEによる読込みを要求する。",
+        "compatibility_policy": "新規API追加。既存APIのシグネチャは変更しない。",
+        "header_file": "include/control_api.h",
+        "function_name": "Api_RequestNcProgramLoad",
+        "return_type": "int32_t",
+        "parameters": "const char* programPath",
+        "preconditions": "RUNNING中でないこと。パス長がNC_MAX_PATH未満。",
+        "result": "要求登録またはPARAM_ERROR/REJECTED",
+        "error_codes": "PARAM_ERROR, REJECTED",
+        "thread_safety": "API側短時間コピー。ファイルI/Oなし。"
+      },
+      {
+        "id": "API-NC-002",
+        "name": "NC運転開始要求",
+        "consumer": "外部UI/保守アプリ",
+        "direction": "IN",
+        "summary": "AUTOモードで先読み済みNCプログラムの実行開始を要求する。",
+        "compatibility_policy": "新規API追加。",
+        "header_file": "include/control_api.h",
+        "function_name": "Api_RequestNcProgramStart",
+        "return_type": "int32_t",
+        "parameters": "void",
+        "preconditions": "NC_READYかつAUTO。",
+        "result": "RT_CONTROLで開始確定。",
+        "error_codes": "REJECTED",
+        "thread_safety": "要求フラグ設定のみ。"
+      },
+      {
+        "id": "API-NC-003",
+        "name": "NC運転保持/停止要求",
+        "consumer": "外部UI/保守アプリ",
+        "direction": "IN",
+        "summary": "NC運転の一時停止、再開、停止を要求する。",
+        "compatibility_policy": "新規API追加またはcommand引数方式。",
+        "header_file": "include/control_api.h",
+        "function_name": "Api_RequestNcProgramControl",
+        "return_type": "int32_t",
+        "parameters": "NC_PROGRAM_CONTROL control",
+        "preconditions": "要求値が範囲内。",
+        "result": "RT_CONTROLで状態遷移。",
+        "error_codes": "PARAM_ERROR, REJECTED",
+        "thread_safety": "要求フラグ設定のみ。"
+      },
+      {
+        "id": "API-NC-004",
+        "name": "NC状態取得",
+        "consumer": "外部UI/保守アプリ",
+        "direction": "OUT",
+        "summary": "NC状態、行番号、バッファ量、エラー情報をスナップショット取得する。",
+        "compatibility_policy": "既存Api_GetStatusSnapshotは維持し、NC専用snapshot APIを追加する。",
+        "header_file": "include/control_api.h",
+        "function_name": "Api_GetNcProgramStatus",
+        "return_type": "int32_t",
+        "parameters": "NC_PROGRAM_STATUS* pOutStatus",
+        "preconditions": "pOutStatus != NULL",
+        "result": "スナップショットコピー",
+        "error_codes": "PARAM_ERROR",
+        "thread_safety": "短時間コピー。"
+      }
+    ],
+    "external_links": [
+      "PLC補助指令出力: S/T/Mをg_ioOut.command_bitsまたは補助指令領域へ反映",
+      "モーションコントローラ: axis_target[]を既存出力経路へ反映"
+    ]
+  },
+  "thread_allocation": {
+    "tasks": [
+      {
+        "id": "TASK-NC-API-001",
+        "name": "NC要求登録",
+        "thread": "API呼出元",
+        "trigger": "外部UI操作",
+        "summary": "ファイルパス、開始/停止要求を共有要求領域へ登録する。",
+        "constraints": "ファイルI/Oなし。長時間処理なし。",
+        "data_ids": [
+          "DATA-NC-001"
+        ]
+      },
+      {
+        "id": "TASK-NC-TS-001",
+        "name": "NCファイル読込み",
+        "thread": "TS_SERVICE",
+        "trigger": "load_request",
+        "summary": "NCテキストファイルをチャンク単位で読み込み、行バッファへ展開する。",
+        "constraints": "RT割込で中断されても途中ブロックを公開しない。",
+        "data_ids": [
+          "DATA-NC-001",
+          "DATA-NC-002"
+        ]
+      },
+      {
+        "id": "TASK-NC-TS-002",
+        "name": "NC先読み解析・機能実現",
+        "thread": "TS_SERVICE",
+        "trigger": "バッファ空きあり",
+        "summary": "文字列解析、有効機能確定、相対位置解決、座標変換、補助指令生成を行う。",
+        "constraints": "TSスライス上限内で分割実行。",
+        "data_ids": [
+          "DATA-NC-003",
+          "DATA-NC-004",
+          "DATA-NC-005"
+        ]
+      },
+      {
+        "id": "TASK-NC-RT-001",
+        "name": "NC実行ブロック消費",
+        "thread": "RT_CONTROL",
+        "trigger": "割込周期かつNC_RUNNING",
+        "summary": "処理済みブロックを最大上限件数まで読み出し、出力値を決定する。",
+        "constraints": "文字列解析、ファイルI/O、動的確保禁止。",
+        "data_ids": [
+          "DATA-NC-003",
+          "DATA-NC-004"
+        ]
+      },
+      {
+        "id": "TASK-NC-RT-002",
+        "name": "NC出力反映",
+        "thread": "RT_OUTPUT",
+        "trigger": "割込周期",
+        "summary": "モーション指令とPLC補助指令をg_ioOutへ反映する。",
+        "constraints": "ALARM時は安全側マスク優先。",
+        "data_ids": [
+          "g_ioOut",
+          "DATA-NC-004"
+        ]
+      },
+      {
+        "id": "TASK-NC-TS-003",
+        "name": "NCログ/診断",
+        "thread": "TS_SERVICE",
+        "trigger": "ログ要求または状態変化",
+        "summary": "エラー行、コード、バッファ水位、完了情報をログへ保存する。",
+        "constraints": "RT側はログキュー投入のみ。",
+        "data_ids": [
+          "g_logQueue",
+          "DATA-NC-002"
+        ]
+      }
+    ],
+    "rt": {
+      "input": "開始/停止/保持要求の可視化、インターロック入力確認",
+      "compute": "NC状態遷移、実行ブロック消費、バッファ異常判定",
+      "output": "axis_target、S/T/M補助出力、安全側出力"
+    },
+    "ts": {
+      "input": "ファイルパス、バッファ空き、実行行番号",
+      "compute": "テキスト解析、G機能確定、モーダル状態更新、座標変換、先読み補充",
+      "file_io": "NCファイル読込み、ログCSV書込み"
+    },
+    "api": {
+      "input": "ファイルパス/操作要求",
+      "compute": "引数妥当性確認と要求登録のみ",
+      "file_io": "該当なし：APIではファイルを開かない"
+    }
+  },
+  "non_functional": {
+    "realtime_performance": {
+      "interrupt_budget": "既存RT周期の未使用余力内。NC追加処理は固定上限NC_RT_MAX_BLOCKS_PER_CYCLEで制限する。",
+      "rt_added_cost": "処理済みブロック読出し、世代/valid確認、出力コピーのみ。文字列処理なし。詳細設計でus見積を確定する。",
+      "ts_cost": "最大1万行先読みはTSスライス分割実行。1スライスあたり処理行数を制限しRT割込を阻害しない。",
+      "sync_policy": "TSはブロック本体を書込後、generation更新、valid=1の順でコミットする。RTはvalid/generation確認後にコピーし、headを進める。",
+      "concurrent_policy": "RUNNING中load拒否、stop/hold優先、start多重要求は無視またはREJECTED。API要求世代番号で旧要求を識別。",
+      "rationale": "RT側処理を固定長コピーに限定し、TS側の重処理を割込で中断可能にするため。",
+      "verification": "RT追加処理時間測定、最大ブロック消費、1万行ファイル先読み、バッファ水位ログで確認。"
+    }
+  },
+  "error_safety_design": {
+    "errors": [
+      {
+        "id": "ERR-NC-001",
+        "name": "ファイルオープン失敗",
+        "detection": "TS_SERVICEがopen失敗を検出",
+        "immediate_action": "NC_ERROR、開始不可",
+        "state_transition": "NC_LOAD_REQUESTED/NC_PREFETCHING -> NC_ERROR",
+        "safe_output": "既存出力維持または停止中出力",
+        "recovery": "パス修正後再読込み",
+        "log": "ファイルパス、errno相当、要求世代"
+      },
+      {
+        "id": "ERR-NC-002",
+        "name": "NC構文異常",
+        "detection": "不正トークン、数値変換失敗、必須アドレス不足",
+        "immediate_action": "先読み停止、エラー行番号保持",
+        "state_transition": "NC_PREFETCHING -> NC_ERROR",
+        "safe_output": "運転開始不可",
+        "recovery": "ファイル修正後再読込み",
+        "log": "行番号、列、トークン、エラーコード"
+      },
+      {
+        "id": "ERR-NC-003",
+        "name": "未対応G/S/T/Mコード",
+        "detection": "機能テーブル未登録",
+        "immediate_action": "NC_ERROR",
+        "state_transition": "NC_PREFETCHING -> NC_ERROR",
+        "safe_output": "運転開始不可",
+        "recovery": "コード対応またはファイル修正",
+        "log": "行番号、コード"
+      },
+      {
+        "id": "ERR-NC-004",
+        "name": "バッファアンダーラン",
+        "detection": "RT_CONTROLがRUNNING中にbuffer_emptyかつEOF未到達を検出",
+        "immediate_action": "NC_HOLDまたは減速停止、ログ投入",
+        "state_transition": "NC_RUNNING -> NC_HOLD/NC_ERROR",
+        "safe_output": "軸停止/保持、PLC危険出力OFF",
+        "recovery": "バッファ回復後resume、またはreset",
+        "log": "exec_line_no、read_line_no、buffer_level"
+      },
+      {
+        "id": "ERR-NC-005",
+        "name": "世代不一致/バッファ破壊",
+        "detection": "RTがvalid/generation不整合を検出",
+        "immediate_action": "ALARM、実行停止",
+        "state_transition": "NC_RUNNING -> NC_ERROR",
+        "safe_output": "安全側出力",
+        "recovery": "リセット後再読込み",
+        "log": "head/tail/generation"
+      },
+      {
+        "id": "ERR-NC-006",
+        "name": "インターロック発生",
+        "detection": "既存RT_CONTROLインターロック判定",
+        "immediate_action": "NC実行中断、安全側出力",
+        "state_transition": "NC_RUNNING/NC_HOLD -> NC_ERRORまたはALARM",
+        "safe_output": "既存フェールセーフ出力",
+        "recovery": "原因除去、ALARMリセット",
+        "log": "alarm_code、exec_line_no"
+      }
+    ],
+    "fail_safe_policy": "NC運転中でも既存非常停止、サーボ異常、圧力異常、ALARM状態を最優先し、NCブロック出力より安全側出力を優先する。",
+    "stop_priority": "非常停止/インターロック > stop_request > hold_request > buffer_underrun > start_request > load_request",
+    "request_policy_on_error": "NC_ERROR中のstart/resumeは拒否する。resetまたはunload後のみ再読込みを許可する。",
+    "recovery_policy": "エラー種別に応じ、ファイル修正再読込み、バッファ再初期化、ALARM解除後リセットを要求する。"
+  },
+  "logging_diagnostics": {
+    "logs": [
+      {
+        "id": "LOG-NC-001",
+        "trigger": "NC読込み開始/完了",
+        "writer": "TS_SERVICE",
+        "fields": "timestamp, path, total_read_lines, generation",
+        "destination": "CSVログ",
+        "retention": "既存ログ方針に従う",
+        "notes": "パスは必要に応じてマスク。"
+      },
+      {
+        "id": "LOG-NC-002",
+        "trigger": "NC構文/機能異常",
+        "writer": "TS_SERVICE",
+        "fields": "timestamp, line_no, token, error_code",
+        "destination": "CSVログ",
+        "retention": "既存ログ方針に従う",
+        "notes": "原因調査に必須。"
+      },
+      {
+        "id": "LOG-NC-003",
+        "trigger": "NC開始/保持/再開/停止/完了",
+        "writer": "RT_CONTROL",
+        "fields": "timestamp, exec_line_no, state, reason",
+        "destination": "g_logQueue経由CSV",
+        "retention": "既存ログ方針に従う",
+        "notes": "RT側はキュー投入のみ。"
+      },
+      {
+        "id": "LOG-NC-004",
+        "trigger": "バッファ水位低下/アンダーラン",
+        "writer": "RT_CONTROL",
+        "fields": "timestamp, buffer_level, read_line_no, exec_line_no",
+        "destination": "g_logQueue経由CSV",
+        "retention": "既存ログ方針に従う",
+        "notes": "性能・TS負荷診断用。"
+      }
+    ]
+  },
+  "security": {
+    "api_permissions": "NCプログラム読込み/開始/停止APIは外部UI/保守アプリから呼出可能とするが、AUTOモード・権限・機械状態条件で制限する。",
+    "public_headers": "新規APIとステータス構造体は公開ヘッダへ追加する。内部実行ブロック詳細は必要最小限の公開に留める。",
+    "log_confidentiality": "ファイルパス、加工プログラム名、行内容は機密情報となる可能性があるため、ログ出力内容とマスク方針を詳細設計で確定する。",
+    "misoperation_prevention": "MANUAL/MAINT中の開始要求、RUNNING中の再読込み要求、不完全先読み状態での開始要求を拒否する。"
+  },
+  "impact_analysis": {
+    "items": [
+      {
+        "id": "IMP-NC-001",
+        "target_type": "header",
+        "target": "include/system_config.h",
+        "impact": "NC_MAX_LOOKAHEAD_LINES, NC_MAX_PATH, NC_RT_MAX_BLOCKS_PER_CYCLE等の定数追加",
+        "change_required": "あり",
+        "check_points": "固定長サイズ、メモリ使用量、VC/clangビルド",
+        "related_sections": [
+          "BD-11",
+          "BD-14"
+        ]
+      },
+      {
+        "id": "IMP-NC-002",
+        "target_type": "header",
+        "target": "include/system_shared.h",
+        "impact": "NC状態enum、要求/状態/実行バッファ構造体、extern宣言追加",
+        "change_required": "あり",
+        "check_points": "公開範囲、構造体サイズ、互換性",
+        "related_sections": [
+          "BD-11",
+          "BD-12"
+        ]
+      },
+      {
+        "id": "IMP-NC-003",
+        "target_type": "source",
+        "target": "src/system_shared.c",
+        "impact": "新規共有メモリ定義と初期化追加",
+        "change_required": "あり",
+        "check_points": "ゼロクリア、初期状態、リセット条件",
+        "related_sections": [
+          "BD-11",
+          "BD-15"
+        ]
+      },
+      {
+        "id": "IMP-NC-004",
+        "target_type": "header/source",
+        "target": "include/control_api.h, src/control_api.c",
+        "impact": "NC読込み/開始/制御/状態取得API追加",
+        "change_required": "あり",
+        "check_points": "既存API互換、不正引数、多重要求",
+        "related_sections": [
+          "BD-12",
+          "BD-17"
+        ]
+      },
+      {
+        "id": "IMP-NC-005",
+        "target_type": "source",
+        "target": "src/rt_control.c",
+        "impact": "NC状態遷移、実行ブロック消費、出力反映、アンダーラン検出追加",
+        "change_required": "あり",
+        "check_points": "RT禁止事項、処理時間、インターロック優先",
+        "related_sections": [
+          "BD-13",
+          "BD-14",
+          "BD-15"
+        ]
+      },
+      {
+        "id": "IMP-NC-006",
+        "target_type": "source",
+        "target": "src/ts_service.c",
+        "impact": "NCファイルI/O、字句/構文解析、先読み、機能実現、ログ処理追加",
+        "change_required": "あり",
+        "check_points": "TSスライス分割、割込中断時整合、ファイル異常",
+        "related_sections": [
+          "BD-10",
+          "BD-13",
+          "BD-16"
+        ]
+      },
+      {
+        "id": "IMP-NC-007",
+        "target_type": "header",
+        "target": "include/rt_control.h, include/ts_service.h",
+        "impact": "NC処理関数宣言追加",
+        "change_required": "あり",
+        "check_points": "内部関数公開範囲、テスト容易性",
+        "related_sections": [
+          "BD-18"
+        ]
+      },
+      {
+        "id": "IMP-NC-008",
+        "target_type": "source/test",
+        "target": "src/main.c, test harness",
+        "impact": "NC運転シミュレーション、サンプルNCファイル、API呼出シナリオ追加",
+        "change_required": "あり",
+        "check_points": "VC2026/clangのbuild/test command",
+        "related_sections": [
+          "BD-19",
+          "BD-20"
+        ]
+      },
+      {
+        "id": "IMP-NC-009",
+        "target_type": "docs/spec",
+        "target": "Gコード/S/T/Mコード台帳、PLC IF台帳",
+        "impact": "対応コード、必須アドレス、補助指令割付の参照が必要",
+        "change_required": "要確認",
+        "check_points": "未対応コード時の扱い、台帳とのトレーサビリティ",
+        "related_sections": [
+          "BD-02",
+          "BD-07"
+        ]
+      }
+    ]
+  },
+  "test_acceptance": {
+    "cases": [
+      {
+        "id": "BT-NC-001",
+        "viewpoint": "正常系",
+        "condition": "AUTO/READY、安全条件成立、サンプルNCファイル",
+        "input": "G01 X123.1234Y345.3 Z.456 M130",
+        "expected": "TSで処理済みブロック化され、RTでaxis/M指令が出力される。",
+        "requirement_ids": [
+          "REQ-NC-001",
+          "REQ-NC-002",
+          "REQ-NC-004"
+        ]
+      },
+      {
+        "id": "BT-NC-002",
+        "viewpoint": "先読み",
+        "condition": "1万行ファイル",
+        "input": "連続NC行",
+        "expected": "最大1万行先読み、満杯/消費/補充が破綻しない。",
+        "requirement_ids": [
+          "REQ-NC-005"
+        ]
+      },
+      {
+        "id": "BT-NC-003",
+        "viewpoint": "相対位置/座標変換",
+        "condition": "前行依存あり、有効機能中",
+        "input": "相対位置指令と座標変換対象行",
+        "expected": "TS側で確定座標へ変換済み、RT側で文字列/変換処理なし。",
+        "requirement_ids": [
+          "REQ-NC-006",
+          "REQ-NC-007"
+        ]
+      },
+      {
+        "id": "BT-NC-004",
+        "viewpoint": "異常系",
+        "condition": "不正トークン/未対応Gコード",
+        "input": "異常NC行",
+        "expected": "NC_ERROR、行番号・エラーコードログ、開始不可。",
+        "requirement_ids": [
+          "REQ-NC-008"
+        ]
+      },
+      {
+        "id": "BT-NC-005",
+        "viewpoint": "RT性能",
+        "condition": "1周期複数ブロック消費",
+        "input": "短ブロック連続",
+        "expected": "NC_RT_MAX_BLOCKS_PER_CYCLE以内で処理し、RT周期超過なし。",
+        "requirement_ids": [
+          "REQ-NC-007"
+        ]
+      },
+      {
+        "id": "BT-NC-006",
+        "viewpoint": "安全",
+        "condition": "RUNNING中インターロック",
+        "input": "非常停止/サーボ異常",
+        "expected": "NC実行停止、ALARM、安全側出力、ログ。",
+        "requirement_ids": [
+          "REQ-NC-008"
+        ]
+      },
+      {
+        "id": "BT-NC-007",
+        "viewpoint": "API/競合",
+        "condition": "RUNNING中load、load中start/stop",
+        "input": "多重API要求",
+        "expected": "危険側へ進まず、優先順位に従い拒否または停止。",
+        "requirement_ids": [
+          "REQ-NC-001",
+          "REQ-NC-008"
+        ]
+      }
+    ],
+    "acceptance_criteria": [
+      {
+        "id": "AC-NC-001",
+        "description": "AUTOかつ安全条件成立時のみNC運転を開始できる。",
+        "verification_method": "状態遷移テスト、API戻り値、g_machineCtx確認"
+      },
+      {
+        "id": "AC-NC-002",
+        "description": "TS_SERVICEが文字列解釈から機能実現までを行い、RT_CONTROLは処理済みデータのみを消費する。",
+        "verification_method": "コードレビュー、RT関数内禁止処理チェック、ログ/ステップ確認"
+      },
+      {
+        "id": "AC-NC-003",
+        "description": "最大1万行先読みと消費/補充が固定長バッファで動作する。",
+        "verification_method": "1万行テスト、バッファ水位ログ"
+      },
+      {
+        "id": "AC-NC-004",
+        "description": "RT追加処理が割込周期内に収まり、オーバランが発生しない。",
+        "verification_method": "性能カウンタ、ワーストケース測定"
+      },
+      {
+        "id": "AC-NC-005",
+        "description": "ファイル/構文/バッファ/安全異常時に安全側へ遷移し、原因を追跡できる。",
+        "verification_method": "異常注入テスト、ログ、状態確認"
+      }
+    ]
+  },
+  "implementation_plan": {
+    "estimated_steps": "概算 1200-2500 step（パーサ、先読み、API、RT消費、テスト補助を含む）。Gコード個別機能数により増減。",
+    "modules": [
+      "include/system_config.h",
+      "include/system_shared.h",
+      "include/control_api.h",
+      "include/rt_control.h",
+      "include/ts_service.h",
+      "src/system_shared.c",
+      "src/control_api.c",
+      "src/rt_control.c",
+      "src/ts_service.c",
+      "src/main.c",
+      "tests/nc_program/*.nc"
+    ],
+    "not_implemented": [
+      "個別Gコード全仕様",
+      "PLC個別Mコード台帳",
+      "マクロ/サブプログラム/コメント全構文",
+      "高精度補間演算詳細"
+    ],
+    "constraints": [
+      "RT禁止事項遵守",
+      "最大1万行固定長メモリ",
+      "API互換維持",
+      "TSスライス分割"
+    ],
+    "open_issues": [
+      "NCファイル文字コードと改行コード",
+      "コメント記法と空行扱い",
+      "対応Gコード一覧とGグループ分類",
+      "S/T/Mコード台帳参照方式",
+      "座標変換機能の種類と優先順位",
+      "バッファアンダーラン時にHOLDかALARMかの最終判定",
+      "RT周期ごとの最大消費ブロック数"
+    ],
+    "to_detail_design": [
+      "NC_EXEC_BLOCK詳細フィールド",
+      "字句解析ルール",
+      "Gコード機能テーブル",
+      "TSスライス処理量",
+      "RT処理時間見積",
+      "リングバッファ更新順序",
+      "単体/機能テストデータ"
+    ]
+  },
+  "pre_review": {
+    "summary": {
+      "overall": "条件付き合格",
+      "note": "基本設計として主要観点は網羅。RT処理時間、Gコード台帳、バッファアンダーラン方針は詳細設計で確定が必要。"
+    },
+    "results": []
+  }
+}

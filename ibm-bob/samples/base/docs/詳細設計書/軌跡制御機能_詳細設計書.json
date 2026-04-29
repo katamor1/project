@@ -1,0 +1,127 @@
+{
+  "document_type": "IBM-Bob Detail Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "DD-00",
+    "DD-01",
+    "DD-02",
+    "DD-03",
+    "DD-04",
+    "DD-05",
+    "DD-06",
+    "DD-07",
+    "DD-08",
+    "DD-09",
+    "DD-10",
+    "DD-11",
+    "DD-12",
+    "DD-13",
+    "DD-14",
+    "DD-15",
+    "DD-16",
+    "DD-17",
+    "DD-18",
+    "DD-19",
+    "DD-20",
+    "DD-21",
+    "DD-22",
+    "DD-23",
+    "DD-24"
+  ],
+  "metadata": {
+    "document_id": "DD-CNC-217",
+    "feature_name": "軌跡制御機能",
+    "category": "軌跡記録・復帰",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_basic_design": "軌跡制御機能_基本設計書.docx",
+    "source_document": "設計_軌跡制御機能.docx"
+  },
+  "traceability": {
+    "basic_design_id": "BD-CNC-217",
+    "requirements": [
+      "指定周期で軌跡サンプルが記録される",
+      "ファイル保存がRT処理に影響しない",
+      "復帰時に安全確認を経て実行される"
+    ],
+    "codes": [
+      "専用操作/API: 軌跡記録開始/停止",
+      "専用操作/API: 軌跡再生データ出力",
+      "専用操作/API: 軌跡復帰要求",
+      "記録対象軸/サンプリング周期パラメータ"
+    ]
+  },
+  "module_design": {
+    "header": "include/cnc217_feature.h",
+    "source": "src/cnc217_feature.c",
+    "test": "tests/test_cnc217_feature.c",
+    "ts_functions": [
+      "Ts_CNC217_Prepare",
+      "Ts_CNC217_CommitExecBuffer"
+    ],
+    "rt_functions": [
+      "Rt_CNC217_ValidateSnapshot",
+      "Rt_CNC217_ExecuteCycle"
+    ],
+    "api_functions": [
+      "Api_GetCNC217Status",
+      "Api_RequestCNC217ConfigUpdate"
+    ]
+  },
+  "data_design": {
+    "config": "CNC217_FEATURE_CONFIG",
+    "request": "CNC217_FEATURE_REQUEST",
+    "status": "CNC217_FEATURE_STATUS",
+    "exec_block": "CNC217_EXEC_BLOCK",
+    "exec_buffer": "CNC217_EXEC_BUFFER",
+    "global": "g_cnc217Feature",
+    "consistency": "valid flag + generation_begin/generation_end + single writer policy"
+  },
+  "processing": {
+    "ts_service": [
+      "TS_SERVICEが記録条件を設定し、RT用リングバッファを初期化する。",
+      "RT_CONTROLが各周期または指定間引き周期で位置・速度・状態を記録する。",
+      "TS_SERVICEがリングバッファを回収し、ファイル保存または外部PC転送形式へ変換する。",
+      "停止後は記録軌跡と現在位置から復帰候補を生成し、干渉チェック後にRT実行ブロックとして供給する。"
+    ],
+    "rt_control": [
+      "RT_CONTROLは周期内で軽量な監視・サンプル記録のみを行い、詳細解析・保存・統計処理はTS_SERVICEで行う。",
+      "安全監視はフェイルセーフ優先とし、診断ログはRT要求をTSが後段で永続化する。"
+    ],
+    "state_machine": [
+      "DISABLED",
+      "ARMED",
+      "PREPARED",
+      "ACTIVE",
+      "HOLD",
+      "COMPLETE",
+      "ALARM"
+    ]
+  },
+  "errors": [
+    "記録バッファオーバーラン",
+    "復帰ルート生成不可",
+    "軌跡データ不整合",
+    "干渉リスク",
+    "記録容量不足"
+  ],
+  "constraints": [
+    "RT側記録は固定長・非ブロッキング",
+    "詳細なファイルI/Oや圧縮はTS側で行う",
+    "復帰前に干渉、工具状態、ワーク状態を確認"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "DDR-001",
+    "DDR-002",
+    "DDR-003",
+    "DDR-004",
+    "DDR-005",
+    "DDR-006",
+    "DDR-007",
+    "DDR-008"
+  ]
+}

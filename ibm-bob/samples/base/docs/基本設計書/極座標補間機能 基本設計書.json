@@ -1,0 +1,115 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-216",
+    "feature_name": "極座標補間機能",
+    "category": "補間",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_極座標補間機能.docx"
+  },
+  "purpose": "直交座標で記述したカム形状などの輪郭を、直線軸と回転軸の同期動作へ変換し、円筒部品の加工を容易にする。",
+  "overview": "G12.1で極座標補間モードを開始し、G13.1で解除する。TS_SERVICEが極座標補間平面と対象軸を決定し、直交座標指令を直線軸/回転軸同期指令へ変換する。",
+  "interfaces": {
+    "codes": [
+      "G12.1: 極座標補間モード開始",
+      "G13.1: 極座標補間モード解除",
+      "G01/G02/G03: 極座標平面内補間",
+      "G40〜G42: 工具径補正との関連管理"
+    ],
+    "inputs": [
+      "極座標補間対象軸設定",
+      "直交座標指令",
+      "回転軸中心",
+      "送り速度F",
+      "工具径補正状態"
+    ],
+    "outputs": [
+      "直線軸/回転軸同期指令",
+      "極座標補間状態",
+      "中心シフト情報",
+      "補間アラーム"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語製のマルチスレッド機械制御基盤を前提とする。ハードウェア割込で起床するRT_INPUT/RT_CONTROL/RT_OUTPUTと、CPU余力で動作するTS_SERVICEを分離する。",
+    "rt_rules": "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキング、三角関数や探索など処理時間が変動する重計算を禁止し、1割込周期内に処理を完了する。",
+    "rt_responsibility": "固定長データ消費、周期内安全監視、フェイルセーフ出力",
+    "ts_responsibility": "NC解析、変換、先読み、ファイルI/O、ログ、HMI/API連携",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがG12.1を単独ブロックで受理し、パラメータ指定の直線軸・回転軸を選択する。",
+    "後続の直交座標指令を極座標関係式により直線軸移動量と回転軸角度へ変換する。",
+    "工具径補正が必要な場合は補正後の通路に対して変換し、RT実行ブロックへ格納する。",
+    "G13.1でモードを解除し、元の平面選択状態を復帰する。"
+  ],
+  "constraints": [
+    "G12.1/G13.1は補正キャンセル状態で指令",
+    "モード中の座標系変更、平面変更、工具長補正変更を禁止",
+    "回転軸中心シフト時は表示座標との違いを明示"
+  ],
+  "alarms": [
+    "対象軸未設定",
+    "補正状態不正",
+    "座標系変更指令",
+    "変換後速度超過",
+    "中心シフト設定不正"
+  ],
+  "acceptance_criteria": [
+    "直交座標指令が直線/回転同期指令へ変換される",
+    "禁止指令をモード中に検出する",
+    "G13.1で平面状態が復元される"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

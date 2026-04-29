@@ -1,0 +1,267 @@
+{
+  "document_control": {
+    "document_id": "BD-NURBS-001",
+    "title": "NURBS補間機能_基本設計書",
+    "created_at": "2026-04-29",
+    "author": "AIドラフト",
+    "version": "0.1",
+    "source_document": "NURBS補間機能 基本設計書.docx"
+  },
+  "feature": {
+    "feature_id": "FX-NURBS-001",
+    "name": "NURBS補間機能",
+    "purpose": "G05 P10000で高速・高精度補間モードを有効化し、G06.2で制御点・ノット・重み・送りを指定して滑らかな曲線加工を行う。",
+    "background": "CAD/CAM由来の曲線軌跡を滑らかに加工するため、NURBS定義を安全に解析しRT周期に適した処理済みセグメントへ変換する必要がある。",
+    "key_specs": [
+      "G06.2により非一様有理Bスプライン曲線を直接指定する。",
+      "G05 P10000で高速・高精度補間モードを開始し、G05 P0で解除する。",
+      "Pは次数、Kは非減少ノットベクトル、X/Y/Zは制御点、Rは重み、Fは送り速度を表す。",
+      "ノット数は制御点数+Pに整合し、誤った値はエラーとする。"
+    ]
+  },
+  "template_usage": {
+    "template": "IBM-Bob 基本設計書テンプレート v2.0 相当",
+    "section_ids": [
+      "BD-00",
+      "BD-01",
+      "BD-02",
+      "BD-03",
+      "BD-04",
+      "BD-05",
+      "BD-06",
+      "BD-07",
+      "BD-08",
+      "BD-09",
+      "BD-10",
+      "BD-11",
+      "BD-12",
+      "BD-13",
+      "BD-14",
+      "BD-15",
+      "BD-16",
+      "BD-17",
+      "BD-18",
+      "BD-19",
+      "BD-20",
+      "BD-21",
+      "BD-22"
+    ],
+    "json_path_mapping": true,
+    "notes": "基本設計レベルとして、機能仕様、外部仕様、共有メモリ、RT/TS/API分担、安全設計、影響調査、受入条件を定義する。"
+  },
+  "requirements_traceability": [
+    {
+      "requirement_id": "REQ-NURBS-001",
+      "summary": "G05 P10000/G05 P0によりNURBS実行前後のモードを管理する。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "NURBS定義の正常系がセグメント生成されること。"
+    },
+    {
+      "requirement_id": "REQ-NURBS-002",
+      "summary": "G06.2のP/K/X/Y/Z/R/Fを解析し曲線定義として保持する。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "不正ノットベクトルを検出できること。"
+    },
+    {
+      "requirement_id": "REQ-NURBS-003",
+      "summary": "ノットベクトルの非減少性、制御点数、次数、重み範囲を検証する。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "HPCC未開始でG06.2を受けた場合に実行拒否できること。"
+    },
+    {
+      "requirement_id": "REQ-NURBS-004",
+      "summary": "TS_SERVICEでNURBS曲線を処理済み補間セグメントへ変換する。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "HPCC未開始でG06.2を受けた場合に実行拒否できること。"
+    }
+  ],
+  "system_context": {
+    "baseline": "Windows C multi-threaded machine-control baseline",
+    "rt_threads": [
+      "RT_INPUT",
+      "RT_CONTROL",
+      "RT_OUTPUT"
+    ],
+    "ts_threads": [
+      "TS_SERVICE"
+    ],
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "constraints": [
+      "RT処理は1割込間隔内に完了すること",
+      "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロックを禁止すること"
+    ]
+  },
+  "scope": {
+    "in_scope": [
+      "機能仕様の基盤システムへの反映",
+      "共有メモリ/API/RT/TS連携方針",
+      "状態遷移、異常安全、影響調査、受入条件"
+    ],
+    "out_of_scope": [
+      "サーボドライブ内部制御の詳細",
+      "機種別パラメータ最終値",
+      "詳細関数実装および実測済みRT処理時間"
+    ]
+  },
+  "state_design": {
+    "states": [
+      "NURBS_OFF",
+      "HPCC_ACTIVE",
+      "NURBS_DEFINING",
+      "NURBS_SEGMENT_READY",
+      "NURBS_RUNNING",
+      "NURBS_ERROR"
+    ],
+    "initial_state": "NURBS_OFF",
+    "error_state": "NURBS_ERROR",
+    "reset_conditions": [
+      "リセット要求",
+      "ALARM解除",
+      "モード変更",
+      "機能キャンセル"
+    ]
+  },
+  "data_design": {
+    "feature_shared_memory": [
+      "g_nurbsDefinition",
+      "g_nurbsSegmentBuffer",
+      "g_nurbsStatus"
+    ],
+    "ownership_policy": "TS_SERVICEが重計算・設定更新、RT_CONTROLが周期状態更新、APIが要求登録を担当する。詳細な所有者は詳細設計でフィールド単位に確定する。",
+    "consistency_policy": "データ本体更新後にgeneration/valid/stateを更新し、RT側は世代番号と状態を確認してから参照する。"
+  },
+  "api_design": {
+    "public_apis": [
+      "Api_LoadNurbsDefinition",
+      "Api_GetNurbsStatus",
+      "Api_CancelNurbsMode"
+    ],
+    "compatibility_policy": "既存公開APIは変更せず、新規API追加または既存要求領域の末尾追加で互換性を維持する。"
+  },
+  "rt_ts_api_allocation": {
+    "TS_SERVICE": [
+      "Gコード/パラメータ解析",
+      "妥当性確認",
+      "重計算/先読み",
+      "ログ・ファイルI/O"
+    ],
+    "RT_INPUT": [
+      "入力信号/要求フラグの周期取込み"
+    ],
+    "RT_CONTROL": [
+      "状態遷移",
+      "安全判定",
+      "処理済みデータの軽量消費",
+      "出力値決定"
+    ],
+    "RT_OUTPUT": [
+      "g_ioOutへの反映",
+      "安全マスク適用"
+    ],
+    "API": [
+      "要求登録",
+      "状態スナップショット取得"
+    ]
+  },
+  "safety_design": [
+    "NURBS定義不整合はTS_SERVICEで検出し、RTへ未検証データを渡さない。",
+    "セグメント生成中のモード解除や非常停止は開始要求より優先する。",
+    "重み0以下、ノット逆転、制御点数不足をアラーム化する。"
+  ],
+  "impact_analysis": {
+    "headers": [
+      "include/system_config.h",
+      "include/system_shared.h",
+      "include/control_api.h"
+    ],
+    "sources": [
+      "src/system_shared.c",
+      "src/control_api.c",
+      "src/rt_control.c",
+      "src/ts_service.c",
+      "src/main.c"
+    ],
+    "tests": [
+      "tests/unit",
+      "tests/function"
+    ]
+  },
+  "build_test": {
+    "vc2026_build": "cmd /c scripts\\build_vc2026.bat",
+    "vc2026_test": "cmd /c scripts\\test_vc2026.bat",
+    "clang_build": "cmd /c scripts\\build_clang.bat",
+    "clang_test": "cmd /c scripts\\test_clang.bat"
+  },
+  "acceptance_criteria": [
+    "NURBS定義の正常系がセグメント生成されること。",
+    "不正ノットベクトルを検出できること。",
+    "HPCC未開始でG06.2を受けた場合に実行拒否できること。"
+  ],
+  "open_issues": [
+    "機種別パラメータ、信号割付、軸数上限は詳細設計または設備別台帳で確定する。",
+    "RT周期内処理時間のワーストケースは実装後に測定する。",
+    "既存回帰テストへの追加範囲は詳細設計で確定する。"
+  ],
+  "pre_review_checklist": [
+    {
+      "id": "BDR-RT-001",
+      "item": "RT/TS/API分担が明確である",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-SM-001",
+      "item": "共有メモリの所有者と整合性方針が記載されている",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-SAFE-001",
+      "item": "異常時の安全側遷移が定義されている",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-COMPAT-001",
+      "item": "既存API互換性に配慮している",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-TEST-001",
+      "item": "受入条件とbuild/test観点が記載されている",
+      "result": "OK"
+    }
+  ]
+}

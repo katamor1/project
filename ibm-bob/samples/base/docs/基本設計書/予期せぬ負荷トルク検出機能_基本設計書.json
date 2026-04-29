@@ -1,0 +1,92 @@
+{
+  "schema_version": "IBM-Bob Basic Design v2.0 compatible",
+  "document": {
+    "id": "BD-002",
+    "title": "予期せぬ負荷トルク検出機能_基本設計書",
+    "language": "ja-JP",
+    "created_at": "2026-04-29",
+    "source_file": "設計_予期せぬ負荷トルク検出機能.docx",
+    "status": "draft_for_review"
+  },
+  "feature": {
+    "name": "予期せぬ負荷トルク検出機能",
+    "category": "安全監視・フェイルセーフ制御",
+    "overview": [
+      "予期せぬ負荷トルク検出機能は、機械の衝突や工具破損などによりサーボモータや主軸モータに大きな負荷が発生した場合、推定された負荷トルク値をPMCへ出力し、設定値を超えた際にはモータを停止または逆転させて機械の損傷を最小化する機能である。"
+    ],
+    "source_interface_notes": [
+      "- 推定負荷トルク出力機能： CNCは加減速トルクを除いた推定負荷トルクを常時計算し、PMCがウィンドウ機能で読み取れるようにする。",
+      "- 予期せぬ負荷トルク検出アラーム機能： 設定値を超える負荷トルクが検出された場合、サーボモータを停止または設定された量だけ逆転させてアラームを出力する。逆転はサーボモータにのみ有効。",
+      "- 軸単位の無効化： パラメータおよび検出無視信号により、特定軸のみ負荷トルク検出を無効化できる（サーボモータのみ）。"
+    ],
+    "source_flow": [
+      "1. パラメータで負荷トルク検出機能および閾値を設定する。\n2. CNCは各モータの推定負荷トルクをリアルタイムに計算し、PMCに出力する。\n3. 推定値が設定値を超えるとアラーム機能が動作し、サーボモータを停止または逆転させる。\n4. アラーム後、オペレータは原因を確認し、必要に応じて軸や工具を点検する。\n5. 特定軸のみ無効化したい場合は、検出機能無効信号やパラメータを設定する。"
+    ],
+    "source_design_notes": [
+      "- 負荷トルク検出値や逆転量のパラメータ設定は、機械剛性や加工条件に応じて適切に設定する必要がある。",
+      "- 検出機能を無効化すると安全性が低下するため、無効化は必要最小限に留める。",
+      "- 主軸モータに対する逆転機能はないため、主軸に大きな負荷がかかる場合は早期停止のみが行われる。",
+      "引用",
+      "本機能は工具や機械の損傷を防ぐために負荷トルクを監視し、推定値をPMCに送信する。設定値を超えるとモータを停止または逆転させアラームを出力する【144831653495762†L10354-L10385】。特定軸のみ検出を無効化することもできる【144831653495762†L10382-L10385】。"
+    ],
+    "g_codes": [],
+    "parameters": [],
+    "signals": [
+      "CNCは加減速トルクを除いた推定負荷トルクを常時計算し",
+      "CNCは各モータの推定負荷トルクをリアルタイムに計算し",
+      "PMCがウィンドウ機能で読み取れるようにする",
+      "PMCに出力する"
+    ]
+  },
+  "architecture": {
+    "platform": "Windows C multi-threaded machine-control platform",
+    "rt_thread": "RT_INPUT/RT_CONTROL/RT_OUTPUTをハードウェア割込周期内で実行する。RT側ではWindows API、ファイルI/O、動的メモリ確保、長時間ブロックを禁止する。",
+    "ts_thread": "TS_SERVICEでNC解析、パラメータ読出、ログ、UI/PMC連携、重い演算の先読みを行う。",
+    "api_policy": "公開APIは要求登録とスナップショット取得に限定し、状態確定はRT_CONTROLまたはTS_SERVICE側で行う。"
+  },
+  "shared_memory": {
+    "existing": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "candidate_additions": [
+      "g_featureConfig[2]",
+      "g_featureRequest[2]",
+      "g_featureStatus[2]",
+      "g_featureTrace[2]"
+    ]
+  },
+  "sections": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  }
+}

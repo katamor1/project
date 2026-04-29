@@ -1,0 +1,266 @@
+{
+  "document_control": {
+    "document_id": "BD-PARALLEL-AXIS-001",
+    "title": "並列軸制御機能_基本設計書",
+    "created_at": "2026-04-29",
+    "author": "AIドラフト",
+    "version": "0.1",
+    "source_document": "並列軸制御機能 基本設計書.docx"
+  },
+  "feature": {
+    "feature_id": "FX-PARALLEL-AXIS-001",
+    "name": "並列軸制御機能",
+    "purpose": "多頭・多テーブル機械で、同一軸名称の複数制御軸を1つのプログラム軸指令で同時動作させる。",
+    "background": "複数物理軸を1つのプログラム軸として扱うことで生産性を高める一方、軸選択・パーキング・併用禁止条件を安全に管理する必要がある。",
+    "key_specs": [
+      "パラメータで並列運転する軸を定義する。",
+      "MEM/MDI相当の自動系運転で有効とし、手動操作中は対象外とする。",
+      "機械側入力信号により特定軸だけを除外/復帰するパーキングを扱う。",
+      "スムーズ補間、座標変換、工具補正、タンデム制御、送り軸同期、同期/複合/重ね合わせ制御等との併用制限を判定する。"
+    ]
+  },
+  "template_usage": {
+    "template": "IBM-Bob 基本設計書テンプレート v2.0 相当",
+    "section_ids": [
+      "BD-00",
+      "BD-01",
+      "BD-02",
+      "BD-03",
+      "BD-04",
+      "BD-05",
+      "BD-06",
+      "BD-07",
+      "BD-08",
+      "BD-09",
+      "BD-10",
+      "BD-11",
+      "BD-12",
+      "BD-13",
+      "BD-14",
+      "BD-15",
+      "BD-16",
+      "BD-17",
+      "BD-18",
+      "BD-19",
+      "BD-20",
+      "BD-21",
+      "BD-22"
+    ],
+    "json_path_mapping": true,
+    "notes": "基本設計レベルとして、機能仕様、外部仕様、共有メモリ、RT/TS/API分担、安全設計、影響調査、受入条件を定義する。"
+  },
+  "requirements_traceability": [
+    {
+      "requirement_id": "REQ-PARALLEL-AXIS-001",
+      "summary": "1つのプログラム軸指令を複数物理軸へ展開する。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "プログラム軸指令が複数物理軸へ展開されること。"
+    },
+    {
+      "requirement_id": "REQ-PARALLEL-AXIS-002",
+      "summary": "パーキング入力により動作対象軸を選択する。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "パーキング入力で対象軸を除外/復帰できること。"
+    },
+    {
+      "requirement_id": "REQ-PARALLEL-AXIS-003",
+      "summary": "併用禁止機能が有効な場合は開始要求を拒否する。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "併用禁止条件で開始要求が拒否されること。"
+    },
+    {
+      "requirement_id": "REQ-PARALLEL-AXIS-004",
+      "summary": "対象軸異常・追従異常時は安全側停止へ遷移する。",
+      "design_sections": [
+        "BD-07",
+        "BD-09",
+        "BD-11",
+        "BD-13",
+        "BD-15",
+        "BD-19"
+      ],
+      "acceptance": "併用禁止条件で開始要求が拒否されること。"
+    }
+  ],
+  "system_context": {
+    "baseline": "Windows C multi-threaded machine-control baseline",
+    "rt_threads": [
+      "RT_INPUT",
+      "RT_CONTROL",
+      "RT_OUTPUT"
+    ],
+    "ts_threads": [
+      "TS_SERVICE"
+    ],
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "constraints": [
+      "RT処理は1割込間隔内に完了すること",
+      "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロックを禁止すること"
+    ]
+  },
+  "scope": {
+    "in_scope": [
+      "機能仕様の基盤システムへの反映",
+      "共有メモリ/API/RT/TS連携方針",
+      "状態遷移、異常安全、影響調査、受入条件"
+    ],
+    "out_of_scope": [
+      "サーボドライブ内部制御の詳細",
+      "機種別パラメータ最終値",
+      "詳細関数実装および実測済みRT処理時間"
+    ]
+  },
+  "state_design": {
+    "states": [
+      "PA_DISABLED",
+      "PA_ARMED",
+      "PA_ACTIVE",
+      "PA_PARKING",
+      "PA_ERROR"
+    ],
+    "initial_state": "PA_DISABLED",
+    "error_state": "PA_ERROR",
+    "reset_conditions": [
+      "リセット要求",
+      "ALARM解除",
+      "モード変更",
+      "機能キャンセル"
+    ]
+  },
+  "data_design": {
+    "feature_shared_memory": [
+      "g_parallelAxisConfig",
+      "g_parallelAxisStatus",
+      "g_parallelAxisCommand"
+    ],
+    "ownership_policy": "TS_SERVICEが重計算・設定更新、RT_CONTROLが周期状態更新、APIが要求登録を担当する。詳細な所有者は詳細設計でフィールド単位に確定する。",
+    "consistency_policy": "データ本体更新後にgeneration/valid/stateを更新し、RT側は世代番号と状態を確認してから参照する。"
+  },
+  "api_design": {
+    "public_apis": [
+      "Api_SetParallelAxisMode",
+      "Api_GetParallelAxisStatus",
+      "Api_RequestAxisParking"
+    ],
+    "compatibility_policy": "既存公開APIは変更せず、新規API追加または既存要求領域の末尾追加で互換性を維持する。"
+  },
+  "rt_ts_api_allocation": {
+    "TS_SERVICE": [
+      "Gコード/パラメータ解析",
+      "妥当性確認",
+      "重計算/先読み",
+      "ログ・ファイルI/O"
+    ],
+    "RT_INPUT": [
+      "入力信号/要求フラグの周期取込み"
+    ],
+    "RT_CONTROL": [
+      "状態遷移",
+      "安全判定",
+      "処理済みデータの軽量消費",
+      "出力値決定"
+    ],
+    "RT_OUTPUT": [
+      "g_ioOutへの反映",
+      "安全マスク適用"
+    ],
+    "API": [
+      "要求登録",
+      "状態スナップショット取得"
+    ]
+  },
+  "safety_design": [
+    "手動操作中や併用禁止機能有効時は並列軸制御を開始しない。",
+    "パーキング切替中は軸指令の対象リストを世代番号付きで更新する。",
+    "対象軸異常時は全関連軸を安全側停止へ移行する。"
+  ],
+  "impact_analysis": {
+    "headers": [
+      "include/system_config.h",
+      "include/system_shared.h",
+      "include/control_api.h"
+    ],
+    "sources": [
+      "src/system_shared.c",
+      "src/control_api.c",
+      "src/rt_control.c",
+      "src/ts_service.c",
+      "src/main.c"
+    ],
+    "tests": [
+      "tests/unit",
+      "tests/function"
+    ]
+  },
+  "build_test": {
+    "vc2026_build": "cmd /c scripts\\build_vc2026.bat",
+    "vc2026_test": "cmd /c scripts\\test_vc2026.bat",
+    "clang_build": "cmd /c scripts\\build_clang.bat",
+    "clang_test": "cmd /c scripts\\test_clang.bat"
+  },
+  "acceptance_criteria": [
+    "プログラム軸指令が複数物理軸へ展開されること。",
+    "パーキング入力で対象軸を除外/復帰できること。",
+    "併用禁止条件で開始要求が拒否されること。"
+  ],
+  "open_issues": [
+    "機種別パラメータ、信号割付、軸数上限は詳細設計または設備別台帳で確定する。",
+    "RT周期内処理時間のワーストケースは実装後に測定する。",
+    "既存回帰テストへの追加範囲は詳細設計で確定する。"
+  ],
+  "pre_review_checklist": [
+    {
+      "id": "BDR-RT-001",
+      "item": "RT/TS/API分担が明確である",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-SM-001",
+      "item": "共有メモリの所有者と整合性方針が記載されている",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-SAFE-001",
+      "item": "異常時の安全側遷移が定義されている",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-COMPAT-001",
+      "item": "既存API互換性に配慮している",
+      "result": "OK"
+    },
+    {
+      "id": "BDR-TEST-001",
+      "item": "受入条件とbuild/test観点が記載されている",
+      "result": "OK"
+    }
+  ]
+}

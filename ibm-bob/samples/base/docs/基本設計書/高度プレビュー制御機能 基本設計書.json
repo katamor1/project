@@ -1,0 +1,113 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-202",
+    "feature_name": "高度プレビュー制御機能",
+    "category": "高速・高精度制御",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_高度プレビュー制御機能.docx"
+  },
+  "purpose": "多数ブロックを先読みして加減速を最適化し、カム形状、クランクシャフト、非球面加工など連続的な速度変化を必要とする加工で安定した速度制御を実現する。",
+  "overview": "G08 P1/P2でプレビュー制御を開始し、G08 P0で解除する。TS_SERVICEが先読みバッファ内の曲率、コーナ角、送り指令を評価し、RT_CONTROLが消費可能な速度プロファイルへ変換する。",
+  "interfaces": {
+    "codes": [
+      "G08 P1: 標準プレビュー/スムージング開始",
+      "G08 P2: 高精度プレビュー開始",
+      "G08 P0: プレビュー制御解除"
+    ],
+    "inputs": [
+      "NCブロック列",
+      "先読みブロック数設定",
+      "許容輪郭誤差",
+      "最大加速度・ジャーク設定",
+      "高精度輪郭制御との併用状態"
+    ],
+    "outputs": [
+      "速度プロファイル付きNC実行ブロック",
+      "先読み充足率",
+      "プレビュー有効状態",
+      "バッファ不足警告"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語製のマルチスレッド機械制御基盤を前提とする。ハードウェア割込で起床するRT_INPUT/RT_CONTROL/RT_OUTPUTと、CPU余力で動作するTS_SERVICEを分離する。",
+    "rt_rules": "RT側ではWindowsシステムコール、ファイルI/O、動的メモリ確保、長時間ブロッキング、三角関数や探索など処理時間が変動する重計算を禁止し、1割込周期内に処理を完了する。",
+    "rt_responsibility": "固定長データ消費、周期内安全監視、フェイルセーフ出力",
+    "ts_responsibility": "NC解析、変換、先読み、ファイルI/O、ログ、HMI/API連携",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがG08開始ブロックを検出し、先読みモードを有効化する。",
+    "TS_SERVICEが複数ブロックを解析し、コーナ減速量、加減速曲線、許容誤差内の通過速度を算出する。",
+    "算出済み速度プロファイルをg_prefetchResult相当の固定長領域へ格納する。",
+    "RT_CONTROLはプロファイルを周期ごとに読み出し、補間実行と送り速度制御に反映する。"
+  ],
+  "constraints": [
+    "粗加工やタッピングなど急激な負荷変動領域では無効化する",
+    "先読み不足時は安全側速度に落とす",
+    "高精度輪郭制御、AI輪郭制御とのネスト順序を管理する"
+  ],
+  "alarms": [
+    "先読みバッファアンダーラン",
+    "許容誤差設定不正",
+    "非対応Gコード混在",
+    "モード解除漏れ"
+  ],
+  "acceptance_criteria": [
+    "連続短線分で送り速度変動が抑制される",
+    "先読み不足時に安全側へ遷移する",
+    "G08 P0で通常制御に戻る"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

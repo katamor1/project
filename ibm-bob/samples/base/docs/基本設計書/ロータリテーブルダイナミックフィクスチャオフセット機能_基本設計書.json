@@ -1,0 +1,119 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-315",
+    "feature_name": "ロータリテーブルダイナミックフィクスチャオフセット機能",
+    "category": "座標補正・ロータリテーブル",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_ロータリテーブルダイナミックフィクスチャオフセット機能.docx"
+  },
+  "purpose": "ロータリテーブルの角度に応じてワーク座標系のフィクスチャオフセットを動的に計算し、テーブル回転後も同一プログラムで加工可能にする。",
+  "overview": "G54.2 Pnで参照フィクスチャオフセットを選択し、テーブル角度から現在のオフセットを算出する。P0で解除する。TS_SERVICEが座標変換を算出し、RT_CONTROLは補正済み目標座標を実行する。",
+  "interfaces": {
+    "codes": [
+      "G54.2 Pn: ダイナミックフィクスチャオフセット有効化",
+      "G54.2 P0: 解除",
+      "参照フィクスチャオフセット変数",
+      "テーブル角度入力"
+    ],
+    "inputs": [
+      "参照オフセット番号",
+      "ロータリテーブル角度",
+      "参照フィクスチャオフセット量",
+      "ワーク座標系",
+      "スムージング/他座標変換状態"
+    ],
+    "outputs": [
+      "動的ワークオフセット",
+      "補正済み座標",
+      "G54.2有効状態",
+      "併用禁止アラーム"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語マルチスレッド機械制御基盤。RT_INPUT/RT_CONTROL/RT_OUTPUTを割込周期内で実行し、TS_SERVICEがファイルI/O、NC解析、ログ、HMI/API連携を担当する。",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ],
+    "rt_rules": [
+      "Windows API呼出禁止",
+      "ファイルI/O禁止",
+      "動的メモリ確保禁止",
+      "長時間ブロッキング禁止",
+      "1割込周期内完了"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがG54.2 Pnを解析し、参照オフセット登録とP番号範囲を確認する。",
+    "テーブル角度を取得し、回転行列により現在のフィクスチャオフセットを算出する。",
+    "後続ブロックの座標へ動的オフセットを適用し、RT実行ブロックへ格納する。",
+    "G54.2 P0またはモード終了で動的オフセットを解除する。"
+  ],
+  "constraints": [
+    "ナノスムージング等の併用禁止モードでは開始しない。",
+    "参照オフセットとテーブル角度の座標系整合を保証する。",
+    "他の座標変換との適用順序を明確にする。"
+  ],
+  "alarms": [
+    "参照オフセット未登録",
+    "P番号範囲外",
+    "テーブル角度取得失敗",
+    "併用禁止モード",
+    "補正後リミット超過"
+  ],
+  "acceptance_criteria": [
+    "G54.2 Pnでテーブル角度に応じたオフセットが適用される。",
+    "P0で解除される。",
+    "併用禁止モード中は実行前に拒否される。"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

@@ -1,0 +1,128 @@
+{
+  "document_type": "IBM-Bob Detail Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "DD-00",
+    "DD-01",
+    "DD-02",
+    "DD-03",
+    "DD-04",
+    "DD-05",
+    "DD-06",
+    "DD-07",
+    "DD-08",
+    "DD-09",
+    "DD-10",
+    "DD-11",
+    "DD-12",
+    "DD-13",
+    "DD-14",
+    "DD-15",
+    "DD-16",
+    "DD-17",
+    "DD-18",
+    "DD-19",
+    "DD-20",
+    "DD-21",
+    "DD-22",
+    "DD-23",
+    "DD-24"
+  ],
+  "metadata": {
+    "document_id": "DD-CNC-220",
+    "feature_name": "座標値・単位機能",
+    "category": "NC基本指令",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_basic_design": "座標値・単位機能_基本設計書.docx",
+    "source_document": "設計_座標値・単位機能.docx"
+  },
+  "traceability": {
+    "basic_design_id": "BD-CNC-220",
+    "requirements": [
+      "G90/G91が座標解釈に正しく反映される",
+      "G20/G21が座標・送り単位に反映される",
+      "RT側には内部標準単位のみが渡る"
+    ],
+    "codes": [
+      "G90: アブソリュート指令",
+      "G91: インクレメンタル指令",
+      "G20: インチ入力",
+      "G21: メートル入力"
+    ]
+  },
+  "module_design": {
+    "header": "include/cnc220_feature.h",
+    "source": "src/cnc220_feature.c",
+    "test": "tests/test_cnc220_feature.c",
+    "ts_functions": [
+      "Ts_CNC220_Prepare",
+      "Ts_CNC220_CommitExecBuffer"
+    ],
+    "rt_functions": [
+      "Rt_CNC220_ValidateSnapshot",
+      "Rt_CNC220_ExecuteCycle"
+    ],
+    "api_functions": [
+      "Api_GetCNC220Status",
+      "Api_RequestCNC220ConfigUpdate"
+    ]
+  },
+  "data_design": {
+    "config": "CNC220_FEATURE_CONFIG",
+    "request": "CNC220_FEATURE_REQUEST",
+    "status": "CNC220_FEATURE_STATUS",
+    "exec_block": "CNC220_EXEC_BLOCK",
+    "exec_buffer": "CNC220_EXEC_BUFFER",
+    "global": "g_cnc220Feature",
+    "consistency": "valid flag + generation_begin/generation_end + single writer policy"
+  },
+  "processing": {
+    "ts_service": [
+      "TS_SERVICEがプログラム冒頭またはブロック中のG20/G21、G90/G91を解析し、モーダル状態を更新する。",
+      "座標アドレスを体系A/B/Cおよび径/半径指定に基づいて絶対目標値へ変換する。",
+      "インチ/メートル値と送り速度を内部標準単位へ正規化し、RT実行ブロックへ格納する。",
+      "同一軸の絶対/増分混在や単位切換時の影響を検出し、必要に応じ警告またはアラームとする。"
+    ],
+    "rt_control": [
+      "座標・単位・指令方式の正規化はTS_SERVICEで完了し、RT_CONTROLには内部標準単位の絶対目標値だけを渡す。",
+      "座標変換モード中の禁止Gコード、補正、レファレンス点復帰、単位切換との競合を実行前に判定する。"
+    ],
+    "state_machine": [
+      "DISABLED",
+      "ARMED",
+      "PREPARED",
+      "ACTIVE",
+      "HOLD",
+      "COMPLETE",
+      "ALARM"
+    ]
+  },
+  "errors": [
+    "単位切換タイミング不正",
+    "使用不可アドレス",
+    "同一軸指令矛盾",
+    "内部単位換算オーバーフロー",
+    "径/半径指定不整合"
+  ],
+  "constraints": [
+    "G20/G21はプログラム途中での頻繁な切換を避ける",
+    "同一軸の重複指令は後勝ち規則を明確化",
+    "RT側で単位換算を行わない",
+    "径/半径指定機能との整合性を確保"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "DDR-001",
+    "DDR-002",
+    "DDR-003",
+    "DDR-004",
+    "DDR-005",
+    "DDR-006",
+    "DDR-007",
+    "DDR-008"
+  ]
+}

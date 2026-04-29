@@ -1,0 +1,120 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-308",
+    "feature_name": "円弧ねじ切り機能",
+    "category": "ねじ切り・主軸同期",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_円弧ねじ切り機能.docx"
+  },
+  "purpose": "G35/G36により円弧に沿った一定リードのねじを加工し、曲線形状上のねじ山生成を可能にする。",
+  "overview": "G35を時計回り、G36を反時計回りとして、円弧終点、中心/半径、リードF、開始角Qを解析する。TS_SERVICEが円弧ねじ軌跡を生成し、RT_CONTROLが主軸同期送りで実行する。",
+  "interfaces": {
+    "codes": [
+      "G35: CW円弧ねじ切り",
+      "G36: CCW円弧ねじ切り",
+      "X/Z/I/K/R/F/Q: 終点、円弧中心、半径、リード、開始角",
+      "G36機能切替パラメータ"
+    ],
+    "inputs": [
+      "円弧ねじ切りブロック",
+      "選択平面",
+      "円弧幾何",
+      "長軸リードF",
+      "開始角Q",
+      "主軸位相"
+    ],
+    "outputs": [
+      "円弧ねじ同期指令",
+      "円弧補間パラメータ",
+      "主軸同期状態",
+      "長軸不正アラーム"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語マルチスレッド機械制御基盤。RT_INPUT/RT_CONTROL/RT_OUTPUTを割込周期内で実行し、TS_SERVICEがファイルI/O、NC解析、ログ、HMI/API連携を担当する。",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ],
+    "rt_rules": [
+      "Windows API呼出禁止",
+      "ファイルI/O禁止",
+      "動的メモリ確保禁止",
+      "長時間ブロッキング禁止",
+      "1割込周期内完了"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがG35/G36を解析し、G36の機能切替設定を確認する。",
+    "I/KまたはRで円弧幾何を算出し、長軸が一定であることを検証する。",
+    "主軸位相とリードFに基づき同期送りブロックを生成する。",
+    "RT_CONTROLが主軸同期を維持しながら円弧ねじを実行し、完了後通常補間へ戻る。"
+  ],
+  "constraints": [
+    "長軸が途中で切り替わる円弧は不可。",
+    "I/KとR同時指定時はR優先。",
+    "G36機能切替パラメータの設定確認が必須。"
+  ],
+  "alarms": [
+    "G36設定不一致",
+    "長軸不連続",
+    "円弧幾何不正",
+    "リードF未指定",
+    "主軸同期異常"
+  ],
+  "acceptance_criteria": [
+    "G35/G36から円弧ねじ軌跡が生成される。",
+    "長軸不正を実行前に検出する。",
+    "Q指定時に開始角が反映される。"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

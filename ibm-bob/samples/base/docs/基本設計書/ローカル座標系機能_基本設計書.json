@@ -1,0 +1,119 @@
+{
+  "document_type": "IBM-Bob Basic Design",
+  "template_version": "2.0",
+  "section_ids": [
+    "BD-00",
+    "BD-01",
+    "BD-02",
+    "BD-03",
+    "BD-04",
+    "BD-05",
+    "BD-06",
+    "BD-07",
+    "BD-08",
+    "BD-09",
+    "BD-10",
+    "BD-11",
+    "BD-12",
+    "BD-13",
+    "BD-14",
+    "BD-15",
+    "BD-16",
+    "BD-17",
+    "BD-18",
+    "BD-19",
+    "BD-20",
+    "BD-21",
+    "BD-22"
+  ],
+  "metadata": {
+    "document_id": "BD-CNC-316",
+    "feature_name": "ローカル座標系機能",
+    "category": "座標系",
+    "version": "0.1",
+    "created_date": "2026-04-29",
+    "source_document": "設計_ローカル座標系機能.docx"
+  },
+  "purpose": "現在選択中のワーク座標系に対して一時的な原点シフトを設定し、繰返し形状や局所加工を簡易にプログラムできるようにする。",
+  "overview": "G52でローカル座標系を設定し、G52 X0 Y0 Z0等で解除する。TS_SERVICEがシフト量をワーク座標系に重ね、後続ブロックを内部機械座標へ変換する。",
+  "interfaces": {
+    "codes": [
+      "G52 X/Y/Z__: ローカル座標系設定",
+      "G52 X0 Y0 Z0: ローカル座標系キャンセル",
+      "G54〜G59: 選択変更時の解除条件",
+      "手動レファレンス点復帰時キャンセルパラメータ"
+    ],
+    "inputs": [
+      "G52シフト量",
+      "現在ワーク座標系",
+      "絶対/増分指定",
+      "補正状態",
+      "座標系選択状態"
+    ],
+    "outputs": [
+      "ローカル座標シフト状態",
+      "変換済み目標座標",
+      "解除状態",
+      "安全確認アラーム"
+    ]
+  },
+  "architecture": {
+    "baseline": "Windows C言語マルチスレッド機械制御基盤。RT_INPUT/RT_CONTROL/RT_OUTPUTを割込周期内で実行し、TS_SERVICEがファイルI/O、NC解析、ログ、HMI/API連携を担当する。",
+    "shared_memory": [
+      "g_ioIn",
+      "g_ioOut",
+      "g_machineCtx",
+      "g_uiRequest",
+      "g_logQueue",
+      "g_prefetchResult"
+    ],
+    "public_api_compatibility": [
+      "Api_RequestRunModeChange",
+      "Api_GetStatusSnapshot",
+      "Api_RequestLogFlush",
+      "Api_GetPrefetchStatus"
+    ],
+    "rt_rules": [
+      "Windows API呼出禁止",
+      "ファイルI/O禁止",
+      "動的メモリ確保禁止",
+      "長時間ブロッキング禁止",
+      "1割込周期内完了"
+    ]
+  },
+  "process_flow": [
+    "TS_SERVICEがG52指令を解析し、現在ワーク座標系に対するシフト量を登録する。",
+    "後続ブロックの座標値をワーク座標+ローカルシフトで内部変換する。",
+    "ワーク座標系変更、G52ゼロ指令、レファレンス点復帰条件により解除する。",
+    "解除後の最初の移動は絶対座標明示を推奨し、位置不明瞭な移動を警告する。"
+  ],
+  "constraints": [
+    "G52直後はアブソリュート指令で位置を明示する。",
+    "工具補正や他座標変換との関係を明確化する。",
+    "ワーク座標系変更時の自動解除を反映する。"
+  ],
+  "alarms": [
+    "シフト量範囲外",
+    "座標系未選択",
+    "解除直後移動不明確",
+    "補正競合",
+    "運転中危険変更"
+  ],
+  "acceptance_criteria": [
+    "G52でローカルシフトが適用される。",
+    "G52ゼロで解除される。",
+    "ワーク座標系変更時に解除規則が反映される。"
+  ],
+  "build_test": {
+    "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
+    "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "pre_review_checklist_ids": [
+    "BDR-001",
+    "BDR-002",
+    "BDR-003",
+    "BDR-004",
+    "BDR-005",
+    "BDR-006"
+  ]
+}

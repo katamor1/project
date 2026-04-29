@@ -1,0 +1,146 @@
+{
+  "metadata": {
+    "document_id": "DD-AUTO-F3BAF7",
+    "document_type": "詳細設計書",
+    "version": "0.1",
+    "created_on": "2026-04-29",
+    "target_system": "IBM-Bob基盤システム",
+    "target_environment": "Windows / C言語 / RT + TS thread",
+    "feature_name": "G95フィード毎回転機能",
+    "source_basic_design": "G95フィード毎回転機能_基本設計書.docx",
+    "source_hash": "65a21af60df786f5",
+    "section_range": "DD-00〜DD-24",
+    "note": "ユーザーが20件と指定したが、この実行で確認できたアップロード済み基本設計書は18件。確認できた18件を対象に生成。"
+  },
+  "traceability": {
+    "basic_design_summary": "G95 は送りモードを「毎回転送り（mm/回転 または inch/回転）」に設定するモーダルGコードである。切削送りは主軸1回転あたりの移動量として解釈され、チップ負荷を一定に保ちながら切削できるため、主に旋削加工やねじ切りで使用される。",
+    "codes": [
+      "G01",
+      "G93",
+      "G94",
+      "G95",
+      "G96"
+    ],
+    "category": "feed"
+  },
+  "design": {
+    "identifier": "G95FeedPerRev",
+    "snake": "g95_feed_per_rev",
+    "control_type": "F値と送りモードをモーダル状態として管理し、RT側で軸/主軸状態に応じた実送りへ変換する送り制御",
+    "algorithm": "TS_SERVICEでG94/G95等のモーダル変更を解釈し、RT_CONTROLで単位系・主軸回転数・送りオーバライドから周期目標移動量を算出する。G95では主軸エンコーダ入力の有効性を必須条件とする。",
+    "states": [
+      "UNSET",
+      "MODAL_ACTIVE",
+      "WAIT_SPINDLE",
+      "FEEDING",
+      "HOLD",
+      "ALARM"
+    ],
+    "shared_memory": [
+      [
+        "g_g95_feed_per_revFeedMode",
+        "G95FEEDPERREV_FEED_MODE",
+        "TS更新 / RT読取",
+        "送り単位、F値、単位系、適用世代番号"
+      ],
+      [
+        "g_g95_feed_per_revFeedStatus",
+        "G95FEEDPERREV_FEED_STATUS",
+        "RT更新 / TS・API読取",
+        "実送り、主軸同期有無、オーバライド適用状態"
+      ]
+    ],
+    "apis": [
+      [
+        "Api_GetG95FeedPerRevStatus",
+        "送りモード、F値、実送りを取得"
+      ]
+    ],
+    "modules": [
+      {
+        "module": "include/system_config.h",
+        "change": "機能有効/上限サイズ/RT予算マクロを追加または参照"
+      },
+      {
+        "module": "include/system_shared.h",
+        "change": "G95FEEDPERREV_FEED_MODE 等の共有構造体宣言を追加"
+      },
+      {
+        "module": "include/control_api.h",
+        "change": "状態取得APIおよび必要に応じた要求登録APIのプロトタイプを追加"
+      },
+      {
+        "module": "include/nc_interpreter.h",
+        "change": "NC解析テーブル、モーダル状態、内部実行ブロック型を追加/拡張"
+      },
+      {
+        "module": "src/nc_interpreter.c",
+        "change": "G/M/アドレス解析、パラメータ検証、実行ブロック生成を実装"
+      },
+      {
+        "module": "src/ts_service.c",
+        "change": "ファイルI/O、先読み、展開、ログ整形、HMI/API通知を実装"
+      },
+      {
+        "module": "src/rt_control.c",
+        "change": "周期内状態判定、固定長実行ブロック消費、安全遷移を実装"
+      },
+      {
+        "module": "src/rt_output.c",
+        "change": "軸/主軸/PMC出力、減速停止、フェイルセーフ出力を確定"
+      }
+    ],
+    "functions": [
+      {
+        "name": "g95_feed_per_rev_init",
+        "thread": "TS/INIT",
+        "role": "共有メモリ初期化、定義テーブル読込、既定状態設定"
+      },
+      {
+        "name": "g95_feed_per_rev_parse_block",
+        "thread": "TS_SERVICE",
+        "role": "NCブロックまたはAPI要求を検証し、内部命令へ変換"
+      },
+      {
+        "name": "g95_feed_per_rev_prepare_rt_block",
+        "thread": "TS_SERVICE",
+        "role": "RTが周期内で扱える固定長実行ブロックへ展開"
+      },
+      {
+        "name": "g95_feed_per_rev_rt_update",
+        "thread": "RT_CONTROL",
+        "role": "周期内状態更新、実行ブロック消費、安全条件判定"
+      },
+      {
+        "name": "g95_feed_per_rev_rt_fail_safe",
+        "thread": "RT_CONTROL/RT_OUTPUT",
+        "role": "異常検出時の減速停止、出力遮断、ALARM遷移"
+      },
+      {
+        "name": "g95_feed_per_rev_api_get_status",
+        "thread": "API",
+        "role": "世代番号付きスナップショットを返却"
+      }
+    ],
+    "hardware_inputs": [
+      "F指令値",
+      "主軸回転数",
+      "単位系",
+      "送りオーバライド",
+      "対象軸状態"
+    ],
+    "errors": [
+      "DD-E501 F値未設定",
+      "DD-E502 主軸回転未成立",
+      "DD-E503 送り単位/軸種別不整合",
+      "DD-E504 オーバライド範囲外"
+    ],
+    "rt_budget_us": "未確定。初期目標はRT_CONTROL差分で50us以下、最大でも1割込周期の10%以内。",
+    "build_commands": [
+      "cmd /c scripts\\build_vc2026.bat",
+      "cmd /c scripts\\test_vc2026.bat",
+      "cmd /c scripts\\build_clang.bat",
+      "cmd /c scripts\\test_clang.bat"
+    ]
+  }
+}
