@@ -1,0 +1,33 @@
+#!/usr/bin/env sh
+set -eu
+ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+BUILD_DIR="$ROOT_DIR/build/tests_clang"
+rm -rf "$BUILD_DIR"
+mkdir -p "$BUILD_DIR"
+CC=${CC:-clang}
+LDFLAGS=${LDFLAGS:--fuse-ld=lld}
+CFLAGS="-std=c99 -Wall -Wextra -I$ROOT_DIR/inc -I$ROOT_DIR/stubs -I$ROOT_DIR/tests"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_control_api.c" "$ROOT_DIR/src/control_api.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_buffer.c" "$ROOT_DIR/src/nc_motion_filter.c" "$ROOT_DIR/stubs/stub_external_io.c" "$ROOT_DIR/stubs/stub_module_deps.c" -lm -o "$BUILD_DIR/test_control_api"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_buffer.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_buffer.c" "$ROOT_DIR/src/nc_motion_filter.c" "$ROOT_DIR/stubs/stub_external_io.c" -lm -o "$BUILD_DIR/test_nc_buffer"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_diagnostics.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_buffer.c" "$ROOT_DIR/src/nc_motion_filter.c" "$ROOT_DIR/src/nc_diagnostics.c" "$ROOT_DIR/stubs/stub_external_io.c" -lm -o "$BUILD_DIR/test_nc_diagnostics"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_motion_filter.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_buffer.c" "$ROOT_DIR/src/nc_motion_filter.c" "$ROOT_DIR/stubs/stub_external_io.c" -lm -o "$BUILD_DIR/test_nc_motion_filter"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_codes.c" "$ROOT_DIR/src/nc_codes.c" -lm -o "$BUILD_DIR/test_nc_codes"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_feed.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_feed.c" "$ROOT_DIR/src/nc_buffer.c" "$ROOT_DIR/src/nc_motion_filter.c" "$ROOT_DIR/stubs/stub_external_io.c" -lm -o "$BUILD_DIR/test_nc_feed"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_coordinate.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_coordinate.c" "$ROOT_DIR/src/nc_buffer.c" "$ROOT_DIR/src/nc_motion_filter.c" "$ROOT_DIR/stubs/stub_external_io.c" -lm -o "$BUILD_DIR/test_nc_coordinate"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_coordinate_transform.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_coordinate.c" "$ROOT_DIR/src/nc_coordinate_transform.c" "$ROOT_DIR/src/nc_buffer.c" "$ROOT_DIR/src/nc_motion_filter.c" "$ROOT_DIR/stubs/stub_external_io.c" -lm -o "$BUILD_DIR/test_nc_coordinate_transform"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_axis_config.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_axis_config.c" "$ROOT_DIR/src/nc_buffer.c" "$ROOT_DIR/src/nc_motion_filter.c" "$ROOT_DIR/stubs/stub_external_io.c" -lm -o "$BUILD_DIR/test_nc_axis_config"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_rotary_mcc.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_rotary_mcc.c" "$ROOT_DIR/src/nc_buffer.c" "$ROOT_DIR/src/nc_motion_filter.c" "$ROOT_DIR/stubs/stub_external_io.c" -lm -o "$BUILD_DIR/test_nc_rotary_mcc"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_capability.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_capability.c" -lm -o "$BUILD_DIR/test_nc_capability"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_interference.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_interference.c" -lm -o "$BUILD_DIR/test_nc_interference"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_safety_motion.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_safety_motion.c" -lm -o "$BUILD_DIR/test_nc_safety_motion"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_tool_management.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_tool_management.c" -lm -o "$BUILD_DIR/test_nc_tool_management"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_spindle.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_spindle.c" -lm -o "$BUILD_DIR/test_nc_spindle"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_precision.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_precision.c" -lm -o "$BUILD_DIR/test_nc_precision"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_synchronization.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_synchronization.c" -lm -o "$BUILD_DIR/test_nc_synchronization"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_compensation.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_compensation.c" -lm -o "$BUILD_DIR/test_nc_compensation"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_cycle.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_cycle.c" -lm -o "$BUILD_DIR/test_nc_cycle"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_reference.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_reference.c" -lm -o "$BUILD_DIR/test_nc_reference"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_lathe_cycle.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_lathe_cycle.c" -lm -o "$BUILD_DIR/test_nc_lathe_cycle"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_kinematics.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_kinematics.c" -lm -o "$BUILD_DIR/test_nc_kinematics"
+$CC $LDFLAGS $CFLAGS "$ROOT_DIR/tests/test_nc_interp_math.c" "$ROOT_DIR/src/system_shared.c" "$ROOT_DIR/src/nc_interp_math.c" -lm -o "$BUILD_DIR/test_nc_interp_math"
+echo "[build_tests_clang] Build succeeded."
