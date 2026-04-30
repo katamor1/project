@@ -1,6 +1,7 @@
-# Project-scoped Claude configuration for the IBM BOB baseline sample.
-# Profiles are supported by Claude config.toml.
-# Build/test commands themselves are documented in AGENTS.md and delegated to scripts.
+# ibm-bob/samples/base/source/.claude/config.toml
+# Defines project-scoped Claude profiles for the IBM BOB baseline sample.
+# This exists so Claude uses workspace profiles while scripts remain the build/test source of truth.
+# RELEVANT FILES: ibm-bob/samples/base/source/AGENTS.md, ibm-bob/samples/base/source/scripts/build_clang.bat, ibm-bob/samples/base/source/scripts/test_clang.bat
 
 [profiles.ibm-bob-clang-win]
 approval_policy = "on-request"

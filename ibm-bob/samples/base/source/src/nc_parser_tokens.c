@@ -12,7 +12,13 @@
 #include "nc_program.h"
 
 #define NC_INCH_TO_MM (25.4)
-
+/**
+ * @brief Handle round to int for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @param pOut Output pointer that receives the computed value.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t RoundToInt(double value, int32_t* pOut)
 {
     value += (value >= 0.0) ? 0.5 : -0.5;
@@ -23,6 +29,13 @@ static int32_t RoundToInt(double value, int32_t* pOut)
     return 0;
 }
 
+/**
+ * @brief Handle normalize gcode for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @param pOutCode10 Output pointer that receives the normalized G-code value.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t NormalizeGCode(double value, int32_t* pOutCode10)
 {
     double scaled;
@@ -42,6 +55,12 @@ static int32_t NormalizeGCode(double value, int32_t* pOutCode10)
     return 0;
 }
 
+/**
+ * @brief Handle scale linear for this module.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @param pOut Output pointer that receives the computed value.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t ScaleLinear(double value, int32_t* pOut)
 {
     double scaled = value * (double)NC_POSITION_SCALE;
@@ -52,6 +71,13 @@ static int32_t ScaleLinear(double value, int32_t* pOut)
     return RoundToInt(scaled, pOut);
 }
 
+/**
+ * @brief Handle scale feed for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @param pOut Output pointer that receives the computed value.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t ScaleFeed(double value, int32_t* pOut)
 {
     double scaled = value * (double)NC_POSITION_SCALE;
@@ -70,6 +96,14 @@ static int32_t ScaleFeed(double value, int32_t* pOut)
     return RoundToInt(scaled, pOut);
 }
 
+/**
+ * @brief Apply g10 axis to the current block or state.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param axisIndex Axis index selected by the parsed address word.
+ * @param scaled Fixed-point scaled value from the parsed address word.
+ * @param pCtx Parser context read or updated by the helper.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t ApplyG10Axis(int32_t axisIndex, int32_t scaled,
                             const NC_PARSE_CONTEXT* pCtx)
 {
@@ -85,11 +119,21 @@ static int32_t ApplyG10Axis(int32_t axisIndex, int32_t scaled,
                                            scaled) == 0) ? 0 : -2;
 }
 
+/**
+ * @brief Apply axis to the current block or state.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pInfo Address or code metadata used by the helper.
+ * @param scaled Fixed-point scaled value from the parsed address word.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pCtx Parser context read or updated by the helper.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t ApplyAxis(const NC_ADDRESS_INFO* pInfo,
                          int32_t scaled,
                          NC_EXEC_BLOCK* pBlock,
                          NC_PARSE_CONTEXT* pCtx)
 {
+    /* Handle the next conditional branch for this processing stage. */
     if (pCtx->coord_mode == NC_PARSE_COORD_TILTED_PLANE) {
         if ((pInfo->axis_index >= 0) && (pInfo->axis_index < 3)) {
             pBlock->tilt_origin[pInfo->axis_index] = scaled;
@@ -128,6 +172,7 @@ static int32_t ApplyAxis(const NC_ADDRESS_INFO* pInfo,
         return (NcCoordinate_SetLocalShiftAxis(pInfo->axis_index, scaled) == 0) ?
                0 : -4;
     }
+    /* Handle the next conditional branch for this processing stage. */
     if (pCtx->coord_mode == NC_PARSE_COORD_WORK_SELECT) {
         return -4;
     }
@@ -147,6 +192,14 @@ static int32_t ApplyAxis(const NC_ADDRESS_INFO* pInfo,
            0 : -4;
 }
 
+/**
+ * @brief Apply incremental axis to the current block or state.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pInfo Address or code metadata used by the helper.
+ * @param scaled Fixed-point scaled value from the parsed address word.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t ApplyIncrementalAxis(const NC_ADDRESS_INFO* pInfo,
                                     int32_t scaled,
                                     NC_EXEC_BLOCK* pBlock)
@@ -162,17 +215,32 @@ static int32_t ApplyIncrementalAxis(const NC_ADDRESS_INFO* pInfo,
                                         pBlock) == 0) ? 0 : -4;
 }
 
+/**
+ * @brief Return whether arc motion is true for the current block or state.
+ * @param motion Motion type being tested by the helper.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsArcMotion(NC_MOTION_TYPE motion)
 {
     return (uint8_t)((motion == NC_MOTION_ARC_CW) ||
                      (motion == NC_MOTION_ARC_CCW));
 }
 
+/**
+ * @brief Apply scaled token to the current block or state.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pInfo Address or code metadata used by the helper.
+ * @param scaled Fixed-point scaled value from the parsed address word.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pCtx Parser context read or updated by the helper.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t ApplyScaledToken(const NC_ADDRESS_INFO* pInfo,
                                 int32_t scaled,
                                 NC_EXEC_BLOCK* pBlock,
                                 NC_PARSE_CONTEXT* pCtx)
 {
+    /* Handle the next conditional branch for this processing stage. */
     if (pInfo->kind == NC_ADDRESS_KIND_AXIS) {
         return ApplyAxis(pInfo, scaled, pBlock, pCtx);
     }
@@ -185,6 +253,7 @@ static int32_t ApplyScaledToken(const NC_ADDRESS_INFO* pInfo,
         pBlock->modal_flags |= NC_ARC_FLAG_IJK;
         return 0;
     }
+    /* Handle the next conditional branch for this processing stage. */
     if (pInfo->kind == NC_ADDRESS_KIND_ARC_RADIUS) {
         if (IsArcMotion(pBlock->motion_type) != 0U) {
             pBlock->arc_radius = scaled;
@@ -227,6 +296,13 @@ static int32_t ApplyScaledToken(const NC_ADDRESS_INFO* pInfo,
     return 0;
 }
 
+/**
+ * @brief Apply lword to the current block or state.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @param pCtx Parser context read or updated by the helper.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t ApplyLWord(double value, NC_PARSE_CONTEXT* pCtx)
 {
     int32_t word;
@@ -240,6 +316,14 @@ static int32_t ApplyLWord(double value, NC_PARSE_CONTEXT* pCtx)
     return (word == NC_G10_L_WORK_OFFSET) ? 0 : -1;
 }
 
+/**
+ * @brief Apply pword to the current block or state.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pCtx Parser context read or updated by the helper.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t ApplyPWord(double value,
                           NC_EXEC_BLOCK* pBlock,
                           NC_PARSE_CONTEXT* pCtx)
@@ -272,6 +356,13 @@ static int32_t ApplyPWord(double value,
     return 0;
 }
 
+/**
+ * @brief Apply qword to the current block or state.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t ApplyQWord(double value, NC_EXEC_BLOCK* pBlock)
 {
     int32_t scaled;
@@ -284,10 +375,19 @@ static int32_t ApplyQWord(double value, NC_EXEC_BLOCK* pBlock)
     return 0;
 }
 
+/**
+ * @brief Apply aux token to the current block or state.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pInfo Address or code metadata used by the helper.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t ApplyAuxToken(const NC_ADDRESS_INFO* pInfo,
                              double value,
                              NC_EXEC_BLOCK* pBlock)
 {
+    /* Handle the next conditional branch for this processing stage. */
     if (pInfo->kind == NC_ADDRESS_KIND_NUMBER) {
         return 0;
     }
@@ -298,6 +398,7 @@ static int32_t ApplyAuxToken(const NC_ADDRESS_INFO* pInfo,
         NcParser_SetSpindle((uint32_t)(value + 0.5), pBlock);
         return 0;
     }
+    /* Handle the next conditional branch for this processing stage. */
     if (pInfo->kind == NC_ADDRESS_KIND_TOOL) {
         pBlock->tool_no = (uint32_t)(value + 0.5);
         pBlock->aux_flags |= NC_AUX_FLAG_TOOL;
@@ -322,11 +423,20 @@ static int32_t ApplyAuxToken(const NC_ADDRESS_INFO* pInfo,
     return -1;
 }
 
+/**
+ * @brief Handle nc parser apply token for this module.
+ * @param address NC address word being parsed.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pCtx Parser context read or updated by the helper.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcParser_ApplyToken(char address,
                             double value,
                             NC_EXEC_BLOCK* pBlock,
                             NC_PARSE_CONTEXT* pCtx)
 {
+    /* Prepare local state used by the following processing stage. */
     int32_t scaled;
     int32_t gCode10;
     NC_ADDRESS_INFO info;
@@ -355,6 +465,7 @@ int32_t NcParser_ApplyToken(char address,
         return ApplyQWord(value, pBlock);
     }
     if ((info.address == 'K') &&
+        /* Apply the next logical update for this processing stage. */
         (pBlock->motion_type == NC_MOTION_CANNED_CYCLE)) {
         return NcCycle_SetRepeatWord(value, pBlock);
     }

@@ -18,6 +18,11 @@ static int32_t s_prevEnd[AXIS_MAX];
 
 static double VectorLength(const int32_t* pA, const int32_t* pB);
 
+/**
+ * @brief Return whether motion for lookahead is true for the current block or state.
+ * @param motion Motion type being tested by the helper.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsMotionForLookahead(NC_MOTION_TYPE motion)
 {
     return (uint8_t)((motion == NC_MOTION_RAPID) ||
@@ -31,16 +36,31 @@ static uint8_t IsMotionForLookahead(NC_MOTION_TYPE motion)
                      (motion == NC_MOTION_ADVANCED_INTERP));
 }
 
+/**
+ * @brief Return whether g08 command is true for the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsG08Command(const NC_EXEC_BLOCK* pBlock)
 {
     return (uint8_t)(pBlock->g_code10 == (uint16_t)NC_G_CODE_WHOLE(8));
 }
 
+/**
+ * @brief Return whether g05 command is true for the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsG05Command(const NC_EXEC_BLOCK* pBlock)
 {
     return (uint8_t)(pBlock->g_code10 == (uint16_t)NC_G_CODE_WHOLE(5));
 }
 
+/**
+ * @brief Return whether g08 target is true for the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsG08Target(const NC_EXEC_BLOCK* pBlock)
 {
     return (uint8_t)((pBlock->motion_type == NC_MOTION_LINEAR) ||
@@ -48,11 +68,20 @@ static uint8_t IsG08Target(const NC_EXEC_BLOCK* pBlock)
                      (pBlock->motion_type == NC_MOTION_ARC_CCW));
 }
 
+/**
+ * @brief Return whether exact stop block is true for the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsExactStopBlock(const NC_EXEC_BLOCK* pBlock)
 {
     return (uint8_t)((pBlock->feature_flags & NC_FEATURE_FLAG_EXACT_STOP) != 0U);
 }
 
+/**
+ * @brief Apply g08 command to the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void ApplyG08Command(const NC_EXEC_BLOCK* pBlock)
 {
     if (pBlock->p_word <= 2U) {
@@ -60,6 +89,10 @@ static void ApplyG08Command(const NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Apply g05 command to the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void ApplyG05Command(const NC_EXEC_BLOCK* pBlock)
 {
     if (pBlock->p_word == 10000U) {
@@ -69,17 +102,35 @@ static void ApplyG05Command(const NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Handle active g08 tolerance for this module.
+ * @return Function-specific result value.
+ */
 static uint32_t ActiveG08Tolerance(void)
 {
     return (s_g08Mode == 2U) ? (uint32_t)NC_G08_HIGH_PRECISION_TOLERANCE :
                                (uint32_t)NC_G08_STANDARD_TOLERANCE;
 }
 
+/**
+ * @brief Handle min double for this module.
+ * @param a First numeric value used by the helper.
+ * @param b Second numeric value used by the helper.
+ * @return Function-specific result value.
+ */
 static double MinDouble(double a, double b)
 {
     return (a < b) ? a : b;
 }
 
+/**
+ * @brief Handle corner deviation for this module.
+ * @param p0 First point used by the geometry calculation.
+ * @param p1 Middle point used by the geometry calculation.
+ * @param p2 Last point used by the geometry calculation.
+ * @param angleDeg Corner angle in degrees used by lookahead checks.
+ * @return Function-specific result value.
+ */
 static double CornerDeviation(const int32_t* p0,
                               const int32_t* p1,
                               const int32_t* p2,
@@ -92,6 +143,12 @@ static double CornerDeviation(const int32_t* p0,
     return MinDouble(lenA, lenB) * sin(radians * 0.5);
 }
 
+/**
+ * @brief Return whether within g08 tolerance is true for the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param angleDeg Corner angle in degrees used by lookahead checks.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsWithinG08Tolerance(const NC_EXEC_BLOCK* pBlock,
                                     uint32_t angleDeg)
 {
@@ -103,6 +160,12 @@ static uint8_t IsWithinG08Tolerance(const NC_EXEC_BLOCK* pBlock,
     return (uint8_t)(deviation <= (double)ActiveG08Tolerance());
 }
 
+/**
+ * @brief Return whether within hpcc tolerance is true for the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param angleDeg Corner angle in degrees used by lookahead checks.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsWithinHpccTolerance(const NC_EXEC_BLOCK* pBlock,
                                      uint32_t angleDeg)
 {
@@ -114,6 +177,10 @@ static uint8_t IsWithinHpccTolerance(const NC_EXEC_BLOCK* pBlock,
     return (uint8_t)(deviation <= (double)NC_HPCC_CORNER_TOLERANCE);
 }
 
+/**
+ * @brief Apply g08 flags to the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void ApplyG08Flags(NC_EXEC_BLOCK* pBlock)
 {
     if (s_g08Mode == 0U) {
@@ -125,6 +192,10 @@ static void ApplyG08Flags(NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Apply hpcc flags to the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void ApplyHpccFlags(NC_EXEC_BLOCK* pBlock)
 {
     if (s_hpccMode == 0U) {
@@ -139,6 +210,11 @@ static void ApplyHpccFlags(NC_EXEC_BLOCK* pBlock)
     g_ncPathControlStatus.last_override_percent = pBlock->feed_override_percent;
 }
 
+/**
+ * @brief Copy axes between fixed-size buffers.
+ * @param pDst Destination axis buffer updated by the helper.
+ * @param pSrc Source axis buffer copied by the helper.
+ */
 static void CopyAxes(int32_t* pDst, const int32_t* pSrc)
 {
     uint32_t i;
@@ -147,6 +223,12 @@ static void CopyAxes(int32_t* pDst, const int32_t* pSrc)
     }
 }
 
+/**
+ * @brief Handle vector length for this module.
+ * @param pA First point used by the vector calculation.
+ * @param pB Second point used by the vector calculation.
+ * @return Function-specific result value.
+ */
 static double VectorLength(const int32_t* pA, const int32_t* pB)
 {
     uint32_t i;
@@ -158,6 +240,14 @@ static double VectorLength(const int32_t* pA, const int32_t* pB)
     return sqrt(sum);
 }
 
+/**
+ * @brief Handle corner angle deg for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param p0 First point used by the geometry calculation.
+ * @param p1 Middle point used by the geometry calculation.
+ * @param p2 Last point used by the geometry calculation.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static uint32_t CornerAngleDeg(const int32_t* p0,
                                const int32_t* p1,
                                const int32_t* p2)
@@ -186,6 +276,11 @@ static uint32_t CornerAngleDeg(const int32_t* p0,
     return (uint32_t)((acos(dot) * 180.0 / NC_PI) + 0.5);
 }
 
+/**
+ * @brief Apply corner slowdown to the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param angleDeg Corner angle in degrees used by lookahead checks.
+ */
 static void ApplyCornerSlowdown(NC_EXEC_BLOCK* pBlock, uint32_t angleDeg)
 {
     uint32_t scaledTicks;
@@ -212,6 +307,9 @@ static void ApplyCornerSlowdown(NC_EXEC_BLOCK* pBlock, uint32_t angleDeg)
     g_ncPathControlStatus.last_override_percent = NC_LOOKAHEAD_CORNER_SLOW_PERCENT;
 }
 
+/**
+ * @brief Handle nc lookahead reset for this module.
+ */
 void NcLookahead_Reset(void)
 {
     s_hasPrevMotion = 0U;
@@ -222,8 +320,13 @@ void NcLookahead_Reset(void)
     (void)memset((void*)&g_ncPathControlStatus, 0, sizeof(g_ncPathControlStatus));
 }
 
+/**
+ * @brief Handle nc lookahead apply block ts for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcLookahead_ApplyBlockTs(NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t angleDeg = 0U;
 
     if (pBlock == 0) {
@@ -249,6 +352,7 @@ void NcLookahead_ApplyBlockTs(NC_EXEC_BLOCK* pBlock)
 
     g_ncPathControlStatus.lookahead_blocks++;
     g_ncPathControlStatus.last_line_no = pBlock->line_no;
+    /* Handle the next conditional branch for this processing stage. */
     if ((pBlock->motion_type == NC_MOTION_ARC_CW) ||
         (pBlock->motion_type == NC_MOTION_ARC_CCW)) {
         g_ncPathControlStatus.arc_blocks++;

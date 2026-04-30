@@ -11,9 +11,14 @@
 
 #define NC_SMOKE_FILE "sample_nc_program.nc"
 #define NC_TOOL_EXPIRED_FILE "sample_nc_tool_expired.nc"
-
+/**
+ * @brief Handle write nc smoke file for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t WriteNcSmokeFile(void)
 {
+    /* Prepare local state used by the following processing stage. */
     FILE* pFile = fopen(NC_SMOKE_FILE, "w");
 
     if (pFile == NULL) {
@@ -32,6 +37,7 @@ static int32_t WriteNcSmokeFile(void)
     (void)fprintf(pFile, "G43 H1 ; apply tool length compensation\n");
     (void)fprintf(pFile, "G41 D1 ; apply cutter radius compensation\n");
     (void)fprintf(pFile, "G68 X0 Y0 R15 ; coordinate rotation enable\n");
+    /* Emit smoke-test output consumed by validation. */
     (void)fprintf(pFile, "G68.2 X0 Y0 Z0 A5 B10 C0 ; tilted work plane enable\n");
     (void)fprintf(pFile, "G53.1 B10 ; tool axis direction sample\n");
     (void)fprintf(pFile, "G51.1 X1 ; mirror X axis around tilted origin\n");
@@ -46,6 +52,7 @@ static int32_t WriteNcSmokeFile(void)
     (void)fprintf(pFile, "G53 G00 X0 Y0 Z0\n");
     (void)fprintf(pFile, "G28 X0 Y0 ; reference return sample\n");
     (void)fprintf(pFile, "G30 Z0 ; second reference return sample\n");
+    /* Emit smoke-test output consumed by validation. */
     (void)fprintf(pFile, "G60 X0.015 Y0.016 F60000 ; one-direction positioning sample\n");
     (void)fprintf(pFile, "G10.6 Z0.100 ; controlled retract sample\n");
     (void)fprintf(pFile, "G54\n");
@@ -58,6 +65,7 @@ static int32_t WriteNcSmokeFile(void)
     (void)fprintf(pFile, "G07.1 A0.100 F60000 ; rotary virtual circumferential speed sample\n");
     (void)fprintf(pFile, "G13.1 ; rotary MCC mode cancel sample\n");
     (void)fprintf(pFile, "G05.2 ; high precision smoothing mode\n");
+    /* Emit smoke-test output consumed by validation. */
     (void)fprintf(pFile, "G08 P1 ; standard high-speed smoothing on\n");
     (void)fprintf(pFile, "G01 X0.031 Y0.038 F60000 ; G08 standard short segment\n");
     (void)fprintf(pFile, "G08 P2 ; high-precision smoothing on\n");
@@ -70,6 +78,7 @@ static int32_t WriteNcSmokeFile(void)
     (void)fprintf(pFile, "G50.6\n");
     (void)fprintf(pFile, "G50.5\n");
     (void)fprintf(pFile, "G16 ; polar coordinate mode on\n");
+    /* Emit smoke-test output consumed by validation. */
     (void)fprintf(pFile, "G15 ; polar coordinate mode off\n");
     (void)fprintf(pFile, "G31 X0.030 F60000\n");
     (void)fprintf(pFile, "G02.3 X0.035 Y0.040 F60000\n");
@@ -82,6 +91,7 @@ static int32_t WriteNcSmokeFile(void)
     (void)fprintf(pFile, "G99 G81 X0.040 Y0.041 Z0.010 R0.050 F60000 K2 ; drill cycle repeat\n");
     (void)fprintf(pFile, "G82 X0.041 Y0.042 Z0.011 R0.050 P1 F60000 ; dwell drill\n");
     (void)fprintf(pFile, "G83 X0.042 Y0.043 Z0.012 R0.050 Q0.010 F60000 ; deep peck\n");
+    /* Emit smoke-test output consumed by validation. */
     (void)fprintf(pFile, "G73 X0.043 Y0.044 Z0.013 R0.050 Q0.005 F60000 ; chip break peck\n");
     (void)fprintf(pFile, "S600 G84 X0.044 Y0.045 Z0.010 R0.050 F1 ; right tap\n");
     (void)fprintf(pFile, "G74 X0.045 Y0.046 Z0.010 R0.050 F1 ; left tap\n");
@@ -92,6 +102,7 @@ static int32_t WriteNcSmokeFile(void)
     (void)fprintf(pFile, "G89 X0.050 Y0.051 Z0.010 R0.050 P1 F60000 ; dwell boring\n");
     (void)fprintf(pFile, "G80\n");
     (void)fprintf(pFile, "G05 P10000 ; HPCC on\n");
+    /* Emit smoke-test output consumed by validation. */
     (void)fprintf(pFile, "G01 X0.021 Y0.031 Z0.041 F60000 ; HPCC segment 1\n");
     (void)fprintf(pFile, "G01 X0.022 Y0.032 Z0.042 F60000 ; HPCC segment 2\n");
     (void)fprintf(pFile, "G05 P3 ; high-speed relation diagnostic\n");
@@ -101,6 +112,11 @@ static int32_t WriteNcSmokeFile(void)
     return 0;
 }
 
+/**
+ * @brief Handle write nc tool expired file for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t WriteNcToolExpiredFile(void)
 {
     FILE* pFile = fopen(NC_TOOL_EXPIRED_FILE, "w");
@@ -115,6 +131,14 @@ static int32_t WriteNcToolExpiredFile(void)
     return 0;
 }
 
+/**
+ * @brief Handle parse line expect error for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param firstLine Optional first source line parsed before the checked line.
+ * @param secondLine Source line expected to produce the requested parser error.
+ * @param expected Expected NC error code for the negative parser check.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static uint32_t ParseLineExpectError(const char* firstLine,
                                      const char* secondLine,
                                      NC_ERROR_CODE expected)
@@ -134,6 +158,10 @@ static uint32_t ParseLineExpectError(const char* firstLine,
     return (uint32_t)((result < 0) && (error == expected));
 }
 
+/**
+ * @brief Run coordinate error checks for the smoke-test scenario.
+ * @return Function-specific result value.
+ */
 static uint32_t RunCoordinateErrorChecks(void)
 {
     uint32_t passed = 0U;
@@ -146,6 +174,10 @@ static uint32_t RunCoordinateErrorChecks(void)
     return passed;
 }
 
+/**
+ * @brief Run g08 error checks for the smoke-test scenario.
+ * @return Function-specific result value.
+ */
 static uint32_t RunG08ErrorChecks(void)
 {
     uint32_t passed = 0U;
@@ -156,6 +188,10 @@ static uint32_t RunG08ErrorChecks(void)
     return passed;
 }
 
+/**
+ * @brief Run hpcc error checks for the smoke-test scenario.
+ * @return Function-specific result value.
+ */
 static uint32_t RunHpccErrorChecks(void)
 {
     uint32_t passed = 0U;
@@ -167,6 +203,10 @@ static uint32_t RunHpccErrorChecks(void)
     return passed;
 }
 
+/**
+ * @brief Run cycle error checks for the smoke-test scenario.
+ * @return Function-specific result value.
+ */
 static uint32_t RunCycleErrorChecks(void)
 {
     uint32_t passed = 0U;
@@ -178,6 +218,10 @@ static uint32_t RunCycleErrorChecks(void)
     return passed;
 }
 
+/**
+ * @brief Handle simulate external inputs for this module.
+ * @param cycle Simulation cycle number used to schedule synthetic inputs.
+ */
 static void SimulateExternalInputs(uint32_t cycle)
 {
     if (cycle == 1U) {
@@ -226,8 +270,14 @@ static void SimulateExternalInputs(uint32_t cycle)
     }
 }
 
+/**
+ * @brief Handle main for this module.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
+
 int main(void)
 {
+    /* Prepare local state used by the following processing stage. */
     STATUS_SNAPSHOT snapshot;
     NC_PROGRAM_STATUS ncStatus;
     NC_INTERP_STATUS interpStatus;
@@ -248,6 +298,7 @@ int main(void)
     NC_MOTION_FILTER_STATUS filterStatus;
     NC_EVENT_RING eventRing;
     NC_CAPABILITY_STATUS capabilityStatus;
+    /* Prepare local state used by the following processing stage. */
     NC_INTERFERENCE_STATUS interferenceStatus;
     NC_SAFETY_MOTION_STATUS safetyStatus;
     NC_BINARY_PROGRAM_STATUS binaryStatus;
@@ -268,6 +319,7 @@ int main(void)
     uint32_t dwellTicks = 0U;
     uint32_t coordUnit = 0U;
     uint32_t coordDistance = 0U;
+    /* Prepare local state used by the following processing stage. */
     uint32_t coordWork = 0U;
     uint32_t coordLocal = 0U;
     int32_t coordWorkX = 0;
@@ -288,6 +340,7 @@ int main(void)
     uint32_t g08HighPrecisionSeen = 0U;
     uint32_t g08CancelSeen = 0U;
     uint32_t g08FinalSmoothing = 0U;
+    /* Prepare local state used by the following processing stage. */
     uint32_t g08FinalHighPrecision = 0U;
     uint32_t hpccSeen = 0U;
     uint32_t hpccCancelSeen = 0U;
@@ -308,6 +361,7 @@ int main(void)
     uint32_t cycleSpindleReverse = 0U;
     uint32_t cycleManualReturn = 0U;
     int32_t cycleSkipX = 0;
+    /* Prepare local state used by the following processing stage. */
     uint32_t prestartMask = 0U;
     uint32_t prestartOk = 0U;
     uint32_t traceFrozen = 0U;
@@ -328,6 +382,7 @@ int main(void)
     uint32_t kinTransformed = 0U;
     uint32_t kinMirrored = 0U;
     uint32_t kinRetracts = 0U;
+    /* Prepare local state used by the following processing stage. */
     uint32_t kinSingularityWarn = 0U;
     uint32_t kinMirrorMask = 0U;
     uint32_t kinRetractMask = 0U;
@@ -348,6 +403,7 @@ int main(void)
     uint32_t toolMgmtPrepared = 0U;
     uint32_t toolMgmtParsedT = 0U;
     uint32_t toolMgmtExchangeReq = 0U;
+    /* Prepare local state used by the following processing stage. */
     uint32_t toolMgmtExchangeDone = 0U;
     uint32_t toolMgmtMaxWait = 0U;
     uint32_t toolMgmtPocket2 = 0U;
@@ -368,6 +424,7 @@ int main(void)
     int32_t filterResidualX = 0;
     uint32_t eventCaptured = 0U;
     uint32_t eventLost = 0U;
+    /* Prepare local state used by the following processing stage. */
     uint32_t lastEventCode = 0U;
     uint32_t capParsed = 0U;
     uint32_t capG = 0U;
@@ -388,6 +445,7 @@ int main(void)
     uint32_t refRollover = 0U;
     int32_t refApproachX = 0;
     uint32_t rotaryParsed = 0U;
+    /* Prepare local state used by the following processing stage. */
     uint32_t rotaryExecuted = 0U;
     uint32_t rotaryMask = 0U;
     uint32_t rotaryMccOn = 0U;
@@ -408,6 +466,7 @@ int main(void)
     uint32_t precisionLearningUpdates = 0U;
     uint32_t precisionVibrationWarnings = 0U;
     uint32_t precisionRtTicks = 0U;
+    /* Prepare local state used by the following processing stage. */
     int32_t precisionCorrectionX = 0;
     uint32_t syncModeBits = 0U;
     uint32_t syncPlanned = 0U;
@@ -429,6 +488,7 @@ int main(void)
     (void)Api_SetNcAxisDefinition(0U, (uint8_t)'X', NC_AXIS_TYPE_LINEAR, 0U);
     (void)Api_SetNcAxisDefinition(1U, (uint8_t)'Y', NC_AXIS_TYPE_LINEAR, 0U);
     (void)Api_SetNcAxisDefinition(2U, (uint8_t)'Z', NC_AXIS_TYPE_LINEAR, 0U);
+    /* Apply the next logical update for this processing stage. */
     (void)Api_SetNcAxisDefinition(3U, (uint8_t)'A', NC_AXIS_TYPE_ROTARY, 1U);
     (void)Api_SetNcPathAxisMask(0x0000000fUL);
     (void)Api_SetNcAxisDetachedMask(0x00000000UL);
@@ -449,6 +509,7 @@ int main(void)
     (void)Api_SetNcMotionFilterAxisLimit(3U, 180, 80);
     (void)Api_SetNcToolLifeLimit(2U, 100U);
     (void)Api_SetNcToolLifeLimit(3U, 1U);
+    /* Apply the next logical update for this processing stage. */
     (void)Api_SetNcToolPocket(2U, 12U);
     (void)Api_SetNcToolPocket(3U, 13U);
     (void)Api_SetNcSynchronizationMasterSlave(0U, 0x00000002UL);
@@ -625,6 +686,7 @@ int main(void)
 
 
 
+    /* Handle the next conditional branch for this processing stage. */
     if (Api_GetNcAuxStatus(&auxStatus) == 0) {
         auxCompleted = auxStatus.completed_m_codes;
         auxWaitCycles = auxStatus.last_wait_cycles;
@@ -790,6 +852,7 @@ int main(void)
         rotaryVirtualDelta = rotaryMccStatus.last_virtual_linear_delta;
         rotaryCmdBits = rotaryMccStatus.last_mcc_command_bits;
     }
+    /* Handle the next conditional branch for this processing stage. */
     if (Api_GetNcAxisConfigStatus(&axisConfigStatus) == 0) {
         axisCfgPathMask = axisConfigStatus.active_path_axis_mask;
         axisCfgRotaryMask = axisConfigStatus.rotary_axis_mask;
@@ -854,6 +917,7 @@ int main(void)
                  (unsigned int)coordTransformBlocks,
                  (unsigned int)coordTransformMask,
                  (unsigned int)coordTransformWorkOffsetSet,
+                 /* Apply the next logical update for this processing stage. */
                  (unsigned int)coordTransformLocalSet,
                  (unsigned int)coordTransformTempSet,
                  (int)coordTransformDx,
@@ -874,6 +938,7 @@ int main(void)
     (void)printf("hpcc_seen=%u hpcc_cancel_seen=%u hpcc_final=%u g05_p3_seen=%u\n",
                  (unsigned int)hpccSeen,
                  (unsigned int)hpccCancelSeen,
+                 /* Apply the next logical update for this processing stage. */
                  (unsigned int)hpccFinal,
                  (unsigned int)g05P3Seen);
     (void)printf("comp_applied=%u comp_mask=0x%08x comp_tool=%d comp_cutter=%d comp_rotation=%u\n",
@@ -894,6 +959,7 @@ int main(void)
                  (unsigned int)kinTransformed,
                  (unsigned int)kinMirrored,
                  (unsigned int)kinRetracts,
+                 /* Apply the next logical update for this processing stage. */
                  (unsigned int)kinSingularityWarn,
                  (unsigned int)kinMirrorMask,
                  (unsigned int)kinRetractMask,
@@ -914,6 +980,7 @@ int main(void)
                  (unsigned int)toolExpiredMask,
                  (unsigned int)diagDecelLevel,
                  (unsigned int)diagToolExpired,
+                 /* Apply the next logical update for this processing stage. */
                  (unsigned int)diagAxisWarn);
     (void)printf("tool_mgmt active=%u prepared=%u parsed_t=%u exchange_req=%u exchange_done=%u max_wait=%u pocket2=%u\n",
                  (unsigned int)toolMgmtActive,
@@ -934,6 +1001,7 @@ int main(void)
                  (unsigned int)filterVelocityLimitEvents,
                  (unsigned int)filterAccelLimitEvents,
                  (unsigned int)filterEndpointCorrections,
+                 /* Apply the next logical update for this processing stage. */
                  (unsigned int)filterResidualSamples,
                  (int)filterMaxLagX,
                  (int)filterResidualX);
@@ -954,6 +1022,7 @@ int main(void)
                  (unsigned int)cycleRepeat,
                  (unsigned int)cycleRepeatDone,
                  (unsigned int)cyclePeckBlocks,
+                 /* Apply the next logical update for this processing stage. */
                  (unsigned int)cycleTapBlocks,
                  (unsigned int)cycleBoringBlocks,
                  (unsigned int)cycleSpindleSync,
@@ -974,6 +1043,7 @@ int main(void)
                  (unsigned int)capM,
                  (unsigned int)capAddr,
                  (unsigned int)binaryLoaded);
+    /* Emit smoke-test output consumed by validation. */
     (void)printf("interference checked=%u warnings=%u slowdown=%u safety_external=%u safety_position=%u safety_override=%u\n",
                  (unsigned int)interferenceChecked,
                  (unsigned int)interferenceWarn,
@@ -995,6 +1065,7 @@ int main(void)
                  (unsigned int)rotaryExecuted,
                  (unsigned int)rotaryMask,
                  (unsigned int)rotaryMccOn,
+                 /* Apply the next logical update for this processing stage. */
                  (unsigned int)rotaryMccOff,
                  (int)rotaryVirtualDelta,
                  (unsigned int)rotaryCmdBits);
@@ -1015,6 +1086,7 @@ int main(void)
                  (unsigned int)syncMotion,
                  (unsigned int)syncCompoundMotion,
                  (unsigned int)syncOverlayMotion,
+                 /* Apply the next logical update for this processing stage. */
                  (unsigned int)syncDoubleTable,
                  (unsigned int)syncSlaveMask,
                  (int)syncMaxFollowY,
@@ -1043,6 +1115,7 @@ int main(void)
                  (unsigned int)RunG08ErrorChecks());
     (void)printf("hpcc_error_checks=%u\n",
                  (unsigned int)RunHpccErrorChecks());
+    /* Emit smoke-test output consumed by validation. */
     (void)printf("cycle_error_checks=%u\n",
                  (unsigned int)RunCycleErrorChecks());
     (void)remove(NC_SMOKE_FILE);

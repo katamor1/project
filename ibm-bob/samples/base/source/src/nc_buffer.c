@@ -5,6 +5,10 @@
 #include <string.h>
 #include "nc_program.h"
 
+/**
+ * @brief Return the current NC buffer count.
+ * @return Current count, mask, or generated value.
+ */
 uint32_t NcBuffer_Count(void)
 {
     uint32_t head = g_ncProgramBuffer.head_index;
@@ -16,6 +20,9 @@ uint32_t NcBuffer_Count(void)
     return (NC_MAX_LOOKAHEAD_LINES - head) + tail;
 }
 
+/**
+ * @brief Clear buffer state.
+ */
 void NcProgram_ClearBuffer(void)
 {
     uint32_t i;
@@ -29,6 +36,10 @@ void NcProgram_ClearBuffer(void)
     g_ncProgramStatus.buffered_blocks = 0U;
 }
 
+/**
+ * @brief Return whether full is true for the current block or state.
+ * @return Non-zero when true or active; zero when false or inactive.
+ */
 uint8_t NcBuffer_IsFull(void)
 {
     uint32_t nextTail =
@@ -37,6 +48,11 @@ uint8_t NcBuffer_IsFull(void)
     return (uint8_t)(nextTail == g_ncProgramBuffer.head_index);
 }
 
+/**
+ * @brief Commit block into the active queue or output state.
+ * @param pBlock NC execution block to read or update.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcBuffer_CommitBlock(const NC_EXEC_BLOCK* pBlock)
 {
     uint32_t index;
@@ -59,6 +75,11 @@ int32_t NcBuffer_CommitBlock(const NC_EXEC_BLOCK* pBlock)
     return 0;
 }
 
+/**
+ * @brief Copy head without consuming it.
+ * @param pOutBlock Output pointer receiving block.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcBuffer_PeekHead(NC_EXEC_BLOCK* pOutBlock)
 {
     const volatile NC_EXEC_BLOCK* pSlot;
@@ -76,6 +97,9 @@ int32_t NcBuffer_PeekHead(NC_EXEC_BLOCK* pOutBlock)
     return 0;
 }
 
+/**
+ * @brief Consume head from the active queue.
+ */
 void NcBuffer_ConsumeHead(void)
 {
     if (NcBuffer_Count() == 0U) {

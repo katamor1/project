@@ -9,7 +9,11 @@
 
 #define G(whole)       NC_G_CODE_WHOLE(whole)
 #define GD(whole, dec) NC_G_CODE10((whole), (dec))
-
+/**
+ * @brief Return whether turning cycle is true for the current block or state.
+ * @param code G-code or M-code value being tested or applied.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsTurningCycle(uint16_t code)
 {
     return (uint8_t)((code == G(70)) || (code == G(71)) ||
@@ -18,12 +22,22 @@ static uint8_t IsTurningCycle(uint16_t code)
                      (code == G(90)) || (code == G(94)));
 }
 
+/**
+ * @brief Return whether grinding cycle is true for the current block or state.
+ * @param code G-code or M-code value being tested or applied.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsGrindingCycle(uint16_t code)
 {
     return (uint8_t)(((code >= GD(70, 7)) && (code <= GD(76, 7))) ||
                      (code == G(77)) || (code == G(78)) || (code == G(79)));
 }
 
+/**
+ * @brief Return whether thread cycle is true for the current block or state.
+ * @param code G-code or M-code value being tested or applied.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsThreadCycle(uint16_t code)
 {
     return (uint8_t)((code == G(32)) || (code == G(76)) ||
@@ -31,6 +45,11 @@ static uint8_t IsThreadCycle(uint16_t code)
                      (code == G(92)));
 }
 
+/**
+ * @brief Copy last axes between fixed-size buffers.
+ * @param pDst Destination axis buffer updated by the helper.
+ * @param pSrc Source axis buffer copied by the helper.
+ */
 static void CopyLastAxes(volatile int32_t* pDst, const int32_t* pSrc)
 {
     uint32_t i;
@@ -39,6 +58,9 @@ static void CopyLastAxes(volatile int32_t* pDst, const int32_t* pSrc)
     }
 }
 
+/**
+ * @brief Handle nc lathe cycle reset for this module.
+ */
 void NcLatheCycle_Reset(void)
 {
     (void)memset((void*)&g_ncTurningCycleStatus, 0, sizeof(g_ncTurningCycleStatus));
@@ -46,6 +68,11 @@ void NcLatheCycle_Reset(void)
     g_ncTurningCycleStatus.radius_mode_active = 1U;
 }
 
+/**
+ * @brief Handle nc lathe cycle set diameter mode for this module.
+ * @param enabled Non-zero to enable the mode; zero to disable it.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcLatheCycle_SetDiameterMode(uint8_t enabled)
 {
     g_ncTurningCycleStatus.diameter_mode_active = (enabled != 0U) ? 1U : 0U;
@@ -54,8 +81,14 @@ int32_t NcLatheCycle_SetDiameterMode(uint8_t enabled)
     return 0;
 }
 
+/**
+ * @brief Update turning ts from current inputs.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param code G-code or M-code value being tested or applied.
+ */
 static void UpdateTurningTs(const NC_EXEC_BLOCK* pBlock, uint16_t code)
 {
+    /* Apply the next logical update for this processing stage. */
     g_ncTurningCycleStatus.planned_cycle_blocks++;
     g_ncTurningCycleStatus.last_cycle_code10 = code;
     g_ncTurningCycleStatus.last_line_no = pBlock->line_no;
@@ -69,9 +102,15 @@ static void UpdateTurningTs(const NC_EXEC_BLOCK* pBlock, uint16_t code)
     else if ((code == G(74)) || (code == G(75))) { g_ncTurningCycleStatus.grooving_blocks++; }
     else if (code == G(90)) { g_ncTurningCycleStatus.linear_taper_blocks++; }
     else if (code == G(94)) { g_ncTurningCycleStatus.end_face_blocks++; }
+    /* Apply the next logical update for this processing stage. */
     g_ncTurningCycleStatus.generation++;
 }
 
+/**
+ * @brief Update grinding ts from current inputs.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param code G-code or M-code value being tested or applied.
+ */
 static void UpdateGrindingTs(const NC_EXEC_BLOCK* pBlock, uint16_t code)
 {
     g_ncTurningCycleStatus.planned_cycle_blocks++;
@@ -84,8 +123,14 @@ static void UpdateGrindingTs(const NC_EXEC_BLOCK* pBlock, uint16_t code)
     g_ncTurningCycleStatus.generation++;
 }
 
+/**
+ * @brief Update thread ts from current inputs.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param code G-code or M-code value being tested or applied.
+ */
 static void UpdateThreadTs(const NC_EXEC_BLOCK* pBlock, uint16_t code)
 {
+    /* Apply the next logical update for this processing stage. */
     g_ncThreadCycleStatus.planned_thread_blocks++;
     g_ncThreadCycleStatus.last_thread_code10 = code;
     g_ncThreadCycleStatus.last_line_no = pBlock->line_no;
@@ -93,6 +138,7 @@ static void UpdateThreadTs(const NC_EXEC_BLOCK* pBlock, uint16_t code)
     g_ncThreadCycleStatus.last_depth = pBlock->q_value;
     g_ncThreadCycleStatus.spindle_sync_required = 1U;
     CopyLastAxes(g_ncThreadCycleStatus.last_target, pBlock->axis_target);
+    /* Handle the next conditional branch for this processing stage. */
     if (code == G(32)) { g_ncThreadCycleStatus.g32_blocks++; }
     else if (code == G(76)) { g_ncThreadCycleStatus.g76_blocks++; }
     else if (code == GD(76, 7)) { g_ncThreadCycleStatus.g767_blocks++; }
@@ -107,6 +153,10 @@ static void UpdateThreadTs(const NC_EXEC_BLOCK* pBlock, uint16_t code)
     g_ncThreadCycleStatus.generation++;
 }
 
+/**
+ * @brief Handle nc lathe cycle on parsed block ts for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcLatheCycle_OnParsedBlockTs(const NC_EXEC_BLOCK* pBlock)
 {
     uint16_t code;
@@ -126,6 +176,10 @@ void NcLatheCycle_OnParsedBlockTs(const NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Handle nc lathe cycle on block rt for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcLatheCycle_OnBlockRt(const NC_EXEC_BLOCK* pBlock)
 {
     uint16_t code;

@@ -9,7 +9,11 @@
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
-
+/**
+ * @brief Return whether motion like is true for the current block or state.
+ * @param motion Motion type being tested by the helper.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsMotionLike(NC_MOTION_TYPE motion)
 {
     return (uint8_t)((motion == NC_MOTION_RAPID) ||
@@ -23,16 +27,29 @@ static uint8_t IsMotionLike(NC_MOTION_TYPE motion)
                      (motion == NC_MOTION_ADVANCED_INTERP));
 }
 
+/**
+ * @brief Handle round fixed for this module.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t RoundFixed(double value)
 {
     return (int32_t)(value + ((value >= 0.0) ? 0.5 : -0.5));
 }
 
+/**
+ * @brief Handle angle rad for this module.
+ * @param scaledDegree Angle value in fixed-point degree units.
+ * @return Function-specific result value.
+ */
 static double AngleRad(int32_t scaledDegree)
 {
     return (((double)scaledDegree / (double)NC_ANGLE_SCALE) * M_PI) / 180.0;
 }
 
+/**
+ * @brief Set identity axis map in this module.
+ */
 static void SetIdentityAxisMap(void)
 {
     uint8_t i;
@@ -47,6 +64,9 @@ static void SetIdentityAxisMap(void)
     }
 }
 
+/**
+ * @brief Handle nc kinematics reset for this module.
+ */
 void NcKinematics_Reset(void)
 {
     NC_KINEMATICS_STATUS previous;
@@ -74,6 +94,14 @@ void NcKinematics_Reset(void)
     g_ncKinematicsStatus.generation = generation + 1U;
 }
 
+/**
+ * @brief Handle nc kinematics set axis assignment for this module.
+ * @param logicalAxis Input value for logical axis.
+ * @param physicalAxis Input value for physical axis.
+ * @param sign Input value for sign.
+ * @param detached Input value for detached.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcKinematics_SetAxisAssignment(uint8_t logicalAxis,
                                        uint8_t physicalAxis,
                                        int8_t sign,
@@ -97,6 +125,11 @@ int32_t NcKinematics_SetAxisAssignment(uint8_t logicalAxis,
     return 0;
 }
 
+/**
+ * @brief Handle nc kinematics set mirror mask for this module.
+ * @param axisMask Bit mask of axes to validate or translate.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcKinematics_SetMirrorMask(uint32_t axisMask)
 {
     if ((axisMask & ~((1UL << AXIS_MAX) - 1UL)) != 0U) {
@@ -107,6 +140,11 @@ int32_t NcKinematics_SetMirrorMask(uint32_t axisMask)
     return 0;
 }
 
+/**
+ * @brief Apply tilt command to the current block or state.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void ApplyTiltCommand(const NC_EXEC_BLOCK* pBlock)
 {
     uint32_t i;
@@ -135,8 +173,13 @@ static void ApplyTiltCommand(const NC_EXEC_BLOCK* pBlock)
     g_ncKinematicsStatus.generation++;
 }
 
+/**
+ * @brief Apply tool axis command to the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void ApplyToolAxisCommand(const NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     double a;
     double b;
     double ca;
@@ -163,6 +206,7 @@ static void ApplyToolAxisCommand(const NC_EXEC_BLOCK* pBlock)
 
     g_ncKinematicsStatus.tool_axis_vector[0] = RoundFixed(sb * (double)NC_POSITION_SCALE);
     g_ncKinematicsStatus.tool_axis_vector[1] = RoundFixed((-sa * cb) * (double)NC_POSITION_SCALE);
+    /* Apply the next logical update for this processing stage. */
     g_ncKinematicsStatus.tool_axis_vector[2] = RoundFixed((ca * cb) * (double)NC_POSITION_SCALE);
     if ((pBlock->tool_axis_angle_deg[1] > (85 * NC_ANGLE_SCALE)) ||
         (pBlock->tool_axis_angle_deg[1] < (-85 * NC_ANGLE_SCALE))) {
@@ -171,6 +215,10 @@ static void ApplyToolAxisCommand(const NC_EXEC_BLOCK* pBlock)
     g_ncKinematicsStatus.generation++;
 }
 
+/**
+ * @brief Apply mirror command to the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void ApplyMirrorCommand(const NC_EXEC_BLOCK* pBlock)
 {
     if (pBlock->mirror_command == NC_MIRROR_CMD_CANCEL) {
@@ -182,6 +230,10 @@ static void ApplyMirrorCommand(const NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Apply retract command to the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void ApplyRetractCommand(const NC_EXEC_BLOCK* pBlock)
 {
     if (pBlock->axis_retract_command == NC_AXIS_RETRACT_CMD_RETRACT) {
@@ -195,8 +247,13 @@ static void ApplyRetractCommand(const NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Handle rotate tilted target for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void RotateTiltedTarget(NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     double x;
     double y;
     double z;
@@ -217,6 +274,7 @@ static void RotateTiltedTarget(NC_EXEC_BLOCK* pBlock)
     double z1;
     double x2;
     double y2;
+    /* Prepare local state used by the following processing stage. */
     double z2;
 
     if ((g_ncKinematicsStatus.tilted_plane_active == 0U) ||
@@ -240,6 +298,7 @@ static void RotateTiltedTarget(NC_EXEC_BLOCK* pBlock)
     cc = cos(c); sc = sin(c);
 
     x1 = x;
+    /* Apply the next logical update for this processing stage. */
     y1 = (y * ca) - (z * sa);
     z1 = (y * sa) + (z * ca);
 
@@ -254,6 +313,10 @@ static void RotateTiltedTarget(NC_EXEC_BLOCK* pBlock)
     pBlock->feature_flags |= NC_FEATURE_FLAG_TILTED_PLANE;
 }
 
+/**
+ * @brief Apply mirror to target to the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void ApplyMirrorToTarget(NC_EXEC_BLOCK* pBlock)
 {
     uint32_t i;
@@ -273,6 +336,10 @@ static void ApplyMirrorToTarget(NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Apply detached axes to the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void ApplyDetachedAxes(NC_EXEC_BLOCK* pBlock)
 {
     uint32_t i;
@@ -291,13 +358,19 @@ static void ApplyDetachedAxes(NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Apply axis map to the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void ApplyAxisMap(NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     int32_t mappedTarget[AXIS_MAX];
     int32_t mappedStart[AXIS_MAX];
     uint32_t mappedMask = 0U;
     uint32_t i;
 
+    /* Handle the next conditional branch for this processing stage. */
     if (IsMotionLike(pBlock->motion_type) == 0U) {
         return;
     }
@@ -327,9 +400,16 @@ static void ApplyAxisMap(NC_EXEC_BLOCK* pBlock)
     pBlock->axis_mask = mappedMask;
 }
 
+/**
+ * @brief Handle nc kinematics apply block ts for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pOutError Output pointer that receives the NC error code.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcKinematics_ApplyBlockTs(NC_EXEC_BLOCK* pBlock,
                                   NC_ERROR_CODE* pOutError)
 {
+    /* Prepare local state used by the following processing stage. */
     int32_t before[AXIS_MAX];
     uint32_t i;
     uint8_t changed = 0U;
@@ -369,5 +449,6 @@ int32_t NcKinematics_ApplyBlockTs(NC_EXEC_BLOCK* pBlock,
     }
 
     (void)pOutError;
+    /* Apply the next logical update for this processing stage. */
     return 0;
 }

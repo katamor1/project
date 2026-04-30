@@ -7,7 +7,16 @@
 
 #include "system_shared.h"
 
+/**
+ * @brief Reset NC lookahead state to its default values.
+ * @details This symbol is part of the sample workspace public surface. Callers use it through the shared header contract; implementation code must keep RT-safe behavior deterministic.
+ */
 void NcLookahead_Reset(void);
+/**
+ * @brief Apply NC lookahead TS-side settings to one parsed block.
+ * @details This symbol is part of the sample workspace public surface. Callers use it through the shared header contract; implementation code must keep RT-safe behavior deterministic.
+ * @param pBlock NC execution block to read or update.
+ */
 void NcLookahead_ApplyBlockTs(NC_EXEC_BLOCK* pBlock);
 
 #endif /* NC_LOOKAHEAD_H */

@@ -47,8 +47,12 @@ volatile NC_ROTARY_MCC_STATUS    g_ncRotaryMccStatus;
 volatile NC_AXIS_CONFIG_STATUS    g_ncAxisConfigStatus;
 volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
 
+/**
+ * @brief Handle system shared initialize for this module.
+ */
 void SystemShared_Initialize(void)
 {
+    /* Initialize or copy fixed-size shared state before use. */
     (void)memset((void*)&g_ioIn, 0, sizeof(g_ioIn));
     (void)memset((void*)&g_ioOut, 0, sizeof(g_ioOut));
     (void)memset((void*)&g_machineCtx, 0, sizeof(g_machineCtx));
@@ -91,6 +95,7 @@ void SystemShared_Initialize(void)
     (void)memset((void*)&g_ncAxisConfigStatus, 0, sizeof(g_ncAxisConfigStatus));
     (void)memset((void*)&g_ioTraceBuffer, 0, sizeof(g_ioTraceBuffer));
 
+    /* Update shared status fields for RT, TS, and API readers. */
     g_machineCtx.run_mode = RUN_MODE_MANUAL;
     g_machineCtx.machine_state = MACHINE_STOPPED;
     g_uiRequest.mode_response = RESPONSE_NONE;
@@ -161,6 +166,13 @@ void SystemShared_Initialize(void)
     }
 }
 
+/**
+ * @brief Push log queue into the fixed-size ring or queue.
+ * @param eventType Input value for event type.
+ * @param code Code value being applied or recorded.
+ * @param value Numeric value used by this operation.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t LogQueue_Push(uint32_t eventType, uint32_t code, int32_t value)
 {
     uint16_t nextTail = (uint16_t)((g_logQueue.tail + 1U) % LOG_QUEUE_MAX);
@@ -180,6 +192,13 @@ int32_t LogQueue_Push(uint32_t eventType, uint32_t code, int32_t value)
     return 0;
 }
 
+/**
+ * @brief Push NC event into the fixed-size ring or queue.
+ * @param code Code value being applied or recorded.
+ * @param value0 Input value for value 0.
+ * @param value1 Input value for value 1.
+ * @param lineNo NC source line number associated with the operation.
+ */
 void NcEvent_Push(uint32_t code, int32_t value0, int32_t value1, uint32_t lineNo)
 {
     NC_EVENT_ITEM* pItem;

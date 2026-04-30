@@ -9,123 +9,183 @@
 #include <stddef.h>
 #include "system_config.h"
 
+/**
+ * @brief Enumeration for run mode.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef enum {
-    RUN_MODE_MANUAL = 0,
-    RUN_MODE_AUTO   = 1,
-    RUN_MODE_MAINT  = 2
+    RUN_MODE_MANUAL = 0, /**< Definition value for run mode manual. */
+    RUN_MODE_AUTO = 1, /**< Definition value for run mode auto. */
+    RUN_MODE_MAINT = 2 /**< Definition value for run mode maint. */
 } RUN_MODE;
 
+/**
+ * @brief Enumeration for machine state.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef enum {
-    MACHINE_STOPPED = 0,
-    MACHINE_READY   = 1,
-    MACHINE_RUNNING = 2,
-    MACHINE_ALARM   = 3
+    MACHINE_STOPPED = 0, /**< Definition value for machine stopped. */
+    MACHINE_READY = 1, /**< Definition value for machine ready. */
+    MACHINE_RUNNING = 2, /**< Definition value for machine running. */
+    MACHINE_ALARM = 3 /**< Definition value for machine alarm. */
 } MACHINE_STATE;
 
+/**
+ * @brief Enumeration for response code.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef enum {
-    RESPONSE_NONE        = 0,
-    RESPONSE_ACCEPTED    = 1,
-    RESPONSE_REJECTED    = 2,
-    RESPONSE_COMPLETED   = 3,
-    RESPONSE_PARAM_ERROR = 4
+    RESPONSE_NONE = 0, /**< Definition value for response none. */
+    RESPONSE_ACCEPTED = 1, /**< Definition value for response accepted. */
+    RESPONSE_REJECTED = 2, /**< Definition value for response rejected. */
+    RESPONSE_COMPLETED = 3, /**< Definition value for response completed. */
+    RESPONSE_PARAM_ERROR = 4 /**< Definition value for response param error. */
 } RESPONSE_CODE;
 
+/**
+ * @brief Enumeration for log event type.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef enum {
-    LOG_INFO  = 0,
-    LOG_WARN  = 1,
-    LOG_ALARM = 2,
-    LOG_AUDIT = 3
+    LOG_INFO = 0, /**< Definition value for log info. */
+    LOG_WARN = 1, /**< Definition value for log warn. */
+    LOG_ALARM = 2, /**< Definition value for log alarm. */
+    LOG_AUDIT = 3 /**< Definition value for log audit. */
 } LOG_EVENT_TYPE;
 
+/**
+ * @brief Enumeration for NC program state.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef enum {
-    NC_IDLE           = 0,
-    NC_LOAD_REQUESTED = 1,
-    NC_PREFETCHING    = 2,
-    NC_READY          = 3,
-    NC_RUNNING        = 4,
-    NC_HOLD           = 5,
-    NC_COMPLETED      = 6,
-    NC_ERROR          = 7
+    NC_IDLE = 0, /**< Definition value for NC idle. */
+    NC_LOAD_REQUESTED = 1, /**< Definition value for NC load requested. */
+    NC_PREFETCHING = 2, /**< Definition value for NC prefetching. */
+    NC_READY = 3, /**< Definition value for NC ready. */
+    NC_RUNNING = 4, /**< Definition value for NC running. */
+    NC_HOLD = 5, /**< Definition value for NC hold. */
+    NC_COMPLETED = 6, /**< Definition value for NC completed. */
+    NC_ERROR = 7 /**< Definition value for NC error. */
 } NC_PROGRAM_STATE;
 
+/**
+ * @brief Enumeration for NC error code.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef enum {
-    NC_ERR_NONE           = 0,
-    NC_ERR_FILE_OPEN      = 1,
-    NC_ERR_FILE_READ      = 2,
-    NC_ERR_LINE_TOO_LONG  = 3,
-    NC_ERR_TOKEN          = 4,
-    NC_ERR_UNSUPPORTED    = 5,
-    NC_ERR_RANGE          = 6,
-    NC_ERR_BUFFER_UNDERRUN = 7,
-    NC_ERR_GENERATION     = 8,
-    NC_ERR_INTERLOCK      = 9,
-    NC_ERR_MODAL_CONFLICT = 10,
-    NC_ERR_ARC_GEOMETRY   = 11,
-    NC_ERR_FEED           = 12,
-    NC_ERR_COORDINATE     = 13,
-    NC_ERR_UNIT           = 14,
-    NC_ERR_TOOL_LIFE_EXPIRED = 15
+    NC_ERR_NONE = 0, /**< Definition value for NC err none. */
+    NC_ERR_FILE_OPEN = 1, /**< Definition value for NC err file open. */
+    NC_ERR_FILE_READ = 2, /**< Definition value for NC err file read. */
+    NC_ERR_LINE_TOO_LONG = 3, /**< Definition value for NC err line too long. */
+    NC_ERR_TOKEN = 4, /**< Definition value for NC err token. */
+    NC_ERR_UNSUPPORTED = 5, /**< Definition value for NC err unsupported. */
+    NC_ERR_RANGE = 6, /**< Definition value for NC err range. */
+    NC_ERR_BUFFER_UNDERRUN = 7, /**< Definition value for NC err buffer underrun. */
+    NC_ERR_GENERATION = 8, /**< Definition value for NC err generation. */
+    NC_ERR_INTERLOCK = 9, /**< Definition value for NC err interlock. */
+    NC_ERR_MODAL_CONFLICT = 10, /**< Definition value for NC err modal conflict. */
+    NC_ERR_ARC_GEOMETRY = 11, /**< Definition value for NC err arc geometry. */
+    NC_ERR_FEED = 12, /**< Definition value for NC err feed. */
+    NC_ERR_COORDINATE = 13, /**< Definition value for NC err coordinate. */
+    NC_ERR_UNIT = 14, /**< Definition value for NC err unit. */
+    NC_ERR_TOOL_LIFE_EXPIRED = 15 /**< Definition value for NC err tool life expired. */
 } NC_ERROR_CODE;
 
+/**
+ * @brief Enumeration for NC motion type.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef enum {
-    NC_MOTION_NONE              = 0,
-    NC_MOTION_RAPID             = 1,
-    NC_MOTION_LINEAR            = 2,
-    NC_MOTION_AUX_ONLY          = 3,
-    NC_MOTION_ARC_CW            = 4,
-    NC_MOTION_ARC_CCW           = 5,
-    NC_MOTION_DWELL             = 6,
-    NC_MOTION_CANNED_CYCLE      = 7,
-    NC_MOTION_THREAD            = 8,
-    NC_MOTION_SKIP              = 9,
-    NC_MOTION_REFERENCE_RETURN  = 10,
-    NC_MOTION_ADVANCED_INTERP   = 11
+    NC_MOTION_NONE = 0, /**< Definition value for NC motion none. */
+    NC_MOTION_RAPID = 1, /**< Definition value for NC motion rapid. */
+    NC_MOTION_LINEAR = 2, /**< Definition value for NC motion linear. */
+    NC_MOTION_AUX_ONLY = 3, /**< Definition value for NC motion aux only. */
+    NC_MOTION_ARC_CW = 4, /**< Definition value for NC motion arc cw. */
+    NC_MOTION_ARC_CCW = 5, /**< Definition value for NC motion arc ccw. */
+    NC_MOTION_DWELL = 6, /**< Definition value for NC motion dwell. */
+    NC_MOTION_CANNED_CYCLE = 7, /**< Definition value for NC motion canned cycle. */
+    NC_MOTION_THREAD = 8, /**< Definition value for NC motion thread. */
+    NC_MOTION_SKIP = 9, /**< Definition value for NC motion skip. */
+    NC_MOTION_REFERENCE_RETURN = 10, /**< Definition value for NC motion reference return. */
+    NC_MOTION_ADVANCED_INTERP = 11 /**< Definition value for NC motion advanced interp. */
 } NC_MOTION_TYPE;
 
+/**
+ * @brief Enumeration for NC plane.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef enum {
-    NC_PLANE_XY = 0,
-    NC_PLANE_ZX = 1,
-    NC_PLANE_YZ = 2
+    NC_PLANE_XY = 0, /**< Definition value for NC plane xy. */
+    NC_PLANE_ZX = 1, /**< Definition value for NC plane zx. */
+    NC_PLANE_YZ = 2 /**< Definition value for NC plane yz. */
 } NC_PLANE;
 
+/**
+ * @brief Enumeration for NC feed mode.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef enum {
-    NC_FEED_MODE_PER_MIN = 0,
-    NC_FEED_MODE_PER_REV = 1
+    NC_FEED_MODE_PER_MIN = 0, /**< Definition value for NC feed mode per min. */
+    NC_FEED_MODE_PER_REV = 1 /**< Definition value for NC feed mode per rev. */
 } NC_FEED_MODE;
 
+/**
+ * @brief Enumeration for NC unit mode.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef enum {
-    NC_UNIT_MM   = 0,
-    NC_UNIT_INCH = 1
+    NC_UNIT_MM = 0, /**< Definition value for NC unit mm. */
+    NC_UNIT_INCH = 1 /**< Definition value for NC unit inch. */
 } NC_UNIT_MODE;
 
+/**
+ * @brief Enumeration for NC distance mode.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef enum {
-    NC_DISTANCE_ABSOLUTE    = 0,
-    NC_DISTANCE_INCREMENTAL = 1
+    NC_DISTANCE_ABSOLUTE = 0, /**< Definition value for NC distance absolute. */
+    NC_DISTANCE_INCREMENTAL = 1 /**< Definition value for NC distance incremental. */
 } NC_DISTANCE_MODE;
 
+/**
+ * @brief Enumeration for NC interp state.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef enum {
-    NC_INTERP_IDLE      = 0,
-    NC_INTERP_ACTIVE    = 1,
-    NC_INTERP_HOLD      = 2,
-    NC_INTERP_COMPLETED = 3,
-    NC_INTERP_ERROR     = 4
+    NC_INTERP_IDLE = 0, /**< Definition value for NC interp idle. */
+    NC_INTERP_ACTIVE = 1, /**< Definition value for NC interp active. */
+    NC_INTERP_HOLD = 2, /**< Definition value for NC interp hold. */
+    NC_INTERP_COMPLETED = 3, /**< Definition value for NC interp completed. */
+    NC_INTERP_ERROR = 4 /**< Definition value for NC interp error. */
 } NC_INTERP_STATE;
 
+/**
+ * @brief Enumeration for NC feed profile.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef enum {
-    NC_FEED_PROFILE_NONE      = 0,
-    NC_FEED_PROFILE_TRAPEZOID = 1,
-    NC_FEED_PROFILE_DWELL     = 2
+    NC_FEED_PROFILE_NONE = 0, /**< Definition value for NC feed profile none. */
+    NC_FEED_PROFILE_TRAPEZOID = 1, /**< Definition value for NC feed profile trapezoid. */
+    NC_FEED_PROFILE_DWELL = 2 /**< Definition value for NC feed profile dwell. */
 } NC_FEED_PROFILE;
 
+/**
+ * @brief Enumeration for NC feed control state.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef enum {
-    NC_FEED_CTRL_IDLE      = 0,
-    NC_FEED_CTRL_ACTIVE    = 1,
-    NC_FEED_CTRL_DWELL     = 2,
-    NC_FEED_CTRL_HOLD      = 3,
-    NC_FEED_CTRL_COMPLETED = 4,
-    NC_FEED_CTRL_ERROR     = 5
+    NC_FEED_CTRL_IDLE = 0, /**< Definition value for NC feed ctrl idle. */
+    NC_FEED_CTRL_ACTIVE = 1, /**< Definition value for NC feed ctrl active. */
+    NC_FEED_CTRL_DWELL = 2, /**< Definition value for NC feed ctrl dwell. */
+    NC_FEED_CTRL_HOLD = 3, /**< Definition value for NC feed ctrl hold. */
+    NC_FEED_CTRL_COMPLETED = 4, /**< Definition value for NC feed ctrl completed. */
+    NC_FEED_CTRL_ERROR = 5 /**< Definition value for NC feed ctrl error. */
 } NC_FEED_CONTROL_STATE;
 
+/**
+ * @brief Structure for NC reference status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  active;
     uint8_t  reserved0;
@@ -161,12 +221,20 @@ typedef struct {
 } NC_REFERENCE_STATUS;
 
 
+/**
+ * @brief Structure for IO input area.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint32_t sensor_bits;
     uint32_t seq_bits;
     int32_t  analog[ANALOG_CH_MAX];
 } IO_INPUT_AREA;
 
+/**
+ * @brief Structure for IO output area.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint32_t command_bits;
     int32_t  axis_target[AXIS_MAX];
@@ -177,6 +245,10 @@ typedef struct {
     uint32_t aux_flags;
 } IO_OUTPUT_AREA;
 
+/**
+ * @brief Structure for machine context.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     RUN_MODE      run_mode;
     MACHINE_STATE machine_state;
@@ -188,6 +260,10 @@ typedef struct {
     uint32_t      rt_output_ticks;
 } MACHINE_CONTEXT;
 
+/**
+ * @brief Structure for UI request area.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t       mode_change_request;
     uint8_t       requested_mode;
@@ -197,6 +273,10 @@ typedef struct {
     char          ui_message_text[UI_MESSAGE_TEXT_MAX];
 } UI_REQUEST_AREA;
 
+/**
+ * @brief Structure for log item.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint32_t event_type;
     uint32_t code;
@@ -204,12 +284,20 @@ typedef struct {
     uint32_t cycle;
 } LOG_ITEM;
 
+/**
+ * @brief Structure for log queue.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint16_t head;
     uint16_t tail;
     LOG_ITEM items[LOG_QUEUE_MAX];
 } LOG_QUEUE;
 
+/**
+ * @brief Structure for prefetch req ctrl.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  request;
     uint8_t  busy;
@@ -218,12 +306,20 @@ typedef struct {
     uint16_t generation;
 } PREFETCH_REQ_CTRL;
 
+/**
+ * @brief Structure for prefetch result.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint16_t section_id;
     uint16_t generation;
     float    table[PREFETCH_TABLE_SIZE];
 } PREFETCH_RESULT;
 
+/**
+ * @brief Structure for status snapshot.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     RUN_MODE      run_mode;
     MACHINE_STATE machine_state;
@@ -236,6 +332,10 @@ typedef struct {
     uint16_t      prefetch_generation;
 } STATUS_SNAPSHOT;
 
+/**
+ * @brief Structure for NC program request.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint32_t request_seq;
     uint8_t  load_request;
@@ -247,6 +347,10 @@ typedef struct {
     char     file_path[NC_FILE_PATH_MAX];
 } NC_PROGRAM_REQUEST;
 
+/**
+ * @brief Structure for NC program status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     NC_PROGRAM_STATE state;
     NC_ERROR_CODE    error_code;
@@ -258,6 +362,10 @@ typedef struct {
     uint8_t          response_code;
 } NC_PROGRAM_STATUS;
 
+/**
+ * @brief Structure for NC exec block.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint32_t       valid;
     uint32_t       generation;
@@ -309,6 +417,10 @@ typedef struct {
     int32_t        tool_axis_angle_deg[3];
 } NC_EXEC_BLOCK;
 
+/**
+ * @brief Structure for NC exec buffer.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint32_t      head_index;
     uint32_t      tail_index;
@@ -318,6 +430,10 @@ typedef struct {
     NC_EXEC_BLOCK slots[NC_MAX_LOOKAHEAD_LINES];
 } NC_EXEC_BUFFER;
 
+/**
+ * @brief Structure for NC coordinate state.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  selected_work_index;
     NC_UNIT_MODE     unit_mode;
@@ -332,6 +448,10 @@ typedef struct {
     uint32_t generation;
 } NC_COORDINATE_STATE;
 
+/**
+ * @brief Structure for NC coordinate transform status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  dynamic_fixture_enabled;
     uint8_t  work_mount_error_enabled;
@@ -356,6 +476,10 @@ typedef struct {
     uint32_t generation;
 } NC_COORDINATE_TRANSFORM_STATUS;
 
+/**
+ * @brief Structure for NC interp status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     NC_INTERP_STATE state;
     NC_ERROR_CODE   last_error;
@@ -367,6 +491,10 @@ typedef struct {
     uint32_t        generation;
 } NC_INTERP_STATUS;
 
+/**
+ * @brief Structure for NC feed status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     NC_FEED_CONTROL_STATE state;
     NC_FEED_PROFILE       feed_profile;
@@ -378,6 +506,10 @@ typedef struct {
     uint32_t              generation;
 } NC_FEED_STATUS;
 
+/**
+ * @brief Structure for NC feature status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint32_t active_feature_flags;
     uint32_t last_block_feature_flags;
@@ -408,62 +540,266 @@ typedef struct {
     uint32_t generation;
 } NC_FEATURE_STATUS;
 
+/**
+ * @brief Definition value for prestart ilk estop.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define PRESTART_ILK_ESTOP          (0x00000001UL)
+/**
+ * @brief Definition value for prestart ilk servo alarm.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define PRESTART_ILK_SERVO_ALARM    (0x00000002UL)
+/**
+ * @brief Definition value for prestart ilk pressure range.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define PRESTART_ILK_PRESSURE_RANGE (0x00000004UL)
+/**
+ * @brief Definition value for prestart ilk ready switch.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define PRESTART_ILK_READY_SWITCH   (0x00000008UL)
+/**
+ * @brief Definition value for prestart ilk machine alarm.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define PRESTART_ILK_MACHINE_ALARM  (0x00000010UL)
+/**
+ * @brief Definition value for prestart ilk NC buffer.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define PRESTART_ILK_NC_BUFFER      (0x00000020UL)
 
+/**
+ * @brief Definition value for NC aux flag MFIN wait.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_AUX_FLAG_MFIN_WAIT       (0x00000008UL)
 
+/**
+ * @brief Definition value for NC feature flag tool length.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_FEATURE_FLAG_TOOL_LENGTH      (0x00002000UL)
+/**
+ * @brief Definition value for NC feature flag cutter radius.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_FEATURE_FLAG_CUTTER_RADIUS    (0x00004000UL)
+/**
+ * @brief Definition value for NC feature flag coord rotation.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_FEATURE_FLAG_COORD_ROTATION   (0x00008000UL)
+/**
+ * @brief Definition value for NC feature flag polar coord.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_FEATURE_FLAG_POLAR_COORD      (0x00010000UL)
+/**
+ * @brief Definition value for NC feature flag tilted plane.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_FEATURE_FLAG_TILTED_PLANE     (0x00020000UL)
+/**
+ * @brief Definition value for NC feature flag tool axis dir.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_FEATURE_FLAG_TOOL_AXIS_DIR    (0x00040000UL)
+/**
+ * @brief Definition value for NC feature flag axis assignment.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_FEATURE_FLAG_AXIS_ASSIGNMENT  (0x00080000UL)
+/**
+ * @brief Definition value for NC feature flag axis retract.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_FEATURE_FLAG_AXIS_RETRACT     (0x00100000UL)
+/**
+ * @brief Definition value for NC feature flag mirror.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_FEATURE_FLAG_MIRROR           (0x00200000UL)
 
+/**
+ * @brief Definition value for NC tool length cmd none.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_TOOL_LENGTH_CMD_NONE          (0U)
+/**
+ * @brief Definition value for NC tool length cmd positive.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_TOOL_LENGTH_CMD_POSITIVE      (1U)
+/**
+ * @brief Definition value for NC tool length cmd negative.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_TOOL_LENGTH_CMD_NEGATIVE      (2U)
+/**
+ * @brief Definition value for NC tool length cmd cancel.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_TOOL_LENGTH_CMD_CANCEL        (3U)
+/**
+ * @brief Definition value for NC cutter comp cmd none.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_CUTTER_COMP_CMD_NONE          (0U)
+/**
+ * @brief Definition value for NC cutter comp cmd cancel.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_CUTTER_COMP_CMD_CANCEL        (1U)
+/**
+ * @brief Definition value for NC cutter comp cmd left.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_CUTTER_COMP_CMD_LEFT          (2U)
+/**
+ * @brief Definition value for NC cutter comp cmd right.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_CUTTER_COMP_CMD_RIGHT         (3U)
+/**
+ * @brief Definition value for NC rotation cmd none.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_ROTATION_CMD_NONE             (0U)
+/**
+ * @brief Definition value for NC rotation cmd enable.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_ROTATION_CMD_ENABLE           (1U)
+/**
+ * @brief Definition value for NC rotation cmd cancel.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_ROTATION_CMD_CANCEL           (2U)
+/**
+ * @brief Definition value for NC polar cmd none.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_POLAR_CMD_NONE                (0U)
+/**
+ * @brief Definition value for NC polar cmd enable.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_POLAR_CMD_ENABLE              (1U)
+/**
+ * @brief Definition value for NC polar cmd cancel.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_POLAR_CMD_CANCEL              (2U)
+/**
+ * @brief Definition value for NC kinematics cmd none.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_KINEMATICS_CMD_NONE           (0U)
+/**
+ * @brief Definition value for NC kinematics cmd tilt enable.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_KINEMATICS_CMD_TILT_ENABLE    (1U)
+/**
+ * @brief Definition value for NC kinematics cmd tilt cancel.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_KINEMATICS_CMD_TILT_CANCEL    (2U)
+/**
+ * @brief Definition value for NC tool axis cmd none.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_TOOL_AXIS_CMD_NONE            (0U)
+/**
+ * @brief Definition value for NC tool axis cmd enable.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_TOOL_AXIS_CMD_ENABLE          (1U)
+/**
+ * @brief Definition value for NC mirror cmd none.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_MIRROR_CMD_NONE               (0U)
+/**
+ * @brief Definition value for NC mirror cmd enable.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_MIRROR_CMD_ENABLE             (1U)
+/**
+ * @brief Definition value for NC mirror cmd cancel.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_MIRROR_CMD_CANCEL             (2U)
+/**
+ * @brief Definition value for NC axis retract cmd none.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_AXIS_RETRACT_CMD_NONE         (0U)
+/**
+ * @brief Definition value for NC axis retract cmd retract.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_AXIS_RETRACT_CMD_RETRACT      (1U)
+/**
+ * @brief Definition value for NC axis retract cmd recover.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_AXIS_RETRACT_CMD_RECOVER      (2U)
 
+/**
+ * @brief Definition value for NC motion filter second stage moving average.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_MOTION_FILTER_SECOND_STAGE_MOVING_AVERAGE (1U)
+/**
+ * @brief Definition value for NC motion filter second stage FIR.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_MOTION_FILTER_SECOND_STAGE_FIR            (2U)
+/**
+ * @brief Definition value for NC event code axis decel applied.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_EVENT_CODE_AXIS_DECEL_APPLIED             (8101U)
+/**
+ * @brief Definition value for NC event code tool life expired hold.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_EVENT_CODE_TOOL_LIFE_EXPIRED_HOLD         (8201U)
+/**
+ * @brief Definition value for NC event code motion filter applied.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_EVENT_CODE_MOTION_FILTER_APPLIED          (8301U)
+/**
+ * @brief Definition value for NC event code motion filter saturated.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_EVENT_CODE_MOTION_FILTER_SATURATED        (8302U)
+/**
+ * @brief Definition value for NC event code motion filter endpoint correct.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_EVENT_CODE_MOTION_FILTER_ENDPOINT_CORRECT (8303U)
 
+/**
+ * @brief Definition value for NC aux state idle.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_AUX_STATE_IDLE           (0U)
+/**
+ * @brief Definition value for NC aux state wait MFIN.
+ * @details This build-time constant is shared by RT, TS, parser, and API code through the public header contract.
+ */
 #define NC_AUX_STATE_WAIT_MFIN      (1U)
 
+/**
+ * @brief Structure for prestart interlock status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  ok;
     uint32_t mask;
@@ -473,6 +809,10 @@ typedef struct {
     uint32_t generation;
 } PRESTART_INTERLOCK_STATUS;
 
+/**
+ * @brief Structure for NC aux status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  state;
     uint32_t active_m_code;
@@ -484,6 +824,10 @@ typedef struct {
     uint32_t generation;
 } NC_AUX_STATUS;
 
+/**
+ * @brief Structure for NC cycle status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  active;
     uint8_t  skip_triggered;
@@ -510,6 +854,10 @@ typedef struct {
     uint32_t generation;
 } NC_CYCLE_STATUS;
 
+/**
+ * @brief Structure for NC compensation status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  tool_length_active;
     uint8_t  tool_length_sign;
@@ -528,6 +876,10 @@ typedef struct {
     uint32_t generation;
 } NC_COMPENSATION_STATUS;
 
+/**
+ * @brief Structure for NC path control status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint32_t arc_blocks;
     uint32_t helical_blocks;
@@ -540,6 +892,10 @@ typedef struct {
     uint32_t generation;
 } NC_PATH_CONTROL_STATUS;
 
+/**
+ * @brief Structure for NC kinematics status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  tilted_plane_active;
     uint8_t  tool_axis_active;
@@ -565,6 +921,10 @@ typedef struct {
     uint32_t generation;
 } NC_KINEMATICS_STATUS;
 
+/**
+ * @brief Structure for NC axis load status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     int32_t  current_load[AXIS_MAX];
     int32_t  filtered_load[AXIS_MAX];
@@ -582,6 +942,10 @@ typedef struct {
     uint32_t generation;
 } NC_AXIS_LOAD_STATUS;
 
+/**
+ * @brief Structure for NC tool life status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint32_t active_tool_no;
     uint32_t last_tool_no;
@@ -596,6 +960,10 @@ typedef struct {
     uint32_t generation;
 } NC_TOOL_LIFE_STATUS;
 
+/**
+ * @brief Structure for NC diagnostic snapshot.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint32_t cycle_count;
     RUN_MODE run_mode;
@@ -621,6 +989,10 @@ typedef struct {
     uint32_t generation;
 } NC_DIAGNOSTIC_SNAPSHOT;
 
+/**
+ * @brief Structure for NC motion filter status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  enabled;
     uint8_t  second_stage_mode;
@@ -647,12 +1019,20 @@ typedef struct {
     uint32_t generation;
 } NC_MOTION_FILTER_STATUS;
 
+/**
+ * @brief Enumeration for NC spindle direction.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef enum {
-    NC_SPINDLE_DIR_STOP = 0,
-    NC_SPINDLE_DIR_CW   = 1,
-    NC_SPINDLE_DIR_CCW  = 2
+    NC_SPINDLE_DIR_STOP = 0, /**< Definition value for NC spindle dir stop. */
+    NC_SPINDLE_DIR_CW = 1, /**< Definition value for NC spindle dir cw. */
+    NC_SPINDLE_DIR_CCW = 2 /**< Definition value for NC spindle dir ccw. */
 } NC_SPINDLE_DIRECTION;
 
+/**
+ * @brief Structure for NC spindle status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  enabled;
     uint8_t  running;
@@ -687,6 +1067,10 @@ typedef struct {
     uint32_t generation;
 } NC_SPINDLE_STATUS;
 
+/**
+ * @brief Structure for NC tool management status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  table_initialized;
     uint8_t  prepare_requested;
@@ -715,6 +1099,10 @@ typedef struct {
     uint32_t generation;
 } NC_TOOL_MANAGEMENT_STATUS;
 
+/**
+ * @brief Structure for NC event item.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint32_t cycle;
     uint32_t code;
@@ -724,6 +1112,10 @@ typedef struct {
     NC_PROGRAM_STATE nc_state;
 } NC_EVENT_ITEM;
 
+/**
+ * @brief Structure for NC event ring.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint32_t write_index;
     uint32_t captured_count;
@@ -732,6 +1124,10 @@ typedef struct {
     NC_EVENT_ITEM items[NC_EVENT_RING_SIZE];
 } NC_EVENT_RING;
 
+/**
+ * @brief Structure for NC binary program request.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  load_request;
     uint8_t  busy;
@@ -743,6 +1139,10 @@ typedef struct {
     NC_EXEC_BLOCK blocks[NC_BINARY_PROGRAM_MAX_BLOCKS];
 } NC_BINARY_PROGRAM_REQUEST;
 
+/**
+ * @brief Structure for NC binary program status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint32_t loaded_blocks;
     uint32_t rejected_blocks;
@@ -754,6 +1154,10 @@ typedef struct {
     uint8_t  reserved0;
 } NC_BINARY_PROGRAM_STATUS;
 
+/**
+ * @brief Structure for NC capability status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint32_t parsed_blocks;
     uint32_t supported_g_blocks;
@@ -773,6 +1177,10 @@ typedef struct {
     uint32_t generation;
 } NC_CAPABILITY_STATUS;
 
+/**
+ * @brief Structure for NC interference status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  enabled;
     uint8_t  last_warning_kind;
@@ -789,6 +1197,10 @@ typedef struct {
     uint32_t generation;
 } NC_INTERFERENCE_STATUS;
 
+/**
+ * @brief Structure for NC safety motion status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  external_decel_active;
     uint8_t  powerfail_decel_stop_active;
@@ -805,6 +1217,10 @@ typedef struct {
 } NC_SAFETY_MOTION_STATUS;
 
 
+/**
+ * @brief Structure for NC turning cycle status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  active;
     uint8_t  diameter_mode_active;
@@ -828,6 +1244,10 @@ typedef struct {
     uint32_t generation;
 } NC_TURNING_CYCLE_STATUS;
 
+/**
+ * @brief Structure for NC thread cycle status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  active;
     uint8_t  spindle_sync_required;
@@ -851,6 +1271,10 @@ typedef struct {
     uint32_t generation;
 } NC_THREAD_CYCLE_STATUS;
 
+/**
+ * @brief Structure for NC precision status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  learning_enabled;
     uint8_t  vibration_suppression_enabled;
@@ -887,6 +1311,10 @@ typedef struct {
     uint32_t generation;
 } NC_PRECISION_STATUS;
 
+/**
+ * @brief Structure for NC synchronization status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  sync_enabled;
     uint8_t  compound_enabled;
@@ -917,6 +1345,10 @@ typedef struct {
     uint32_t generation;
 } NC_SYNCHRONIZATION_STATUS;
 
+/**
+ * @brief Structure for NC rotary MCC status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  enabled;
     uint8_t  mcc_output_enabled;
@@ -940,6 +1372,10 @@ typedef struct {
     uint32_t generation;
 } NC_ROTARY_MCC_STATUS;
 
+/**
+ * @brief Structure for NC axis config status.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint8_t  axis_type[AXIS_MAX];
     uint8_t  axis_name[AXIS_MAX];
@@ -968,6 +1404,10 @@ typedef struct {
     uint32_t generation;
 } NC_AXIS_CONFIG_STATUS;
 
+/**
+ * @brief Structure for IO trace item.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint32_t cycle;
     uint32_t sensor_bits;
@@ -983,6 +1423,10 @@ typedef struct {
     int32_t  axis_target[AXIS_MAX];
 } IO_TRACE_ITEM;
 
+/**
+ * @brief Structure for IO trace buffer.
+ * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
+ */
 typedef struct {
     uint32_t write_index;
     uint32_t captured_count;
@@ -993,50 +1437,234 @@ typedef struct {
     IO_TRACE_ITEM items[IO_TRACE_RING_SIZE];
 } IO_TRACE_BUFFER;
 
+/**
+ * @brief Global shared state variable g_ioIn.
+ * @details Exposes the IO_INPUT_AREA storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile IO_INPUT_AREA      g_ioIn;
+/**
+ * @brief Global shared state variable g_ioOut.
+ * @details Exposes the IO_OUTPUT_AREA storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile IO_OUTPUT_AREA     g_ioOut;
+/**
+ * @brief Global shared state variable g_machineCtx.
+ * @details Exposes the MACHINE_CONTEXT storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile MACHINE_CONTEXT    g_machineCtx;
+/**
+ * @brief Global shared state variable g_uiRequest.
+ * @details Exposes the UI_REQUEST_AREA storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile UI_REQUEST_AREA    g_uiRequest;
+/**
+ * @brief Global shared state variable g_logQueue.
+ * @details Exposes the LOG_QUEUE storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile LOG_QUEUE          g_logQueue;
+/**
+ * @brief Global shared state variable g_prefetchReq.
+ * @details Exposes the PREFETCH_REQ_CTRL storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile PREFETCH_REQ_CTRL  g_prefetchReq;
+/**
+ * @brief Global shared state variable g_prefetchResult.
+ * @details Exposes the PREFETCH_RESULT storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile PREFETCH_RESULT    g_prefetchResult;
+/**
+ * @brief Global shared state variable g_ncProgramRequest.
+ * @details Exposes the NC_PROGRAM_REQUEST storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_PROGRAM_REQUEST g_ncProgramRequest;
+/**
+ * @brief Global shared state variable g_ncProgramStatus.
+ * @details Exposes the NC_PROGRAM_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_PROGRAM_STATUS  g_ncProgramStatus;
+/**
+ * @brief Global shared state variable g_ncProgramBuffer.
+ * @details Exposes the NC_EXEC_BUFFER storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_EXEC_BUFFER     g_ncProgramBuffer;
+/**
+ * @brief Global shared state variable g_ncCoordinateState.
+ * @details Exposes the NC_COORDINATE_STATE storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_COORDINATE_STATE g_ncCoordinateState;
+/**
+ * @brief Global shared state variable g_ncCoordinateTransformStatus.
+ * @details Exposes the NC_COORDINATE_TRANSFORM_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_COORDINATE_TRANSFORM_STATUS g_ncCoordinateTransformStatus;
+/**
+ * @brief Global shared state variable g_ncInterpStatus.
+ * @details Exposes the NC_INTERP_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_INTERP_STATUS   g_ncInterpStatus;
+/**
+ * @brief Global shared state variable g_ncFeedStatus.
+ * @details Exposes the NC_FEED_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_FEED_STATUS     g_ncFeedStatus;
+/**
+ * @brief Global shared state variable g_ncFeatureStatus.
+ * @details Exposes the NC_FEATURE_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_FEATURE_STATUS  g_ncFeatureStatus;
+/**
+ * @brief Global shared state variable g_prestartInterlockStatus.
+ * @details Exposes the PRESTART_INTERLOCK_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile PRESTART_INTERLOCK_STATUS g_prestartInterlockStatus;
+/**
+ * @brief Global shared state variable g_ncAuxStatus.
+ * @details Exposes the NC_AUX_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_AUX_STATUS      g_ncAuxStatus;
+/**
+ * @brief Global shared state variable g_ncCycleStatus.
+ * @details Exposes the NC_CYCLE_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_CYCLE_STATUS    g_ncCycleStatus;
+/**
+ * @brief Global shared state variable g_ncCompensationStatus.
+ * @details Exposes the NC_COMPENSATION_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_COMPENSATION_STATUS g_ncCompensationStatus;
+/**
+ * @brief Global shared state variable g_ncPathControlStatus.
+ * @details Exposes the NC_PATH_CONTROL_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_PATH_CONTROL_STATUS g_ncPathControlStatus;
+/**
+ * @brief Global shared state variable g_ncKinematicsStatus.
+ * @details Exposes the NC_KINEMATICS_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_KINEMATICS_STATUS g_ncKinematicsStatus;
+/**
+ * @brief Global shared state variable g_ncAxisLoadStatus.
+ * @details Exposes the NC_AXIS_LOAD_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_AXIS_LOAD_STATUS  g_ncAxisLoadStatus;
+/**
+ * @brief Global shared state variable g_ncToolLifeStatus.
+ * @details Exposes the NC_TOOL_LIFE_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_TOOL_LIFE_STATUS  g_ncToolLifeStatus;
+/**
+ * @brief Global shared state variable g_ncDiagnosticSnapshot.
+ * @details Exposes the NC_DIAGNOSTIC_SNAPSHOT storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_DIAGNOSTIC_SNAPSHOT g_ncDiagnosticSnapshot;
+/**
+ * @brief Global shared state variable g_ncMotionFilterStatus.
+ * @details Exposes the NC_MOTION_FILTER_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_MOTION_FILTER_STATUS g_ncMotionFilterStatus;
+/**
+ * @brief Global shared state variable g_ncEventRing.
+ * @details Exposes the NC_EVENT_RING storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_EVENT_RING    g_ncEventRing;
+/**
+ * @brief Global shared state variable g_ncBinaryProgramRequest.
+ * @details Exposes the NC_BINARY_PROGRAM_REQUEST storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_BINARY_PROGRAM_REQUEST g_ncBinaryProgramRequest;
+/**
+ * @brief Global shared state variable g_ncBinaryProgramStatus.
+ * @details Exposes the NC_BINARY_PROGRAM_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_BINARY_PROGRAM_STATUS  g_ncBinaryProgramStatus;
+/**
+ * @brief Global shared state variable g_ncCapabilityStatus.
+ * @details Exposes the NC_CAPABILITY_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_CAPABILITY_STATUS      g_ncCapabilityStatus;
+/**
+ * @brief Global shared state variable g_ncInterferenceStatus.
+ * @details Exposes the NC_INTERFERENCE_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_INTERFERENCE_STATUS    g_ncInterferenceStatus;
+/**
+ * @brief Global shared state variable g_ncSafetyMotionStatus.
+ * @details Exposes the NC_SAFETY_MOTION_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_SAFETY_MOTION_STATUS   g_ncSafetyMotionStatus;
+/**
+ * @brief Global shared state variable g_ncTurningCycleStatus.
+ * @details Exposes the NC_TURNING_CYCLE_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_TURNING_CYCLE_STATUS   g_ncTurningCycleStatus;
+/**
+ * @brief Global shared state variable g_ncThreadCycleStatus.
+ * @details Exposes the NC_THREAD_CYCLE_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_THREAD_CYCLE_STATUS    g_ncThreadCycleStatus;
+/**
+ * @brief Global shared state variable g_ncReferenceStatus.
+ * @details Exposes the NC_REFERENCE_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_REFERENCE_STATUS       g_ncReferenceStatus;
+/**
+ * @brief Global shared state variable g_ncPrecisionStatus.
+ * @details Exposes the NC_PRECISION_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_PRECISION_STATUS        g_ncPrecisionStatus;
+/**
+ * @brief Global shared state variable g_ncSpindleStatus.
+ * @details Exposes the NC_SPINDLE_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_SPINDLE_STATUS          g_ncSpindleStatus;
+/**
+ * @brief Global shared state variable g_ncToolManagementStatus.
+ * @details Exposes the NC_TOOL_MANAGEMENT_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_TOOL_MANAGEMENT_STATUS  g_ncToolManagementStatus;
+/**
+ * @brief Global shared state variable g_ncSynchronizationStatus.
+ * @details Exposes the NC_SYNCHRONIZATION_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_SYNCHRONIZATION_STATUS g_ncSynchronizationStatus;
+/**
+ * @brief Global shared state variable g_ncRotaryMccStatus.
+ * @details Exposes the NC_ROTARY_MCC_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_ROTARY_MCC_STATUS    g_ncRotaryMccStatus;
+/**
+ * @brief Global shared state variable g_ncAxisConfigStatus.
+ * @details Exposes the NC_AXIS_CONFIG_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile NC_AXIS_CONFIG_STATUS    g_ncAxisConfigStatus;
+/**
+ * @brief Global shared state variable g_ioTraceBuffer.
+ * @details Exposes the IO_TRACE_BUFFER storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+ */
 extern volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
 
+/**
+ * @brief Handle system shared initialize for this module.
+ * @details This symbol is part of the sample workspace public surface. Callers use it through the shared header contract; implementation code must keep RT-safe behavior deterministic.
+ */
 void SystemShared_Initialize(void);
+/**
+ * @brief Push log queue into the fixed-size ring or queue.
+ * @details This symbol is part of the sample workspace public surface. Callers use it through the shared header contract; implementation code must keep RT-safe behavior deterministic.
+ * @param eventType Input value for event type.
+ * @param code Code value being applied or recorded.
+ * @param value Numeric value used by this operation.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t LogQueue_Push(uint32_t eventType, uint32_t code, int32_t value);
+/**
+ * @brief Push NC event into the fixed-size ring or queue.
+ * @details This symbol is part of the sample workspace public surface. Callers use it through the shared header contract; implementation code must keep RT-safe behavior deterministic.
+ * @param code Code value being applied or recorded.
+ * @param value0 Input value for value 0.
+ * @param value1 Input value for value 1.
+ * @param lineNo NC source line number associated with the operation.
+ */
 void NcEvent_Push(uint32_t code, int32_t value0, int32_t value1, uint32_t lineNo);
 
 #endif /* SYSTEM_SHARED_H */

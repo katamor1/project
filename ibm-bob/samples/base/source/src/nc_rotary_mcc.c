@@ -7,12 +7,21 @@
 #include "nc_rotary_mcc.h"
 
 #define GD(whole, dec) NC_G_CODE10((whole), (dec))
-
+/**
+ * @brief Handle abs32 for this module.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t Abs32(int32_t value)
 {
     return (value < 0) ? -value : value;
 }
 
+/**
+ * @brief Return whether motion like is true for the current block or state.
+ * @param motion Motion type being tested by the helper.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsMotionLike(NC_MOTION_TYPE motion)
 {
     return (uint8_t)((motion == NC_MOTION_RAPID) ||
@@ -26,6 +35,9 @@ static uint8_t IsMotionLike(NC_MOTION_TYPE motion)
                      (motion == NC_MOTION_ADVANCED_INTERP));
 }
 
+/**
+ * @brief Set default config in this module.
+ */
 static void SetDefaultConfig(void)
 {
     uint32_t i;
@@ -40,6 +52,12 @@ static void SetDefaultConfig(void)
     }
 }
 
+/**
+ * @brief Handle virtual linear delta for this module.
+ * @param axis Axis index used by the helper.
+ * @param rotaryDelta Rotary-axis delta used to estimate linear movement.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t VirtualLinearDelta(uint8_t axis, int32_t rotaryDelta)
 {
     int64_t radius;
@@ -55,6 +73,12 @@ static int32_t VirtualLinearDelta(uint8_t axis, int32_t rotaryDelta)
     return (int32_t)scaled;
 }
 
+/**
+ * @brief Handle first rotary axis in block for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int8_t FirstRotaryAxisInBlock(const NC_EXEC_BLOCK* pBlock)
 {
     uint8_t i;
@@ -72,6 +96,9 @@ static int8_t FirstRotaryAxisInBlock(const NC_EXEC_BLOCK* pBlock)
     return -1;
 }
 
+/**
+ * @brief Handle nc rotary mcc reset for this module.
+ */
 void NcRotaryMcc_Reset(void)
 {
     uint32_t generation = g_ncRotaryMccStatus.generation;
@@ -80,6 +107,12 @@ void NcRotaryMcc_Reset(void)
     g_ncRotaryMccStatus.generation = generation + 1U;
 }
 
+/**
+ * @brief Handle nc rotary mcc set axis radius for this module.
+ * @param axis Axis index used by the helper.
+ * @param radius Input value for radius.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcRotaryMcc_SetAxisRadius(uint8_t axis, int32_t radius)
 {
     if ((axis >= AXIS_MAX) ||
@@ -97,6 +130,11 @@ int32_t NcRotaryMcc_SetAxisRadius(uint8_t axis, int32_t radius)
     return 0;
 }
 
+/**
+ * @brief Handle nc rotary mcc set mcc output for this module.
+ * @param enabled Non-zero to enable the mode; zero to disable it.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcRotaryMcc_SetMccOutput(uint8_t enabled)
 {
     g_ncRotaryMccStatus.mcc_output_enabled = (enabled != 0U) ? 1U : 0U;
@@ -111,8 +149,15 @@ int32_t NcRotaryMcc_SetMccOutput(uint8_t enabled)
     return 0;
 }
 
+/**
+ * @brief Handle nc rotary mcc apply block ts for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pOutError Output pointer that receives the NC error code.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcRotaryMcc_ApplyBlockTs(NC_EXEC_BLOCK* pBlock, NC_ERROR_CODE* pOutError)
 {
+    /* Prepare local state used by the following processing stage. */
     int8_t axis;
     int32_t rotaryDelta;
     int32_t virtualDelta;
@@ -169,6 +214,7 @@ int32_t NcRotaryMcc_ApplyBlockTs(NC_EXEC_BLOCK* pBlock, NC_ERROR_CODE* pOutError
     g_ncRotaryMccStatus.active_rotary_axis = (uint8_t)axis;
     g_ncRotaryMccStatus.parsed_virtual_speed_blocks++;
     g_ncRotaryMccStatus.last_rotary_delta = rotaryDelta;
+    /* Apply the next logical update for this processing stage. */
     g_ncRotaryMccStatus.last_virtual_linear_delta = virtualDelta;
     g_ncRotaryMccStatus.last_g_code10 = pBlock->g_code10;
     g_ncRotaryMccStatus.last_line_no = pBlock->line_no;
@@ -183,6 +229,10 @@ int32_t NcRotaryMcc_ApplyBlockTs(NC_EXEC_BLOCK* pBlock, NC_ERROR_CODE* pOutError
     return 0;
 }
 
+/**
+ * @brief Handle nc rotary mcc on block rt for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcRotaryMcc_OnBlockRt(const NC_EXEC_BLOCK* pBlock)
 {
     int8_t axis;
@@ -201,6 +251,9 @@ void NcRotaryMcc_OnBlockRt(const NC_EXEC_BLOCK* pBlock)
     g_ncRotaryMccStatus.generation++;
 }
 
+/**
+ * @brief Handle nc rotary mcc service rt for this module.
+ */
 void NcRotaryMcc_ServiceRt(void)
 {
     uint8_t shouldOutput;

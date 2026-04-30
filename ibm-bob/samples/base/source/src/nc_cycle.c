@@ -16,12 +16,46 @@ typedef struct {
 static NC_EXEC_BLOCK s_modalCycle;
 static uint8_t s_hasModalCycle;
 
+/**
+ * @brief Return whether tap is true for the current block or state.
+ * @param code G-code or M-code value being tested or applied.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsTap(uint16_t code) { return (uint8_t)((code == G(74)) || (code == G(84))); }
+
+/**
+ * @brief Return whether peck is true for the current block or state.
+ * @param code G-code or M-code value being tested or applied.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsPeck(uint16_t code) { return (uint8_t)((code == G(73)) || (code == G(83))); }
+
+/**
+ * @brief Return whether dwell is true for the current block or state.
+ * @param code G-code or M-code value being tested or applied.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsDwell(uint16_t code) { return (uint8_t)((code == G(82)) || (code == G(89))); }
+
+/**
+ * @brief Return whether boring is true for the current block or state.
+ * @param code G-code or M-code value being tested or applied.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsBoring(uint16_t code) { return (uint8_t)((code >= G(85)) && (code <= G(89))); }
+
+/**
+ * @brief Return whether v7 cycle is true for the current block or state.
+ * @param code G-code or M-code value being tested or applied.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsV7Cycle(uint16_t code) { return (uint8_t)((code == G(73)) || (code == G(74)) || ((code >= G(81)) && (code <= G(89)))); }
 
+/**
+ * @brief Handle flags for cycle for this module.
+ * @param code G-code or M-code value being tested or applied.
+ * @return Function-specific result value.
+ */
 static uint16_t FlagsForCycle(uint16_t code)
 {
     uint16_t flags = 0U;
@@ -32,12 +66,23 @@ static uint16_t FlagsForCycle(uint16_t code)
     return flags;
 }
 
+/**
+ * @brief Copy axes between fixed-size buffers.
+ * @param pDst Destination axis buffer updated by the helper.
+ * @param pSrc Source axis buffer copied by the helper.
+ */
 static void CopyAxes(int32_t* pDst, const int32_t* pSrc)
 {
     uint32_t i;
     for (i = 0U; i < AXIS_MAX; ++i) { pDst[i] = pSrc[i]; }
 }
 
+/**
+ * @brief Handle abs diff32 for this module.
+ * @param a First numeric value used by the helper.
+ * @param b Second numeric value used by the helper.
+ * @return Function-specific result value.
+ */
 static uint32_t AbsDiff32(int32_t a, int32_t b)
 {
     int64_t d = (int64_t)a - (int64_t)b;
@@ -45,6 +90,13 @@ static uint32_t AbsDiff32(int32_t a, int32_t b)
     return (d > 0xFFFFFFFFLL) ? 0xFFFFFFFFUL : (uint32_t)d;
 }
 
+/**
+ * @brief Handle estimate ticks for this module.
+ * @param pStart Start axis position for the planned move.
+ * @param pEnd End axis position for the planned move.
+ * @param rapid Non-zero when the planned move uses rapid timing.
+ * @return Function-specific result value.
+ */
 static uint32_t EstimateTicks(const int32_t* pStart, const int32_t* pEnd, uint8_t rapid)
 {
     uint32_t i;
@@ -57,6 +109,16 @@ static uint32_t EstimateTicks(const int32_t* pStart, const int32_t* pEnd, uint8_
         ((rapid != 0U) ? 20 : 5))) + 1U);
 }
 
+/**
+ * @brief Handle append segment for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pWriter Segment writer receiving generated fixed-cycle segments.
+ * @param pStart Start axis position for the planned move.
+ * @param pEnd End axis position for the planned move.
+ * @param ticks Segment duration in RT ticks.
+ * @param kind Segment or warning kind handled by the helper.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t AppendSegment(NC_SEGMENT_WRITER* pWriter, const int32_t* pStart,
                              const int32_t* pEnd, uint32_t ticks, uint8_t kind)
 {
@@ -72,6 +134,15 @@ static int32_t AppendSegment(NC_SEGMENT_WRITER* pWriter, const int32_t* pStart,
     return 0;
 }
 
+/**
+ * @brief Handle append linear for this module.
+ * @param pWriter Segment writer receiving generated fixed-cycle segments.
+ * @param pStart Start axis position for the planned move.
+ * @param pEnd End axis position for the planned move.
+ * @param rapid Non-zero when the planned move uses rapid timing.
+ * @param kind Segment or warning kind handled by the helper.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t AppendLinear(NC_SEGMENT_WRITER* pWriter, const int32_t* pStart,
                             const int32_t* pEnd, uint8_t rapid, uint8_t kind)
 {
@@ -79,12 +150,19 @@ static int32_t AppendLinear(NC_SEGMENT_WRITER* pWriter, const int32_t* pStart,
                          EstimateTicks(pStart, pEnd, rapid), kind);
 }
 
+/**
+ * @brief Handle nc cycle reset parser modal for this module.
+ */
 void NcCycle_ResetParserModal(void)
 {
     (void)memset(&s_modalCycle, 0, sizeof(s_modalCycle));
     s_hasModalCycle = 0U;
 }
 
+/**
+ * @brief Handle nc cycle init parser block for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcCycle_InitParserBlock(NC_EXEC_BLOCK* pBlock)
 {
     if ((pBlock == 0) || (s_hasModalCycle == 0U) ||
@@ -102,6 +180,11 @@ void NcCycle_InitParserBlock(NC_EXEC_BLOCK* pBlock)
     pBlock->cycle_flags = s_modalCycle.cycle_flags | NC_CYCLE_FLAG_MODAL_REPLAY;
 }
 
+/**
+ * @brief Handle nc cycle apply cycle gcode for this module.
+ * @param code G-code or M-code value being tested or applied.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcCycle_ApplyCycleGCode(int32_t code, NC_EXEC_BLOCK* pBlock)
 {
     pBlock->feature_flags |= NC_FEATURE_FLAG_CANNED_CYCLE;
@@ -110,11 +193,20 @@ void NcCycle_ApplyCycleGCode(int32_t code, NC_EXEC_BLOCK* pBlock)
     pBlock->cycle_flags = FlagsForCycle((uint16_t)code);
 }
 
+/**
+ * @brief Handle nc cycle cancel parser modal for this module.
+ */
 void NcCycle_CancelParserModal(void)
 {
     s_hasModalCycle = 0U;
 }
 
+/**
+ * @brief Handle nc cycle set repeat word for this module.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCycle_SetRepeatWord(double value, NC_EXEC_BLOCK* pBlock)
 {
     uint32_t word;
@@ -131,9 +223,16 @@ int32_t NcCycle_SetRepeatWord(double value, NC_EXEC_BLOCK* pBlock)
     return 0;
 }
 
+/**
+ * @brief Handle nc cycle finalize parser block for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pOutError Output pointer that receives the NC error code.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCycle_FinalizeParserBlock(NC_EXEC_BLOCK* pBlock,
                                     NC_ERROR_CODE* pOutError)
 {
+    /* Prepare local state used by the following processing stage. */
     uint8_t replay;
     if ((pBlock == 0) || (pBlock->motion_type != NC_MOTION_CANNED_CYCLE)) {
         return 0;
@@ -153,6 +252,7 @@ int32_t NcCycle_FinalizeParserBlock(NC_EXEC_BLOCK* pBlock,
     }
     if ((replay == 0U) && (IsV7Cycle(pBlock->cycle_code10) != 0U) &&
         (((pBlock->axis_mask & (1UL << 2U)) == 0U) ||
+         /* Apply the next logical update for this processing stage. */
          ((pBlock->feature_flags & NC_FEATURE_FLAG_PARAM_R) == 0U))) {
         *pOutError = NC_ERR_RANGE;
         return -1;
@@ -174,6 +274,17 @@ int32_t NcCycle_FinalizeParserBlock(NC_EXEC_BLOCK* pBlock,
     return 0;
 }
 
+/**
+ * @brief Handle append peck for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pWriter Segment writer receiving generated fixed-cycle segments.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pCurrent Current mutable axis position during cycle planning.
+ * @param targetZ Final Z target for the peck cycle.
+ * @param rZ R-plane Z value used for retract planning.
+ * @param direction Signed Z direction used while planning peck motion.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t AppendPeck(NC_SEGMENT_WRITER* pWriter,
                           const NC_EXEC_BLOCK* pBlock,
                           int32_t* pCurrent,
@@ -211,11 +322,21 @@ static int32_t AppendPeck(NC_SEGMENT_WRITER* pWriter,
     return 0;
 }
 
+/**
+ * @brief Handle append one cycle for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pWriter Segment writer receiving generated fixed-cycle segments.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pStart Start axis position for the planned move.
+ * @param pOutEnd Output axis buffer receiving the final cycle endpoint.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t AppendOneCycle(NC_SEGMENT_WRITER* pWriter,
                               const NC_EXEC_BLOCK* pBlock,
                               const int32_t* pStart,
                               int32_t* pOutEnd)
 {
+    /* Prepare local state used by the following processing stage. */
     int32_t atR[AXIS_MAX], current[AXIS_MAX], retract[AXIS_MAX];
     int32_t rZ = pBlock->r_value;
     int32_t direction = (pBlock->axis_target[2] >= rZ) ? 1 : -1;
@@ -234,6 +355,7 @@ static int32_t AppendOneCycle(NC_SEGMENT_WRITER* pWriter,
                             NC_SEG_KIND_LINEAR) != 0) {
         return -1;
     }
+    /* Handle the next conditional branch for this processing stage. */
     if ((IsDwell(pBlock->cycle_code10) != 0U) && (pBlock->p_word != 0U) &&
         (AppendSegment(pWriter, pBlock->axis_target, pBlock->axis_target,
                        pBlock->p_word, NC_SEG_KIND_DWELL) != 0)) {
@@ -250,10 +372,18 @@ static int32_t AppendOneCycle(NC_SEGMENT_WRITER* pWriter,
     return 0;
 }
 
+/**
+ * @brief Handle nc cycle build segment plan rt for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pSegments Pointer to segments used by the function.
+ * @param pSegmentCount Pointer to segment count used by the function.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCycle_BuildSegmentPlanRt(const NC_EXEC_BLOCK* pBlock,
                                    NC_ACTIVE_SEGMENT* pSegments,
                                    uint32_t* pSegmentCount)
 {
+    /* Prepare local state used by the following processing stage. */
     NC_SEGMENT_WRITER writer;
     int32_t start[AXIS_MAX];
     uint32_t repeat;
@@ -270,6 +400,7 @@ int32_t NcCycle_BuildSegmentPlanRt(const NC_EXEC_BLOCK* pBlock,
             return -1;
         }
     }
+    /* Apply the next logical update for this processing stage. */
     g_ncCycleStatus.last_cycle_code10 = pBlock->cycle_code10;
     g_ncCycleStatus.cycle_repeat = pBlock->cycle_repeat;
     g_ncCycleStatus.peck_blocks += (IsPeck(pBlock->cycle_code10) != 0U);

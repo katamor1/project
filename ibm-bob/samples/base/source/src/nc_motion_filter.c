@@ -21,11 +21,23 @@ static uint8_t s_velocityCount[AXIS_MAX];
 static uint8_t s_accelCount[AXIS_MAX];
 static uint8_t s_firCount[AXIS_MAX];
 
+/**
+ * @brief Handle abs32 local for this module.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t Abs32Local(int32_t value)
 {
     return (value < 0) ? -value : value;
 }
 
+/**
+ * @brief Handle clamp window for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @param maxValue Maximum allowed value used for clamping.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t ClampWindow(uint8_t value, uint8_t maxValue)
 {
     if (value == 0U) {
@@ -34,6 +46,12 @@ static uint8_t ClampWindow(uint8_t value, uint8_t maxValue)
     return (value > maxValue) ? maxValue : value;
 }
 
+/**
+ * @brief Handle normalize limit for this module.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @param fallback Fallback value used when the input is not valid.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t NormalizeLimit(int32_t value, int32_t fallback)
 {
     if (value < 0) {
@@ -48,6 +66,13 @@ static int32_t NormalizeLimit(int32_t value, int32_t fallback)
     return value;
 }
 
+/**
+ * @brief Handle div round64 for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @param denom Denominator used for rounded division.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t DivRound64(int64_t value, int64_t denom)
 {
     if (denom <= 0) {
@@ -59,6 +84,14 @@ static int32_t DivRound64(int64_t value, int64_t denom)
     return (int32_t)((value - (denom / 2)) / denom);
 }
 
+/**
+ * @brief Handle clamp symmetric for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @param limit Symmetric limit applied to the value.
+ * @param pLimited Output flag set when clamping changed the value.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t ClampSymmetric(int32_t value, int32_t limit, uint8_t* pLimited)
 {
     int32_t normalized = NormalizeLimit(limit, NC_MOTION_FILTER_AXIS_LIMIT_MAX);
@@ -77,6 +110,9 @@ static int32_t ClampSymmetric(int32_t value, int32_t limit, uint8_t* pLimited)
     return value;
 }
 
+/**
+ * @brief Handle initialize default limits for this module.
+ */
 static void InitializeDefaultLimits(void)
 {
     uint32_t i;
@@ -87,8 +123,12 @@ static void InitializeDefaultLimits(void)
     g_ncMotionFilterStatus.endpoint_correction_window = NC_MOTION_FILTER_ENDPOINT_WINDOW;
 }
 
+/**
+ * @brief Handle nc motion filter reset rt for this module.
+ */
 void NcMotionFilter_ResetRt(void)
 {
+    /* Prepare local state used by the following processing stage. */
     uint8_t enabled = g_ncMotionFilterStatus.enabled;
     uint8_t secondStageMode = g_ncMotionFilterStatus.second_stage_mode;
     uint8_t velocityWindow = g_ncMotionFilterStatus.velocity_window;
@@ -112,6 +152,7 @@ void NcMotionFilter_ResetRt(void)
     (void)memset(s_accelRing, 0, sizeof(s_accelRing));
     (void)memset(s_firHistory, 0, sizeof(s_firHistory));
     (void)memset(s_velocitySum, 0, sizeof(s_velocitySum));
+    /* Reset owned state before the next operation starts. */
     (void)memset(s_accelSum, 0, sizeof(s_accelSum));
     (void)memset(s_velocityIndex, 0, sizeof(s_velocityIndex));
     (void)memset(s_accelIndex, 0, sizeof(s_accelIndex));
@@ -142,6 +183,7 @@ void NcMotionFilter_ResetRt(void)
                 NormalizeLimit(maxAccel[i], NC_MOTION_FILTER_DEFAULT_MAX_ACCEL);
         }
     }
+    /* Handle the next conditional branch for this processing stage. */
     if (correctionWindow != 0U) {
         g_ncMotionFilterStatus.endpoint_correction_window =
             ClampWindow(correctionWindow, NC_MOTION_FILTER_ENDPOINT_WINDOW);
@@ -149,6 +191,14 @@ void NcMotionFilter_ResetRt(void)
     g_ncMotionFilterStatus.generation++;
 }
 
+/**
+ * @brief Handle nc motion filter set config rt for this module.
+ * @param enabled Non-zero to enable the mode; zero to disable it.
+ * @param secondStageMode Input value for second stage mode.
+ * @param velocityWindow Input value for velocity window.
+ * @param accelWindow Input value for accel window.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcMotionFilter_SetConfigRt(uint8_t enabled,
                                    uint8_t secondStageMode,
                                    uint8_t velocityWindow,
@@ -178,6 +228,13 @@ int32_t NcMotionFilter_SetConfigRt(uint8_t enabled,
     return 0;
 }
 
+/**
+ * @brief Handle nc motion filter set axis limit rt for this module.
+ * @param axis Axis index used by the helper.
+ * @param maxVelocityPerTick Input value for max velocity per tick.
+ * @param maxAccelPerTick Input value for max accel per tick.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcMotionFilter_SetAxisLimitRt(uint8_t axis,
                                       int32_t maxVelocityPerTick,
                                       int32_t maxAccelPerTick)
@@ -193,6 +250,12 @@ int32_t NcMotionFilter_SetAxisLimitRt(uint8_t axis,
     return 0;
 }
 
+/**
+ * @brief Handle stage1 velocity average for this module.
+ * @param axis Axis index used by the helper.
+ * @param rawVelocity Raw axis velocity sample entering the filter.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t Stage1VelocityAverage(uint32_t axis, int32_t rawVelocity)
 {
     uint8_t window = ClampWindow(g_ncMotionFilterStatus.velocity_window,
@@ -209,6 +272,12 @@ static int32_t Stage1VelocityAverage(uint32_t axis, int32_t rawVelocity)
     return DivRound64(s_velocitySum[axis], s_velocityCount[axis]);
 }
 
+/**
+ * @brief Handle stage2 moving average for this module.
+ * @param axis Axis index used by the helper.
+ * @param stage1Velocity Stage-one filtered velocity entering the next filter.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t Stage2MovingAverage(uint32_t axis, int32_t stage1Velocity)
 {
     uint8_t window = ClampWindow(g_ncMotionFilterStatus.accel_window,
@@ -225,6 +294,12 @@ static int32_t Stage2MovingAverage(uint32_t axis, int32_t stage1Velocity)
     return DivRound64(s_accelSum[axis], s_accelCount[axis]);
 }
 
+/**
+ * @brief Handle stage2 fir for this module.
+ * @param axis Axis index used by the helper.
+ * @param stage1Velocity Stage-one filtered velocity entering the next filter.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t Stage2Fir(uint32_t axis, int32_t stage1Velocity)
 {
     static const int32_t kCoeff[NC_MOTION_FILTER_FIR_TAPS] = {1, 2, 3, 2, 1};
@@ -250,6 +325,14 @@ static int32_t Stage2Fir(uint32_t axis, int32_t stage1Velocity)
     return DivRound64(sum, denom);
 }
 
+/**
+ * @brief Apply endpoint residual correction to the current block or state.
+ * @param axis Axis index used by the helper.
+ * @param rawTarget Unfiltered target position for the axis.
+ * @param filtered Filtered target position before residual correction.
+ * @param remainingTicks Remaining interpolation ticks for endpoint correction.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t ApplyEndpointResidualCorrection(uint32_t axis,
                                                int32_t rawTarget,
                                                int32_t filtered,
@@ -270,11 +353,19 @@ static int32_t ApplyEndpointResidualCorrection(uint32_t axis,
     return filtered;
 }
 
+/**
+ * @brief Handle nc motion filter apply rt for this module.
+ * @param axisTarget Input value for axis target.
+ * @param axisMask Bit mask of axes to validate or translate.
+ * @param forceEndpoint Input value for force endpoint.
+ * @param remainingTicks Remaining interpolation ticks for endpoint correction.
+ */
 void NcMotionFilter_ApplyRt(volatile int32_t axisTarget[AXIS_MAX],
                             uint32_t axisMask,
                             uint8_t forceEndpoint,
                             uint32_t remainingTicks)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t i;
     uint8_t pushedLimitEvent = 0U;
 
@@ -282,6 +373,7 @@ void NcMotionFilter_ApplyRt(volatile int32_t axisTarget[AXIS_MAX],
         return;
     }
 
+    /* Walk the fixed-size data set for this processing stage. */
     for (i = 0U; i < AXIS_MAX; ++i) {
         int32_t rawTarget = axisTarget[i];
         int32_t rawVelocity;

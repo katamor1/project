@@ -9,11 +9,21 @@
 static int32_t s_toolLengthOffsets[NC_TOOL_OFFSET_TABLE_SIZE];
 static int32_t s_cutterRadiusOffsets[NC_TOOL_OFFSET_TABLE_SIZE];
 
+/**
+ * @brief Handle round fixed for this module.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t RoundFixed(double value)
 {
     return (int32_t)(value + ((value >= 0.0) ? 0.5 : -0.5));
 }
 
+/**
+ * @brief Return whether motion like is true for the current block or state.
+ * @param motion Motion type being tested by the helper.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsMotionLike(NC_MOTION_TYPE motion)
 {
     return (uint8_t)((motion == NC_MOTION_RAPID) ||
@@ -27,11 +37,20 @@ static uint8_t IsMotionLike(NC_MOTION_TYPE motion)
                      (motion == NC_MOTION_ADVANCED_INTERP));
 }
 
+/**
+ * @brief Handle nc compensation reset for this module.
+ */
 void NcCompensation_Reset(void)
 {
     (void)memset((void*)&g_ncCompensationStatus, 0, sizeof(g_ncCompensationStatus));
 }
 
+/**
+ * @brief Handle nc compensation set tool length offset for this module.
+ * @param offsetNo One-based offset number requested by the NC block.
+ * @param offset Input value for offset.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCompensation_SetToolLengthOffset(uint16_t offsetNo, int32_t offset)
 {
     if ((offsetNo == 0U) || (offsetNo >= NC_TOOL_OFFSET_TABLE_SIZE)) {
@@ -41,6 +60,12 @@ int32_t NcCompensation_SetToolLengthOffset(uint16_t offsetNo, int32_t offset)
     return 0;
 }
 
+/**
+ * @brief Handle nc compensation set cutter radius offset for this module.
+ * @param offsetNo One-based offset number requested by the NC block.
+ * @param offset Input value for offset.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCompensation_SetCutterRadiusOffset(uint16_t offsetNo, int32_t offset)
 {
     if ((offsetNo == 0U) || (offsetNo >= NC_TOOL_OFFSET_TABLE_SIZE)) {
@@ -50,6 +75,14 @@ int32_t NcCompensation_SetCutterRadiusOffset(uint16_t offsetNo, int32_t offset)
     return 0;
 }
 
+/**
+ * @brief Handle lookup offset for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pTable Offset table searched by the helper.
+ * @param offsetNo One-based offset number requested by the NC block.
+ * @param pOut Output pointer that receives the computed value.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t LookupOffset(const int32_t* pTable, uint16_t offsetNo, int32_t* pOut)
 {
     if ((offsetNo == 0U) || (offsetNo >= NC_TOOL_OFFSET_TABLE_SIZE) ||
@@ -60,6 +93,12 @@ static int32_t LookupOffset(const int32_t* pTable, uint16_t offsetNo, int32_t* p
     return 0;
 }
 
+/**
+ * @brief Apply tool length command to the current block or state.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pOutError Output pointer that receives the NC error code.
+ */
 static void ApplyToolLengthCommand(const NC_EXEC_BLOCK* pBlock,
                                    NC_ERROR_CODE* pOutError)
 {
@@ -88,6 +127,12 @@ static void ApplyToolLengthCommand(const NC_EXEC_BLOCK* pBlock,
     g_ncCompensationStatus.generation++;
 }
 
+/**
+ * @brief Apply cutter command to the current block or state.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pOutError Output pointer that receives the NC error code.
+ */
 static void ApplyCutterCommand(const NC_EXEC_BLOCK* pBlock,
                                NC_ERROR_CODE* pOutError)
 {
@@ -114,6 +159,10 @@ static void ApplyCutterCommand(const NC_EXEC_BLOCK* pBlock,
     g_ncCompensationStatus.generation++;
 }
 
+/**
+ * @brief Apply rotation command to the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void ApplyRotationCommand(const NC_EXEC_BLOCK* pBlock)
 {
     if (pBlock->rotation_command == NC_ROTATION_CMD_CANCEL) {
@@ -129,6 +178,10 @@ static void ApplyRotationCommand(const NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Apply polar command to the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void ApplyPolarCommand(const NC_EXEC_BLOCK* pBlock)
 {
     if (pBlock->polar_command == NC_POLAR_CMD_ENABLE) {
@@ -140,6 +193,10 @@ static void ApplyPolarCommand(const NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Apply tool length to target to the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void ApplyToolLengthToTarget(NC_EXEC_BLOCK* pBlock)
 {
     int32_t offset;
@@ -158,8 +215,14 @@ static void ApplyToolLengthToTarget(NC_EXEC_BLOCK* pBlock)
     g_ncCompensationStatus.adjusted_axis_mask |= (1UL << 2U);
 }
 
+/**
+ * @brief Apply cutter radius to target to the current block or state.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void ApplyCutterRadiusToTarget(NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     double dx;
     double dy;
     double length;
@@ -185,13 +248,19 @@ static void ApplyCutterRadiusToTarget(NC_EXEC_BLOCK* pBlock)
     ny = (dx / length) * radius * sign;
     pBlock->axis_target[0] += RoundFixed(nx);
     pBlock->axis_target[1] += RoundFixed(ny);
+    /* Apply the next logical update for this processing stage. */
     pBlock->axis_mask |= 0x3U;
     pBlock->feature_flags |= NC_FEATURE_FLAG_CUTTER_RADIUS;
     g_ncCompensationStatus.adjusted_axis_mask |= 0x3U;
 }
 
+/**
+ * @brief Handle rotate target for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void RotateTarget(NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     double angle;
     double c;
     double s;
@@ -215,11 +284,16 @@ static void RotateTarget(NC_EXEC_BLOCK* pBlock)
     y = (double)pBlock->axis_target[1] - cy;
     pBlock->axis_target[0] = RoundFixed(cx + (x * c) - (y * s));
     pBlock->axis_target[1] = RoundFixed(cy + (x * s) + (y * c));
+    /* Apply the next logical update for this processing stage. */
     pBlock->axis_mask |= 0x3U;
     pBlock->feature_flags |= NC_FEATURE_FLAG_COORD_ROTATION;
     g_ncCompensationStatus.adjusted_axis_mask |= 0x3U;
 }
 
+/**
+ * @brief Handle convert polar target for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void ConvertPolarTarget(NC_EXEC_BLOCK* pBlock)
 {
     double radius;
@@ -242,9 +316,17 @@ static void ConvertPolarTarget(NC_EXEC_BLOCK* pBlock)
     pBlock->feature_flags |= NC_FEATURE_FLAG_POLAR_COORD;
     g_ncCompensationStatus.adjusted_axis_mask |= 0x3U;
 }
+
+/**
+ * @brief Handle nc compensation apply block ts for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pOutError Output pointer that receives the NC error code.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCompensation_ApplyBlockTs(NC_EXEC_BLOCK* pBlock,
                                     NC_ERROR_CODE* pOutError)
 {
+    /* Prepare local state used by the following processing stage. */
     int32_t before[AXIS_MAX];
     uint32_t i;
     uint8_t changed = 0U;
@@ -276,5 +358,6 @@ int32_t NcCompensation_ApplyBlockTs(NC_EXEC_BLOCK* pBlock,
         g_ncCompensationStatus.last_line_no = pBlock->line_no;
         g_ncCompensationStatus.generation++;
     }
+    /* Apply the next logical update for this processing stage. */
     return 0;
 }

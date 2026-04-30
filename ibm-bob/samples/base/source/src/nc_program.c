@@ -29,6 +29,10 @@ static FILE* s_ncFile = NULL;
 
 static void RtNcProgram_ResetAuxWait(void);
 
+/**
+ * @brief Handle nc status set state for this module.
+ * @param state Input value for state.
+ */
 static void NcStatus_SetState(NC_PROGRAM_STATE state)
 {
     if (g_ncProgramStatus.state != state) {
@@ -38,6 +42,11 @@ static void NcStatus_SetState(NC_PROGRAM_STATE state)
     }
 }
 
+/**
+ * @brief Handle nc status set error for this module.
+ * @param errorCode Code value for error code.
+ * @param lineNo NC source line number associated with the update.
+ */
 static void NcStatus_SetError(NC_ERROR_CODE errorCode, uint32_t lineNo)
 {
     g_ncProgramStatus.error_code = errorCode;
@@ -48,6 +57,9 @@ static void NcStatus_SetError(NC_ERROR_CODE errorCode, uint32_t lineNo)
     (void)LogQueue_Push(LOG_ALARM, NC_LOG_BASE + (uint32_t)errorCode, (int32_t)lineNo);
 }
 
+/**
+ * @brief Handle ts nc program close file for this module.
+ */
 static void TsNcProgram_CloseFile(void)
 {
     if (s_ncFile != NULL) {
@@ -56,6 +68,11 @@ static void TsNcProgram_CloseFile(void)
     }
 }
 
+/**
+ * @brief Handle rt nc program is motion block for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t RtNcProgram_IsMotionBlock(const NC_EXEC_BLOCK* pBlock)
 {
     return (uint8_t)((pBlock->motion_type == NC_MOTION_RAPID) ||
@@ -69,6 +86,9 @@ static uint8_t RtNcProgram_IsMotionBlock(const NC_EXEC_BLOCK* pBlock)
                      (pBlock->motion_type == NC_MOTION_ADVANCED_INTERP));
 }
 
+/**
+ * @brief Handle rt nc program reset aux wait for this module.
+ */
 static void RtNcProgram_ResetAuxWait(void)
 {
     g_ncAuxStatus.state = NC_AUX_STATE_IDLE;
@@ -78,6 +98,11 @@ static void RtNcProgram_ResetAuxWait(void)
     g_ncAuxStatus.generation++;
 }
 
+/**
+ * @brief Handle rt nc program service aux wait for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t RtNcProgram_ServiceAuxWait(void)
 {
     if (g_ncAuxStatus.state != NC_AUX_STATE_WAIT_MFIN) {
@@ -95,8 +120,13 @@ static uint8_t RtNcProgram_ServiceAuxWait(void)
     return 1U;
 }
 
+/**
+ * @brief Handle rt nc program update feature status for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void RtNcProgram_UpdateFeatureStatus(const NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t flags = pBlock->feature_flags;
 
     if ((flags == 0U) && (pBlock->g_code10 == 0U) &&
@@ -187,6 +217,7 @@ static void RtNcProgram_UpdateFeatureStatus(const NC_EXEC_BLOCK* pBlock)
     if ((flags & NC_FEATURE_FLAG_POLAR_COORD) != 0U) {
         g_ncFeatureStatus.active_feature_flags |= NC_FEATURE_FLAG_POLAR_COORD;
     }
+    /* Handle the next conditional branch for this processing stage. */
     if ((flags & NC_FEATURE_FLAG_HIGH_PRECISION) != 0U) {
         g_ncFeatureStatus.high_precision_enabled = 1U;
         g_ncFeatureStatus.active_feature_flags |= NC_FEATURE_FLAG_HIGH_PRECISION;
@@ -241,12 +272,22 @@ static void RtNcProgram_UpdateFeatureStatus(const NC_EXEC_BLOCK* pBlock)
     g_ncFeatureStatus.generation++;
 }
 
+/**
+ * @brief Handle rt nc program is active block for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t RtNcProgram_IsActiveBlock(const NC_EXEC_BLOCK* pBlock)
 {
     return (uint8_t)((RtNcProgram_IsMotionBlock(pBlock) != 0U) ||
                      (pBlock->motion_type == NC_MOTION_DWELL));
 }
 
+/**
+ * @brief Handle rt nc program is active tool expired for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t RtNcProgram_IsActiveToolExpired(void)
 {
     uint32_t toolNo = g_ncToolLifeStatus.active_tool_no;
@@ -256,6 +297,10 @@ static uint8_t RtNcProgram_IsActiveToolExpired(void)
     return (uint8_t)((g_ncToolLifeStatus.expired_mask & (1UL << toolNo)) != 0U);
 }
 
+/**
+ * @brief Handle rt nc program hold for tool life for this module.
+ * @param lineNo NC source line number associated with the update.
+ */
 static void RtNcProgram_HoldForToolLife(uint32_t lineNo)
 {
     g_ncProgramStatus.error_code = NC_ERR_TOOL_LIFE_EXPIRED;
@@ -272,8 +317,14 @@ static void RtNcProgram_HoldForToolLife(uint32_t lineNo)
                         (int32_t)g_ncToolLifeStatus.active_tool_no);
 }
 
+/**
+ * @brief Handle rt nc program apply block aux for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void RtNcProgram_ApplyBlockAux(const NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t i;
 
     g_ncProgramStatus.exec_line_no = pBlock->line_no;
@@ -313,6 +364,7 @@ static void RtNcProgram_ApplyBlockAux(const NC_EXEC_BLOCK* pBlock)
     }
     g_ioOut.aux_flags |= pBlock->aux_flags;
     NcSpindle_OnBlockRt(pBlock);
+    /* Apply the next logical update for this processing stage. */
     NcToolManagement_OnBlockRt(pBlock);
     if ((pBlock->aux_flags & NC_AUX_FLAG_MFIN_WAIT) != 0U) {
         g_ncAuxStatus.state = NC_AUX_STATE_WAIT_MFIN;
@@ -323,6 +375,9 @@ static void RtNcProgram_ApplyBlockAux(const NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Handle rt nc program finish if complete for this module.
+ */
 static void RtNcProgram_FinishIfComplete(void)
 {
     if ((NcBuffer_Count() == 0U) &&
@@ -333,6 +388,10 @@ static void RtNcProgram_FinishIfComplete(void)
     }
 }
 
+/**
+ * @brief Handle rt nc program start motion block for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void RtNcProgram_StartMotionBlock(const NC_EXEC_BLOCK* pBlock)
 {
     int32_t beginResult;
@@ -361,8 +420,13 @@ static void RtNcProgram_StartMotionBlock(const NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Handle rt nc program process requests for this module.
+ * @param safetyOk Non-zero when RT safety conditions allow the request.
+ */
 void RtNcProgram_ProcessRequests(uint8_t safetyOk)
 {
+    /* Handle the next conditional branch for this processing stage. */
     if (g_machineCtx.machine_state == MACHINE_ALARM) {
         if ((g_ncProgramStatus.state == NC_RUNNING) ||
             (g_ncProgramStatus.state == NC_HOLD)) {
@@ -388,6 +452,7 @@ void RtNcProgram_ProcessRequests(uint8_t safetyOk)
         return;
     }
     if ((g_ncProgramRequest.resume_request != 0U) &&
+        /* Apply the next logical update for this processing stage. */
         (g_ncProgramStatus.state == NC_HOLD) && (safetyOk != 0U)) {
         g_ncProgramRequest.resume_request = 0U;
         NcStatus_SetState(NC_RUNNING);
@@ -412,8 +477,12 @@ void RtNcProgram_ProcessRequests(uint8_t safetyOk)
     }
 }
 
+/**
+ * @brief Handle rt nc program consume blocks for this module.
+ */
 void RtNcProgram_ConsumeBlocks(void)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t consumed = 0U;
 
     if (g_ncProgramStatus.state != NC_RUNNING) {
@@ -424,6 +493,7 @@ void RtNcProgram_ConsumeBlocks(void)
         RtNcProgram_FinishIfComplete();
         return;
     }
+    /* Handle the next conditional branch for this processing stage. */
     if (RtNcProgram_ServiceAuxWait() != 0U) {
         return;
     }
@@ -459,6 +529,12 @@ void RtNcProgram_ConsumeBlocks(void)
     RtNcProgram_FinishIfComplete();
 }
 
+/**
+ * @brief Handle nc program request binary load for this module.
+ * @param pBlocks Array of NC execution blocks supplied by the caller.
+ * @param count Number of entries supplied by the caller.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcProgram_RequestBinaryLoad(const NC_EXEC_BLOCK* pBlocks, uint32_t count)
 {
     if ((pBlocks == NULL) || (count == 0U) ||
@@ -483,8 +559,12 @@ int32_t NcProgram_RequestBinaryLoad(const NC_EXEC_BLOCK* pBlocks, uint32_t count
     return 0;
 }
 
+/**
+ * @brief Handle ts nc program reset for new load for this module.
+ */
 static void TsNcProgram_ResetForNewLoad(void)
 {
+    /* Apply the next logical update for this processing stage. */
     NcProgram_ClearBuffer();
     NcParse_ResetModal();
     NcInterpolation_Reset();
@@ -505,12 +585,16 @@ static void TsNcProgram_ResetForNewLoad(void)
     (void)memset((void*)&g_ncFeatureStatus, 0, sizeof(g_ncFeatureStatus));
     g_ncProgramStatus.error_code = NC_ERR_NONE;
     g_ncProgramStatus.error_line_no = 0U;
+    /* Apply the next logical update for this processing stage. */
     g_ncProgramStatus.read_line_no = 0U;
     g_ncProgramStatus.exec_line_no = 0U;
     g_ncBinaryProgramStatus.committed_blocks = 0U;
     g_ncBinaryProgramStatus.last_error_line_no = 0U;
 }
 
+/**
+ * @brief Handle ts nc program start load for this module.
+ */
 static void TsNcProgram_StartLoad(void)
 {
     char path[NC_FILE_PATH_MAX];
@@ -532,8 +616,12 @@ static void TsNcProgram_StartLoad(void)
     NcStatus_SetState(NC_PREFETCHING);
 }
 
+/**
+ * @brief Handle ts nc program start binary load for this module.
+ */
 static void TsNcProgram_StartBinaryLoad(void)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t i;
     uint32_t count = g_ncBinaryProgramRequest.requested_count;
 
@@ -588,6 +676,7 @@ static void TsNcProgram_StartBinaryLoad(void)
     g_ncBinaryProgramRequest.ready = 1U;
     g_ncBinaryProgramRequest.busy = 0U;
     NcEvent_Push(NC_EVENT_CODE_BINARY_LOAD_READY,
+                 /* Apply the next logical update for this processing stage. */
                  (int32_t)g_ncBinaryProgramStatus.committed_blocks,
                  (int32_t)count,
                  0U);
@@ -596,8 +685,12 @@ static void TsNcProgram_StartBinaryLoad(void)
     }
 }
 
+/**
+ * @brief Handle ts nc program execute slice for this module.
+ */
 void TsNcProgram_ExecuteSlice(void)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t parsedLines = 0U;
 
     if (g_ncBinaryProgramRequest.load_request != 0U) {
@@ -609,6 +702,7 @@ void TsNcProgram_ExecuteSlice(void)
         TsNcProgram_CloseFile();
         TsNcProgram_StartLoad();
     }
+    /* Handle the next conditional branch for this processing stage. */
     if (s_ncFile == NULL) {
         return;
     }

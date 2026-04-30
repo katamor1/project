@@ -21,6 +21,11 @@ static NC_ACTIVE_SEGMENT s_segments[NC_CANNED_MAX_SEGMENTS];
 static uint32_t s_segmentCount;
 static uint32_t s_segmentIndex;
 
+/**
+ * @brief Return whether motion is true for the current block or state.
+ * @param motion Motion type being tested by the helper.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsMotion(NC_MOTION_TYPE motion)
 {
     return (uint8_t)((motion == NC_MOTION_RAPID) ||
@@ -34,16 +39,31 @@ static uint8_t IsMotion(NC_MOTION_TYPE motion)
                      (motion == NC_MOTION_ADVANCED_INTERP));
 }
 
+/**
+ * @brief Return whether active type is true for the current block or state.
+ * @param motion Motion type being tested by the helper.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsActiveType(NC_MOTION_TYPE motion)
 {
     return (uint8_t)((IsMotion(motion) != 0U) || (motion == NC_MOTION_DWELL));
 }
 
+/**
+ * @brief Handle round fixed for this module.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t RoundFixed(double value)
 {
     return (int32_t)(value + ((value >= 0.0) ? 0.5 : -0.5));
 }
 
+/**
+ * @brief Handle linear length units for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @return Function-specific result value.
+ */
 static double LinearLengthUnits(const NC_EXEC_BLOCK* pBlock)
 {
     uint32_t i;
@@ -57,6 +77,9 @@ static double LinearLengthUnits(const NC_EXEC_BLOCK* pBlock)
     return sqrt(sum) / (double)NC_POSITION_SCALE;
 }
 
+/**
+ * @brief Reset segment plan to its default state.
+ */
 static void ResetSegmentPlan(void)
 {
     (void)memset(s_segments, 0, sizeof(s_segments));
@@ -64,6 +87,11 @@ static void ResetSegmentPlan(void)
     s_segmentIndex = 0U;
 }
 
+/**
+ * @brief Copy axes between fixed-size buffers.
+ * @param pDst Destination axis buffer updated by the helper.
+ * @param pSrc Source axis buffer copied by the helper.
+ */
 static void CopyAxes(int32_t* pDst, const int32_t* pSrc)
 {
     uint32_t i;
@@ -72,11 +100,24 @@ static void CopyAxes(int32_t* pDst, const int32_t* pSrc)
     }
 }
 
+/**
+ * @brief Handle last segment end tick for this module.
+ * @return Function-specific result value.
+ */
 static uint32_t LastSegmentEndTick(void)
 {
     return (s_segmentCount == 0U) ? 0U : s_segments[s_segmentCount - 1U].end_tick;
 }
 
+/**
+ * @brief Handle append segment for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pStart Start axis position for the planned move.
+ * @param pEnd End axis position for the planned move.
+ * @param ticks Segment duration in RT ticks.
+ * @param kind Segment or warning kind handled by the helper.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t AppendSegment(const int32_t* pStart,
                              const int32_t* pEnd,
                              uint32_t ticks,
@@ -99,6 +140,9 @@ static int32_t AppendSegment(const int32_t* pStart,
     return 0;
 }
 
+/**
+ * @brief Apply staged decel to active plan to the current block or state.
+ */
 static void ApplyStagedDecelToActivePlan(void)
 {
     uint16_t percent = g_ncAxisLoadStatus.decel_override_percent;
@@ -128,8 +172,15 @@ static void ApplyStagedDecelToActivePlan(void)
                  s_activeBlock.line_no);
 }
 
+/**
+ * @brief Build arc segment plan from current shared state.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t BuildArcSegmentPlan(const NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t a;
     uint32_t b;
     uint32_t i;
@@ -151,6 +202,7 @@ static int32_t BuildArcSegmentPlan(const NC_EXEC_BLOCK* pBlock)
                                  (double)pBlock->arc_center[a],
                                  (double)pBlock->arc_center[b]);
     startAngle = atan2((double)pBlock->axis_start[b] -
+                       /* Apply the next logical update for this processing stage. */
                        (double)pBlock->arc_center[b],
                        (double)pBlock->axis_start[a] -
                        (double)pBlock->arc_center[a]);
@@ -192,6 +244,9 @@ static int32_t BuildArcSegmentPlan(const NC_EXEC_BLOCK* pBlock)
     return 0;
 }
 
+/**
+ * @brief Handle nc interpolation reset for this module.
+ */
 void NcInterpolation_Reset(void)
 {
     (void)memset(&s_activeBlock, 0, sizeof(s_activeBlock));
@@ -206,6 +261,9 @@ void NcInterpolation_Reset(void)
     NcMotionFilter_ResetRt();
 }
 
+/**
+ * @brief Handle nc interpolation cancel for this module.
+ */
 void NcInterpolation_Cancel(void)
 {
     s_hasActive = 0U;
@@ -218,11 +276,21 @@ void NcInterpolation_Cancel(void)
     NcFeed_CancelRt();
 }
 
+/**
+ * @brief Handle nc interpolation has active for this module.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 uint8_t NcInterpolation_HasActive(void)
 {
     return s_hasActive;
 }
 
+/**
+ * @brief Handle nc interpolation prepare block ts for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pOutError Output pointer that receives the NC error code.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcInterpolation_PrepareBlockTs(NC_EXEC_BLOCK* pBlock,
                                        NC_ERROR_CODE* pOutError)
 {
@@ -255,8 +323,14 @@ int32_t NcInterpolation_PrepareBlockTs(NC_EXEC_BLOCK* pBlock,
     return NcFeed_PrepareMotionTs(pBlock, LinearLengthUnits(pBlock), pOutError);
 }
 
+/**
+ * @brief Handle nc interpolation begin block rt for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcInterpolation_BeginBlockRt(const NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     int32_t feedResult;
 
     if ((pBlock == 0) || (IsActiveType(pBlock->motion_type) == 0U)) {
@@ -304,6 +378,7 @@ int32_t NcInterpolation_BeginBlockRt(const NC_EXEC_BLOCK* pBlock)
     if (s_activeBlock.interp_ticks == 0U) {
         s_activeBlock.interp_ticks = NC_INTERP_MIN_TICKS;
     }
+    /* Apply the next logical update for this processing stage. */
     s_activeTick = 0U;
     s_hasActive = 1U;
     g_ncInterpStatus.state = NC_INTERP_ACTIVE;
@@ -315,6 +390,10 @@ int32_t NcInterpolation_BeginBlockRt(const NC_EXEC_BLOCK* pBlock)
     return (feedResult == -2) ? -2 : 0;
 }
 
+/**
+ * @brief Handle output linear block for this module.
+ * @param ratio Input value for ratio.
+ */
 static void OutputLinearBlock(double ratio)
 {
     uint32_t i;
@@ -326,8 +405,13 @@ static void OutputLinearBlock(double ratio)
     }
 }
 
+/**
+ * @brief Handle output segment at tick for this module.
+ * @param tick Input value for tick.
+ */
 static void OutputSegmentAtTick(uint32_t tick)
 {
+    /* Prepare local state used by the following processing stage. */
     const NC_ACTIVE_SEGMENT* pSeg;
     uint32_t startTick;
     uint32_t i;
@@ -342,6 +426,7 @@ static void OutputSegmentAtTick(uint32_t tick)
            (tick > s_segments[s_segmentIndex].end_tick)) {
         s_segmentIndex++;
     }
+    /* Apply the next logical update for this processing stage. */
     pSeg = &s_segments[s_segmentIndex];
     startTick = (s_segmentIndex == 0U) ? 0U : s_segments[s_segmentIndex - 1U].end_tick;
     if (pSeg->end_tick <= startTick) {
@@ -362,7 +447,10 @@ static void OutputSegmentAtTick(uint32_t tick)
     g_ncCycleStatus.generation++;
 }
 
-
+/**
+ * @brief Handle complete active block for this module.
+ * @param countAsSegment Input value for count as segment.
+ */
 static void CompleteActiveBlock(uint8_t countAsSegment)
 {
     s_hasActive = 0U;
@@ -384,6 +472,9 @@ static void CompleteActiveBlock(uint8_t countAsSegment)
     g_ncInterpStatus.generation++;
 }
 
+/**
+ * @brief Handle check skip input for this module.
+ */
 static void CheckSkipInput(void)
 {
     uint32_t i;
@@ -404,8 +495,13 @@ static void CheckSkipInput(void)
     CompleteActiveBlock(1U);
 }
 
+/**
+ * @brief Handle nc interpolation step rt for this module.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcInterpolation_StepRt(void)
 {
+    /* Prepare local state used by the following processing stage. */
     double ratio;
 
     if (s_hasActive == 0U) {
@@ -433,6 +529,7 @@ int32_t NcInterpolation_StepRt(void)
         OutputLinearBlock(ratio);
     }
 
+    /* Handle the next conditional branch for this processing stage. */
     if (s_activeBlock.motion_type != NC_MOTION_DWELL) {
         NcMotionFilter_ApplyRt(g_ioOut.axis_target,
                                s_activeBlock.axis_mask,

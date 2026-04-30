@@ -8,6 +8,11 @@
 
 static uint16_t s_overridePercent = NC_FEED_OVERRIDE_DEFAULT_PERCENT;
 
+/**
+ * @brief Handle clamp ticks for this module.
+ * @param ticks Segment duration in RT ticks.
+ * @return Function-specific result value.
+ */
 static uint32_t ClampTicks(double ticks)
 {
     if (ticks < (double)NC_INTERP_MIN_TICKS) {
@@ -19,6 +24,10 @@ static uint32_t ClampTicks(double ticks)
     return (uint32_t)ticks;
 }
 
+/**
+ * @brief Set profile in this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void SetProfile(NC_EXEC_BLOCK* pBlock)
 {
     uint32_t edge = NC_FEED_ACCEL_TICKS_DEFAULT;
@@ -37,6 +46,9 @@ static void SetProfile(NC_EXEC_BLOCK* pBlock)
     pBlock->decel_ticks = edge;
 }
 
+/**
+ * @brief Handle nc feed reset for this module.
+ */
 void NcFeed_Reset(void)
 {
     s_overridePercent = NC_FEED_OVERRIDE_DEFAULT_PERCENT;
@@ -45,12 +57,20 @@ void NcFeed_Reset(void)
     g_ncFeedStatus.feed_override_percent = s_overridePercent;
 }
 
+/**
+ * @brief Handle nc feed cancel rt for this module.
+ */
 void NcFeed_CancelRt(void)
 {
     g_ncFeedStatus.state = NC_FEED_CTRL_IDLE;
     g_ncFeedStatus.generation++;
 }
 
+/**
+ * @brief Handle nc feed set override for this module.
+ * @param percent Input value for percent.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcFeed_SetOverride(uint16_t percent)
 {
     if (percent > NC_FEED_OVERRIDE_MAX_PERCENT) {
@@ -62,10 +82,18 @@ int32_t NcFeed_SetOverride(uint16_t percent)
     return 0;
 }
 
+/**
+ * @brief Handle nc feed prepare motion ts for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pathLengthUnits Input value for path length units.
+ * @param pOutError Output pointer that receives the NC error code.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcFeed_PrepareMotionTs(NC_EXEC_BLOCK* pBlock,
                                double pathLengthUnits,
                                NC_ERROR_CODE* pOutError)
 {
+    /* Prepare local state used by the following processing stage. */
     double feedUnitsPerMin;
     double ticks;
 
@@ -91,6 +119,7 @@ int32_t NcFeed_PrepareMotionTs(NC_EXEC_BLOCK* pBlock,
             feedUnitsPerMin *= (double)pBlock->spindle_speed;
         }
     }
+    /* Apply the next logical update for this processing stage. */
     feedUnitsPerMin *= ((double)s_overridePercent / 100.0);
     if ((feedUnitsPerMin <= 0.0) || (pathLengthUnits < 0.0)) {
         *pOutError = NC_ERR_FEED;
@@ -104,6 +133,13 @@ int32_t NcFeed_PrepareMotionTs(NC_EXEC_BLOCK* pBlock,
     return 0;
 }
 
+/**
+ * @brief Handle nc feed prepare dwell ts for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param dwellTicks Input value for dwell ticks.
+ * @param pOutError Output pointer that receives the NC error code.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcFeed_PrepareDwellTs(NC_EXEC_BLOCK* pBlock,
                               uint32_t dwellTicks,
                               NC_ERROR_CODE* pOutError)
@@ -121,6 +157,11 @@ int32_t NcFeed_PrepareDwellTs(NC_EXEC_BLOCK* pBlock,
     return 0;
 }
 
+/**
+ * @brief Handle nc feed begin block rt for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcFeed_BeginBlockRt(const NC_EXEC_BLOCK* pBlock)
 {
     if (pBlock == 0) {
@@ -143,6 +184,12 @@ int32_t NcFeed_BeginBlockRt(const NC_EXEC_BLOCK* pBlock)
     return 0;
 }
 
+/**
+ * @brief Handle nc feed update rt for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param tick Input value for tick.
+ * @param done Input value for done.
+ */
 void NcFeed_UpdateRt(const NC_EXEC_BLOCK* pBlock, uint32_t tick, uint8_t done)
 {
     if (pBlock == 0) {
@@ -157,6 +204,13 @@ void NcFeed_UpdateRt(const NC_EXEC_BLOCK* pBlock, uint32_t tick, uint8_t done)
         g_ncFeedStatus.generation++;
     }
 }
+
+/**
+ * @brief Handle nc feed profile ratio rt for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param tick Input value for tick.
+ * @return Function-specific result value.
+ */
 
 double NcFeed_ProfileRatioRt(const NC_EXEC_BLOCK* pBlock, uint32_t tick)
 {

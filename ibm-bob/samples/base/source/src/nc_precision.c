@@ -11,11 +11,22 @@ static uint8_t s_learning_write_index;
 static int32_t s_last_output_target[AXIS_MAX];
 static uint8_t s_have_last_output;
 
+/**
+ * @brief Handle abs32 for this module.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t Abs32(int32_t value)
 {
     return (value < 0) ? -value : value;
 }
 
+/**
+ * @brief Handle clamp memory window for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param memoryWindow Requested learning memory window size.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t ClampMemoryWindow(uint8_t memoryWindow)
 {
     if (memoryWindow == 0U) {
@@ -27,6 +38,9 @@ static uint8_t ClampMemoryWindow(uint8_t memoryWindow)
     return memoryWindow;
 }
 
+/**
+ * @brief Handle nc precision reset for this module.
+ */
 void NcPrecision_Reset(void)
 {
     (void)memset((void*)&g_ncPrecisionStatus, 0, sizeof(g_ncPrecisionStatus));
@@ -43,6 +57,13 @@ void NcPrecision_Reset(void)
     g_ncPrecisionStatus.generation++;
 }
 
+/**
+ * @brief Handle nc precision set learning control for this module.
+ * @param enabled Non-zero to enable the mode; zero to disable it.
+ * @param gainPercent Input value for gain percent.
+ * @param memoryWindow Requested learning memory window size.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcPrecision_SetLearningControl(uint8_t enabled,
                                        int32_t gainPercent,
                                        uint8_t memoryWindow)
@@ -57,6 +78,13 @@ int32_t NcPrecision_SetLearningControl(uint8_t enabled,
     return 0;
 }
 
+/**
+ * @brief Handle nc precision set vibration control for this module.
+ * @param enabled Non-zero to enable the mode; zero to disable it.
+ * @param notchFreqHz Input value for notch freq hz.
+ * @param dampingPercent Input value for damping percent.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcPrecision_SetVibrationControl(uint8_t enabled,
                                         uint16_t notchFreqHz,
                                         uint16_t dampingPercent)
@@ -72,6 +100,13 @@ int32_t NcPrecision_SetVibrationControl(uint8_t enabled,
     return 0;
 }
 
+/**
+ * @brief Handle nc precision set preview control for this module.
+ * @param enabled Non-zero to enable the mode; zero to disable it.
+ * @param lookaheadBlocks Input value for lookahead blocks.
+ * @param cornerTolerance Input value for corner tolerance.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcPrecision_SetPreviewControl(uint8_t enabled,
                                       uint16_t lookaheadBlocks,
                                       uint16_t cornerTolerance)
@@ -88,8 +123,13 @@ int32_t NcPrecision_SetPreviewControl(uint8_t enabled,
     return 0;
 }
 
+/**
+ * @brief Update mode from feature from current inputs.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void UpdateModeFromFeature(const NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t flags = pBlock->feature_flags;
 
     if (pBlock->g_code10 == (uint16_t)NC_G_CODE_WHOLE(8)) {
@@ -125,6 +165,7 @@ static void UpdateModeFromFeature(const NC_EXEC_BLOCK* pBlock)
         }
     }
 
+    /* Handle the next conditional branch for this processing stage. */
     if ((pBlock->g_code10 == (uint16_t)NC_G_CODE10(5, 1)) ||
         (pBlock->g_code10 == (uint16_t)NC_G_CODE10(5, 2))) {
         g_ncPrecisionStatus.preview_control_enabled = 1U;
@@ -145,6 +186,10 @@ static void UpdateModeFromFeature(const NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Update preview shape ts from current inputs.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void UpdatePreviewShapeTs(const NC_EXEC_BLOCK* pBlock)
 {
     int32_t maxDelta = 0;
@@ -178,6 +223,10 @@ static void UpdatePreviewShapeTs(const NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Handle nc precision on parsed block ts for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcPrecision_OnParsedBlockTs(const NC_EXEC_BLOCK* pBlock)
 {
     if (pBlock == 0) {
@@ -188,6 +237,11 @@ void NcPrecision_OnParsedBlockTs(const NC_EXEC_BLOCK* pBlock)
     g_ncPrecisionStatus.generation++;
 }
 
+/**
+ * @brief Build learning correction from current shared state.
+ * @param axis Axis index used by the helper.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t BuildLearningCorrection(uint32_t axis)
 {
     int32_t sum = 0;
@@ -204,8 +258,13 @@ static int32_t BuildLearningCorrection(uint32_t axis)
     return (sum * g_ncPrecisionStatus.learning_gain_percent) / 100;
 }
 
+/**
+ * @brief Handle nc precision on block rt for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcPrecision_OnBlockRt(const NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t axis;
 
     if (pBlock == 0) {
@@ -220,6 +279,7 @@ void NcPrecision_OnBlockRt(const NC_EXEC_BLOCK* pBlock)
     if ((pBlock->feature_flags & NC_FEATURE_FLAG_HIGH_SPEED_MODE) != 0U) {
         g_ncPrecisionStatus.high_speed_cycle_blocks++;
     }
+    /* Handle the next conditional branch for this processing stage. */
     if ((pBlock->feature_flags & NC_FEATURE_FLAG_HPCC) != 0U) {
         g_ncPrecisionStatus.hpcc_mode_blocks++;
     }
@@ -265,6 +325,9 @@ void NcPrecision_OnBlockRt(const NC_EXEC_BLOCK* pBlock)
     g_ncPrecisionStatus.generation++;
 }
 
+/**
+ * @brief Handle nc precision service rt for this module.
+ */
 void NcPrecision_ServiceRt(void)
 {
     uint32_t axis;

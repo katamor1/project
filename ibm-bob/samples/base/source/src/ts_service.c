@@ -11,6 +11,9 @@
 
 static FILE* s_logFile = NULL;
 
+/**
+ * @brief Handle ensure log file open for this module.
+ */
 static void EnsureLogFileOpen(void)
 {
     if (s_logFile == NULL) {
@@ -18,6 +21,9 @@ static void EnsureLogFileOpen(void)
     }
 }
 
+/**
+ * @brief Run one TS service time-share service slice.
+ */
 void TsService_ExecuteSlice(void)
 {
     TsService_HandleLogFlush();
@@ -27,6 +33,9 @@ void TsService_ExecuteSlice(void)
     TsService_BuildUiSnapshot();
 }
 
+/**
+ * @brief Handle TS service handle log flush for this module.
+ */
 void TsService_HandleLogFlush(void)
 {
     if (g_uiRequest.log_flush_request == 0U) {
@@ -43,6 +52,9 @@ void TsService_HandleLogFlush(void)
     (void)LogQueue_Push(LOG_AUDIT, 2001U, 0);
 }
 
+/**
+ * @brief Write pending logs for the smoke-test scenario.
+ */
 void TsService_WritePendingLogs(void)
 {
     EnsureLogFileOpen();
@@ -63,6 +75,9 @@ void TsService_WritePendingLogs(void)
     (void)fflush(s_logFile);
 }
 
+/**
+ * @brief Handle TS service execute prefetch for this module.
+ */
 void TsService_ExecutePrefetch(void)
 {
     uint32_t i;
@@ -87,6 +102,9 @@ void TsService_ExecutePrefetch(void)
     g_prefetchReq.busy = 0U;
 }
 
+/**
+ * @brief Build UI snapshot from current shared state.
+ */
 void TsService_BuildUiSnapshot(void)
 {
     (void)snprintf((char*)g_uiRequest.ui_message_text,

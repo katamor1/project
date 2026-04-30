@@ -159,6 +159,12 @@ static const NC_M_CODE_INFO s_mCodes[] = {
     {130U, 1U, 0U}
 };
 
+/**
+ * @brief Copy G code info from NC codes.
+ * @param code Code value being applied or recorded.
+ * @param pOutInfo Output pointer receiving info.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCodes_GetGCodeInfo(int32_t code, NC_G_CODE_INFO* pOutInfo)
 {
     size_t i;
@@ -175,6 +181,12 @@ int32_t NcCodes_GetGCodeInfo(int32_t code, NC_G_CODE_INFO* pOutInfo)
     return -1;
 }
 
+/**
+ * @brief Copy address info from NC codes.
+ * @param address Input value for address.
+ * @param pOutInfo Output pointer receiving info.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCodes_GetAddressInfo(char address, NC_ADDRESS_INFO* pOutInfo)
 {
     size_t i;
@@ -192,6 +204,12 @@ int32_t NcCodes_GetAddressInfo(char address, NC_ADDRESS_INFO* pOutInfo)
     return -1;
 }
 
+/**
+ * @brief Copy M code info from NC codes.
+ * @param code Code value being applied or recorded.
+ * @param pOutInfo Output pointer receiving info.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCodes_GetMCodeInfo(uint32_t code, NC_M_CODE_INFO* pOutInfo)
 {
     size_t i;

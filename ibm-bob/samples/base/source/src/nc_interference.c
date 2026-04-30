@@ -4,12 +4,19 @@
 #include <string.h>
 #include "nc_interference.h"
 #include "nc_program.h"
-
+/**
+ * @brief Handle abs32 for this module.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t Abs32(int32_t value)
 {
     return (value < 0) ? -value : value;
 }
 
+/**
+ * @brief Handle nc interference reset for this module.
+ */
 void NcInterference_Reset(void)
 {
     (void)memset((void*)&g_ncInterferenceStatus, 0, sizeof(g_ncInterferenceStatus));
@@ -17,6 +24,11 @@ void NcInterference_Reset(void)
     g_ncInterferenceStatus.generation++;
 }
 
+/**
+ * @brief Handle nc interference set enabled for this module.
+ * @param enabled Non-zero to enable the mode; zero to disable it.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcInterference_SetEnabled(uint8_t enabled)
 {
     g_ncInterferenceStatus.enabled = (uint8_t)(enabled != 0U);
@@ -24,6 +36,12 @@ int32_t NcInterference_SetEnabled(uint8_t enabled)
     return 0;
 }
 
+/**
+ * @brief Apply warning to the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param kind Segment or warning kind handled by the helper.
+ * @param value Numeric value being converted, clamped, or tested.
+ */
 static void ApplyWarning(NC_EXEC_BLOCK* pBlock, uint8_t kind, int32_t value)
 {
     g_ncInterferenceStatus.last_warning_kind = kind;
@@ -39,8 +57,13 @@ static void ApplyWarning(NC_EXEC_BLOCK* pBlock, uint8_t kind, int32_t value)
                  pBlock->line_no);
 }
 
+/**
+ * @brief Handle nc interference check block ts for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcInterference_CheckBlockTs(NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t axis;
     uint32_t movingAxes = 0U;
     int32_t minClearance = NC_INTERFERENCE_AXIS_LIMIT;
@@ -56,6 +79,7 @@ void NcInterference_CheckBlockTs(NC_EXEC_BLOCK* pBlock)
         return;
     }
 
+    /* Apply the next logical update for this processing stage. */
     g_ncInterferenceStatus.checked_blocks++;
     g_ncInterferenceStatus.last_line_no = pBlock->line_no;
 

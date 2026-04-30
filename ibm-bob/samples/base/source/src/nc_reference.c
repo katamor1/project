@@ -16,11 +16,20 @@ static int32_t s_oneDirectionApproach[AXIS_MAX];
 static uint32_t s_distanceCodedMarkerMask;
 static uint32_t s_prevReferenceSensorBits;
 
+/**
+ * @brief Handle valid axis mask for this module.
+ * @param mask Bit mask being validated or tested.
+ * @return Function-specific result value.
+ */
 static uint32_t ValidAxisMask(uint32_t mask)
 {
     return mask & ((1UL << AXIS_MAX) - 1UL);
 }
 
+/**
+ * @brief Handle reference sensor mask for this module.
+ * @return Function-specific result value.
+ */
 static uint32_t ReferenceSensorMask(void)
 {
     uint32_t mask = 0U;
@@ -32,6 +41,11 @@ static uint32_t ReferenceSensorMask(void)
     return mask;
 }
 
+/**
+ * @brief Return whether reference return code is true for the current block or state.
+ * @param code10 Internal code value being tested or applied.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsReferenceReturnCode(uint32_t code10)
 {
     return (uint8_t)((code10 == (uint32_t)G(28)) ||
@@ -40,11 +54,21 @@ static uint8_t IsReferenceReturnCode(uint32_t code10)
                      (code10 == (uint32_t)GD(11, 6)));
 }
 
+/**
+ * @brief Return whether one direction code is true for the current block or state.
+ * @param code10 Internal code value being tested or applied.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsOneDirectionCode(uint32_t code10)
 {
     return (uint8_t)(code10 == (uint32_t)G(60));
 }
 
+/**
+ * @brief Return whether motion like is true for the current block or state.
+ * @param motion Motion type being tested by the helper.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsMotionLike(NC_MOTION_TYPE motion)
 {
     return (uint8_t)((motion == NC_MOTION_RAPID) ||
@@ -58,6 +82,9 @@ static uint8_t IsMotionLike(NC_MOTION_TYPE motion)
                      (motion == NC_MOTION_ADVANCED_INTERP));
 }
 
+/**
+ * @brief Handle nc reference reset for this module.
+ */
 void NcReference_Reset(void)
 {
     uint32_t generation = g_ncReferenceStatus.generation;
@@ -79,6 +106,15 @@ void NcReference_Reset(void)
     g_ncReferenceStatus.generation = generation + 1U;
 }
 
+/**
+ * @brief Handle nc reference set axis config for this module.
+ * @param axis Axis index used by the helper.
+ * @param referencePosition Input value for reference position.
+ * @param approachDirection Input value for approach direction.
+ * @param rolloverLimit Input value for rollover limit.
+ * @param distanceCodedMarker Input value for distance coded marker.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcReference_SetAxisConfig(uint8_t axis,
                                   int32_t referencePosition,
                                   int8_t approachDirection,
@@ -107,6 +143,12 @@ int32_t NcReference_SetAxisConfig(uint8_t axis,
     return 0;
 }
 
+/**
+ * @brief Handle nc reference set one direction approach for this module.
+ * @param axis Axis index used by the helper.
+ * @param approachAmount Input value for approach amount.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcReference_SetOneDirectionApproach(uint8_t axis,
                                             int32_t approachAmount)
 {
@@ -119,6 +161,10 @@ int32_t NcReference_SetOneDirectionApproach(uint8_t axis,
     return 0;
 }
 
+/**
+ * @brief Handle record axis target extremes for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void RecordAxisTargetExtremes(const NC_EXEC_BLOCK* pBlock)
 {
     uint32_t axis;
@@ -142,8 +188,13 @@ static void RecordAxisTargetExtremes(const NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Handle nc reference on parsed block ts for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcReference_OnParsedBlockTs(NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t axisMask;
     uint32_t axis;
 
@@ -156,6 +207,7 @@ void NcReference_OnParsedBlockTs(NC_EXEC_BLOCK* pBlock)
         axisMask = ((1UL << AXIS_MAX) - 1UL);
     }
 
+    /* Handle the next conditional branch for this processing stage. */
     if (IsReferenceReturnCode(pBlock->g_code10) != 0U) {
         g_ncReferenceStatus.planned_reference_return_blocks++;
         if (pBlock->g_code10 == (uint32_t)G(30)) {
@@ -184,8 +236,13 @@ void NcReference_OnParsedBlockTs(NC_EXEC_BLOCK* pBlock)
     g_ncReferenceStatus.generation++;
 }
 
+/**
+ * @brief Handle nc reference on block rt for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcReference_OnBlockRt(const NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t axisMask;
     uint32_t axis;
 
@@ -194,6 +251,7 @@ void NcReference_OnBlockRt(const NC_EXEC_BLOCK* pBlock)
     }
 
     axisMask = ValidAxisMask(pBlock->axis_mask);
+    /* Handle the next conditional branch for this processing stage. */
     if ((axisMask == 0U) && (IsReferenceReturnCode(pBlock->g_code10) != 0U)) {
         axisMask = ((1UL << AXIS_MAX) - 1UL);
     }
@@ -229,6 +287,9 @@ void NcReference_OnBlockRt(const NC_EXEC_BLOCK* pBlock)
     g_ncReferenceStatus.generation++;
 }
 
+/**
+ * @brief Handle nc reference service rt for this module.
+ */
 void NcReference_ServiceRt(void)
 {
     uint32_t current = g_ioIn.sensor_bits & ReferenceSensorMask();

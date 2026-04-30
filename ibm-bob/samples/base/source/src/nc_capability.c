@@ -3,7 +3,11 @@
 #include <string.h>
 #include "nc_capability.h"
 #include "nc_program.h"
-
+/**
+ * @brief Handle popcount32 for this module.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @return Function-specific result value.
+ */
 static uint32_t Popcount32(uint32_t value)
 {
     uint32_t count = 0U;
@@ -14,6 +18,11 @@ static uint32_t Popcount32(uint32_t value)
     return count;
 }
 
+/**
+ * @brief Handle axis mask to address mask for this module.
+ * @param axisMask Bit mask of axes to validate or translate.
+ * @return Function-specific result value.
+ */
 static uint32_t AxisMaskToAddressMask(uint32_t axisMask)
 {
     uint32_t mask = 0U;
@@ -24,12 +33,20 @@ static uint32_t AxisMaskToAddressMask(uint32_t axisMask)
     return mask;
 }
 
+/**
+ * @brief Handle nc capability reset for this module.
+ */
 void NcCapability_Reset(void)
 {
     (void)memset((void*)&g_ncCapabilityStatus, 0, sizeof(g_ncCapabilityStatus));
     g_ncCapabilityStatus.generation++;
 }
 
+/**
+ * @brief Handle nc capability record unsupported for this module.
+ * @param kind Segment or warning kind handled by the helper.
+ * @param code G-code or M-code value being tested or applied.
+ */
 void NcCapability_RecordUnsupported(uint8_t kind, uint32_t code)
 {
     if (kind == NC_CAPABILITY_KIND_G) {
@@ -51,8 +68,13 @@ void NcCapability_RecordUnsupported(uint8_t kind, uint32_t code)
     g_ncCapabilityStatus.generation++;
 }
 
+/**
+ * @brief Handle nc capability on parsed block ts for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcCapability_OnParsedBlockTs(const NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t addrMask;
 
     if (pBlock == NULL) {
@@ -69,6 +91,7 @@ void NcCapability_OnParsedBlockTs(const NC_EXEC_BLOCK* pBlock)
     if ((pBlock->feature_flags & NC_FEATURE_FLAG_PARAM_Q) != 0U) { addrMask |= (1UL << ('Q' - 'A')); }
     if ((pBlock->feature_flags & NC_FEATURE_FLAG_PARAM_R) != 0U) { addrMask |= (1UL << ('R' - 'A')); }
     if (pBlock->h_offset_no != 0U) { addrMask |= (1UL << ('H' - 'A')); }
+    /* Handle the next conditional branch for this processing stage. */
     if (pBlock->d_offset_no != 0U) { addrMask |= (1UL << ('D' - 'A')); }
     if (pBlock->cycle_repeat != 0U) { addrMask |= (1UL << ('K' - 'A')); }
 

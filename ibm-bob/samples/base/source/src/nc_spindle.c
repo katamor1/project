@@ -15,11 +15,21 @@
 
 static uint32_t s_orient_start_cycle;
 
+/**
+ * @brief Handle abs32 for this module.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t Abs32(int32_t value)
 {
     return (value < 0) ? -value : value;
 }
 
+/**
+ * @brief Handle clamp rpm for this module.
+ * @param rpm Spindle speed in revolutions per minute.
+ * @return Function-specific result value.
+ */
 static uint32_t ClampRpm(uint32_t rpm)
 {
     uint32_t clamped = rpm;
@@ -37,6 +47,11 @@ static uint32_t ClampRpm(uint32_t rpm)
     return clamped;
 }
 
+/**
+ * @brief Handle estimate css rpm for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @return Function-specific result value.
+ */
 static uint32_t EstimateCssRpm(const NC_EXEC_BLOCK* pBlock)
 {
     uint32_t surface = g_ncSpindleStatus.css_surface_speed;
@@ -60,6 +75,9 @@ static uint32_t EstimateCssRpm(const NC_EXEC_BLOCK* pBlock)
     return (uint32_t)rpm;
 }
 
+/**
+ * @brief Handle nc spindle reset for this module.
+ */
 void NcSpindle_Reset(void)
 {
     (void)memset((void*)&g_ncSpindleStatus, 0, sizeof(g_ncSpindleStatus));
@@ -70,6 +88,12 @@ void NcSpindle_Reset(void)
     g_ncSpindleStatus.generation++;
 }
 
+/**
+ * @brief Handle nc spindle set speed limit for this module.
+ * @param minRpm Input value for min rpm.
+ * @param maxRpm Input value for max rpm.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcSpindle_SetSpeedLimit(uint32_t minRpm, uint32_t maxRpm)
 {
     if ((maxRpm == 0U) || (minRpm > maxRpm) ||
@@ -82,6 +106,11 @@ int32_t NcSpindle_SetSpeedLimit(uint32_t minRpm, uint32_t maxRpm)
     return 0;
 }
 
+/**
+ * @brief Handle nc spindle set orient window for this module.
+ * @param timeoutTicks Input value for timeout ticks.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcSpindle_SetOrientWindow(uint16_t timeoutTicks)
 {
     if (timeoutTicks == 0U) {
@@ -92,8 +121,13 @@ int32_t NcSpindle_SetOrientWindow(uint16_t timeoutTicks)
     return 0;
 }
 
+/**
+ * @brief Handle nc spindle on parsed block ts for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcSpindle_OnParsedBlockTs(const NC_EXEC_BLOCK* pBlock)
 {
+    /* Handle the next conditional branch for this processing stage. */
     if (pBlock == 0) {
         return;
     }
@@ -108,6 +142,7 @@ void NcSpindle_OnParsedBlockTs(const NC_EXEC_BLOCK* pBlock)
         g_ncSpindleStatus.last_g_code10 = pBlock->g_code10;
     }
 
+    /* Handle the next conditional branch for this processing stage. */
     if ((pBlock->aux_flags & NC_AUX_FLAG_SPINDLE) != 0U) {
         g_ncSpindleStatus.commanded_rpm = pBlock->spindle_speed;
         if (g_ncSpindleStatus.css_mode_active != 0U) {
@@ -130,8 +165,13 @@ void NcSpindle_OnParsedBlockTs(const NC_EXEC_BLOCK* pBlock)
     g_ncSpindleStatus.generation++;
 }
 
+/**
+ * @brief Handle nc spindle on block rt for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcSpindle_OnBlockRt(const NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t rpm = g_ncSpindleStatus.commanded_rpm;
 
     if (pBlock == 0) {
@@ -159,6 +199,7 @@ void NcSpindle_OnBlockRt(const NC_EXEC_BLOCK* pBlock)
         g_ioOut.spindle_speed = g_ncSpindleStatus.output_rpm;
     }
 
+    /* Handle the next conditional branch for this processing stage. */
     if ((pBlock->aux_flags & NC_AUX_FLAG_M_CODE) != 0U) {
         uint32_t m = pBlock->aux_m_code;
         g_ncSpindleStatus.last_m_code = m;
@@ -214,6 +255,9 @@ void NcSpindle_OnBlockRt(const NC_EXEC_BLOCK* pBlock)
     g_ncSpindleStatus.generation++;
 }
 
+/**
+ * @brief Handle nc spindle service rt for this module.
+ */
 void NcSpindle_ServiceRt(void)
 {
     if (g_ncSpindleStatus.orient_requested == 0U) {

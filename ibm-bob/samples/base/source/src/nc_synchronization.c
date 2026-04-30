@@ -12,12 +12,19 @@
 #define MODE_COMPOUND_BIT  (0x0002U)
 #define MODE_OVERLAY_BIT   (0x0004U)
 #define MODE_DOUBLE_TABLE  (0x0008U)
-
+/**
+ * @brief Handle abs32 for this module.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t Abs32(int32_t value)
 {
     return (value < 0) ? -value : value;
 }
 
+/**
+ * @brief Update mode bits from current inputs.
+ */
 static void UpdateModeBits(void)
 {
     uint16_t bits = 0U;
@@ -37,8 +44,12 @@ static void UpdateModeBits(void)
     g_ncSynchronizationStatus.active_mode_bits = bits;
 }
 
+/**
+ * @brief Handle nc synchronization reset for this module.
+ */
 void NcSynchronization_Reset(void)
 {
+    /* Prepare local state used by the following processing stage. */
     uint8_t masterAxis = g_ncSynchronizationStatus.master_axis;
     uint32_t slaveMask = g_ncSynchronizationStatus.slave_axis_mask;
     uint32_t overlayMask = g_ncSynchronizationStatus.overlay_axis_mask;
@@ -62,10 +73,17 @@ void NcSynchronization_Reset(void)
     for (axis = 0U; axis < AXIS_MAX; ++axis) {
         g_ncSynchronizationStatus.overlay_offset[axis] = overlayOffset[axis];
     }
+    /* Apply the next logical update for this processing stage. */
     UpdateModeBits();
     g_ncSynchronizationStatus.generation++;
 }
 
+/**
+ * @brief Handle nc synchronization set master slave for this module.
+ * @param masterAxis Master axis index used for synchronization.
+ * @param slaveAxisMask Bit mask of slave axes used for synchronization.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcSynchronization_SetMasterSlave(uint8_t masterAxis, uint32_t slaveAxisMask)
 {
     uint32_t validMask = (AXIS_MAX >= 32U) ? 0xffffffffUL : ((1UL << AXIS_MAX) - 1UL);
@@ -84,6 +102,12 @@ int32_t NcSynchronization_SetMasterSlave(uint8_t masterAxis, uint32_t slaveAxisM
     return 0;
 }
 
+/**
+ * @brief Handle nc synchronization set overlay axis for this module.
+ * @param axis Axis index used by the helper.
+ * @param offset Input value for offset.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcSynchronization_SetOverlayAxis(uint8_t axis, int32_t offset)
 {
     if (axis >= AXIS_MAX) {
@@ -99,6 +123,11 @@ int32_t NcSynchronization_SetOverlayAxis(uint8_t axis, int32_t offset)
     return 0;
 }
 
+/**
+ * @brief Handle nc synchronization set compound path mask for this module.
+ * @param pathMask Bit mask of axes in the compound path.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcSynchronization_SetCompoundPathMask(uint32_t pathMask)
 {
     uint32_t validMask = (AXIS_MAX >= 32U) ? 0xffffffffUL : ((1UL << AXIS_MAX) - 1UL);
@@ -108,6 +137,12 @@ int32_t NcSynchronization_SetCompoundPathMask(uint32_t pathMask)
     return 0;
 }
 
+/**
+ * @brief Handle nc synchronization set double table for this module.
+ * @param enabled Non-zero to enable the mode; zero to disable it.
+ * @param slaveAxisMask Bit mask of slave axes used for synchronization.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcSynchronization_SetDoubleTable(uint8_t enabled, uint32_t slaveAxisMask)
 {
     uint32_t validMask = (AXIS_MAX >= 32U) ? 0xffffffffUL : ((1UL << AXIS_MAX) - 1UL);
@@ -119,6 +154,11 @@ int32_t NcSynchronization_SetDoubleTable(uint8_t enabled, uint32_t slaveAxisMask
     return 0;
 }
 
+/**
+ * @brief Return whether mode command is true for the current block or state.
+ * @param code10 Internal code value being tested or applied.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsModeCommand(uint32_t code10)
 {
     return (uint8_t)((code10 == G(51, 4)) || (code10 == G(50, 4)) ||
@@ -126,6 +166,10 @@ static uint8_t IsModeCommand(uint32_t code10)
                      (code10 == G(51, 6)) || (code10 == G(50, 6)));
 }
 
+/**
+ * @brief Handle nc synchronization on parsed block ts for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcSynchronization_OnParsedBlockTs(const NC_EXEC_BLOCK* pBlock)
 {
     if (pBlock == 0) {
@@ -139,8 +183,13 @@ void NcSynchronization_OnParsedBlockTs(const NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Apply mode command rt to the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void ApplyModeCommandRt(const NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     uint8_t modeChanged = 0U;
 
     if (pBlock->g_code10 == G(51, 4)) {
@@ -172,6 +221,7 @@ static void ApplyModeCommandRt(const NC_EXEC_BLOCK* pBlock)
     }
     g_ncSynchronizationStatus.executed_mode_blocks++;
     g_ncSynchronizationStatus.last_mode_code10 = pBlock->g_code10;
+    /* Apply the next logical update for this processing stage. */
     g_ncSynchronizationStatus.last_line_no = pBlock->line_no;
     UpdateModeBits();
     NcEvent_Push(NC_EVENT_CODE_SYNC_MODE_CHANGE,
@@ -180,6 +230,12 @@ static void ApplyModeCommandRt(const NC_EXEC_BLOCK* pBlock)
                  pBlock->line_no);
 }
 
+/**
+ * @brief Handle track following error for this module.
+ * @param axis Axis index used by the helper.
+ * @param error Following-error value recorded for diagnostics.
+ * @param lineNo NC source line number associated with the update.
+ */
 static void TrackFollowingError(uint8_t axis, int32_t error, uint32_t lineNo)
 {
     g_ncSynchronizationStatus.last_following_error[axis] = error;
@@ -192,8 +248,14 @@ static void TrackFollowingError(uint8_t axis, int32_t error, uint32_t lineNo)
     }
 }
 
+/**
+ * @brief Apply master slave rt to the current block or state.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void ApplyMasterSlaveRt(NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     uint8_t master = g_ncSynchronizationStatus.master_axis;
     int32_t masterDelta;
     uint32_t slaveMask;
@@ -201,6 +263,7 @@ static void ApplyMasterSlaveRt(NC_EXEC_BLOCK* pBlock)
     uint8_t applied = 0U;
 
     if ((g_ncSynchronizationStatus.sync_enabled == 0U) &&
+        /* Apply the next logical update for this processing stage. */
         (g_ncSynchronizationStatus.double_table_enabled == 0U)) {
         return;
     }
@@ -238,6 +301,10 @@ static void ApplyMasterSlaveRt(NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Apply overlay rt to the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void ApplyOverlayRt(NC_EXEC_BLOCK* pBlock)
 {
     uint8_t axis;
@@ -263,6 +330,10 @@ static void ApplyOverlayRt(NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Handle track compound rt for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 static void TrackCompoundRt(const NC_EXEC_BLOCK* pBlock)
 {
     if (g_ncSynchronizationStatus.compound_enabled == 0U) {
@@ -273,6 +344,10 @@ static void TrackCompoundRt(const NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Handle nc synchronization apply block rt for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcSynchronization_ApplyBlockRt(NC_EXEC_BLOCK* pBlock)
 {
     uint8_t axis;

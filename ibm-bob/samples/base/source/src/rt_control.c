@@ -23,20 +23,32 @@
 #define CMD_ENABLE_SERVO        (0x00000001UL)
 #define CMD_START_MOTION        (0x00000002UL)
 #define CMD_SAFE_OUTPUT         (0x80000000UL)
-
+/**
+ * @brief Get pressure feedback from current state.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t GetPressureFeedback(void)
 {
     return g_ioIn.analog[0];
 }
 
+/**
+ * @brief Return whether pressure ready range is true for the current block or state.
+ * @param pressure Pressure feedback value tested against the ready range.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsPressureReadyRange(int32_t pressure)
 {
     return (uint8_t)((pressure >= READY_PRESSURE_MIN) &&
                      (pressure <= READY_PRESSURE_MAX));
 }
 
+/**
+ * @brief Handle rt control update prestart interlock for this module.
+ */
 void RtControl_UpdatePrestartInterlock(void)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t mask = 0U;
     uint32_t bits = g_ioIn.sensor_bits;
     int32_t pressure = GetPressureFeedback();
@@ -56,6 +68,7 @@ void RtControl_UpdatePrestartInterlock(void)
     if (g_machineCtx.machine_state == MACHINE_ALARM) {
         mask |= PRESTART_ILK_MACHINE_ALARM;
     }
+    /* Handle the next conditional branch for this processing stage. */
     if ((g_ncProgramStatus.state == NC_READY) &&
         (g_ncProgramStatus.buffered_blocks == 0U)) {
         mask |= PRESTART_ILK_NC_BUFFER;
@@ -69,8 +82,12 @@ void RtControl_UpdatePrestartInterlock(void)
     g_prestartInterlockStatus.generation++;
 }
 
+/**
+ * @brief Handle rt control capture io trace for this module.
+ */
 void RtControl_CaptureIoTrace(void)
 {
+    /* Prepare local state used by the following processing stage. */
     IO_TRACE_ITEM* pItem;
     uint32_t i;
 
@@ -96,6 +113,7 @@ void RtControl_CaptureIoTrace(void)
 
     g_ioTraceBuffer.write_index =
         (g_ioTraceBuffer.write_index + 1U) % IO_TRACE_RING_SIZE;
+    /* Handle the next conditional branch for this processing stage. */
     if (g_ioTraceBuffer.captured_count < IO_TRACE_RING_SIZE) {
         g_ioTraceBuffer.captured_count++;
     }
@@ -107,8 +125,12 @@ void RtControl_CaptureIoTrace(void)
     g_ioTraceBuffer.generation++;
 }
 
+/**
+ * @brief Handle rt dispatcher execute cycle for this module.
+ */
 void RtDispatcher_ExecuteCycle(void)
 {
+    /* Apply the next logical update for this processing stage. */
     g_machineCtx.cycle_count++;
 
     RtInput_ScanInputs();
@@ -131,6 +153,7 @@ void RtDispatcher_ExecuteCycle(void)
     RtControl_CaptureIoTrace();
     NcDiagnostics_BuildSnapshot();
 
+    /* Apply the next logical update for this processing stage. */
     g_machineCtx.rt_input_ticks = 1U;
     g_machineCtx.rt_control_ticks = 2U;
     g_machineCtx.rt_output_ticks = 1U;
@@ -139,6 +162,9 @@ void RtDispatcher_ExecuteCycle(void)
                                    g_machineCtx.rt_output_ticks);
 }
 
+/**
+ * @brief Handle rt input scan inputs for this module.
+ */
 void RtInput_ScanInputs(void)
 {
     /* 評価用コードでは外部入力ミラー更新を省略し、既存 g_ioIn を参照する。 */
@@ -148,6 +174,9 @@ void RtInput_ScanInputs(void)
     }
 }
 
+/**
+ * @brief Handle rt control update machine state for this module.
+ */
 void RtControl_UpdateMachineState(void)
 {
     int32_t pressure = GetPressureFeedback();
@@ -182,6 +211,9 @@ void RtControl_UpdateMachineState(void)
     }
 }
 
+/**
+ * @brief Handle rt control process mode request for this module.
+ */
 void RtControl_ProcessModeRequest(void)
 {
     if (g_uiRequest.mode_change_request == 0U) {
@@ -221,6 +253,9 @@ void RtControl_ProcessModeRequest(void)
     g_uiRequest.mode_change_request = 0U;
 }
 
+/**
+ * @brief Handle rt control update interlock for this module.
+ */
 void RtControl_UpdateInterlock(void)
 {
     int32_t pressure = GetPressureFeedback();
@@ -238,8 +273,12 @@ void RtControl_UpdateInterlock(void)
     }
 }
 
+/**
+ * @brief Handle rt control update axis targets for this module.
+ */
 void RtControl_UpdateAxisTargets(void)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t i;
     int32_t baseTarget = 0;
 
@@ -254,6 +293,7 @@ void RtControl_UpdateAxisTargets(void)
         baseTarget = 0;
     }
 
+    /* Handle the next conditional branch for this processing stage. */
     if ((g_prefetchReq.ready != 0U) &&
         (g_prefetchResult.generation == g_prefetchReq.generation)) {
         baseTarget += (int32_t)(g_prefetchResult.table[0] * 10.0F);
@@ -270,6 +310,9 @@ void RtControl_UpdateAxisTargets(void)
     }
 }
 
+/**
+ * @brief Handle rt output commit outputs for this module.
+ */
 void RtOutput_CommitOutputs(void)
 {
     if (g_machineCtx.machine_state == MACHINE_ALARM) {

@@ -7,12 +7,22 @@
 #include "nc_program.h"
 
 #define NC_PI (3.14159265358979323846)
-
+/**
+ * @brief Handle round fixed for this module.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t RoundFixed(double value)
 {
     return (int32_t)(value + ((value >= 0.0) ? 0.5 : -0.5));
 }
 
+/**
+ * @brief Handle nc interp plane axes for this module.
+ * @param plane Input value for plane.
+ * @param pA First point used by the vector calculation.
+ * @param pB Second point used by the vector calculation.
+ */
 void NcInterp_PlaneAxes(NC_PLANE plane, uint32_t* pA, uint32_t* pB)
 {
     if (plane == NC_PLANE_ZX) {
@@ -26,6 +36,18 @@ void NcInterp_PlaneAxes(NC_PLANE plane, uint32_t* pA, uint32_t* pB)
         *pB = 1U;
     }
 }
+
+/**
+ * @brief Handle nc interp signed sweep for this module.
+ * @param motion Motion type being tested by the helper.
+ * @param su Input value for su.
+ * @param sv Input value for sv.
+ * @param eu Input value for eu.
+ * @param ev Input value for ev.
+ * @param cu Input value for cu.
+ * @param cv Input value for cv.
+ * @return Function-specific result value.
+ */
 
 double NcInterp_SignedSweep(NC_MOTION_TYPE motion,
                             double su,
@@ -49,11 +71,21 @@ double NcInterp_SignedSweep(NC_MOTION_TYPE motion,
     return sweep;
 }
 
+/**
+ * @brief Handle prepare arc center from r for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param a First numeric value used by the helper.
+ * @param b Second numeric value used by the helper.
+ * @param pOutError Output pointer that receives the NC error code.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t PrepareArcCenterFromR(NC_EXEC_BLOCK* pBlock,
                                      uint32_t a,
                                      uint32_t b,
                                      NC_ERROR_CODE* pOutError)
 {
+    /* Prepare local state used by the following processing stage. */
     double su = (double)pBlock->axis_start[a];
     double sv = (double)pBlock->axis_start[b];
     double eu = (double)pBlock->axis_target[a];
@@ -79,6 +111,7 @@ static int32_t PrepareArcCenterFromR(NC_EXEC_BLOCK* pBlock,
     cx1 = ((su + eu) * 0.5) + ((-dy / chord) * h);
     cy1 = ((sv + ev) * 0.5) + ((dx / chord) * h);
     sweep1 = fabs(NcInterp_SignedSweep(pBlock->motion_type,
+                                       /* Apply the next logical update for this processing stage. */
                                        su, sv, eu, ev, cx1, cy1));
     wantSmall = (uint8_t)(pBlock->arc_radius > 0);
 
@@ -96,10 +129,18 @@ static int32_t PrepareArcCenterFromR(NC_EXEC_BLOCK* pBlock,
     return 0;
 }
 
+/**
+ * @brief Handle nc interp prepare arc ts for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pPathLengthUnits Pointer to path length units used by the function.
+ * @param pOutError Output pointer that receives the NC error code.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcInterp_PrepareArcTs(NC_EXEC_BLOCK* pBlock,
                               double* pPathLengthUnits,
                               NC_ERROR_CODE* pOutError)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t a;
     uint32_t b;
     double rs;
@@ -135,6 +176,7 @@ int32_t NcInterp_PrepareArcTs(NC_EXEC_BLOCK* pBlock,
     }
     samePlaneEndpoint =
         (uint8_t)((fabs((double)pBlock->axis_start[a] -
+                        /* Apply the next logical update for this processing stage. */
                         (double)pBlock->axis_target[a]) <=
                    (double)NC_ARC_TOLERANCE) &&
                   (fabs((double)pBlock->axis_start[b] -
@@ -167,6 +209,7 @@ int32_t NcInterp_PrepareArcTs(NC_EXEC_BLOCK* pBlock,
                                  (double)pBlock->arc_center[b]);
     arcLen = fabs(sweep) * rs;
     *pPathLengthUnits = sqrt((arcLen * arcLen) + outSum) /
+                        /* Apply the next logical update for this processing stage. */
                         (double)NC_POSITION_SCALE;
     return 0;
 }

@@ -4,17 +4,29 @@
 #include <string.h>
 #include "nc_tool_management.h"
 #include "nc_program.h"
-
+/**
+ * @brief Return whether valid tool is true for the current block or state.
+ * @param toolNo Tool number being updated in tool-life status.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsValidTool(uint32_t toolNo)
 {
     return (uint8_t)((toolNo > 0U) && (toolNo < NC_TOOL_TABLE_SIZE));
 }
 
+/**
+ * @brief Return whether valid pocket is true for the current block or state.
+ * @param pocketNo Number identifying pocket.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsValidPocket(uint32_t pocketNo)
 {
     return (uint8_t)((pocketNo > 0U) && (pocketNo < NC_TOOL_MAGAZINE_POCKETS));
 }
 
+/**
+ * @brief Handle recount registered tools for this module.
+ */
 static void RecountRegisteredTools(void)
 {
     uint32_t i;
@@ -28,6 +40,9 @@ static void RecountRegisteredTools(void)
     g_ncToolManagementStatus.registered_tools = count;
 }
 
+/**
+ * @brief Handle ensure default table for this module.
+ */
 static void EnsureDefaultTable(void)
 {
     uint32_t i;
@@ -50,6 +65,9 @@ static void EnsureDefaultTable(void)
     g_ncToolManagementStatus.generation++;
 }
 
+/**
+ * @brief Handle nc tool management reset for this module.
+ */
 void NcToolManagement_Reset(void)
 {
     uint32_t toolToPocket[NC_TOOL_TABLE_SIZE];
@@ -79,8 +97,15 @@ void NcToolManagement_Reset(void)
     g_ncToolManagementStatus.generation++;
 }
 
+/**
+ * @brief Handle nc tool management set pocket for this module.
+ * @param toolNo Tool number being updated in tool-life status.
+ * @param pocketNo Number identifying pocket.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcToolManagement_SetPocket(uint32_t toolNo, uint32_t pocketNo)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t oldTool;
     uint32_t oldPocket;
 
@@ -97,6 +122,7 @@ int32_t NcToolManagement_SetPocket(uint32_t toolNo, uint32_t pocketNo)
     }
 
     oldPocket = g_ncToolManagementStatus.tool_to_pocket[toolNo];
+    /* Handle the next conditional branch for this processing stage. */
     if (oldPocket != 0U) {
         g_ncToolManagementStatus.pocket_tool[oldPocket] = 0U;
     }
@@ -115,6 +141,11 @@ int32_t NcToolManagement_SetPocket(uint32_t toolNo, uint32_t pocketNo)
     return 0;
 }
 
+/**
+ * @brief Handle nc tool management request prepare for this module.
+ * @param toolNo Tool number being updated in tool-life status.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcToolManagement_RequestPrepare(uint32_t toolNo)
 {
     EnsureDefaultTable();
@@ -141,6 +172,10 @@ int32_t NcToolManagement_RequestPrepare(uint32_t toolNo)
     return 0;
 }
 
+/**
+ * @brief Handle nc tool management on parsed block ts for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcToolManagement_OnParsedBlockTs(const NC_EXEC_BLOCK* pBlock)
 {
     if (pBlock == NULL) {
@@ -165,14 +200,20 @@ void NcToolManagement_OnParsedBlockTs(const NC_EXEC_BLOCK* pBlock)
     g_ncToolManagementStatus.generation++;
 }
 
+/**
+ * @brief Handle nc tool management on block rt for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcToolManagement_OnBlockRt(const NC_EXEC_BLOCK* pBlock)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t toolNo;
     uint32_t pocket;
 
     if (pBlock == NULL) {
         return;
     }
+    /* Apply the next logical update for this processing stage. */
     EnsureDefaultTable();
     if ((pBlock->aux_flags & NC_AUX_FLAG_TOOL) != 0U) {
         g_ncToolManagementStatus.rt_t_commands++;
@@ -219,6 +260,9 @@ void NcToolManagement_OnBlockRt(const NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Handle nc tool management service rt for this module.
+ */
 void NcToolManagement_ServiceRt(void)
 {
     if (g_ncToolManagementStatus.exchange_in_progress == 0U) {

@@ -5,12 +5,22 @@
 #include <string.h>
 #include "nc_diagnostics.h"
 #include "nc_program.h"
-
+/**
+ * @brief Handle abs32 for this module.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t Abs32(int32_t value)
 {
     return (value < 0) ? -value : value;
 }
 
+/**
+ * @brief Handle override for level for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param level Diagnostic severity level used to choose the override.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static uint16_t OverrideForLevel(uint8_t level)
 {
     if (level >= 3U) {
@@ -25,8 +35,12 @@ static uint16_t OverrideForLevel(uint8_t level)
     return NC_FEED_OVERRIDE_DEFAULT_PERCENT;
 }
 
+/**
+ * @brief Handle nc diagnostics update axis load rt for this module.
+ */
 void NcDiagnostics_UpdateAxisLoadRt(void)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t i;
     uint32_t warningMask = 0U;
     uint32_t limitMask = 0U;
@@ -75,6 +89,7 @@ void NcDiagnostics_UpdateAxisLoadRt(void)
         g_ncAxisLoadStatus.limit_events++;
         (void)LogQueue_Push(LOG_WARN, 7102U, (int32_t)limitMask);
     }
+    /* Handle the next conditional branch for this processing stage. */
     if ((criticalMask != 0U) && (g_ncAxisLoadStatus.critical_mask == 0U)) {
         g_ncAxisLoadStatus.critical_events++;
         (void)LogQueue_Push(LOG_ALARM, 7103U, (int32_t)criticalMask);
@@ -89,6 +104,12 @@ void NcDiagnostics_UpdateAxisLoadRt(void)
     g_ncAxisLoadStatus.generation++;
 }
 
+/**
+ * @brief Handle nc diagnostics set tool life limit for this module.
+ * @param toolNo Tool number being updated in tool-life status.
+ * @param limit Symmetric limit applied to the value.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcDiagnostics_SetToolLifeLimit(uint16_t toolNo, uint32_t limit)
 {
     if ((toolNo == 0U) || (toolNo >= NC_TOOL_LIFE_TABLE_SIZE) ||
@@ -100,8 +121,15 @@ int32_t NcDiagnostics_SetToolLifeLimit(uint16_t toolNo, uint32_t limit)
     return 0;
 }
 
+/**
+ * @brief Update tool life from current inputs.
+ * @param toolNo Tool number being updated in tool-life status.
+ * @param lineNo NC source line number associated with the update.
+ * @param mCode M-code associated with the tool-life update.
+ */
 static void UpdateToolLife(uint32_t toolNo, uint32_t lineNo, uint32_t mCode)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t limit;
     uint32_t count;
     uint32_t warnAt;
@@ -118,6 +146,7 @@ static void UpdateToolLife(uint32_t toolNo, uint32_t lineNo, uint32_t mCode)
         g_ncToolLifeStatus.tool_life_limit[toolNo] = limit;
     }
     count = g_ncToolLifeStatus.tool_use_count[toolNo] + 1U;
+    /* Apply the next logical update for this processing stage. */
     g_ncToolLifeStatus.tool_use_count[toolNo] = count;
     g_ncToolLifeStatus.active_tool_no = toolNo;
     g_ncToolLifeStatus.last_tool_no = toolNo;
@@ -141,6 +170,10 @@ static void UpdateToolLife(uint32_t toolNo, uint32_t lineNo, uint32_t mCode)
     g_ncToolLifeStatus.generation++;
 }
 
+/**
+ * @brief Handle nc diagnostics on block rt for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcDiagnostics_OnBlockRt(const NC_EXEC_BLOCK* pBlock)
 {
     uint32_t toolNo;
@@ -167,8 +200,12 @@ void NcDiagnostics_OnBlockRt(const NC_EXEC_BLOCK* pBlock)
     }
 }
 
+/**
+ * @brief Handle nc diagnostics build snapshot for this module.
+ */
 void NcDiagnostics_BuildSnapshot(void)
 {
+    /* Apply the next logical update for this processing stage. */
     g_ncDiagnosticSnapshot.cycle_count = g_machineCtx.cycle_count;
     g_ncDiagnosticSnapshot.run_mode = g_machineCtx.run_mode;
     g_ncDiagnosticSnapshot.machine_state = g_machineCtx.machine_state;
@@ -189,6 +226,7 @@ void NcDiagnostics_BuildSnapshot(void)
     g_ncDiagnosticSnapshot.completed_segments = g_ncInterpStatus.completed_segments;
     g_ncDiagnosticSnapshot.completed_cycles = g_ncCycleStatus.completed_cycles;
     g_ncDiagnosticSnapshot.aux_wait_cycles = g_ncAuxStatus.last_wait_cycles;
+    /* Apply the next logical update for this processing stage. */
     g_ncDiagnosticSnapshot.trace_frozen = g_ioTraceBuffer.frozen;
     g_ncDiagnosticSnapshot.generation++;
 }

@@ -6,12 +6,21 @@
 #include <stdlib.h>
 #include "nc_parser_internal.h"
 #include "nc_program.h"
-
+/**
+ * @brief Handle nc parse reset modal for this module.
+ */
 void NcParse_ResetModal(void)
 {
     NcParser_ResetModalState();
 }
 
+/**
+ * @brief Handle read number for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param ppCursor Input cursor pointer advanced past the parsed number.
+ * @param pOutValue Output pointer receiving the parsed numeric value.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t ReadNumber(const char** ppCursor, double* pOutValue)
 {
     char* pEnd;
@@ -25,6 +34,13 @@ static int32_t ReadNumber(const char** ppCursor, double* pOutValue)
     return 0;
 }
 
+/**
+ * @brief Handle map apply result for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param result Internal parser result code to map.
+ * @param pOutError Output pointer that receives the NC error code.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t MapApplyResult(int32_t result, NC_ERROR_CODE* pOutError)
 {
     if (result == -3) {
@@ -50,16 +66,26 @@ static int32_t MapApplyResult(int32_t result, NC_ERROR_CODE* pOutError)
     return 0;
 }
 
+/**
+ * @brief Handle nc parse line to block for this module.
+ * @param line Input value for line.
+ * @param lineNo NC source line number associated with the update.
+ * @param pOutBlock Pointer to out block used by the function.
+ * @param pOutError Output pointer that receives the NC error code.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcParse_LineToBlock(const char* line,
                             uint32_t lineNo,
                             NC_EXEC_BLOCK* pOutBlock,
                             NC_ERROR_CODE* pOutError)
 {
+    /* Prepare local state used by the following processing stage. */
     const char* pCursor = line;
     NC_PARSE_CONTEXT ctx = {0};
     uint8_t hasToken = 0U;
     double value;
 
+    /* Apply the next logical update for this processing stage. */
     NcParser_InitBlock(pOutBlock, lineNo);
     ctx.coord_mode = NC_PARSE_COORD_NONE;
     *pOutError = NC_ERR_NONE;

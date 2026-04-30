@@ -5,7 +5,11 @@
 #include <string.h>
 #include "nc_coordinate.h"
 #include "nc_coordinate_transform.h"
-
+/**
+ * @brief Return whether motion like is true for the current block or state.
+ * @param motion Motion type being tested by the helper.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsMotionLike(NC_MOTION_TYPE motion)
 {
     return (uint8_t)((motion == NC_MOTION_RAPID) ||
@@ -19,6 +23,12 @@ static uint8_t IsMotionLike(NC_MOTION_TYPE motion)
                      (motion == NC_MOTION_ADVANCED_INTERP));
 }
 
+/**
+ * @brief Handle validate axis for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param axis Axis index used by the helper.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t ValidateAxis(uint8_t axis)
 {
     if (axis >= AXIS_MAX) {
@@ -29,6 +39,9 @@ static int32_t ValidateAxis(uint8_t axis)
     return 0;
 }
 
+/**
+ * @brief Update active mask from current inputs.
+ */
 static void UpdateActiveMask(void)
 {
     uint32_t i;
@@ -47,6 +60,9 @@ static void UpdateActiveMask(void)
     g_ncCoordinateTransformStatus.active_correction_mask = mask;
 }
 
+/**
+ * @brief Handle nc coordinate transform reset for this module.
+ */
 void NcCoordinateTransform_Reset(void)
 {
     uint8_t dynamicEnabled = g_ncCoordinateTransformStatus.dynamic_fixture_enabled;
@@ -65,6 +81,13 @@ void NcCoordinateTransform_Reset(void)
     g_ncCoordinateTransformStatus.generation++;
 }
 
+/**
+ * @brief Handle nc coordinate transform set enabled for this module.
+ * @param dynamicFixture Input value for dynamic fixture.
+ * @param workMountError Input value for work mount error.
+ * @param rotaryFixture Input value for rotary fixture.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCoordinateTransform_SetEnabled(uint8_t dynamicFixture,
                                          uint8_t workMountError,
                                          uint8_t rotaryFixture)
@@ -80,6 +103,13 @@ int32_t NcCoordinateTransform_SetEnabled(uint8_t dynamicFixture,
     return 0;
 }
 
+/**
+ * @brief Handle nc coordinate transform set work offset for this module.
+ * @param workIndex Index identifying work.
+ * @param axis Axis index used by the helper.
+ * @param offset Input value for offset.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCoordinateTransform_SetWorkOffset(uint8_t workIndex,
                                             uint8_t axis,
                                             int32_t offset)
@@ -97,6 +127,12 @@ int32_t NcCoordinateTransform_SetWorkOffset(uint8_t workIndex,
     return 0;
 }
 
+/**
+ * @brief Handle nc coordinate transform set local shift for this module.
+ * @param axis Axis index used by the helper.
+ * @param shift Input value for shift.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCoordinateTransform_SetLocalShift(uint8_t axis, int32_t shift)
 {
     if (ValidateAxis(axis) != 0) {
@@ -112,6 +148,12 @@ int32_t NcCoordinateTransform_SetLocalShift(uint8_t axis, int32_t shift)
     return 0;
 }
 
+/**
+ * @brief Handle nc coordinate transform set temporary absolute for this module.
+ * @param axis Axis index used by the helper.
+ * @param programPosition Input value for program position.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCoordinateTransform_SetTemporaryAbsolute(uint8_t axis,
                                                    int32_t programPosition)
 {
@@ -128,6 +170,12 @@ int32_t NcCoordinateTransform_SetTemporaryAbsolute(uint8_t axis,
     return 0;
 }
 
+/**
+ * @brief Handle nc coordinate transform set dynamic fixture offset for this module.
+ * @param axis Axis index used by the helper.
+ * @param offset Input value for offset.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCoordinateTransform_SetDynamicFixtureOffset(uint8_t axis,
                                                       int32_t offset)
 {
@@ -140,6 +188,12 @@ int32_t NcCoordinateTransform_SetDynamicFixtureOffset(uint8_t axis,
     return 0;
 }
 
+/**
+ * @brief Handle nc coordinate transform set work mount error for this module.
+ * @param axis Axis index used by the helper.
+ * @param error Following-error value recorded for diagnostics.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCoordinateTransform_SetWorkMountError(uint8_t axis, int32_t error)
 {
     if (ValidateAxis(axis) != 0) {
@@ -151,6 +205,12 @@ int32_t NcCoordinateTransform_SetWorkMountError(uint8_t axis, int32_t error)
     return 0;
 }
 
+/**
+ * @brief Handle nc coordinate transform set rotary table offset for this module.
+ * @param axis Axis index used by the helper.
+ * @param offset Input value for offset.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCoordinateTransform_SetRotaryTableOffset(uint8_t axis,
                                                    int32_t offset)
 {
@@ -163,9 +223,16 @@ int32_t NcCoordinateTransform_SetRotaryTableOffset(uint8_t axis,
     return 0;
 }
 
+/**
+ * @brief Handle nc coordinate transform apply block ts for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pOutError Output pointer that receives the NC error code.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCoordinateTransform_ApplyBlockTs(NC_EXEC_BLOCK* pBlock,
                                            NC_ERROR_CODE* pOutError)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t i;
     uint32_t changedMask = 0U;
 
@@ -176,6 +243,7 @@ int32_t NcCoordinateTransform_ApplyBlockTs(NC_EXEC_BLOCK* pBlock,
         return 0;
     }
 
+    /* Walk the fixed-size data set for this processing stage. */
     for (i = 0U; i < AXIS_MAX; ++i) {
         int32_t delta = 0;
         g_ncCoordinateTransformStatus.last_input_target[i] = pBlock->axis_target[i];

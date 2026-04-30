@@ -3,17 +3,31 @@
 /* This exists so RT receives fixed axis targets without performing table lookup or axis-mode decisions. */
 /* RELEVANT FILES: inc/nc_axis_config.h, src/nc_parser_modal.c, src/control_api.c, src/system_shared.c */
 #include "nc_axis_config.h"
-
+/**
+ * @brief Handle axis mask all for this module.
+ * @return Function-specific result value.
+ */
 static uint32_t AxisMaskAll(void)
 {
     return (uint32_t)((1UL << AXIS_MAX) - 1UL);
 }
 
+/**
+ * @brief Return whether valid mask is true for the current block or state.
+ * @param axisMask Bit mask of axes to validate or translate.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsValidMask(uint32_t axisMask)
 {
     return (uint8_t)((axisMask & ~AxisMaskAll()) == 0U);
 }
 
+/**
+ * @brief Handle normalize name for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param axisName Axis name character to normalize.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t NormalizeName(uint8_t axisName)
 {
     if ((axisName >= (uint8_t)'a') && (axisName <= (uint8_t)'z')) {
@@ -22,6 +36,11 @@ static uint8_t NormalizeName(uint8_t axisName)
     return axisName;
 }
 
+/**
+ * @brief Return whether motion like is true for the current block or state.
+ * @param motion Motion type being tested by the helper.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsMotionLike(NC_MOTION_TYPE motion)
 {
     return (uint8_t)((motion == NC_MOTION_RAPID) ||
@@ -35,6 +54,12 @@ static uint8_t IsMotionLike(NC_MOTION_TYPE motion)
                      (motion == NC_MOTION_ADVANCED_INTERP));
 }
 
+/**
+ * @brief Handle half away from zero for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param value Numeric value being converted, clamped, or tested.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t HalfAwayFromZero(int32_t value)
 {
     if (value > 0) {
@@ -46,6 +71,14 @@ static int32_t HalfAwayFromZero(int32_t value)
     return 0;
 }
 
+/**
+ * @brief Handle nc axis config set axis definition for this module.
+ * @param axis Axis index used by the helper.
+ * @param axisName Axis name character to normalize.
+ * @param axisType Input value for axis type.
+ * @param coordinateGroup Input value for coordinate group.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcAxisConfig_SetAxisDefinition(uint8_t axis,
                                        uint8_t axisName,
                                        uint8_t axisType,
@@ -81,6 +114,11 @@ int32_t NcAxisConfig_SetAxisDefinition(uint8_t axis,
     return 0;
 }
 
+/**
+ * @brief Handle nc axis config set path axis mask for this module.
+ * @param axisMask Bit mask of axes to validate or translate.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcAxisConfig_SetPathAxisMask(uint32_t axisMask)
 {
     if ((axisMask == 0U) || (IsValidMask(axisMask) == 0U)) {
@@ -98,6 +136,11 @@ int32_t NcAxisConfig_SetPathAxisMask(uint32_t axisMask)
     return 0;
 }
 
+/**
+ * @brief Handle nc axis config set detached mask for this module.
+ * @param axisMask Bit mask of axes to validate or translate.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcAxisConfig_SetDetachedMask(uint32_t axisMask)
 {
     if (IsValidMask(axisMask) == 0U) {
@@ -115,6 +158,12 @@ int32_t NcAxisConfig_SetDetachedMask(uint32_t axisMask)
     return 0;
 }
 
+/**
+ * @brief Handle nc axis config set diameter mode for this module.
+ * @param axis Axis index used by the helper.
+ * @param enabled Non-zero to enable the mode; zero to disable it.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcAxisConfig_SetDiameterMode(uint8_t axis, uint8_t enabled)
 {
     uint32_t bit;
@@ -138,9 +187,16 @@ int32_t NcAxisConfig_SetDiameterMode(uint8_t axis, uint8_t enabled)
     return 0;
 }
 
+/**
+ * @brief Handle nc axis config apply block ts for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pOutError Output pointer that receives the NC error code.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcAxisConfig_ApplyBlockTs(NC_EXEC_BLOCK* pBlock,
                                   NC_ERROR_CODE* pOutError)
 {
+    /* Prepare local state used by the following processing stage. */
     uint32_t i;
     uint32_t pathMask;
     uint32_t inputMask;
@@ -191,6 +247,7 @@ int32_t NcAxisConfig_ApplyBlockTs(NC_EXEC_BLOCK* pBlock,
     }
     g_ncAxisConfigStatus.last_output_axis_mask = pBlock->axis_mask;
 
+    /* Handle the next conditional branch for this processing stage. */
     if (changed != 0U) {
         g_ncAxisConfigStatus.applied_blocks++;
         g_ncAxisConfigStatus.last_line_no = pBlock->line_no;

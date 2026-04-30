@@ -35,6 +35,11 @@ static NC_PLANE s_plane;
 static NC_FEED_MODE s_feedMode;
 static uint8_t s_exactStopMode, s_oneShotExactStop, s_returnMode;
 
+/**
+ * @brief Return whether motion type is true for the current block or state.
+ * @param motion Motion type being tested by the helper.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsMotionType(NC_MOTION_TYPE motion)
 {
     return (uint8_t)((motion == NC_MOTION_RAPID) ||
@@ -48,6 +53,9 @@ static uint8_t IsMotionType(NC_MOTION_TYPE motion)
                      (motion == NC_MOTION_ADVANCED_INTERP));
 }
 
+/**
+ * @brief Handle nc parser reset modal state for this module.
+ */
 void NcParser_ResetModalState(void)
 {
     s_lastFeed = 0;
@@ -62,6 +70,11 @@ void NcParser_ResetModalState(void)
     NcCycle_ResetParserModal();
 }
 
+/**
+ * @brief Handle nc parser init block for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param lineNo NC source line number associated with the update.
+ */
 void NcParser_InitBlock(NC_EXEC_BLOCK* pBlock, uint32_t lineNo)
 {
     uint32_t i;
@@ -82,12 +95,22 @@ void NcParser_InitBlock(NC_EXEC_BLOCK* pBlock, uint32_t lineNo)
     NcCycle_InitParserBlock(pBlock);
 }
 
+/**
+ * @brief Handle nc parser set feed for this module.
+ * @param feed Input value for feed.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcParser_SetFeed(int32_t feed, NC_EXEC_BLOCK* pBlock)
 {
     s_lastFeed = feed;
     pBlock->feed = feed;
 }
 
+/**
+ * @brief Handle nc parser set spindle for this module.
+ * @param spindleSpeed Input value for spindle speed.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcParser_SetSpindle(uint32_t spindleSpeed, NC_EXEC_BLOCK* pBlock)
 {
     s_lastSpindle = spindleSpeed;
@@ -95,6 +118,13 @@ void NcParser_SetSpindle(uint32_t spindleSpeed, NC_EXEC_BLOCK* pBlock)
     pBlock->aux_flags |= NC_AUX_FLAG_SPINDLE;
 }
 
+/**
+ * @brief Handle mark group for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pCtx Parser context read or updated by the helper.
+ * @param group Input value for group.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t MarkGroup(NC_PARSE_CONTEXT* pCtx, uint8_t group)
 {
     if ((pCtx->seen_groups & group) != 0U) { return -3; }
@@ -102,9 +132,19 @@ static int32_t MarkGroup(NC_PARSE_CONTEXT* pCtx, uint8_t group)
     return 0;
 }
 
+/**
+ * @brief Apply coordinate g to the current block or state.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param code G-code or M-code value being tested or applied.
+ * @param pInfo Address or code metadata used by the helper.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pCtx Parser context read or updated by the helper.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t ApplyCoordinateG(int32_t code, const NC_G_CODE_INFO* pInfo,
                                 NC_EXEC_BLOCK* pBlock, NC_PARSE_CONTEXT* pCtx)
 {
+    /* Handle the next conditional branch for this processing stage. */
     if ((code != G(10)) && (code != G(52)) && (code != G(53)) &&
         (code != G(92)) && ((code < G(54)) || (code > G(59)))) {
         return 1;
@@ -112,6 +152,7 @@ static int32_t ApplyCoordinateG(int32_t code, const NC_G_CODE_INFO* pInfo,
     if (MarkGroup(pCtx, G_GROUP_COORD) != 0) {
         return -3;
     }
+    /* Handle the next conditional branch for this processing stage. */
     if (code == G(10)) {
         pCtx->coord_mode = NC_PARSE_COORD_G10_WORK_OFFSET;
         pBlock->motion_type = NC_MOTION_NONE;
@@ -139,9 +180,19 @@ static int32_t ApplyCoordinateG(int32_t code, const NC_G_CODE_INFO* pInfo,
     return 0;
 }
 
+/**
+ * @brief Apply control g to the current block or state.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param code G-code or M-code value being tested or applied.
+ * @param pInfo Address or code metadata used by the helper.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pCtx Parser context read or updated by the helper.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t ApplyControlG(int32_t code, const NC_G_CODE_INFO* pInfo,
                              NC_EXEC_BLOCK* pBlock, NC_PARSE_CONTEXT* pCtx)
 {
+    /* Handle the next conditional branch for this processing stage. */
     if ((code >= G(17)) && (code <= G(19))) {
         if (MarkGroup(pCtx, G_GROUP_PLANE) != 0) {
             return -3;
@@ -181,10 +232,20 @@ static int32_t ApplyControlG(int32_t code, const NC_G_CODE_INFO* pInfo,
         return 1;
     }
     pBlock->g_code10 = (uint16_t)code;
+    /* Apply the next logical update for this processing stage. */
     pBlock->modal_flags |= pInfo->modal_flag;
     return 0;
 }
 
+/**
+ * @brief Apply stop g to the current block or state.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param code G-code or M-code value being tested or applied.
+ * @param pInfo Address or code metadata used by the helper.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pCtx Parser context read or updated by the helper.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t ApplyStopG(int32_t code, const NC_G_CODE_INFO* pInfo,
                           NC_EXEC_BLOCK* pBlock, NC_PARSE_CONTEXT* pCtx)
 {
@@ -210,6 +271,11 @@ static int32_t ApplyStopG(int32_t code, const NC_G_CODE_INFO* pInfo,
     return 0;
 }
 
+/**
+ * @brief Return whether canned cycle code is true for the current block or state.
+ * @param code G-code or M-code value being tested or applied.
+ * @return Non-zero when the helper condition is true; zero when it is false or rejected.
+ */
 static uint8_t IsCannedCycleCode(int32_t code)
 {
     return (uint8_t)(((code >= G(70)) && (code <= G(89))) ||
@@ -217,9 +283,17 @@ static uint8_t IsCannedCycleCode(int32_t code)
                      (code == GD(12, 4)) || (code == GD(13, 4)));
 }
 
+/**
+ * @brief Handle nc parser apply gcode for this module.
+ * @param code G-code or M-code value being tested or applied.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pCtx Parser context read or updated by the helper.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcParser_ApplyGCode(int32_t code, NC_EXEC_BLOCK* pBlock,
                             NC_PARSE_CONTEXT* pCtx)
 {
+    /* Prepare local state used by the following processing stage. */
     NC_G_CODE_INFO info;
     int32_t result;
 
@@ -259,6 +333,7 @@ int32_t NcParser_ApplyGCode(int32_t code, NC_EXEC_BLOCK* pBlock,
     if (IsCannedCycleCode(code) != 0U) {
         NcCycle_ApplyCycleGCode(code, pBlock);
     }
+    /* Handle the next conditional branch for this processing stage. */
     if (info.motion_type == NC_MOTION_THREAD) {
         pBlock->feature_flags |= NC_FEATURE_FLAG_THREAD;
     } else if (info.motion_type == NC_MOTION_SKIP) {
@@ -273,8 +348,15 @@ int32_t NcParser_ApplyGCode(int32_t code, NC_EXEC_BLOCK* pBlock,
     return 0;
 }
 
+/**
+ * @brief Handle nc parser finalize block for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pOutError Output pointer that receives the NC error code.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcParser_FinalizeBlock(NC_EXEC_BLOCK* pBlock, NC_ERROR_CODE* pOutError)
 {
+    /* Prepare local state used by the following processing stage. */
     uint8_t hasArc = (uint8_t)(pBlock->modal_flags &
                                (NC_ARC_FLAG_IJK | NC_ARC_FLAG_R));
 
@@ -302,6 +384,7 @@ int32_t NcParser_FinalizeBlock(NC_EXEC_BLOCK* pBlock, NC_ERROR_CODE* pOutError)
         *pOutError = NC_ERR_UNSUPPORTED;
         return -1;
     }
+    /* Handle the next conditional branch for this processing stage. */
     if (NcCycle_FinalizeParserBlock(pBlock, pOutError) != 0) {
         return -1;
     }

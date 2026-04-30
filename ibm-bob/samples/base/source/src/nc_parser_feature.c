@@ -7,7 +7,12 @@
 
 #define G(whole)       NC_G_CODE_WHOLE(whole)
 #define GD(whole, dec) NC_G_CODE10((whole), (dec))
-
+/**
+ * @brief Handle mark smoothing feature for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pCtx Parser context read or updated by the helper.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t MarkSmoothingFeature(NC_PARSE_CONTEXT* pCtx)
 {
     if (pCtx->smoothing_seen != 0U) {
@@ -17,6 +22,14 @@ static int32_t MarkSmoothingFeature(NC_PARSE_CONTEXT* pCtx)
     return 0;
 }
 
+/**
+ * @brief Apply smoothing g to the current block or state.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param code G-code or M-code value being tested or applied.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pCtx Parser context read or updated by the helper.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t ApplySmoothingG(int32_t code, NC_EXEC_BLOCK* pBlock,
                                NC_PARSE_CONTEXT* pCtx)
 {
@@ -43,6 +56,12 @@ static int32_t ApplySmoothingG(int32_t code, NC_EXEC_BLOCK* pBlock,
     return 1;
 }
 
+/**
+ * @brief Apply command flag to the current block or state.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param flag Feature flag applied to the block.
+ * @param motion Motion type being tested by the helper.
+ */
 static void ApplyCommandFlag(NC_EXEC_BLOCK* pBlock, uint32_t flag,
                              NC_MOTION_TYPE motion)
 {
@@ -50,10 +69,18 @@ static void ApplyCommandFlag(NC_EXEC_BLOCK* pBlock, uint32_t flag,
     pBlock->motion_type = motion;
 }
 
+/**
+ * @brief Handle nc parser apply feature g for this module.
+ * @param code G-code or M-code value being tested or applied.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pCtx Parser context read or updated by the helper.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcParser_ApplyFeatureG(int32_t code,
                                NC_EXEC_BLOCK* pBlock,
                                NC_PARSE_CONTEXT* pCtx)
 {
+    /* Prepare local state used by the following processing stage. */
     int32_t result = ApplySmoothingG(code, pBlock, pCtx);
 
     if (result != 1) {
@@ -72,6 +99,7 @@ int32_t NcParser_ApplyFeatureG(int32_t code,
     } else if (code == GD(50, 6)) {
         ApplyCommandFlag(pBlock, NC_FEATURE_FLAG_OVERLAY, NC_MOTION_NONE);
     } else if ((code == GD(6, 2)) || (code == GD(7, 1)) ||
+               /* Apply the next logical update for this processing stage. */
                (code == GD(12, 1)) || (code == GD(13, 1)) || (code == GD(12, 4)) || (code == GD(13, 4))) {
         ApplyCommandFlag(pBlock, NC_FEATURE_FLAG_ADVANCED_INTERP,
                          NC_MOTION_ADVANCED_INTERP);
@@ -126,6 +154,13 @@ int32_t NcParser_ApplyFeatureG(int32_t code,
     return 0;
 }
 
+/**
+ * @brief Handle finalize g08 for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pOutError Output pointer that receives the NC error code.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t FinalizeG08(NC_EXEC_BLOCK* pBlock, NC_ERROR_CODE* pOutError)
 {
     if ((pBlock->feature_flags & NC_FEATURE_FLAG_PARAM_P) == 0U) {
@@ -145,6 +180,13 @@ static int32_t FinalizeG08(NC_EXEC_BLOCK* pBlock, NC_ERROR_CODE* pOutError)
     return 0;
 }
 
+/**
+ * @brief Handle finalize g05 for this module.
+ * @details This local helper has multiple return paths. The early returns keep validation and no-op cases explicit before the success path mutates shared state.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pOutError Output pointer that receives the NC error code.
+ * @return 0 or a non-negative value on the accepted path; a negative value when validation fails or the requested item is absent.
+ */
 static int32_t FinalizeG05(NC_EXEC_BLOCK* pBlock, NC_ERROR_CODE* pOutError)
 {
     if ((pBlock->feature_flags & NC_FEATURE_FLAG_PARAM_P) == 0U) {
@@ -171,6 +213,12 @@ static int32_t FinalizeG05(NC_EXEC_BLOCK* pBlock, NC_ERROR_CODE* pOutError)
     return 0;
 }
 
+/**
+ * @brief Handle nc parser finalize feature block for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @param pOutError Output pointer that receives the NC error code.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcParser_FinalizeFeatureBlock(NC_EXEC_BLOCK* pBlock,
                                       NC_ERROR_CODE* pOutError)
 {

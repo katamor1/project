@@ -4,7 +4,11 @@
 /* RELEVANT FILES: ibm-bob/samples/base/source/inc/nc_coordinate.h, ibm-bob/samples/base/source/src/nc_parser_modal.c, ibm-bob/samples/base/source/inc/system_shared.h */
 #include <string.h>
 #include "nc_coordinate.h"
-
+/**
+ * @brief Handle active offset axis for this module.
+ * @param axis Axis index used by the helper.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t ActiveOffsetAxis(uint32_t axis)
 {
     uint8_t work = g_ncCoordinateState.selected_work_index;
@@ -14,12 +18,20 @@ static int32_t ActiveOffsetAxis(uint32_t axis)
             g_ncCoordinateState.temporary_shift[axis]);
 }
 
+/**
+ * @brief Build machine axis from current shared state.
+ * @param axis Axis index used by the helper.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 static int32_t BuildMachineAxis(uint32_t axis)
 {
     return g_ncCoordinateState.program_position[axis] +
            ActiveOffsetAxis(axis);
 }
 
+/**
+ * @brief Handle refresh machine positions for this module.
+ */
 static void RefreshMachinePositions(void)
 {
     uint32_t i;
@@ -30,6 +42,9 @@ static void RefreshMachinePositions(void)
     g_ncCoordinateState.generation++;
 }
 
+/**
+ * @brief Handle clear temporary shift for this module.
+ */
 static void ClearTemporaryShift(void)
 {
     (void)memset((void*)g_ncCoordinateState.temporary_shift,
@@ -38,6 +53,9 @@ static void ClearTemporaryShift(void)
     g_ncCoordinateState.active_temporary_mask = 0U;
 }
 
+/**
+ * @brief Handle nc coordinate reset for this module.
+ */
 void NcCoordinate_Reset(void)
 {
     (void)memset((void*)&g_ncCoordinateState, 0, sizeof(g_ncCoordinateState));
@@ -47,18 +65,30 @@ void NcCoordinate_Reset(void)
     RefreshMachinePositions();
 }
 
+/**
+ * @brief Handle nc coordinate set unit mode for this module.
+ * @param mode Input value for mode.
+ */
 void NcCoordinate_SetUnitMode(NC_UNIT_MODE mode)
 {
     g_ncCoordinateState.unit_mode = mode;
     g_ncCoordinateState.generation++;
 }
 
+/**
+ * @brief Handle nc coordinate set distance mode for this module.
+ * @param mode Input value for mode.
+ */
 void NcCoordinate_SetDistanceMode(NC_DISTANCE_MODE mode)
 {
     g_ncCoordinateState.distance_mode = mode;
     g_ncCoordinateState.generation++;
 }
 
+/**
+ * @brief Handle nc coordinate select work for this module.
+ * @param workIndex Index identifying work.
+ */
 void NcCoordinate_SelectWork(uint8_t workIndex)
 {
     if (workIndex >= NC_WORK_COORD_SYSTEMS) {
@@ -70,6 +100,9 @@ void NcCoordinate_SelectWork(uint8_t workIndex)
     RefreshMachinePositions();
 }
 
+/**
+ * @brief Handle nc coordinate clear local shift for this module.
+ */
 void NcCoordinate_ClearLocalShift(void)
 {
     (void)memset((void*)g_ncCoordinateState.local_shift,
@@ -79,6 +112,12 @@ void NcCoordinate_ClearLocalShift(void)
     RefreshMachinePositions();
 }
 
+/**
+ * @brief Handle nc coordinate set local shift axis for this module.
+ * @param axisIndex Axis index selected by the parsed address word.
+ * @param shift Input value for shift.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCoordinate_SetLocalShiftAxis(int32_t axisIndex, int32_t shift)
 {
     if ((axisIndex < 0) || (axisIndex >= AXIS_MAX)) {
@@ -94,6 +133,13 @@ int32_t NcCoordinate_SetLocalShiftAxis(int32_t axisIndex, int32_t shift)
     return 0;
 }
 
+/**
+ * @brief Handle nc coordinate set work offset axis for this module.
+ * @param workIndex Index identifying work.
+ * @param axisIndex Axis index selected by the parsed address word.
+ * @param offset Input value for offset.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCoordinate_SetWorkOffsetAxis(uint8_t workIndex,
                                        int32_t axisIndex,
                                        int32_t offset)
@@ -107,6 +153,13 @@ int32_t NcCoordinate_SetWorkOffsetAxis(uint8_t workIndex,
     return 0;
 }
 
+/**
+ * @brief Handle nc coordinate set program axis for this module.
+ * @param axisIndex Axis index selected by the parsed address word.
+ * @param programPosition Input value for program position.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCoordinate_SetProgramAxis(int32_t axisIndex,
                                     int32_t programPosition,
                                     NC_EXEC_BLOCK* pBlock)
@@ -125,6 +178,13 @@ int32_t NcCoordinate_SetProgramAxis(int32_t axisIndex,
     return 0;
 }
 
+/**
+ * @brief Handle nc coordinate set machine axis for this module.
+ * @param axisIndex Axis index selected by the parsed address word.
+ * @param machinePosition Input value for machine position.
+ * @param pBlock NC execution block read or updated by the helper.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCoordinate_SetMachineAxis(int32_t axisIndex,
                                     int32_t machinePosition,
                                     NC_EXEC_BLOCK* pBlock)
@@ -141,6 +201,12 @@ int32_t NcCoordinate_SetMachineAxis(int32_t axisIndex,
     return 0;
 }
 
+/**
+ * @brief Handle nc coordinate set temporary axis for this module.
+ * @param axisIndex Axis index selected by the parsed address word.
+ * @param programPosition Input value for program position.
+ * @return 0 on success; a negative value or module-specific code on failure.
+ */
 int32_t NcCoordinate_SetTemporaryAxis(int32_t axisIndex,
                                       int32_t programPosition)
 {
@@ -164,6 +230,10 @@ int32_t NcCoordinate_SetTemporaryAxis(int32_t axisIndex,
     return 0;
 }
 
+/**
+ * @brief Handle nc coordinate fill targets for this module.
+ * @param pBlock NC execution block read or updated by the helper.
+ */
 void NcCoordinate_FillTargets(NC_EXEC_BLOCK* pBlock)
 {
     uint32_t i;
