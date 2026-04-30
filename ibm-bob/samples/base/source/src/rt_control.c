@@ -6,6 +6,11 @@
 #include "nc_program.h"
 #include "nc_diagnostics.h"
 #include "nc_safety_motion.h"
+#include "nc_reference.h"
+#include "nc_precision.h"
+#include "nc_spindle.h"
+#include "nc_tool_management.h"
+#include "nc_rotary_mcc.h"
 #include "system_shared.h"
 #include "system_config.h"
 
@@ -110,6 +115,10 @@ void RtDispatcher_ExecuteCycle(void)
     RtControl_UpdatePrestartInterlock();
     NcDiagnostics_UpdateAxisLoadRt();
     NcSafetyMotion_UpdateRt();
+    NcReference_ServiceRt();
+    NcPrecision_ServiceRt();
+    NcSpindle_ServiceRt();
+    NcToolManagement_ServiceRt();
     RtControl_UpdateMachineState();
     RtControl_ProcessModeRequest();
     RtControl_UpdateInterlock();
@@ -117,6 +126,7 @@ void RtDispatcher_ExecuteCycle(void)
                                           (g_prestartInterlockStatus.ok != 0U)));
     RtControl_UpdateAxisTargets();
     RtNcProgram_ConsumeBlocks();
+    NcRotaryMcc_ServiceRt();
     RtOutput_CommitOutputs();
     RtControl_CaptureIoTrace();
     NcDiagnostics_BuildSnapshot();

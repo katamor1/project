@@ -1,0 +1,541 @@
+--- /tmp/v18_ref/source/inc/system_config.h	2026-04-30 17:51:04.000000000 +0000
++++ /tmp/full_v19/source/inc/system_config.h	2026-04-30 18:19:08.568792287 +0000
+@@ -155,4 +155,12 @@
+ #define NC_EVENT_CODE_ROTARY_MCC_APPLIED    (9402U)
+ #define NC_EVENT_CODE_ROTARY_MCC_OUTPUT     (9403U)
+ 
++#define NC_AXIS_TYPE_LINEAR             (0U)
++#define NC_AXIS_TYPE_ROTARY             (1U)
++#define NC_AXIS_CONFIG_DEFAULT_PATH_MASK ((1UL << AXIS_MAX) - 1UL)
++#define NC_EVENT_CODE_AXIS_CONFIG_CHANGE (9501U)
++#define NC_EVENT_CODE_AXIS_CONFIG_APPLIED (9502U)
++#define NC_EVENT_CODE_AXIS_DETACHED      (9503U)
++#define NC_EVENT_CODE_AXIS_DIAMETER_MODE (9504U)
++
+ #endif /* SYSTEM_CONFIG_H */
+--- /tmp/v18_ref/source/inc/system_shared.h	2026-04-30 17:51:04.000000000 +0000
++++ /tmp/full_v19/source/inc/system_shared.h	2026-04-30 18:19:23.773287210 +0000
+@@ -941,6 +941,34 @@
+ } NC_ROTARY_MCC_STATUS;
+ 
+ typedef struct {
++    uint8_t  axis_type[AXIS_MAX];
++    uint8_t  axis_name[AXIS_MAX];
++    uint8_t  coordinate_group[AXIS_MAX];
++    uint8_t  reserved0[AXIS_MAX];
++    uint32_t linear_axis_mask;
++    uint32_t rotary_axis_mask;
++    uint32_t diameter_axis_mask;
++    uint32_t active_path_axis_mask;
++    uint32_t detached_axis_mask;
++    uint32_t mirror_axis_mask;
++    uint32_t axis_definition_calls;
++    uint32_t path_assignment_calls;
++    uint32_t detached_set_calls;
++    uint32_t diameter_mode_calls;
++    uint32_t applied_blocks;
++    uint32_t diameter_converted_blocks;
++    uint32_t detached_axis_blocks;
++    uint32_t path_filtered_blocks;
++    uint32_t rejected_calls;
++    uint32_t last_line_no;
++    uint32_t last_input_axis_mask;
++    uint32_t last_output_axis_mask;
++    int32_t  last_input_target[AXIS_MAX];
++    int32_t  last_output_target[AXIS_MAX];
++    uint32_t generation;
++} NC_AXIS_CONFIG_STATUS;
++
++typedef struct {
+     uint32_t cycle;
+     uint32_t sensor_bits;
+     uint32_t seq_bits;
+@@ -1004,6 +1032,7 @@
+ extern volatile NC_TOOL_MANAGEMENT_STATUS  g_ncToolManagementStatus;
+ extern volatile NC_SYNCHRONIZATION_STATUS g_ncSynchronizationStatus;
+ extern volatile NC_ROTARY_MCC_STATUS    g_ncRotaryMccStatus;
++extern volatile NC_AXIS_CONFIG_STATUS    g_ncAxisConfigStatus;
+ extern volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
+ 
+ void SystemShared_Initialize(void);
+--- /tmp/v18_ref/source/inc/control_api.h	2026-04-30 17:52:02.000000000 +0000
++++ /tmp/full_v19/source/inc/control_api.h	2026-04-30 18:19:57.474135840 +0000
+@@ -88,5 +88,10 @@
+ int32_t Api_GetNcRotaryMccStatus(NC_ROTARY_MCC_STATUS* pOutStatus);
+ int32_t Api_SetNcRotaryAxisRadius(uint8_t axis, int32_t radius);
+ int32_t Api_SetNcMccOutput(uint8_t enabled);
++int32_t Api_GetNcAxisConfigStatus(NC_AXIS_CONFIG_STATUS* pOutStatus);
++int32_t Api_SetNcAxisDefinition(uint8_t axis, uint8_t axisName, uint8_t axisType, uint8_t coordinateGroup);
++int32_t Api_SetNcPathAxisMask(uint32_t axisMask);
++int32_t Api_SetNcAxisDetachedMask(uint32_t axisMask);
++int32_t Api_SetNcAxisDiameterMode(uint8_t axis, uint8_t enabled);
+ 
+ #endif /* CONTROL_API_H */
+--- /tmp/v18_ref/source/src/system_shared.c	2026-04-30 17:51:49.000000000 +0000
++++ /tmp/full_v19/source/src/system_shared.c	2026-04-30 18:19:24.354283446 +0000
+@@ -44,6 +44,7 @@
+ volatile NC_TOOL_MANAGEMENT_STATUS  g_ncToolManagementStatus;
+ volatile NC_SYNCHRONIZATION_STATUS g_ncSynchronizationStatus;
+ volatile NC_ROTARY_MCC_STATUS    g_ncRotaryMccStatus;
++volatile NC_AXIS_CONFIG_STATUS    g_ncAxisConfigStatus;
+ volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
+ 
+ void SystemShared_Initialize(void)
+@@ -85,7 +86,9 @@
+     (void)memset((void*)&g_ncPrecisionStatus, 0, sizeof(g_ncPrecisionStatus));
+     (void)memset((void*)&g_ncSpindleStatus, 0, sizeof(g_ncSpindleStatus));
+     (void)memset((void*)&g_ncToolManagementStatus, 0, sizeof(g_ncToolManagementStatus));
+-    (void)memset((void*)&g_ncSynchronizationStatus, 0, sizeof(g_ncSynchronizationStatus));
++        (void)memset((void*)&g_ncSynchronizationStatus, 0, sizeof(g_ncSynchronizationStatus));
++    (void)memset((void*)&g_ncRotaryMccStatus, 0, sizeof(g_ncRotaryMccStatus));
++    (void)memset((void*)&g_ncAxisConfigStatus, 0, sizeof(g_ncAxisConfigStatus));
+     (void)memset((void*)&g_ioTraceBuffer, 0, sizeof(g_ioTraceBuffer));
+ 
+     g_machineCtx.run_mode = RUN_MODE_MANUAL;
+@@ -129,6 +132,9 @@
+     g_ncRotaryMccStatus.mcc_output_enabled = 1U;
+     g_ncRotaryMccStatus.active_rotary_axis = 3U;
+     g_ncRotaryMccStatus.configured_axis_mask = NC_ROTARY_MCC_DEFAULT_AXIS_MASK;
++    g_ncAxisConfigStatus.active_path_axis_mask = NC_AXIS_CONFIG_DEFAULT_PATH_MASK;
++    g_ncAxisConfigStatus.linear_axis_mask = 0x00000007UL;
++    g_ncAxisConfigStatus.rotary_axis_mask = 0x00000008UL;
+     for (uint32_t tool_index = 1U;
+          (tool_index < NC_TOOL_TABLE_SIZE) && (tool_index < NC_TOOL_MAGAZINE_POCKETS);
+          ++tool_index) {
+@@ -142,6 +148,10 @@
+         g_ncReferenceStatus.one_direction_approach[ref_axis] = NC_ONE_DIRECTION_APPROACH_DEFAULT;
+     }
+     for (uint32_t axis = 0U; axis < AXIS_MAX; ++axis) {
++        static const uint8_t default_axis_names[AXIS_MAX] = { (uint8_t)'X', (uint8_t)'Y', (uint8_t)'Z', (uint8_t)'A' };
++        g_ncAxisConfigStatus.axis_name[axis] = default_axis_names[axis];
++        g_ncAxisConfigStatus.axis_type[axis] = (axis == 3U) ? NC_AXIS_TYPE_ROTARY : NC_AXIS_TYPE_LINEAR;
++        g_ncAxisConfigStatus.coordinate_group[axis] = (axis == 3U) ? 1U : 0U;
+         g_ncRotaryMccStatus.radius[axis] = NC_ROTARY_MCC_DEFAULT_RADIUS;
+         g_ncMotionFilterStatus.max_velocity_per_tick[axis] = NC_MOTION_FILTER_DEFAULT_MAX_VELOCITY;
+         g_ncMotionFilterStatus.max_accel_per_tick[axis] = NC_MOTION_FILTER_DEFAULT_MAX_ACCEL;
+--- /tmp/v18_ref/source/src/control_api.c	2026-04-30 17:52:02.000000000 +0000
++++ /tmp/full_v19/source/src/control_api.c	2026-04-30 18:19:57.771576396 +0000
+@@ -19,6 +19,7 @@
+ #include "nc_tool_management.h"
+ #include "nc_synchronization.h"
+ #include "nc_rotary_mcc.h"
++#include "nc_axis_config.h"
+ 
+ static int32_t IsNcBusyForLoad(void)
+ {
+@@ -536,7 +537,11 @@
+ 
+ int32_t Api_SetNcDiameterMode(uint8_t enabled)
+ {
+-    return NcLatheCycle_SetDiameterMode(enabled);
++    int32_t result = NcLatheCycle_SetDiameterMode(enabled);
++    if (result == 0) {
++        (void)NcAxisConfig_SetDiameterMode(0U, enabled);
++    }
++    return result;
+ }
+ 
+ int32_t Api_GetNcReferenceStatus(NC_REFERENCE_STATUS* pOutStatus)
+@@ -681,3 +686,35 @@
+ {
+     return NcRotaryMcc_SetMccOutput(enabled);
+ }
++
++int32_t Api_GetNcAxisConfigStatus(NC_AXIS_CONFIG_STATUS* pOutStatus)
++{
++    if (pOutStatus == NULL) {
++        return -1;
++    }
++    *pOutStatus = g_ncAxisConfigStatus;
++    return 0;
++}
++
++int32_t Api_SetNcAxisDefinition(uint8_t axis,
++                                uint8_t axisName,
++                                uint8_t axisType,
++                                uint8_t coordinateGroup)
++{
++    return NcAxisConfig_SetAxisDefinition(axis, axisName, axisType, coordinateGroup);
++}
++
++int32_t Api_SetNcPathAxisMask(uint32_t axisMask)
++{
++    return NcAxisConfig_SetPathAxisMask(axisMask);
++}
++
++int32_t Api_SetNcAxisDetachedMask(uint32_t axisMask)
++{
++    return NcAxisConfig_SetDetachedMask(axisMask);
++}
++
++int32_t Api_SetNcAxisDiameterMode(uint8_t axis, uint8_t enabled)
++{
++    return NcAxisConfig_SetDiameterMode(axis, enabled);
++}
+--- /tmp/v18_ref/source/src/nc_parser_modal.c	2026-04-30 17:52:02.000000000 +0000
++++ /tmp/full_v19/source/src/nc_parser_modal.c	2026-04-30 18:19:58.042281437 +0000
+@@ -11,6 +11,7 @@
+ #include "nc_cycle.h"
+ #include "nc_interpolation.h"
+ #include "nc_kinematics.h"
++#include "nc_axis_config.h"
+ #include "nc_rotary_mcc.h"
+ #include "nc_parser_internal.h"
+ #include "nc_program.h"
+@@ -313,6 +314,9 @@
+     if (NcCompensation_ApplyBlockTs(pBlock, pOutError) != 0) {
+         return -1;
+     }
++    if (NcAxisConfig_ApplyBlockTs(pBlock, pOutError) != 0) {
++        return -1;
++    }
+     if (NcKinematics_ApplyBlockTs(pBlock, pOutError) != 0) {
+         return -1;
+     }
+--- /tmp/v18_ref/source/src/main.c	2026-04-30 17:55:11.000000000 +0000
++++ /tmp/full_v19/source/src/main.c	2026-04-30 18:20:35.047837220 +0000
+@@ -253,6 +253,7 @@
+     NC_BINARY_PROGRAM_STATUS binaryStatus;
+     NC_REFERENCE_STATUS referenceStatus;
+     NC_ROTARY_MCC_STATUS rotaryMccStatus;
++    NC_AXIS_CONFIG_STATUS axisConfigStatus;
+     NC_TOOL_MANAGEMENT_STATUS toolMgmtStatus;
+     int32_t ncAxis[AXIS_MAX] = {0};
+     uint32_t ncMCode = 0U;
+@@ -393,6 +394,15 @@
+     uint32_t rotaryMccOff = 0U;
+     int32_t rotaryVirtualDelta = 0;
+     uint32_t rotaryCmdBits = 0U;
++    uint32_t axisCfgPathMask = 0U;
++    uint32_t axisCfgRotaryMask = 0U;
++    uint32_t axisCfgDiameterMask = 0U;
++    uint32_t axisCfgApplied = 0U;
++    uint32_t axisCfgDiameterBlocks = 0U;
++    uint32_t axisCfgDetachedBlocks = 0U;
++    uint32_t axisCfgRejected = 0U;
++    uint32_t axisCfgNameA = 0U;
++    int32_t axisCfgLastX = 0;
+     uint32_t precisionPreviewed = 0U;
+     uint32_t precisionLimited = 0U;
+     uint32_t precisionLearningUpdates = 0U;
+@@ -416,6 +426,13 @@
+     uint32_t cycle;
+ 
+     SystemShared_Initialize();
++    (void)Api_SetNcAxisDefinition(0U, (uint8_t)'X', NC_AXIS_TYPE_LINEAR, 0U);
++    (void)Api_SetNcAxisDefinition(1U, (uint8_t)'Y', NC_AXIS_TYPE_LINEAR, 0U);
++    (void)Api_SetNcAxisDefinition(2U, (uint8_t)'Z', NC_AXIS_TYPE_LINEAR, 0U);
++    (void)Api_SetNcAxisDefinition(3U, (uint8_t)'A', NC_AXIS_TYPE_ROTARY, 1U);
++    (void)Api_SetNcPathAxisMask(0x0000000fUL);
++    (void)Api_SetNcAxisDetachedMask(0x00000000UL);
++    (void)Api_SetNcAxisDiameterMode(0U, 1U);
+     (void)Api_SetNcWorkOffset(0U, 0U, 100);
+     (void)Api_SetNcLocalShift(1U, 20);
+     (void)Api_SetNcTemporaryAbsolute(2U, 0);
+@@ -773,6 +790,17 @@
+         rotaryVirtualDelta = rotaryMccStatus.last_virtual_linear_delta;
+         rotaryCmdBits = rotaryMccStatus.last_mcc_command_bits;
+     }
++    if (Api_GetNcAxisConfigStatus(&axisConfigStatus) == 0) {
++        axisCfgPathMask = axisConfigStatus.active_path_axis_mask;
++        axisCfgRotaryMask = axisConfigStatus.rotary_axis_mask;
++        axisCfgDiameterMask = axisConfigStatus.diameter_axis_mask;
++        axisCfgApplied = axisConfigStatus.applied_blocks;
++        axisCfgDiameterBlocks = axisConfigStatus.diameter_converted_blocks;
++        axisCfgDetachedBlocks = axisConfigStatus.detached_axis_blocks;
++        axisCfgRejected = axisConfigStatus.rejected_calls;
++        axisCfgNameA = axisConfigStatus.axis_name[3];
++        axisCfgLastX = axisConfigStatus.last_output_target[0];
++    }
+     {
+         NC_PRECISION_STATUS precisionStatus;
+         if (Api_GetNcPrecisionStatus(&precisionStatus) == 0) {
+@@ -970,6 +998,16 @@
+                  (unsigned int)rotaryMccOff,
+                  (int)rotaryVirtualDelta,
+                  (unsigned int)rotaryCmdBits);
++    (void)printf("axis_config path=0x%08x rotary=0x%08x diameter=0x%08x applied=%u diameter_blocks=%u detached_blocks=%u rejected=%u name_a=%c last_x=%d\n",
++                 (unsigned int)axisCfgPathMask,
++                 (unsigned int)axisCfgRotaryMask,
++                 (unsigned int)axisCfgDiameterMask,
++                 (unsigned int)axisCfgApplied,
++                 (unsigned int)axisCfgDiameterBlocks,
++                 (unsigned int)axisCfgDetachedBlocks,
++                 (unsigned int)axisCfgRejected,
++                 (char)axisCfgNameA,
++                 (int)axisCfgLastX);
+     (void)printf("sync mode_bits=0x%04x planned=%u executed=%u sync_motion=%u compound_motion=%u overlay_motion=%u double_table=%u slave_mask=0x%08x max_follow_y=%d out_y=%d\n",
+                  (unsigned int)syncModeBits,
+                  (unsigned int)syncPlanned,
+--- /tmp/v18_ref/source/scripts/build_vc2026.bat	2026-04-30 17:54:58.000000000 +0000
++++ /tmp/full_v19/source/scripts/build_vc2026.bat	2026-04-30 18:19:58.142673452 +0000
+@@ -10,7 +10,7 @@
+ if not exist build\obj mkdir build\obj
+ 
+ set "VS_DEV_SHELL=C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\Launch-VsDevShell.ps1"
+-set "CL_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_capability.c src\nc_codes.c src\nc_compensation.c src\nc_coordinate.c src\nc_coordinate_transform.c src\nc_cycle.c src\nc_diagnostics.c src\nc_feed.c src\nc_interference.c src\nc_interp_math.c src\nc_interpolation.c src\nc_kinematics.c src\nc_lookahead.c src\nc_lathe_cycle.c src\nc_reference.c src\nc_precision.c src\nc_spindle.c src\nc_tool_management.c src\nc_synchronization.c src\nc_rotary_mcc.c src\nc_motion_filter.c src\nc_safety_motion.c src\nc_program.c src\nc_parser.c src\nc_parser_feature.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
++set "CL_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_capability.c src\nc_codes.c src\nc_compensation.c src\nc_coordinate.c src\nc_coordinate_transform.c src\nc_cycle.c src\nc_diagnostics.c src\nc_feed.c src\nc_interference.c src\nc_interp_math.c src\nc_interpolation.c src\nc_axis_config.c src\nc_kinematics.c src\nc_lookahead.c src\nc_lathe_cycle.c src\nc_reference.c src\nc_precision.c src\nc_spindle.c src\nc_tool_management.c src\nc_synchronization.c src\nc_rotary_mcc.c src\nc_motion_filter.c src\nc_safety_motion.c src\nc_program.c src\nc_parser.c src\nc_parser_feature.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
+ 
+ echo [build_vc2026] Checking compiler...
+ where cl.exe >nul 2>nul
+--- /tmp/v18_ref/source/scripts/build_clang.bat	2026-04-30 17:54:58.000000000 +0000
++++ /tmp/full_v19/source/scripts/build_clang.bat	2026-04-30 18:19:58.144289613 +0000
+@@ -10,7 +10,7 @@
+ if not exist build\obj mkdir build\obj
+ 
+ set "VS_DEV_SHELL=C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\Launch-VsDevShell.ps1"
+-set "CLANG_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_capability.c src\nc_codes.c src\nc_compensation.c src\nc_coordinate.c src\nc_coordinate_transform.c src\nc_cycle.c src\nc_diagnostics.c src\nc_feed.c src\nc_interference.c src\nc_interp_math.c src\nc_interpolation.c src\nc_kinematics.c src\nc_lookahead.c src\nc_lathe_cycle.c src\nc_reference.c src\nc_precision.c src\nc_spindle.c src\nc_tool_management.c src\nc_synchronization.c src\nc_rotary_mcc.c src\nc_motion_filter.c src\nc_safety_motion.c src\nc_program.c src\nc_parser.c src\nc_parser_feature.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
++set "CLANG_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_capability.c src\nc_codes.c src\nc_compensation.c src\nc_coordinate.c src\nc_coordinate_transform.c src\nc_cycle.c src\nc_diagnostics.c src\nc_feed.c src\nc_interference.c src\nc_interp_math.c src\nc_interpolation.c src\nc_axis_config.c src\nc_kinematics.c src\nc_lookahead.c src\nc_lathe_cycle.c src\nc_reference.c src\nc_precision.c src\nc_spindle.c src\nc_tool_management.c src\nc_synchronization.c src\nc_rotary_mcc.c src\nc_motion_filter.c src\nc_safety_motion.c src\nc_program.c src\nc_parser.c src\nc_parser_feature.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
+ set "CLANG_CL="
+ 
+ echo [build_clang] Checking compiler...
+--- /dev/null	2026-04-30 17:44:39.111026341 +0000
++++ /tmp/full_v19/source/inc/nc_axis_config.h	2026-04-30 18:19:08.664534603 +0000
+@@ -0,0 +1,21 @@
++/* ibm-bob/samples/base/source/inc/nc_axis_config.h */
++/* Declares TS-side axis setting, path-axis allocation, detached-axis and diameter/radius command helpers. */
++/* This exists so flexible axis setup is converted into fixed NC execution blocks before RT execution. */
++/* RELEVANT FILES: src/nc_axis_config.c, src/nc_parser_modal.c, inc/control_api.h, inc/system_shared.h */
++#ifndef NC_AXIS_CONFIG_H
++#define NC_AXIS_CONFIG_H
++
++#include <stdint.h>
++#include "system_shared.h"
++
++int32_t NcAxisConfig_SetAxisDefinition(uint8_t axis,
++                                       uint8_t axisName,
++                                       uint8_t axisType,
++                                       uint8_t coordinateGroup);
++int32_t NcAxisConfig_SetPathAxisMask(uint32_t axisMask);
++int32_t NcAxisConfig_SetDetachedMask(uint32_t axisMask);
++int32_t NcAxisConfig_SetDiameterMode(uint8_t axis, uint8_t enabled);
++int32_t NcAxisConfig_ApplyBlockTs(NC_EXEC_BLOCK* pBlock,
++                                  NC_ERROR_CODE* pOutError);
++
++#endif /* NC_AXIS_CONFIG_H */
+--- /dev/null	2026-04-30 17:44:39.111026341 +0000
++++ /tmp/full_v19/source/src/nc_axis_config.c	2026-04-30 18:19:08.755436048 +0000
+@@ -0,0 +1,223 @@
++/* ibm-bob/samples/base/source/src/nc_axis_config.c */
++/* Applies axis definition, flexible path allocation, detached-axis and diameter/radius conversion rules. */
++/* This exists so RT receives fixed axis targets without performing table lookup or axis-mode decisions. */
++/* RELEVANT FILES: inc/nc_axis_config.h, src/nc_parser_modal.c, src/control_api.c, src/system_shared.c */
++#include "nc_axis_config.h"
++
++static uint32_t AxisMaskAll(void)
++{
++    return (uint32_t)((1UL << AXIS_MAX) - 1UL);
++}
++
++static uint8_t IsValidMask(uint32_t axisMask)
++{
++    return (uint8_t)((axisMask & ~AxisMaskAll()) == 0U);
++}
++
++static uint8_t NormalizeName(uint8_t axisName)
++{
++    if ((axisName >= (uint8_t)'a') && (axisName <= (uint8_t)'z')) {
++        return (uint8_t)(axisName - ((uint8_t)'a' - (uint8_t)'A'));
++    }
++    return axisName;
++}
++
++static uint8_t IsMotionLike(NC_MOTION_TYPE motion)
++{
++    return (uint8_t)((motion == NC_MOTION_RAPID) ||
++                     (motion == NC_MOTION_LINEAR) ||
++                     (motion == NC_MOTION_ARC_CW) ||
++                     (motion == NC_MOTION_ARC_CCW) ||
++                     (motion == NC_MOTION_CANNED_CYCLE) ||
++                     (motion == NC_MOTION_THREAD) ||
++                     (motion == NC_MOTION_SKIP) ||
++                     (motion == NC_MOTION_REFERENCE_RETURN) ||
++                     (motion == NC_MOTION_ADVANCED_INTERP));
++}
++
++static int32_t HalfAwayFromZero(int32_t value)
++{
++    if (value > 0) {
++        return (value + 1) / 2;
++    }
++    if (value < 0) {
++        return (value - 1) / 2;
++    }
++    return 0;
++}
++
++int32_t NcAxisConfig_SetAxisDefinition(uint8_t axis,
++                                       uint8_t axisName,
++                                       uint8_t axisType,
++                                       uint8_t coordinateGroup)
++{
++    uint32_t bit;
++    axisName = NormalizeName(axisName);
++    if ((axis >= AXIS_MAX) ||
++        ((axisType != NC_AXIS_TYPE_LINEAR) && (axisType != NC_AXIS_TYPE_ROTARY)) ||
++        (axisName < (uint8_t)'A') || (axisName > (uint8_t)'Z')) {
++        g_ncAxisConfigStatus.rejected_calls++;
++        g_ncAxisConfigStatus.generation++;
++        return -1;
++    }
++
++    bit = (1UL << axis);
++    g_ncAxisConfigStatus.axis_type[axis] = axisType;
++    g_ncAxisConfigStatus.axis_name[axis] = axisName;
++    g_ncAxisConfigStatus.coordinate_group[axis] = coordinateGroup;
++    if (axisType == NC_AXIS_TYPE_ROTARY) {
++        g_ncAxisConfigStatus.rotary_axis_mask |= bit;
++        g_ncAxisConfigStatus.linear_axis_mask &= ~bit;
++    } else {
++        g_ncAxisConfigStatus.linear_axis_mask |= bit;
++        g_ncAxisConfigStatus.rotary_axis_mask &= ~bit;
++    }
++    g_ncAxisConfigStatus.axis_definition_calls++;
++    g_ncAxisConfigStatus.generation++;
++    NcEvent_Push(NC_EVENT_CODE_AXIS_CONFIG_CHANGE,
++                 (int32_t)axis,
++                 (int32_t)axisName,
++                 0U);
++    return 0;
++}
++
++int32_t NcAxisConfig_SetPathAxisMask(uint32_t axisMask)
++{
++    if ((axisMask == 0U) || (IsValidMask(axisMask) == 0U)) {
++        g_ncAxisConfigStatus.rejected_calls++;
++        g_ncAxisConfigStatus.generation++;
++        return -1;
++    }
++    g_ncAxisConfigStatus.active_path_axis_mask = axisMask;
++    g_ncAxisConfigStatus.path_assignment_calls++;
++    g_ncAxisConfigStatus.generation++;
++    NcEvent_Push(NC_EVENT_CODE_AXIS_CONFIG_CHANGE,
++                 (int32_t)axisMask,
++                 0,
++                 0U);
++    return 0;
++}
++
++int32_t NcAxisConfig_SetDetachedMask(uint32_t axisMask)
++{
++    if (IsValidMask(axisMask) == 0U) {
++        g_ncAxisConfigStatus.rejected_calls++;
++        g_ncAxisConfigStatus.generation++;
++        return -1;
++    }
++    g_ncAxisConfigStatus.detached_axis_mask = axisMask;
++    g_ncAxisConfigStatus.detached_set_calls++;
++    g_ncAxisConfigStatus.generation++;
++    NcEvent_Push(NC_EVENT_CODE_AXIS_CONFIG_CHANGE,
++                 (int32_t)axisMask,
++                 1,
++                 0U);
++    return 0;
++}
++
++int32_t NcAxisConfig_SetDiameterMode(uint8_t axis, uint8_t enabled)
++{
++    uint32_t bit;
++    if (axis >= AXIS_MAX) {
++        g_ncAxisConfigStatus.rejected_calls++;
++        g_ncAxisConfigStatus.generation++;
++        return -1;
++    }
++    bit = (1UL << axis);
++    if (enabled != 0U) {
++        g_ncAxisConfigStatus.diameter_axis_mask |= bit;
++    } else {
++        g_ncAxisConfigStatus.diameter_axis_mask &= ~bit;
++    }
++    g_ncAxisConfigStatus.diameter_mode_calls++;
++    g_ncAxisConfigStatus.generation++;
++    NcEvent_Push(NC_EVENT_CODE_AXIS_DIAMETER_MODE,
++                 (int32_t)axis,
++                 (int32_t)(enabled != 0U),
++                 0U);
++    return 0;
++}
++
++int32_t NcAxisConfig_ApplyBlockTs(NC_EXEC_BLOCK* pBlock,
++                                  NC_ERROR_CODE* pOutError)
++{
++    uint32_t i;
++    uint32_t pathMask;
++    uint32_t inputMask;
++    uint32_t removeMask;
++    uint8_t changed = 0U;
++    uint8_t diameterChanged = 0U;
++    uint8_t detachedChanged = 0U;
++    uint8_t pathChanged = 0U;
++
++    if ((pBlock == 0) || (pOutError == 0)) {
++        return -1;
++    }
++    if (IsMotionLike(pBlock->motion_type) == 0U) {
++        return 0;
++    }
++
++    pathMask = g_ncAxisConfigStatus.active_path_axis_mask;
++    if (pathMask == 0U) {
++        pathMask = NC_AXIS_CONFIG_DEFAULT_PATH_MASK;
++    }
++    inputMask = pBlock->axis_mask;
++    removeMask = (inputMask & ~pathMask) |
++                 (inputMask & g_ncAxisConfigStatus.detached_axis_mask);
++
++    g_ncAxisConfigStatus.last_input_axis_mask = inputMask;
++    for (i = 0U; i < AXIS_MAX; ++i) {
++        uint32_t bit = (1UL << i);
++        g_ncAxisConfigStatus.last_input_target[i] = pBlock->axis_target[i];
++
++        if (((g_ncAxisConfigStatus.diameter_axis_mask & bit) != 0U) &&
++            ((pBlock->axis_mask & bit) != 0U)) {
++            pBlock->axis_target[i] = HalfAwayFromZero(pBlock->axis_target[i]);
++            pBlock->axis_start[i] = HalfAwayFromZero(pBlock->axis_start[i]);
++            pBlock->arc_center[i] = HalfAwayFromZero(pBlock->arc_center[i]);
++            changed = 1U;
++            diameterChanged = 1U;
++        }
++        if ((removeMask & bit) != 0U) {
++            pBlock->axis_target[i] = pBlock->axis_start[i];
++            pBlock->axis_mask &= ~bit;
++            changed = 1U;
++            detachedChanged = 1U;
++            if ((inputMask & ~pathMask & bit) != 0U) {
++                pathChanged = 1U;
++            }
++        }
++        g_ncAxisConfigStatus.last_output_target[i] = pBlock->axis_target[i];
++    }
++    g_ncAxisConfigStatus.last_output_axis_mask = pBlock->axis_mask;
++
++    if (changed != 0U) {
++        g_ncAxisConfigStatus.applied_blocks++;
++        g_ncAxisConfigStatus.last_line_no = pBlock->line_no;
++        if (diameterChanged != 0U) {
++            g_ncAxisConfigStatus.diameter_converted_blocks++;
++            NcEvent_Push(NC_EVENT_CODE_AXIS_DIAMETER_MODE,
++                         (int32_t)g_ncAxisConfigStatus.diameter_axis_mask,
++                         (int32_t)pBlock->axis_mask,
++                         pBlock->line_no);
++        }
++        if (detachedChanged != 0U) {
++            g_ncAxisConfigStatus.detached_axis_blocks++;
++            NcEvent_Push(NC_EVENT_CODE_AXIS_DETACHED,
++                         (int32_t)removeMask,
++                         (int32_t)pBlock->axis_mask,
++                         pBlock->line_no);
++        }
++        if (pathChanged != 0U) {
++            g_ncAxisConfigStatus.path_filtered_blocks++;
++        }
++        g_ncAxisConfigStatus.generation++;
++        NcEvent_Push(NC_EVENT_CODE_AXIS_CONFIG_APPLIED,
++                     (int32_t)inputMask,
++                     (int32_t)pBlock->axis_mask,
++                     pBlock->line_no);
++    }
++
++    (void)pOutError;
++    return 0;
++}

@@ -9,8 +9,17 @@
 #include "nc_feed.h"
 #include "nc_diagnostics.h"
 #include "nc_compensation.h"
+#include "nc_coordinate_transform.h"
 #include "nc_kinematics.h"
 #include "nc_interference.h"
+#include "nc_lathe_cycle.h"
+#include "nc_reference.h"
+#include "nc_precision.h"
+#include "nc_spindle.h"
+#include "nc_tool_management.h"
+#include "nc_synchronization.h"
+#include "nc_rotary_mcc.h"
+#include "nc_axis_config.h"
 
 static int32_t IsNcBusyForLoad(void)
 {
@@ -225,6 +234,56 @@ int32_t Api_GetNcCoordinateStatus(NC_COORDINATE_STATE* pOutStatus)
                  (const void*)&g_ncCoordinateState,
                  sizeof(*pOutStatus));
     return 0;
+}
+
+int32_t Api_GetNcCoordinateTransformStatus(NC_COORDINATE_TRANSFORM_STATUS* pOutStatus)
+{
+    if (pOutStatus == 0) {
+        return -1;
+    }
+    (void)memcpy(pOutStatus,
+                 (const void*)&g_ncCoordinateTransformStatus,
+                 sizeof(*pOutStatus));
+    return 0;
+}
+
+int32_t Api_SetNcCoordinateTransformEnabled(uint8_t dynamicFixture,
+                                            uint8_t workMountError,
+                                            uint8_t rotaryFixture)
+{
+    return NcCoordinateTransform_SetEnabled(dynamicFixture,
+                                            workMountError,
+                                            rotaryFixture);
+}
+
+int32_t Api_SetNcWorkOffset(uint8_t workIndex, uint8_t axis, int32_t offset)
+{
+    return NcCoordinateTransform_SetWorkOffset(workIndex, axis, offset);
+}
+
+int32_t Api_SetNcLocalShift(uint8_t axis, int32_t shift)
+{
+    return NcCoordinateTransform_SetLocalShift(axis, shift);
+}
+
+int32_t Api_SetNcTemporaryAbsolute(uint8_t axis, int32_t programPosition)
+{
+    return NcCoordinateTransform_SetTemporaryAbsolute(axis, programPosition);
+}
+
+int32_t Api_SetNcDynamicFixtureOffset(uint8_t axis, int32_t offset)
+{
+    return NcCoordinateTransform_SetDynamicFixtureOffset(axis, offset);
+}
+
+int32_t Api_SetNcWorkMountError(uint8_t axis, int32_t error)
+{
+    return NcCoordinateTransform_SetWorkMountError(axis, error);
+}
+
+int32_t Api_SetNcRotaryTableOffset(uint8_t axis, int32_t offset)
+{
+    return NcCoordinateTransform_SetRotaryTableOffset(axis, offset);
 }
 
 int32_t Api_GetNcFeatureStatus(NC_FEATURE_STATUS* pOutStatus)
@@ -456,4 +515,206 @@ int32_t Api_GetNcSafetyMotionStatus(NC_SAFETY_MOTION_STATUS* pOutStatus)
     }
     *pOutStatus = g_ncSafetyMotionStatus;
     return 0;
+}
+
+int32_t Api_GetNcTurningCycleStatus(NC_TURNING_CYCLE_STATUS* pOutStatus)
+{
+    if (pOutStatus == NULL) {
+        return -1;
+    }
+    *pOutStatus = g_ncTurningCycleStatus;
+    return 0;
+}
+
+int32_t Api_GetNcThreadCycleStatus(NC_THREAD_CYCLE_STATUS* pOutStatus)
+{
+    if (pOutStatus == NULL) {
+        return -1;
+    }
+    *pOutStatus = g_ncThreadCycleStatus;
+    return 0;
+}
+
+int32_t Api_SetNcDiameterMode(uint8_t enabled)
+{
+    int32_t result = NcLatheCycle_SetDiameterMode(enabled);
+    if (result == 0) {
+        (void)NcAxisConfig_SetDiameterMode(0U, enabled);
+    }
+    return result;
+}
+
+int32_t Api_GetNcReferenceStatus(NC_REFERENCE_STATUS* pOutStatus)
+{
+    if (pOutStatus == NULL) {
+        return -1;
+    }
+    *pOutStatus = g_ncReferenceStatus;
+    return 0;
+}
+
+int32_t Api_SetNcReferenceAxisConfig(uint8_t axis,
+                                     int32_t referencePosition,
+                                     int8_t approachDirection,
+                                     int32_t rolloverLimit,
+                                     uint8_t distanceCodedMarker)
+{
+    return NcReference_SetAxisConfig(axis,
+                                     referencePosition,
+                                     approachDirection,
+                                     rolloverLimit,
+                                     distanceCodedMarker);
+}
+
+int32_t Api_SetNcOneDirectionApproach(uint8_t axis, int32_t approachAmount)
+{
+    return NcReference_SetOneDirectionApproach(axis, approachAmount);
+}
+
+int32_t Api_GetNcPrecisionStatus(NC_PRECISION_STATUS* pOutStatus)
+{
+    if (pOutStatus == NULL) {
+        return -1;
+    }
+    *pOutStatus = g_ncPrecisionStatus;
+    return 0;
+}
+
+int32_t Api_SetNcLearningControl(uint8_t enabled,
+                                 int32_t gainPercent,
+                                 uint8_t memoryWindow)
+{
+    return NcPrecision_SetLearningControl(enabled, gainPercent, memoryWindow);
+}
+
+int32_t Api_SetNcVibrationSuppression(uint8_t enabled,
+                                       uint16_t notchFreqHz,
+                                       uint16_t dampingPercent)
+{
+    return NcPrecision_SetVibrationControl(enabled, notchFreqHz, dampingPercent);
+}
+
+int32_t Api_SetNcPreviewControl(uint8_t enabled,
+                                uint16_t lookaheadBlocks,
+                                uint16_t cornerTolerance)
+{
+    return NcPrecision_SetPreviewControl(enabled, lookaheadBlocks, cornerTolerance);
+}
+
+int32_t Api_GetNcSpindleStatus(NC_SPINDLE_STATUS* pOutStatus)
+{
+    if (pOutStatus == NULL) {
+        return -1;
+    }
+    *pOutStatus = g_ncSpindleStatus;
+    return 0;
+}
+
+int32_t Api_SetNcSpindleSpeedLimit(uint32_t minRpm, uint32_t maxRpm)
+{
+    return NcSpindle_SetSpeedLimit(minRpm, maxRpm);
+}
+
+int32_t Api_SetNcSpindleOrientWindow(uint16_t timeoutTicks)
+{
+    return NcSpindle_SetOrientWindow(timeoutTicks);
+}
+
+int32_t Api_GetNcToolManagementStatus(NC_TOOL_MANAGEMENT_STATUS* pOutStatus)
+{
+    if (pOutStatus == NULL) {
+        return -1;
+    }
+    *pOutStatus = g_ncToolManagementStatus;
+    return 0;
+}
+
+int32_t Api_SetNcToolPocket(uint32_t toolNo, uint32_t pocketNo)
+{
+    return NcToolManagement_SetPocket(toolNo, pocketNo);
+}
+
+int32_t Api_RequestNcToolPrepare(uint32_t toolNo)
+{
+    return NcToolManagement_RequestPrepare(toolNo);
+}
+
+int32_t Api_GetNcSynchronizationStatus(NC_SYNCHRONIZATION_STATUS* pOutStatus)
+{
+    if (pOutStatus == NULL) {
+        return -1;
+    }
+    *pOutStatus = g_ncSynchronizationStatus;
+    return 0;
+}
+
+int32_t Api_SetNcSynchronizationMasterSlave(uint8_t masterAxis, uint32_t slaveAxisMask)
+{
+    return NcSynchronization_SetMasterSlave(masterAxis, slaveAxisMask);
+}
+
+int32_t Api_SetNcOverlayAxis(uint8_t axis, int32_t offset)
+{
+    return NcSynchronization_SetOverlayAxis(axis, offset);
+}
+
+int32_t Api_SetNcCompoundPathMask(uint32_t pathMask)
+{
+    return NcSynchronization_SetCompoundPathMask(pathMask);
+}
+
+int32_t Api_SetNcDoubleTableControl(uint8_t enabled, uint32_t slaveAxisMask)
+{
+    return NcSynchronization_SetDoubleTable(enabled, slaveAxisMask);
+}
+
+int32_t Api_GetNcRotaryMccStatus(NC_ROTARY_MCC_STATUS* pOutStatus)
+{
+    if (pOutStatus == NULL) {
+        return -1;
+    }
+    *pOutStatus = g_ncRotaryMccStatus;
+    return 0;
+}
+
+int32_t Api_SetNcRotaryAxisRadius(uint8_t axis, int32_t radius)
+{
+    return NcRotaryMcc_SetAxisRadius(axis, radius);
+}
+
+int32_t Api_SetNcMccOutput(uint8_t enabled)
+{
+    return NcRotaryMcc_SetMccOutput(enabled);
+}
+
+int32_t Api_GetNcAxisConfigStatus(NC_AXIS_CONFIG_STATUS* pOutStatus)
+{
+    if (pOutStatus == NULL) {
+        return -1;
+    }
+    *pOutStatus = g_ncAxisConfigStatus;
+    return 0;
+}
+
+int32_t Api_SetNcAxisDefinition(uint8_t axis,
+                                uint8_t axisName,
+                                uint8_t axisType,
+                                uint8_t coordinateGroup)
+{
+    return NcAxisConfig_SetAxisDefinition(axis, axisName, axisType, coordinateGroup);
+}
+
+int32_t Api_SetNcPathAxisMask(uint32_t axisMask)
+{
+    return NcAxisConfig_SetPathAxisMask(axisMask);
+}
+
+int32_t Api_SetNcAxisDetachedMask(uint32_t axisMask)
+{
+    return NcAxisConfig_SetDetachedMask(axisMask);
+}
+
+int32_t Api_SetNcAxisDiameterMode(uint8_t axis, uint8_t enabled)
+{
+    return NcAxisConfig_SetDiameterMode(axis, enabled);
 }

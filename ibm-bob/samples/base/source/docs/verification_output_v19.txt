@@ -1,0 +1,9 @@
+GCC syntax-only verification for v19 changed files:
+
+src/nc_axis_config.c: PASS
+src/system_shared.c: PASS
+src/control_api.c: PASS
+src/nc_parser_modal.c: PASS
+src/main.c: PASS
+
+Full all-source build/link: attempted, but the execution environment timed out before completion.

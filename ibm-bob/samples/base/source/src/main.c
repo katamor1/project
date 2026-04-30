@@ -44,6 +44,9 @@ static int32_t WriteNcSmokeFile(void)
     (void)fprintf(pFile, "G21\n");
     (void)fprintf(pFile, "G92 X0.1354 Y0.2454 Z0.3554\n");
     (void)fprintf(pFile, "G53 G00 X0 Y0 Z0\n");
+    (void)fprintf(pFile, "G28 X0 Y0 ; reference return sample\n");
+    (void)fprintf(pFile, "G30 Z0 ; second reference return sample\n");
+    (void)fprintf(pFile, "G60 X0.015 Y0.016 F60000 ; one-direction positioning sample\n");
     (void)fprintf(pFile, "G10.6 Z0.100 ; controlled retract sample\n");
     (void)fprintf(pFile, "G54\n");
     (void)fprintf(pFile, "G98 G83 X0.025 Y0.035 Z0.010 R0.050 Q0.020 F60000\n");
@@ -52,6 +55,8 @@ static int32_t WriteNcSmokeFile(void)
     (void)fprintf(pFile, "G70.7 X0.028 Z0.012 R0.050 Q0.020 F60000\n");
     (void)fprintf(pFile, "G06.2 X0.029 Y0.036 Z0.013 F60000 ; NURBS-like fixed block\n");
     (void)fprintf(pFile, "G12.1 X0.030 Y0.037 F60000 ; polar/cylindrical mode sample\n");
+    (void)fprintf(pFile, "G07.1 A0.100 F60000 ; rotary virtual circumferential speed sample\n");
+    (void)fprintf(pFile, "G13.1 ; rotary MCC mode cancel sample\n");
     (void)fprintf(pFile, "G05.2 ; high precision smoothing mode\n");
     (void)fprintf(pFile, "G08 P1 ; standard high-speed smoothing on\n");
     (void)fprintf(pFile, "G01 X0.031 Y0.038 F60000 ; G08 standard short segment\n");
@@ -59,6 +64,11 @@ static int32_t WriteNcSmokeFile(void)
     (void)fprintf(pFile, "G01 X0.032 Y0.039 F60000 ; G08 high-precision short segment\n");
     (void)fprintf(pFile, "G08 P0 ; high-speed smoothing off\n");
     (void)fprintf(pFile, "G51.4\n");
+    (void)fprintf(pFile, "G51.5\n");
+    (void)fprintf(pFile, "G51.6\n");
+    (void)fprintf(pFile, "G01 X0.033 Y0.040 F60000 ; sync/compound/overlay active segment\n");
+    (void)fprintf(pFile, "G50.6\n");
+    (void)fprintf(pFile, "G50.5\n");
     (void)fprintf(pFile, "G16 ; polar coordinate mode on\n");
     (void)fprintf(pFile, "G15 ; polar coordinate mode off\n");
     (void)fprintf(pFile, "G31 X0.030 F60000\n");
@@ -195,9 +205,11 @@ static void SimulateExternalInputs(uint32_t cycle)
     }
     if (cycle == 120U) {
         g_ioIn.sensor_bits |= SENSOR_POSITION_SWITCH_BIT;
+        g_ioIn.sensor_bits |= SENSOR_REFERENCE_MARK_BASE_BIT;
     }
     if (cycle == 122U) {
         g_ioIn.sensor_bits &= ~SENSOR_POSITION_SWITCH_BIT;
+        g_ioIn.sensor_bits &= ~SENSOR_REFERENCE_MARK_BASE_BIT;
     }
     if (cycle == 30U) {
         g_ioIn.analog[1] = 850; /* X-axis load enters staged-decel range */
@@ -221,6 +233,7 @@ int main(void)
     NC_INTERP_STATUS interpStatus;
     NC_FEED_STATUS feedStatus;
     NC_COORDINATE_STATE coordStatus;
+    NC_COORDINATE_TRANSFORM_STATUS coordTransformStatus;
     NC_FEATURE_STATUS featureStatus;
     PRESTART_INTERLOCK_STATUS prestartStatus;
     NC_AUX_STATUS auxStatus;
@@ -238,6 +251,10 @@ int main(void)
     NC_INTERFERENCE_STATUS interferenceStatus;
     NC_SAFETY_MOTION_STATUS safetyStatus;
     NC_BINARY_PROGRAM_STATUS binaryStatus;
+    NC_REFERENCE_STATUS referenceStatus;
+    NC_ROTARY_MCC_STATUS rotaryMccStatus;
+    NC_AXIS_CONFIG_STATUS axisConfigStatus;
+    NC_TOOL_MANAGEMENT_STATUS toolMgmtStatus;
     int32_t ncAxis[AXIS_MAX] = {0};
     uint32_t ncMCode = 0U;
     uint32_t mainNcError = 0U;
@@ -254,6 +271,14 @@ int main(void)
     uint32_t coordWork = 0U;
     uint32_t coordLocal = 0U;
     int32_t coordWorkX = 0;
+    uint32_t coordTransformBlocks = 0U;
+    uint32_t coordTransformMask = 0U;
+    uint32_t coordTransformWorkOffsetSet = 0U;
+    uint32_t coordTransformLocalSet = 0U;
+    uint32_t coordTransformTempSet = 0U;
+    int32_t coordTransformDx = 0;
+    int32_t coordTransformErrX = 0;
+    int32_t coordTransformRotZ = 0;
     uint32_t featureBlocks = 0U;
     uint32_t featureFlags = 0U;
     uint32_t cannedBlocks = 0U;
@@ -319,6 +344,13 @@ int main(void)
     uint32_t tool2Uses = 0U;
     uint32_t toolWarningMask = 0U;
     uint32_t toolExpiredMask = 0U;
+    uint32_t toolMgmtActive = 0U;
+    uint32_t toolMgmtPrepared = 0U;
+    uint32_t toolMgmtParsedT = 0U;
+    uint32_t toolMgmtExchangeReq = 0U;
+    uint32_t toolMgmtExchangeDone = 0U;
+    uint32_t toolMgmtMaxWait = 0U;
+    uint32_t toolMgmtPocket2 = 0U;
     uint32_t diagDecelLevel = 0U;
     uint32_t diagToolExpired = 0U;
     uint32_t diagAxisWarn = 0U;
@@ -348,6 +380,45 @@ int main(void)
     uint32_t safetyPosition = 0U;
     uint32_t safetyOverride = 0U;
     uint32_t binaryLoaded = 0U;
+    uint32_t refPlanned = 0U;
+    uint32_t refExecuted = 0U;
+    uint32_t refHomedMask = 0U;
+    uint32_t refMarkerCaptures = 0U;
+    uint32_t refOneDirection = 0U;
+    uint32_t refRollover = 0U;
+    int32_t refApproachX = 0;
+    uint32_t rotaryParsed = 0U;
+    uint32_t rotaryExecuted = 0U;
+    uint32_t rotaryMask = 0U;
+    uint32_t rotaryMccOn = 0U;
+    uint32_t rotaryMccOff = 0U;
+    int32_t rotaryVirtualDelta = 0;
+    uint32_t rotaryCmdBits = 0U;
+    uint32_t axisCfgPathMask = 0U;
+    uint32_t axisCfgRotaryMask = 0U;
+    uint32_t axisCfgDiameterMask = 0U;
+    uint32_t axisCfgApplied = 0U;
+    uint32_t axisCfgDiameterBlocks = 0U;
+    uint32_t axisCfgDetachedBlocks = 0U;
+    uint32_t axisCfgRejected = 0U;
+    uint32_t axisCfgNameA = 0U;
+    int32_t axisCfgLastX = 0;
+    uint32_t precisionPreviewed = 0U;
+    uint32_t precisionLimited = 0U;
+    uint32_t precisionLearningUpdates = 0U;
+    uint32_t precisionVibrationWarnings = 0U;
+    uint32_t precisionRtTicks = 0U;
+    int32_t precisionCorrectionX = 0;
+    uint32_t syncModeBits = 0U;
+    uint32_t syncPlanned = 0U;
+    uint32_t syncExecuted = 0U;
+    uint32_t syncMotion = 0U;
+    uint32_t syncCompoundMotion = 0U;
+    uint32_t syncOverlayMotion = 0U;
+    uint32_t syncDoubleTable = 0U;
+    uint32_t syncSlaveMask = 0U;
+    int32_t syncMaxFollowY = 0;
+    int32_t syncOutY = 0;
     uint32_t toolLifeHoldState = 0U;
     uint32_t toolLifeHoldError = 0U;
     uint32_t toolLifeHoldLine = 0U;
@@ -355,6 +426,19 @@ int main(void)
     uint32_t cycle;
 
     SystemShared_Initialize();
+    (void)Api_SetNcAxisDefinition(0U, (uint8_t)'X', NC_AXIS_TYPE_LINEAR, 0U);
+    (void)Api_SetNcAxisDefinition(1U, (uint8_t)'Y', NC_AXIS_TYPE_LINEAR, 0U);
+    (void)Api_SetNcAxisDefinition(2U, (uint8_t)'Z', NC_AXIS_TYPE_LINEAR, 0U);
+    (void)Api_SetNcAxisDefinition(3U, (uint8_t)'A', NC_AXIS_TYPE_ROTARY, 1U);
+    (void)Api_SetNcPathAxisMask(0x0000000fUL);
+    (void)Api_SetNcAxisDetachedMask(0x00000000UL);
+    (void)Api_SetNcAxisDiameterMode(0U, 1U);
+    (void)Api_SetNcWorkOffset(0U, 0U, 100);
+    (void)Api_SetNcLocalShift(1U, 20);
+    (void)Api_SetNcTemporaryAbsolute(2U, 0);
+    (void)Api_SetNcDynamicFixtureOffset(0U, 25);
+    (void)Api_SetNcWorkMountError(0U, -10);
+    (void)Api_SetNcRotaryTableOffset(2U, 5);
     (void)Api_SetNcToolLengthOffset(1U, 500);
     (void)Api_SetNcCutterRadiusOffset(1U, 300);
     (void)Api_SetNcAxisAssignment(3U, 3U, -1, 0U);
@@ -365,6 +449,22 @@ int main(void)
     (void)Api_SetNcMotionFilterAxisLimit(3U, 180, 80);
     (void)Api_SetNcToolLifeLimit(2U, 100U);
     (void)Api_SetNcToolLifeLimit(3U, 1U);
+    (void)Api_SetNcToolPocket(2U, 12U);
+    (void)Api_SetNcToolPocket(3U, 13U);
+    (void)Api_SetNcSynchronizationMasterSlave(0U, 0x00000002UL);
+    (void)Api_SetNcOverlayAxis(2U, 15);
+    (void)Api_SetNcCompoundPathMask(0x0000000fUL);
+    (void)Api_SetNcDoubleTableControl(1U, 0x00000002UL);
+    (void)Api_RequestNcToolPrepare(2U);
+    (void)Api_SetNcLearningControl(1U, 35, 4U);
+    (void)Api_SetNcVibrationSuppression(1U, 120U, 35U);
+    (void)Api_SetNcPreviewControl(1U, 32U, 40U);
+    (void)Api_SetNcReferenceAxisConfig(0U, 0, 1, 360000000, 1U);
+    (void)Api_SetNcReferenceAxisConfig(1U, 0, 1, 360000000, 0U);
+    (void)Api_SetNcReferenceAxisConfig(2U, 0, -1, 360000000, 1U);
+    (void)Api_SetNcOneDirectionApproach(0U, 1200);
+    (void)Api_SetNcRotaryAxisRadius(3U, 75000);
+    (void)Api_SetNcMccOutput(1U);
     if (WriteNcSmokeFile() != 0) {
         return 1;
     }
@@ -399,6 +499,16 @@ int main(void)
                 coordWork = coordStatus.selected_work_index;
                 coordLocal = coordStatus.active_local_mask;
                 coordWorkX = coordStatus.work_offset[0][0];
+            }
+            if (Api_GetNcCoordinateTransformStatus(&coordTransformStatus) == 0) {
+                coordTransformBlocks = coordTransformStatus.corrected_blocks;
+                coordTransformMask = coordTransformStatus.last_axis_mask;
+                coordTransformWorkOffsetSet = coordTransformStatus.work_offset_set_calls;
+                coordTransformLocalSet = coordTransformStatus.local_shift_set_calls;
+                coordTransformTempSet = coordTransformStatus.temporary_absolute_set_calls;
+                coordTransformDx = coordTransformStatus.dynamic_fixture_offset[0];
+                coordTransformErrX = coordTransformStatus.work_mount_error[0];
+                coordTransformRotZ = coordTransformStatus.rotary_table_offset[2];
             }
             if (Api_GetNcFeatureStatus(&featureStatus) == 0) {
                 featureBlocks = featureStatus.executed_feature_blocks;
@@ -475,6 +585,30 @@ int main(void)
                 tool2Uses = toolLifeStatus.tool_use_count[2];
                 toolWarningMask = toolLifeStatus.warning_mask;
                 toolExpiredMask = toolLifeStatus.expired_mask;
+            }
+            if (Api_GetNcToolManagementStatus(&toolMgmtStatus) == 0) {
+                toolMgmtActive = toolMgmtStatus.active_tool_no;
+                toolMgmtPrepared = toolMgmtStatus.prepared_tool_no;
+                toolMgmtParsedT = toolMgmtStatus.parsed_t_words;
+                toolMgmtExchangeReq = toolMgmtStatus.exchange_requests;
+                toolMgmtExchangeDone = toolMgmtStatus.exchange_completed;
+                toolMgmtMaxWait = toolMgmtStatus.max_exchange_wait_cycles;
+                toolMgmtPocket2 = toolMgmtStatus.tool_to_pocket[2];
+            }
+            {
+                NC_SYNCHRONIZATION_STATUS syncStatus;
+                if (Api_GetNcSynchronizationStatus(&syncStatus) == 0) {
+                    syncModeBits = syncStatus.active_mode_bits;
+                    syncPlanned = syncStatus.planned_mode_blocks;
+                    syncExecuted = syncStatus.executed_mode_blocks;
+                    syncMotion = syncStatus.synchronized_motion_blocks;
+                    syncCompoundMotion = syncStatus.compound_motion_blocks;
+                    syncOverlayMotion = syncStatus.overlay_motion_blocks;
+                    syncDoubleTable = syncStatus.double_table_blocks;
+                    syncSlaveMask = syncStatus.slave_axis_mask;
+                    syncMaxFollowY = syncStatus.max_following_error[1];
+                    syncOutY = syncStatus.last_output_target[1];
+                }
             }
             if (Api_GetNcDiagnosticSnapshot(&diagSnapshot) == 0) {
                 diagDecelLevel = diagSnapshot.staged_decel_level;
@@ -638,6 +772,46 @@ int main(void)
     if (Api_GetNcBinaryProgramStatus(&binaryStatus) == 0) {
         binaryLoaded = binaryStatus.loaded_blocks;
     }
+    if (Api_GetNcReferenceStatus(&referenceStatus) == 0) {
+        refPlanned = referenceStatus.planned_reference_return_blocks;
+        refExecuted = referenceStatus.executed_reference_return_blocks;
+        refHomedMask = referenceStatus.homed_axis_mask;
+        refMarkerCaptures = referenceStatus.reference_marker_captures;
+        refOneDirection = referenceStatus.one_direction_positioning_blocks;
+        refRollover = referenceStatus.rollover_events;
+        refApproachX = referenceStatus.last_approach_start[0];
+    }
+    if (Api_GetNcRotaryMccStatus(&rotaryMccStatus) == 0) {
+        rotaryParsed = rotaryMccStatus.parsed_virtual_speed_blocks;
+        rotaryExecuted = rotaryMccStatus.executed_virtual_speed_blocks;
+        rotaryMask = rotaryMccStatus.active_axis_mask;
+        rotaryMccOn = rotaryMccStatus.mcc_on_events;
+        rotaryMccOff = rotaryMccStatus.mcc_off_events;
+        rotaryVirtualDelta = rotaryMccStatus.last_virtual_linear_delta;
+        rotaryCmdBits = rotaryMccStatus.last_mcc_command_bits;
+    }
+    if (Api_GetNcAxisConfigStatus(&axisConfigStatus) == 0) {
+        axisCfgPathMask = axisConfigStatus.active_path_axis_mask;
+        axisCfgRotaryMask = axisConfigStatus.rotary_axis_mask;
+        axisCfgDiameterMask = axisConfigStatus.diameter_axis_mask;
+        axisCfgApplied = axisConfigStatus.applied_blocks;
+        axisCfgDiameterBlocks = axisConfigStatus.diameter_converted_blocks;
+        axisCfgDetachedBlocks = axisConfigStatus.detached_axis_blocks;
+        axisCfgRejected = axisConfigStatus.rejected_calls;
+        axisCfgNameA = axisConfigStatus.axis_name[3];
+        axisCfgLastX = axisConfigStatus.last_output_target[0];
+    }
+    {
+        NC_PRECISION_STATUS precisionStatus;
+        if (Api_GetNcPrecisionStatus(&precisionStatus) == 0) {
+            precisionPreviewed = precisionStatus.previewed_blocks;
+            precisionLimited = precisionStatus.preview_feed_limited_blocks;
+            precisionLearningUpdates = precisionStatus.learning_updates;
+            precisionVibrationWarnings = precisionStatus.vibration_warnings;
+            precisionRtTicks = precisionStatus.rt_service_ticks;
+            precisionCorrectionX = precisionStatus.last_learning_correction[0];
+        }
+    }
     if (Api_GetNcEventRing(&eventRing) == 0) {
         uint32_t lastIndex = (eventRing.write_index == 0U) ?
                              (NC_EVENT_RING_SIZE - 1U) :
@@ -676,6 +850,15 @@ int main(void)
                  (unsigned int)coordWork,
                  (unsigned int)coordLocal,
                  (int)coordWorkX);
+    (void)printf("coord_transform blocks=%u mask=0x%08x work_set=%u local_set=%u temp_set=%u dyn_x=%d mount_err_x=%d rotary_z=%d\n",
+                 (unsigned int)coordTransformBlocks,
+                 (unsigned int)coordTransformMask,
+                 (unsigned int)coordTransformWorkOffsetSet,
+                 (unsigned int)coordTransformLocalSet,
+                 (unsigned int)coordTransformTempSet,
+                 (int)coordTransformDx,
+                 (int)coordTransformErrX,
+                 (int)coordTransformRotZ);
     (void)printf("feature_blocks=%u feature_flags=%u canned=%u skip=%u advanced=%u\n",
                  (unsigned int)featureBlocks,
                  (unsigned int)featureFlags,
@@ -732,6 +915,14 @@ int main(void)
                  (unsigned int)diagDecelLevel,
                  (unsigned int)diagToolExpired,
                  (unsigned int)diagAxisWarn);
+    (void)printf("tool_mgmt active=%u prepared=%u parsed_t=%u exchange_req=%u exchange_done=%u max_wait=%u pocket2=%u\n",
+                 (unsigned int)toolMgmtActive,
+                 (unsigned int)toolMgmtPrepared,
+                 (unsigned int)toolMgmtParsedT,
+                 (unsigned int)toolMgmtExchangeReq,
+                 (unsigned int)toolMgmtExchangeDone,
+                 (unsigned int)toolMgmtMaxWait,
+                 (unsigned int)toolMgmtPocket2);
     (void)printf("motion_filter_samples=%u mode=%u axis_mask=0x%08x raw_vx=%d smooth_vx=%d out_x=%d\n",
                  (unsigned int)filterSamples,
                  (unsigned int)filterMode,
@@ -790,6 +981,51 @@ int main(void)
                  (unsigned int)safetyExternal,
                  (unsigned int)safetyPosition,
                  (unsigned int)safetyOverride);
+
+    (void)printf("reference planned=%u executed=%u homed=0x%08x markers=%u one_direction=%u rollover=%u approach_x=%d\n",
+                 (unsigned int)refPlanned,
+                 (unsigned int)refExecuted,
+                 (unsigned int)refHomedMask,
+                 (unsigned int)refMarkerCaptures,
+                 (unsigned int)refOneDirection,
+                 (unsigned int)refRollover,
+                 (int)refApproachX);
+    (void)printf("rotary_mcc parsed=%u executed=%u active_mask=0x%08x mcc_on=%u mcc_off=%u virt=%d cmd=0x%08x\n",
+                 (unsigned int)rotaryParsed,
+                 (unsigned int)rotaryExecuted,
+                 (unsigned int)rotaryMask,
+                 (unsigned int)rotaryMccOn,
+                 (unsigned int)rotaryMccOff,
+                 (int)rotaryVirtualDelta,
+                 (unsigned int)rotaryCmdBits);
+    (void)printf("axis_config path=0x%08x rotary=0x%08x diameter=0x%08x applied=%u diameter_blocks=%u detached_blocks=%u rejected=%u name_a=%c last_x=%d\n",
+                 (unsigned int)axisCfgPathMask,
+                 (unsigned int)axisCfgRotaryMask,
+                 (unsigned int)axisCfgDiameterMask,
+                 (unsigned int)axisCfgApplied,
+                 (unsigned int)axisCfgDiameterBlocks,
+                 (unsigned int)axisCfgDetachedBlocks,
+                 (unsigned int)axisCfgRejected,
+                 (char)axisCfgNameA,
+                 (int)axisCfgLastX);
+    (void)printf("sync mode_bits=0x%04x planned=%u executed=%u sync_motion=%u compound_motion=%u overlay_motion=%u double_table=%u slave_mask=0x%08x max_follow_y=%d out_y=%d\n",
+                 (unsigned int)syncModeBits,
+                 (unsigned int)syncPlanned,
+                 (unsigned int)syncExecuted,
+                 (unsigned int)syncMotion,
+                 (unsigned int)syncCompoundMotion,
+                 (unsigned int)syncOverlayMotion,
+                 (unsigned int)syncDoubleTable,
+                 (unsigned int)syncSlaveMask,
+                 (int)syncMaxFollowY,
+                 (int)syncOutY);
+    (void)printf("precision previewed=%u limited=%u learning_updates=%u vibration_warn=%u rt_ticks=%u corr_x=%d\n",
+                 (unsigned int)precisionPreviewed,
+                 (unsigned int)precisionLimited,
+                 (unsigned int)precisionLearningUpdates,
+                 (unsigned int)precisionVibrationWarnings,
+                 (unsigned int)precisionRtTicks,
+                 (int)precisionCorrectionX);
 
     if (Api_GetStatusSnapshot(&snapshot) == 0) {
         (void)printf("mode=%u state=%u alarm=%u cycle=%u\n",

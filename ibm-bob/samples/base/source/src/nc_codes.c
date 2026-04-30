@@ -62,6 +62,7 @@ static const NC_G_CODE_INFO s_gCodes[] = {
     {G(57), 1U, NC_MOTION_NONE,  0U},
     {G(58), 1U, NC_MOTION_NONE,  0U},
     {G(59), 1U, NC_MOTION_NONE,  0U},
+    {G(60), 1U, NC_MOTION_LINEAR, 0U},
     {GD(51, 1), 1U, NC_MOTION_NONE, 0U},
     {GD(51, 4), 1U, NC_MOTION_NONE, 0U},
     {GD(51, 5), 1U, NC_MOTION_NONE, 0U},

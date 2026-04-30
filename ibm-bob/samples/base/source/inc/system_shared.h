@@ -127,6 +127,41 @@ typedef enum {
 } NC_FEED_CONTROL_STATE;
 
 typedef struct {
+    uint8_t  active;
+    uint8_t  reserved0;
+    uint16_t reserved1;
+    uint32_t requested_axis_mask;
+    uint32_t completed_axis_mask;
+    uint32_t homed_axis_mask;
+    uint32_t reference_marker_axis_mask;
+    uint32_t distance_coded_axis_mask;
+    uint32_t distance_coded_captured_axis_mask;
+    uint32_t planned_reference_return_blocks;
+    uint32_t executed_reference_return_blocks;
+    uint32_t second_reference_return_blocks;
+    uint32_t one_direction_positioning_blocks;
+    uint32_t executed_one_direction_blocks;
+    uint32_t reference_marker_captures;
+    uint32_t distance_coded_marker_captures;
+    uint32_t rollover_events;
+    uint32_t last_reference_code10;
+    uint32_t last_one_direction_axis_mask;
+    uint32_t last_line_no;
+    uint32_t last_marker_axis;
+    uint32_t last_rollover_axis;
+    int32_t  reference_position[AXIS_MAX];
+    int32_t  last_reference_position[AXIS_MAX];
+    int32_t  last_marker_position[AXIS_MAX];
+    int32_t  last_approach_start[AXIS_MAX];
+    int32_t  rollover_limit[AXIS_MAX];
+    int32_t  last_rollover_position;
+    int32_t  one_direction_approach[AXIS_MAX];
+    int8_t   approach_direction[AXIS_MAX];
+    uint32_t generation;
+} NC_REFERENCE_STATUS;
+
+
+typedef struct {
     uint32_t sensor_bits;
     uint32_t seq_bits;
     int32_t  analog[ANALOG_CH_MAX];
@@ -296,6 +331,30 @@ typedef struct {
     int32_t  machine_position[AXIS_MAX];
     uint32_t generation;
 } NC_COORDINATE_STATE;
+
+typedef struct {
+    uint8_t  dynamic_fixture_enabled;
+    uint8_t  work_mount_error_enabled;
+    uint8_t  rotary_fixture_enabled;
+    uint8_t  reserved0;
+    uint32_t active_correction_mask;
+    uint32_t corrected_blocks;
+    uint32_t dynamic_fixture_blocks;
+    uint32_t work_mount_error_blocks;
+    uint32_t rotary_fixture_blocks;
+    uint32_t work_offset_set_calls;
+    uint32_t local_shift_set_calls;
+    uint32_t temporary_absolute_set_calls;
+    uint32_t api_rejected_calls;
+    uint32_t last_axis_mask;
+    uint32_t last_line_no;
+    int32_t  dynamic_fixture_offset[AXIS_MAX];
+    int32_t  work_mount_error[AXIS_MAX];
+    int32_t  rotary_table_offset[AXIS_MAX];
+    int32_t  last_input_target[AXIS_MAX];
+    int32_t  last_corrected_target[AXIS_MAX];
+    uint32_t generation;
+} NC_COORDINATE_TRANSFORM_STATUS;
 
 typedef struct {
     NC_INTERP_STATE state;
@@ -588,6 +647,74 @@ typedef struct {
     uint32_t generation;
 } NC_MOTION_FILTER_STATUS;
 
+typedef enum {
+    NC_SPINDLE_DIR_STOP = 0,
+    NC_SPINDLE_DIR_CW   = 1,
+    NC_SPINDLE_DIR_CCW  = 2
+} NC_SPINDLE_DIRECTION;
+
+typedef struct {
+    uint8_t  enabled;
+    uint8_t  running;
+    uint8_t  direction;
+    uint8_t  css_mode_active;
+    uint8_t  orient_requested;
+    uint8_t  orient_completed;
+    uint8_t  clamped;
+    uint8_t  reserved0;
+    uint32_t commanded_rpm;
+    uint32_t output_rpm;
+    uint32_t max_rpm;
+    uint32_t min_rpm;
+    uint32_t css_surface_speed;
+    uint32_t last_s_code;
+    uint32_t last_m_code;
+    uint32_t last_g_code10;
+    uint32_t last_line_no;
+    uint32_t s_word_blocks;
+    uint32_t m_word_blocks;
+    uint32_t css_blocks;
+    uint32_t fixed_rpm_blocks;
+    uint32_t start_events;
+    uint32_t stop_events;
+    uint32_t direction_change_events;
+    uint32_t orientation_events;
+    uint32_t orient_timeout_events;
+    uint32_t speed_clamp_events;
+    uint32_t sync_required_blocks;
+    uint16_t orient_elapsed_ticks;
+    uint16_t orient_timeout_ticks;
+    uint32_t generation;
+} NC_SPINDLE_STATUS;
+
+typedef struct {
+    uint8_t  table_initialized;
+    uint8_t  prepare_requested;
+    uint8_t  exchange_in_progress;
+    uint8_t  mfin_required;
+    uint32_t active_tool_no;
+    uint32_t prepared_tool_no;
+    uint32_t requested_tool_no;
+    uint32_t last_t_code;
+    uint32_t last_m_code;
+    uint32_t last_line_no;
+    uint32_t tool_to_pocket[NC_TOOL_TABLE_SIZE];
+    uint32_t pocket_tool[NC_TOOL_MAGAZINE_POCKETS];
+    uint32_t registered_tools;
+    uint32_t parsed_t_words;
+    uint32_t rt_t_commands;
+    uint32_t prepare_events;
+    uint32_t exchange_requests;
+    uint32_t exchange_completed;
+    uint32_t exchange_wait_cycles;
+    uint32_t max_exchange_wait_cycles;
+    uint32_t invalid_tool_events;
+    uint32_t duplicate_pocket_events;
+    uint32_t no_pocket_events;
+    uint32_t timeout_events;
+    uint32_t generation;
+} NC_TOOL_MANAGEMENT_STATUS;
+
 typedef struct {
     uint32_t cycle;
     uint32_t code;
@@ -677,6 +804,170 @@ typedef struct {
     uint32_t generation;
 } NC_SAFETY_MOTION_STATUS;
 
+
+typedef struct {
+    uint8_t  active;
+    uint8_t  diameter_mode_active;
+    uint8_t  radius_mode_active;
+    uint8_t  reserved0;
+    uint32_t planned_cycle_blocks;
+    uint32_t executed_cycle_blocks;
+    uint32_t roughing_blocks;
+    uint32_t finishing_blocks;
+    uint32_t facing_blocks;
+    uint32_t grooving_blocks;
+    uint32_t pattern_repeat_blocks;
+    uint32_t linear_taper_blocks;
+    uint32_t end_face_blocks;
+    uint32_t grinding_blocks;
+    uint32_t last_cycle_code10;
+    uint32_t last_line_no;
+    int32_t  last_depth;
+    int32_t  last_retract;
+    int32_t  last_target[AXIS_MAX];
+    uint32_t generation;
+} NC_TURNING_CYCLE_STATUS;
+
+typedef struct {
+    uint8_t  active;
+    uint8_t  spindle_sync_required;
+    uint8_t  reserved0;
+    uint8_t  reserved1;
+    uint32_t planned_thread_blocks;
+    uint32_t executed_thread_blocks;
+    uint32_t g32_blocks;
+    uint32_t g76_blocks;
+    uint32_t g767_blocks;
+    uint32_t g78_blocks;
+    uint32_t g92_blocks;
+    uint32_t variable_lead_blocks;
+    uint32_t circular_thread_blocks;
+    uint32_t last_thread_code10;
+    uint32_t last_line_no;
+    int32_t  last_lead;
+    int32_t  last_depth;
+    int32_t  last_target[AXIS_MAX];
+    uint32_t sync_loss_events;
+    uint32_t generation;
+} NC_THREAD_CYCLE_STATUS;
+
+typedef struct {
+    uint8_t  learning_enabled;
+    uint8_t  vibration_suppression_enabled;
+    uint8_t  preview_control_enabled;
+    uint8_t  high_precision_contour_active;
+    uint8_t  free_surface_mode_active;
+    uint8_t  high_speed_cycle_active;
+    uint8_t  learning_memory_window;
+    uint8_t  reserved0;
+    int32_t  learning_gain_percent;
+    uint16_t vibration_notch_freq_hz;
+    uint16_t vibration_damping_percent;
+    uint16_t preview_lookahead_blocks;
+    uint16_t preview_corner_tolerance;
+    uint32_t active_mode_code10;
+    uint32_t previewed_blocks;
+    uint32_t preview_feed_limited_blocks;
+    uint32_t advanced_precision_blocks;
+    uint32_t hpcc_mode_blocks;
+    uint32_t high_speed_cycle_blocks;
+    uint32_t learning_updates;
+    uint32_t vibration_filtered_samples;
+    uint32_t vibration_warnings;
+    uint32_t rt_service_ticks;
+    uint32_t last_preview_line_no;
+    uint32_t last_exec_line_no;
+    uint16_t last_preview_override_percent;
+    uint16_t reserved1;
+    int32_t  last_path_delta;
+    int32_t  last_following_error[AXIS_MAX];
+    int32_t  max_following_error[AXIS_MAX];
+    int32_t  last_learning_correction[AXIS_MAX];
+    int32_t  last_vibration_delta[AXIS_MAX];
+    uint32_t generation;
+} NC_PRECISION_STATUS;
+
+typedef struct {
+    uint8_t  sync_enabled;
+    uint8_t  compound_enabled;
+    uint8_t  overlay_enabled;
+    uint8_t  double_table_enabled;
+    uint8_t  master_axis;
+    uint8_t  reserved0;
+    uint16_t active_mode_bits;
+    uint32_t slave_axis_mask;
+    uint32_t overlay_axis_mask;
+    uint32_t compound_path_mask;
+    uint32_t planned_mode_blocks;
+    uint32_t executed_mode_blocks;
+    uint32_t synchronized_motion_blocks;
+    uint32_t compound_motion_blocks;
+    uint32_t overlay_motion_blocks;
+    uint32_t double_table_blocks;
+    uint32_t mode_switch_events;
+    uint32_t mode_cancel_events;
+    uint32_t following_warn_events;
+    uint32_t last_mode_code10;
+    uint32_t last_line_no;
+    int32_t  overlay_offset[AXIS_MAX];
+    int32_t  last_master_delta;
+    int32_t  last_following_error[AXIS_MAX];
+    int32_t  max_following_error[AXIS_MAX];
+    int32_t  last_output_target[AXIS_MAX];
+    uint32_t generation;
+} NC_SYNCHRONIZATION_STATUS;
+
+typedef struct {
+    uint8_t  enabled;
+    uint8_t  mcc_output_enabled;
+    uint8_t  mcc_output_active;
+    uint8_t  active_rotary_axis;
+    uint32_t configured_axis_mask;
+    uint32_t active_axis_mask;
+    uint32_t parsed_virtual_speed_blocks;
+    uint32_t executed_virtual_speed_blocks;
+    uint32_t mcc_on_events;
+    uint32_t mcc_off_events;
+    uint32_t radius_set_calls;
+    uint32_t rejected_calls;
+    uint32_t last_g_code10;
+    uint32_t last_line_no;
+    uint32_t last_mcc_command_bits;
+    int32_t  radius[AXIS_MAX];
+    int32_t  last_rotary_delta;
+    int32_t  last_virtual_linear_delta;
+    int32_t  last_axis_target[AXIS_MAX];
+    uint32_t generation;
+} NC_ROTARY_MCC_STATUS;
+
+typedef struct {
+    uint8_t  axis_type[AXIS_MAX];
+    uint8_t  axis_name[AXIS_MAX];
+    uint8_t  coordinate_group[AXIS_MAX];
+    uint8_t  reserved0[AXIS_MAX];
+    uint32_t linear_axis_mask;
+    uint32_t rotary_axis_mask;
+    uint32_t diameter_axis_mask;
+    uint32_t active_path_axis_mask;
+    uint32_t detached_axis_mask;
+    uint32_t mirror_axis_mask;
+    uint32_t axis_definition_calls;
+    uint32_t path_assignment_calls;
+    uint32_t detached_set_calls;
+    uint32_t diameter_mode_calls;
+    uint32_t applied_blocks;
+    uint32_t diameter_converted_blocks;
+    uint32_t detached_axis_blocks;
+    uint32_t path_filtered_blocks;
+    uint32_t rejected_calls;
+    uint32_t last_line_no;
+    uint32_t last_input_axis_mask;
+    uint32_t last_output_axis_mask;
+    int32_t  last_input_target[AXIS_MAX];
+    int32_t  last_output_target[AXIS_MAX];
+    uint32_t generation;
+} NC_AXIS_CONFIG_STATUS;
+
 typedef struct {
     uint32_t cycle;
     uint32_t sensor_bits;
@@ -713,6 +1004,7 @@ extern volatile NC_PROGRAM_REQUEST g_ncProgramRequest;
 extern volatile NC_PROGRAM_STATUS  g_ncProgramStatus;
 extern volatile NC_EXEC_BUFFER     g_ncProgramBuffer;
 extern volatile NC_COORDINATE_STATE g_ncCoordinateState;
+extern volatile NC_COORDINATE_TRANSFORM_STATUS g_ncCoordinateTransformStatus;
 extern volatile NC_INTERP_STATUS   g_ncInterpStatus;
 extern volatile NC_FEED_STATUS     g_ncFeedStatus;
 extern volatile NC_FEATURE_STATUS  g_ncFeatureStatus;
@@ -732,6 +1024,15 @@ extern volatile NC_BINARY_PROGRAM_STATUS  g_ncBinaryProgramStatus;
 extern volatile NC_CAPABILITY_STATUS      g_ncCapabilityStatus;
 extern volatile NC_INTERFERENCE_STATUS    g_ncInterferenceStatus;
 extern volatile NC_SAFETY_MOTION_STATUS   g_ncSafetyMotionStatus;
+extern volatile NC_TURNING_CYCLE_STATUS   g_ncTurningCycleStatus;
+extern volatile NC_THREAD_CYCLE_STATUS    g_ncThreadCycleStatus;
+extern volatile NC_REFERENCE_STATUS       g_ncReferenceStatus;
+extern volatile NC_PRECISION_STATUS        g_ncPrecisionStatus;
+extern volatile NC_SPINDLE_STATUS          g_ncSpindleStatus;
+extern volatile NC_TOOL_MANAGEMENT_STATUS  g_ncToolManagementStatus;
+extern volatile NC_SYNCHRONIZATION_STATUS g_ncSynchronizationStatus;
+extern volatile NC_ROTARY_MCC_STATUS    g_ncRotaryMccStatus;
+extern volatile NC_AXIS_CONFIG_STATUS    g_ncAxisConfigStatus;
 extern volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
 
 void SystemShared_Initialize(void);

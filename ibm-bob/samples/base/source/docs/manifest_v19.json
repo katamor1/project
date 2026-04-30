@@ -1,0 +1,23 @@
+{
+  "version": "v19",
+  "summary": "Axis setting, axis name/coordinate group allocation, flexible path-axis allocation, control-axis detach and diameter/radius conversion support.",
+  "added_files": [
+    "source/inc/nc_axis_config.h",
+    "source/src/nc_axis_config.c"
+  ],
+  "modified_files": [
+    "source/inc/system_config.h",
+    "source/inc/system_shared.h",
+    "source/inc/control_api.h",
+    "source/src/system_shared.c",
+    "source/src/control_api.c",
+    "source/src/nc_parser_modal.c",
+    "source/src/main.c",
+    "source/scripts/build_vc2026.bat",
+    "source/scripts/build_clang.bat"
+  ],
+  "verification": {
+    "gcc_syntax_only_changed_units": "PASS",
+    "full_link": "TIMEOUT_IN_EXECUTION_ENVIRONMENT"
+  }
+}

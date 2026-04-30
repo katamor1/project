@@ -12,6 +12,13 @@
 #include "nc_capability.h"
 #include "nc_interference.h"
 #include "nc_safety_motion.h"
+#include "nc_lathe_cycle.h"
+#include "nc_reference.h"
+#include "nc_precision.h"
+#include "nc_spindle.h"
+#include "nc_tool_management.h"
+#include "nc_synchronization.h"
+#include "nc_rotary_mcc.h"
 #include "nc_program.h"
 
 #define NC_LOG_BASE        (5000U)
@@ -272,6 +279,11 @@ static void RtNcProgram_ApplyBlockAux(const NC_EXEC_BLOCK* pBlock)
     g_ncProgramStatus.exec_line_no = pBlock->line_no;
     RtNcProgram_UpdateFeatureStatus(pBlock);
     NcDiagnostics_OnBlockRt(pBlock);
+    NcLatheCycle_OnBlockRt(pBlock);
+    NcReference_OnBlockRt(pBlock);
+    NcPrecision_OnBlockRt(pBlock);
+    NcSynchronization_ApplyBlockRt((NC_EXEC_BLOCK*)pBlock);
+    NcRotaryMcc_OnBlockRt(pBlock);
     if (RtNcProgram_IsActiveToolExpired() != 0U) {
         RtNcProgram_HoldForToolLife(pBlock->line_no);
         return;
@@ -300,6 +312,8 @@ static void RtNcProgram_ApplyBlockAux(const NC_EXEC_BLOCK* pBlock)
         g_ioOut.tool_no = pBlock->tool_no;
     }
     g_ioOut.aux_flags |= pBlock->aux_flags;
+    NcSpindle_OnBlockRt(pBlock);
+    NcToolManagement_OnBlockRt(pBlock);
     if ((pBlock->aux_flags & NC_AUX_FLAG_MFIN_WAIT) != 0U) {
         g_ncAuxStatus.state = NC_AUX_STATE_WAIT_MFIN;
         g_ncAuxStatus.active_m_code = pBlock->aux_m_code;
@@ -479,6 +493,13 @@ static void TsNcProgram_ResetForNewLoad(void)
     NcLookahead_Reset();
     NcCapability_Reset();
     NcInterference_Reset();
+    NcLatheCycle_Reset();
+    NcReference_Reset();
+    NcPrecision_Reset();
+    NcSpindle_Reset();
+    NcToolManagement_Reset();
+    NcSynchronization_Reset();
+    NcRotaryMcc_Reset();
     (void)memset((void*)&g_ncAuxStatus, 0, sizeof(g_ncAuxStatus));
     RtNcProgram_ResetAuxWait();
     (void)memset((void*)&g_ncFeatureStatus, 0, sizeof(g_ncFeatureStatus));
@@ -542,6 +563,13 @@ static void TsNcProgram_StartBinaryLoad(void)
             block.line_no = i + 1U;
         }
         NcCapability_OnParsedBlockTs(&block);
+        NcLatheCycle_OnParsedBlockTs(&block);
+        NcReference_OnParsedBlockTs(&block);
+            NcPrecision_OnParsedBlockTs(&block);
+            NcSpindle_OnParsedBlockTs(&block);
+            NcToolManagement_OnParsedBlockTs(&block);
+            NcSynchronization_OnParsedBlockTs(&block);
+            (void)NcRotaryMcc_ApplyBlockTs(&block, &(NC_ERROR_CODE){NC_ERR_NONE});
         NcInterference_CheckBlockTs(&block);
         if (NcBuffer_CommitBlock(&block) != 0) {
             g_ncBinaryProgramStatus.last_error_line_no = block.line_no;
@@ -625,6 +653,12 @@ void TsNcProgram_ExecuteSlice(void)
         }
         if (parseResult == 0) {
             NcCapability_OnParsedBlockTs(&block);
+            NcLatheCycle_OnParsedBlockTs(&block);
+            NcReference_OnParsedBlockTs(&block);
+            NcPrecision_OnParsedBlockTs(&block);
+            NcSpindle_OnParsedBlockTs(&block);
+            NcToolManagement_OnParsedBlockTs(&block);
+            NcSynchronization_OnParsedBlockTs(&block);
             NcLookahead_ApplyBlockTs(&block);
             NcInterference_CheckBlockTs(&block);
         }

@@ -7,9 +7,12 @@
 #include "nc_capability.h"
 #include "nc_compensation.h"
 #include "nc_coordinate.h"
+#include "nc_coordinate_transform.h"
 #include "nc_cycle.h"
 #include "nc_interpolation.h"
 #include "nc_kinematics.h"
+#include "nc_axis_config.h"
+#include "nc_rotary_mcc.h"
 #include "nc_parser_internal.h"
 #include "nc_program.h"
 
@@ -305,10 +308,19 @@ int32_t NcParser_FinalizeBlock(NC_EXEC_BLOCK* pBlock, NC_ERROR_CODE* pOutError)
     if (NcParser_FinalizeFeatureBlock(pBlock, pOutError) != 0) {
         return -1;
     }
+    if (NcCoordinateTransform_ApplyBlockTs(pBlock, pOutError) != 0) {
+        return -1;
+    }
     if (NcCompensation_ApplyBlockTs(pBlock, pOutError) != 0) {
         return -1;
     }
+    if (NcAxisConfig_ApplyBlockTs(pBlock, pOutError) != 0) {
+        return -1;
+    }
     if (NcKinematics_ApplyBlockTs(pBlock, pOutError) != 0) {
+        return -1;
+    }
+    if (NcRotaryMcc_ApplyBlockTs(pBlock, pOutError) != 0) {
         return -1;
     }
     return NcInterpolation_PrepareBlockTs(pBlock, pOutError);
