@@ -1,0 +1,136 @@
+{
+  "version": "v18",
+  "created_at": "2026-05-02T00:00:00+09:00",
+  "description": "IBM-Bob additional unit tests v18: 40 new unit test cases for other functions and branches after v17.",
+  "added_test_files": 10,
+  "added_test_cases": 40,
+  "verification": {
+    "gcc_run_script": "source/scripts/run_tests_v18_gcc.sh",
+    "result_file": "source/build/test_results_v18_added.txt",
+    "status": "PASS"
+  },
+  "test_groups": [
+    {
+      "target": "NC codes",
+      "cases": 4
+    },
+    {
+      "target": "NC buffer",
+      "cases": 4
+    },
+    {
+      "target": "NC capability",
+      "cases": 4
+    },
+    {
+      "target": "NC motion filter",
+      "cases": 4
+    },
+    {
+      "target": "NC precision",
+      "cases": 4
+    },
+    {
+      "target": "NC safety motion",
+      "cases": 4
+    },
+    {
+      "target": "NC rotary MCC",
+      "cases": 4
+    },
+    {
+      "target": "NC spindle",
+      "cases": 4
+    },
+    {
+      "target": "NC coordinate transform",
+      "cases": 4
+    },
+    {
+      "target": "NC parser public path",
+      "cases": 4
+    }
+  ],
+  "files": [
+    {
+      "path": "source/tests/test_nc_codes_v18_lookup_more.c",
+      "size": 2432,
+      "sha256": "131cdf90c34c297f79c96291b916cb6b457ba9fa5bc393f414cae4270bf3b1d2"
+    },
+    {
+      "path": "source/tests/test_nc_buffer_v18_generation_more.c",
+      "size": 3135,
+      "sha256": "9d5dec954f864e06e6ad5547c4831b37321c3bab4b05f301cd0edb1c92e7d2d6"
+    },
+    {
+      "path": "source/tests/test_nc_capability_v18_address_history_more.c",
+      "size": 3533,
+      "sha256": "54289869277554a7ec5dd22ab2ac2f1436f85428bd64ffee00b472b2fac2e18c"
+    },
+    {
+      "path": "source/tests/test_nc_motion_filter_v18_disable_limits_more.c",
+      "size": 3073,
+      "sha256": "43df5d87dff8296560a7459a9bb9a08807ff039b2e7b47bf28cf6f5ff5aa5cd0"
+    },
+    {
+      "path": "source/tests/test_nc_precision_v18_learning_service_more.c",
+      "size": 2890,
+      "sha256": "4f59d14edf839bafd04fb02584c6bff9ed7f15476029e6c6b3d52a809c0c8a5e"
+    },
+    {
+      "path": "source/tests/test_nc_safety_motion_v18_priority_more.c",
+      "size": 2642,
+      "sha256": "a1538e6c4be9db8cb1289c15c76ee41272c3cb5d56c78bed4b2132dfa6be985f"
+    },
+    {
+      "path": "source/tests/test_nc_rotary_mcc_v18_output_more.c",
+      "size": 3367,
+      "sha256": "fa59afa94fc9aea05d254076690cb95fdf8fc45adddbe759e8366773b1fcc858"
+    },
+    {
+      "path": "source/tests/test_nc_spindle_v18_parse_sync_more.c",
+      "size": 3067,
+      "sha256": "4adef06ffb97e8a723e651da2ee5e4ba3c9cd4ba6bbd0c1f4fba10dd5b36e257"
+    },
+    {
+      "path": "source/tests/test_nc_coordinate_transform_v18_apply_more.c",
+      "size": 2939,
+      "sha256": "49778190d4c3f4c2e775e795fe988ab1147be9ab63d3c095e5243a822bb25f7e"
+    },
+    {
+      "path": "source/tests/test_nc_parser_v18_modal_errors_more.c",
+      "size": 2242,
+      "sha256": "cf7f2e88d49fe5b8d0341d3d4f6026d5c2cd5753341cd61cc424208ea1881e3f"
+    },
+    {
+      "path": "source/scripts/build_tests_v18_gcc.sh",
+      "size": 2659,
+      "sha256": "d9d0ddbdab7d763900e8debfae1a499c5b20c5eb62b349487ac193dbb8945e3e"
+    },
+    {
+      "path": "source/scripts/run_tests_v18_gcc.sh",
+      "size": 925,
+      "sha256": "d0d075ea1417ba3f5860492f7823d1ee4e83799df9dd1b148dcdd24581033ee4"
+    },
+    {
+      "path": "source/scripts/build_tests_v18.bat",
+      "size": 2834,
+      "sha256": "be4d8df6ceeb0ff02cbafd372f27389c3b31c6c7aa6cd05794aeaada26827820"
+    },
+    {
+      "path": "source/scripts/run_tests_v18.bat",
+      "size": 918,
+      "sha256": "5b83aa4d3c5d387c228a21e2c9573c1bd03fc8c81901800f38d6e1695ce5c484"
+    },
+    {
+      "path": "source/build/test_results_v18_added.txt",
+      "size": 6295,
+      "sha256": "efd2eadead8cee75cb43396ccf3d1911b34e00efd4de68b7d3ba153fcaaad729"
+    },
+    {
+      "path": "source/docs/unit_test_report_v18.md",
+      "size": 2541,
+      "sha256": "b8fc8800fd704ae338d06d3548ba75896f30b3bc4244cadba2b7f638c3344f76"
+    }
+  ]
+}

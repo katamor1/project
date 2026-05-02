@@ -1404,6 +1404,89 @@ typedef struct {
     uint32_t generation;
 } NC_AXIS_CONFIG_STATUS;
 
+
+/**
+ * @brief Status for design-document feature completions added in v20.
+ */
+/**
+ * @brief Status for the v22 implementation backlog batch.
+ * @details Tracks 100 newly coded design-feature entries using fixed-size masks,
+ * counters, and last-block snapshots so RT, TS, and API callers can observe the
+ * added implementation without dynamic allocation.
+ */
+typedef struct {
+    uint32_t implemented_mask[NC_IMPL_BACKLOG_WORD_COUNT];
+    uint32_t configured_mask[NC_IMPL_BACKLOG_WORD_COUNT];
+    uint32_t active_category_mask;
+    uint32_t feature_hits[NC_IMPL_BACKLOG_FEATURE_COUNT];
+    uint32_t category_hits[10];
+    uint32_t implemented_count;
+    uint32_t configured_count;
+    uint32_t ts_adjusted_blocks;
+    uint32_t rt_executed_blocks;
+    uint32_t api_configured_calls;
+    uint32_t synthetic_validation_blocks;
+    uint32_t slowdown_applied_blocks;
+    uint32_t last_feature_id;
+    uint32_t last_category;
+    uint32_t last_line_no;
+    uint32_t last_g_code10;
+    uint32_t last_policy;
+    uint32_t last_axis_mask;
+    int32_t  last_effective_feed;
+    uint16_t active_override_percent;
+    uint16_t reserved0;
+    int32_t  last_input_target[AXIS_MAX];
+    int32_t  last_output_target[AXIS_MAX];
+    int32_t  category_accumulator[10];
+    uint32_t generation;
+} NC_IMPLEMENTATION_BACKLOG_STATUS;
+
+typedef struct {
+    uint8_t cylindrical_active;
+    uint8_t polar_active;
+    uint8_t auto_corner_active;
+    uint8_t egb_skip_armed;
+    uint32_t active_mode_mask;
+    uint32_t nurbs_blocks;
+    uint32_t exponential_blocks;
+    uint32_t cylindrical_blocks;
+    uint32_t polar_blocks;
+    uint32_t helical_b_blocks;
+    uint32_t auto_corner_override_blocks;
+    uint32_t grinding_cycle_blocks;
+    uint32_t egb_skip_blocks;
+    uint32_t three_d_interference_blocks;
+    uint32_t followup_rollover_blocks;
+    uint32_t involute_blocks;
+    uint32_t high_precision_contour_blocks;
+    uint32_t exact_stop_blocks;
+    uint32_t rigid_tap_blocks;
+    uint32_t thread_chamfer_blocks;
+    uint32_t second_reference_blocks;
+    uint32_t machine_direct_blocks;
+    uint32_t coordinate_shift_blocks;
+    uint32_t constant_surface_speed_blocks;
+    uint32_t feed_per_rev_blocks;
+    uint32_t ts_adjusted_blocks;
+    uint32_t rt_executed_blocks;
+    uint32_t slowdown_applied_blocks;
+    uint16_t active_override_percent;
+    uint16_t reserved0;
+    uint32_t last_g_code10;
+    uint32_t last_line_no;
+    uint32_t last_axis_mask;
+    int32_t last_effective_feed;
+    uint32_t last_spindle_speed;
+    int32_t last_rigid_tap_pitch;
+    int32_t last_css_diameter;
+    int32_t last_input_target[AXIS_MAX];
+    int32_t last_output_target[AXIS_MAX];
+    int32_t last_clearance[AXIS_MAX];
+    int32_t last_following_error[AXIS_MAX];
+    uint32_t generation;
+} NC_DESIGN_FEATURE_STATUS;
+
 /**
  * @brief Structure for IO trace item.
  * @details Public shared type used by the IBM BOB baseline sample. It is intentionally fixed-size so RT, TS, and API modules can exchange state without dynamic allocation.
@@ -1637,6 +1720,8 @@ extern volatile NC_ROTARY_MCC_STATUS    g_ncRotaryMccStatus;
  * @details Exposes the NC_AXIS_CONFIG_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
  */
 extern volatile NC_AXIS_CONFIG_STATUS    g_ncAxisConfigStatus;
+extern volatile NC_IMPLEMENTATION_BACKLOG_STATUS g_ncImplementationBacklogStatus;
+extern volatile NC_DESIGN_FEATURE_STATUS g_ncDesignFeatureStatus;
 /**
  * @brief Global shared state variable g_ioTraceBuffer.
  * @details Exposes the IO_TRACE_BUFFER storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.

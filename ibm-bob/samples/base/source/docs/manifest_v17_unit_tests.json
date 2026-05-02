@@ -1,0 +1,136 @@
+{
+  "version": "v17",
+  "created_at": "2026-05-02T00:00:00+09:00",
+  "description": "IBM-Bob additional unit tests v17: 40 new cases for other functions and branches.",
+  "added_test_files": 10,
+  "added_test_cases": 40,
+  "verification": {
+    "gcc_run_script": "source/scripts/run_tests_v17_gcc.sh",
+    "result_file": "source/build/test_results_v17_added.txt",
+    "status": "PASS"
+  },
+  "files": [
+    {
+      "path": "source/tests/test_nc_capability_v17_accounting_more.c",
+      "size": 3691,
+      "sha256": "4752387ef523fb2da9b6d12b77c4206d391b5eabd08809a0b4b3d57b89c78b00"
+    },
+    {
+      "path": "source/tests/test_nc_coordinate_v17_modes_more.c",
+      "size": 2853,
+      "sha256": "829b868f86d23983c3bdd3fbe04d089a2f5176ba8ba781c8b856e73c7b1ecb42"
+    },
+    {
+      "path": "source/tests/test_nc_cycle_v17_modal_segments_more.c",
+      "size": 3152,
+      "sha256": "60df5ce2fe69ee3d3f76a13c1831ffc81c2a0e97ede183816d2889a24815815f"
+    },
+    {
+      "path": "source/tests/test_nc_buffer_v17_ring_more.c",
+      "size": 2670,
+      "sha256": "f5af42c87385750c5ab8344a67e80b35a0dd1b096cdca0e5b9f7aea5d208a0e0"
+    },
+    {
+      "path": "source/tests/test_nc_diagnostics_v17_thresholds_more.c",
+      "size": 3451,
+      "sha256": "08e8d00e64e9522f93e43f2e84b5802b276942f2d9ed05245ef830f7e9212b48"
+    },
+    {
+      "path": "source/tests/test_nc_safety_motion_v17_sensor_edges.c",
+      "size": 2920,
+      "sha256": "25143f148d154f85168e5c9ffee82f99d7eb9544bc6f93d84ef4df2ea183d56a"
+    },
+    {
+      "path": "source/tests/test_nc_spindle_v17_css_orient_more.c",
+      "size": 3481,
+      "sha256": "ce702dd5f4dbf8b5d37457bd6fad0cb0b0f543011b301cf6986ff7f33bd8290d"
+    },
+    {
+      "path": "source/tests/test_nc_synchronization_v17_apply_more.c",
+      "size": 3385,
+      "sha256": "a2038a9b2651a186146785c440156d63f92d21ca6a05a5958ff24772e2880737"
+    },
+    {
+      "path": "source/tests/test_nc_interference_v17_warning_more.c",
+      "size": 3406,
+      "sha256": "929ae1b717bc91c68503f5e04f3672c92f2125978dee3b07fc8d7b9024ebf97c"
+    },
+    {
+      "path": "source/tests/test_system_shared_v17_ring_more.c",
+      "size": 2834,
+      "sha256": "a918d15bc44d72f75a2056e897f9503fc78e44c0e3f2ece628fa3f8f71dceb08"
+    },
+    {
+      "path": "source/scripts/build_tests_v17_gcc.sh",
+      "size": 1959,
+      "sha256": "c1940d92afa33e0d42f9a8441a52978c89adb98440b003585961bcc88a917419"
+    },
+    {
+      "path": "source/scripts/run_tests_v17_gcc.sh",
+      "size": 899,
+      "sha256": "74f141ba0157fa4730ff5b53ab23e600da99585426bb1dbcbdba4b6fb4ae3ba2"
+    },
+    {
+      "path": "source/scripts/build_tests_v17.bat",
+      "size": 2049,
+      "sha256": "b9e3f04d39468597dcaffd6e17fbbf80535aa31b89829aaf602f3b132a91c51b"
+    },
+    {
+      "path": "source/scripts/run_tests_v17.bat",
+      "size": 1015,
+      "sha256": "e34198709cf51a81a3a9fe8de1ec556bf8d23af2a7e56e5a4a883af628286ed2"
+    },
+    {
+      "path": "source/build/test_results_v17_added.txt",
+      "size": 6311,
+      "sha256": "2fef6cd311a9c228f99bece37beb10fa33a6def2c46017c45f4aeb2012706bf7"
+    },
+    {
+      "path": "source/docs/unit_test_report_v17.md",
+      "size": 3196,
+      "sha256": "f723d107dbf0390e73451933894886391a1121f1b61a4357111cc3408947963d"
+    }
+  ],
+  "test_groups": [
+    {
+      "target": "NC capability",
+      "cases": 4
+    },
+    {
+      "target": "NC coordinate",
+      "cases": 4
+    },
+    {
+      "target": "NC cycle",
+      "cases": 4
+    },
+    {
+      "target": "NC buffer",
+      "cases": 4
+    },
+    {
+      "target": "NC diagnostics",
+      "cases": 4
+    },
+    {
+      "target": "NC safety motion",
+      "cases": 4
+    },
+    {
+      "target": "NC spindle",
+      "cases": 4
+    },
+    {
+      "target": "NC synchronization",
+      "cases": 4
+    },
+    {
+      "target": "NC interference",
+      "cases": 4
+    },
+    {
+      "target": "system shared",
+      "cases": 4
+    }
+  ]
+}

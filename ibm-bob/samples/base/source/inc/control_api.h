@@ -594,4 +594,12 @@ int32_t Api_SetNcAxisDetachedMask(uint32_t axisMask);
  */
 int32_t Api_SetNcAxisDiameterMode(uint8_t axis, uint8_t enabled);
 
+int32_t Api_GetNcDesignFeatureStatus(NC_DESIGN_FEATURE_STATUS* pOutStatus);
+int32_t Api_SetNcDesignAutoCornerOverride(uint8_t enabled, uint16_t overridePercent);
+
+int32_t Api_GetNcImplementationBacklogStatus(NC_IMPLEMENTATION_BACKLOG_STATUS* pOutStatus);
+int32_t Api_SetNcImplementationBacklogFeature(uint16_t featureId, uint8_t enabled, uint16_t parameter);
+int32_t Api_EnableAllNcImplementationBacklogFeatures(uint16_t parameter);
+int32_t Api_RunNcImplementationBacklogSelfCheck(void);
+
 #endif /* CONTROL_API_H */

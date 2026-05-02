@@ -1,0 +1,97 @@
+{
+  "version": "v22",
+  "base": "ibm_bob_source_implemented_additional_features_v21.zip",
+  "implemented_backlog_features": 100,
+  "validation": {
+    "gcc_object_compile_and_link": "PASS",
+    "smoke_execution": "PASS",
+    "smoke_summary": "implementation_backlog implemented=100 configured=100 synthetic=100"
+  },
+  "files": [
+    {
+      "path": "inc/system_config.h",
+      "size": 36458,
+      "sha256": "38fcb06a99080a247f3ab0a08614a70c3150fdf33cbb32df69449166463649d5"
+    },
+    {
+      "path": "inc/system_shared.h",
+      "size": 70755,
+      "sha256": "8a01013a65be3f8a37c9f51a1bf54801b2c2bcd358fc8cfe73132221d883f8b5"
+    },
+    {
+      "path": "inc/control_api.h",
+      "size": 38694,
+      "sha256": "ef8027a87cc03dbf97a2fc9027ece8b3de1b007170292653b13f7040a9f852ce"
+    },
+    {
+      "path": "inc/nc_feature_backlog.h",
+      "size": 558,
+      "sha256": "0d0d0c2546aab82653ba9306af15bf708b9f1ed0f197384929309e56d44dd016"
+    },
+    {
+      "path": "src/system_shared.c",
+      "size": 12683,
+      "sha256": "3e3563ec1715098b5f4579d4584b166f74f15e5fec4c105573192f151a501551"
+    },
+    {
+      "path": "src/control_api.c",
+      "size": 37693,
+      "sha256": "4ad8880f0154aa00fbf2f811922a569757065b485316a0880d8affe085a3283e"
+    },
+    {
+      "path": "src/nc_feature_backlog.c",
+      "size": 17768,
+      "sha256": "539bc39beff9d0c30e9a8ae15b4b13fb050ab2be6b9a51915f7721345210e58d"
+    },
+    {
+      "path": "src/nc_program.c",
+      "size": 28993,
+      "sha256": "9987c759593ab219414dd4a58195851e2f9ff19047a6799ef0845a94b30cdd65"
+    },
+    {
+      "path": "src/nc_parser_modal.c",
+      "size": 16438,
+      "sha256": "b50fb9c9a3d05a0cc9ab739aae4eceeb3a941f9c3474631c15b606c7a74694c9"
+    },
+    {
+      "path": "src/main.c",
+      "size": 64117,
+      "sha256": "1bed3c2c72040f0687f80a4af019a1f0c76b7e4b48dc205861f3f28ea7bba157"
+    },
+    {
+      "path": "scripts/build_vc2026.bat",
+      "size": 2267,
+      "sha256": "9404dc381074b7fef46782195a87c0c9d4866e61787f173e4dc65f8462bd64d6"
+    },
+    {
+      "path": "scripts/build_clang.bat",
+      "size": 3664,
+      "sha256": "e4c6381d5197368fc273c772729e666bd16f495748b004b7e3a2e8cde4528a48"
+    },
+    {
+      "path": "scripts/build_gcc_smoke_v22.sh",
+      "size": 219,
+      "sha256": "c26c9594bc3e4e46b626ee56b097fe55172b9e2cc0ad4a9a0c8a5e2d5e04fe0c"
+    },
+    {
+      "path": "scripts/test_gcc_smoke_v22.sh",
+      "size": 214,
+      "sha256": "dab962de46502d79a254dcbf6f92e53c2eeb46a4407d8dab8cb991cb8ff0ae19"
+    },
+    {
+      "path": "docs/implementation_report_v22.md",
+      "size": 3477,
+      "sha256": "cc14a292f0c2f36ae43bf6512730952ba5706aed41996df37436d7d123958c26"
+    },
+    {
+      "path": "docs/verification_output_v22.txt",
+      "size": 3399,
+      "sha256": "67c6a0f6426403177262a57dd064dc3e14a03eb60dbc66fa090ec9af1febfd76"
+    },
+    {
+      "path": "docs/continuation_v22_diff.patch",
+      "size": 42468,
+      "sha256": "29339855a381001944eb5359bd8cc8080239e49e49bd6a16ebfa7c7cdd47cd92"
+    }
+  ]
+}

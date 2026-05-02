@@ -13,6 +13,8 @@
 #include "nc_kinematics.h"
 #include "nc_axis_config.h"
 #include "nc_rotary_mcc.h"
+#include "nc_design_features.h"
+#include "nc_feature_backlog.h"
 #include "nc_parser_internal.h"
 #include "nc_program.h"
 
@@ -250,7 +252,7 @@ static int32_t ApplyStopG(int32_t code, const NC_G_CODE_INFO* pInfo,
                           NC_EXEC_BLOCK* pBlock, NC_PARSE_CONTEXT* pCtx)
 {
     if ((code != G(9)) && (code != G(61)) &&
-        (code != G(62)) && (code != G(64))) {
+        (code != G(62)) && (code != G(63)) && (code != G(64))) {
         return 1;
     }
     if (MarkGroup(pCtx, G_GROUP_STOP) != 0) {
@@ -258,10 +260,13 @@ static int32_t ApplyStopG(int32_t code, const NC_G_CODE_INFO* pInfo,
     }
     if (code == G(9)) {
         s_oneShotExactStop = 1U;
-    } else if ((code == G(61)) || (code == G(62))) {
+    } else if ((code == G(61)) || (code == G(62)) || (code == G(63))) {
         s_exactStopMode = 1U;
         s_oneShotExactStop = 0U;
         pBlock->feature_flags |= NC_FEATURE_FLAG_EXACT_STOP;
+        if (code == G(63)) {
+            pBlock->feature_flags |= NC_FEATURE_FLAG_THREAD;
+        }
     } else {
         s_exactStopMode = 0U;
         s_oneShotExactStop = 0U;
@@ -404,6 +409,12 @@ int32_t NcParser_FinalizeBlock(NC_EXEC_BLOCK* pBlock, NC_ERROR_CODE* pOutError)
         return -1;
     }
     if (NcRotaryMcc_ApplyBlockTs(pBlock, pOutError) != 0) {
+        return -1;
+    }
+    if (NcDesignFeatures_ApplyBlockTs(pBlock, pOutError) != 0) {
+        return -1;
+    }
+    if (NcFeatureBacklog_ApplyBlockTs(pBlock, pOutError) != 0) {
         return -1;
     }
     return NcInterpolation_PrepareBlockTs(pBlock, pOutError);

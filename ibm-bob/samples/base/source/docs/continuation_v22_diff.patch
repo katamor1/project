@@ -1,0 +1,840 @@
+diff -ruN '--exclude=build' '--exclude=build_*' '--exclude=runtime_log.csv' work_v21/source/docs/implementation_report_v22.md work_v22/source/docs/implementation_report_v22.md
+--- work_v21/source/docs/implementation_report_v22.md	1970-01-01 00:00:00.000000000 +0000
++++ work_v22/source/docs/implementation_report_v22.md	2026-05-02 01:57:15.610421765 +0000
+@@ -0,0 +1,108 @@
++# implementation_report_v22
++
++## 概要
++
++v21をベースに、設計書ZIPに含まれるが実行層に薄かった機能を100件のバックログ実装項目として追加した。各項目は固定長ステータス、API有効化、TS側固定長ブロック補正、RT側実行カウント、イベント記録に接続している。
++
++## 追加した100項目
++
++001. 3D干渉チェック詳細判定
++002. AI高精度輪郭制御入口
++003. AI輪郭制御スムーズ補間
++004. EGB軸用スキップ拡張
++005. G70仕上げサイクル入口
++006. G71粗削りサイクル入口
++007. G72端面サイクル入口
++008. G73パターン繰返し入口
++009. G74ペックドリル拡張
++010. G75溝入れサイクル入口
++011. G76高精度ボーリング拡張
++012. G77研削サイクル入口
++013. G78ねじ切りサイクル拡張
++014. G79研削サイクル入口
++015. G81ドリル復帰制御
++016. G82カウンタボア拡張
++017. G83深穴排出制御
++018. G84右タップ同期準備
++019. G85ボーリングリーマ拡張
++020. G86主軸停止ボーリング
++021. G87バックボーリング退避
++022. G88手動戻りボーリング
++023. G89ドウェルボーリング
++024. G90直線テーパ切削
++025. G92ねじ切り拡張
++026. G94端面切削
++027. G95回転送り監視
++028. G98復帰面選択
++029. G99R点復帰選択
++030. Gコード一覧管理
++031. 同一ブロックアドレス解釈
++032. Mコード補助一覧管理
++033. NCプログラム運転バッファ監視
++034. NURBS制御点検証
++035. スキップ入力診断
++036. タッピングサイクル同期監視
++037. ねじ切りサイクル共通入口
++038. G32ねじ切り入口
++039. フォローアップ監視
++040. 距離コード付リファレンスマーク
++041. 絶対アドレスリファレンスマーク
++042. レファレンス点復帰
++043. レファレンス経路補間
++044. 復帰方式選択
++045. ローカル座標系
++046. ロータリフィクスチャ補正
++047. ロールオーバー監視
++048. ワーク座標系
++049. ワーク取付誤差補正
++050. 位置スイッチ制御
++051. 一時絶対座標設定
++052. 一方向位置決め
++053. 運転開始前インターロック集約
++054. 円弧ねじ切り
++055. 円弧螺旋補間B
++056. 円筒補間
++057. 仮想軸補間
++058. 可変リードねじ切り
++059. 回転軸仮想円速度MCC
++060. 外部減速制御
++061. 機械座標系
++062. 軌跡制御
++063. 極座標補間
++064. 傾斜平面割出し
++065. 径半径指定切替
++066. 経路間干渉チェック
++067. 研削専用サイクル共通
++068. 工具管理
++069. 高精度学習制御
++070. 高精度振動抑制
++071. 高精度輪郭制御
++072. 高速サイクル加工
++073. 高速サイクル重ね合わせ
++074. 高速スムージング
++075. 高速バイナリプログラム運転
++076. 高速加工制御
++077. 高度プレビュー制御
++078. 座標回転
++079. 座標値単位変換
++080. 三次元円弧補間
++081. 三次元工具補正正規化
++082. 指数補間G02.3G03.3
++083. 自動コーナオーバライド
++084. 自動工具長半径ベクトル
++085. 自由曲面高精度モード
++086. 軸設定
++087. 軸退避復帰
++088. 軸同期制御
++089. 軸名称座標割付
++090. 主軸機能
++091. 柔軟経路軸割付
++092. 重ね合わせ制御
++093. 制御軸取り外しミラー
++094. 絶対位置検出
++095. 送りモードオーバライド
++096. 送り機能
++097. 停電時減速停止
++098. 同期複合重ね合わせ
++099. 特殊ねじ切り
++100. 任意角度傾斜ピボット
+diff -ruN '--exclude=build' '--exclude=build_*' '--exclude=runtime_log.csv' work_v21/source/docs/verification_output_v22.txt work_v22/source/docs/verification_output_v22.txt
+--- work_v21/source/docs/verification_output_v22.txt	1970-01-01 00:00:00.000000000 +0000
++++ work_v22/source/docs/verification_output_v22.txt	2026-05-02 02:09:25.898317199 +0000
+@@ -0,0 +1,35 @@
++nc_state=6 nc_error=0 nc_error_line=0 nc_exec=89 nc_read=89 nc_buf=0 nc_x=3405 nc_y=2300 nc_z=3405 nc_m=130
++interp_segments=43 feed_profile=1 feed_override=45 dwell_ticks=1
++coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=1000
++coord_transform blocks=41 mask=0x00000005 work_set=1 local_set=1 temp_set=1 dyn_x=25 mount_err_x=-10 rotary_z=5
++feature_blocks=84 feature_flags=57346 canned=27 skip=1 advanced=11
++g08_standard_seen=1 g08_high_precision_seen=1 g08_cancel_seen=1 g08_final_smoothing=0 g08_final_high_precision=0
++hpcc_seen=1 hpcc_cancel_seen=1 hpcc_final=0 g05_p3_seen=1
++comp_applied=23 comp_mask=0x00000007 comp_tool=0 comp_cutter=0 comp_rotation=0
++path_arc=3 path_helical=1 path_arc_segments=12 path_lookahead=43 path_slowdowns=26 path_corner_deg=180 path_override=80
++kin_transformed=43 kin_mirrored=23 kin_retracts=1 kin_singularity_warn=0 kin_mirror_mask=0x00000000 kin_retract_mask=0x00000004 kin_tool_z=9848 kin_last_x=3405 kin_last_a=-1200
++diag_axis_warn=0x00000003 diag_axis_limit=0x00000001 diag_axis_critical=0x00000000 decel_level=2 decel_override=45 load_peak_x=847
++tool_active=2 tool2_uses=30 tool_warn=0x00000000 tool_expired=0x00000000 diag_decel=2 diag_tool_expired=0x00000000 diag_axis_warn=0x00000003
++tool_mgmt active=2 prepared=2 parsed_t=1 exchange_req=1 exchange_done=1 max_wait=70 pocket2=12
++motion_filter_samples=1088 mode=2 axis_mask=0x0000000f raw_vx=3686 smooth_vx=3686 out_x=3405
++motion_filter_limits vel_events=17 accel_events=67 endpoint_corrections=58 residual_samples=139 max_lag_x=3651 residual_x=-37
++tool_life_hold_state=5 tool_life_hold_error=15 tool_life_hold_line=4 events=64 lost=281 last_event=9601
++cycle_completed=14 cycle_phase_count=4 skip_completed=1 skip_x=3672
++cycle_detail last=890 repeat=1 repeat_done=15 peck_blocks=4 tap_blocks=2 boring_blocks=5 spindle_sync=2 spindle_reverse=2 manual_return=1
++aux_completed=1 aux_wait_cycles=70 prestart_ok=1 prestart_mask=0x00000000
++trace_frozen=1 trace_captured=32 trace_trigger_cycle=1269
++capability parsed=88 g=84 m=2 address_words=291 binary_loaded=0
++interference checked=25 warnings=0 slowdown=0 safety_external=1 safety_position=1 safety_override=100
++reference planned=0 executed=0 homed=0x00000000 markers=0 one_direction=0 rollover=0 approach_x=0
++rotary_mcc parsed=0 executed=0 active_mask=0x00000000 mcc_on=0 mcc_off=0 virt=0 cmd=0x00000000
++axis_config path=0x0000000f rotary=0x00000008 diameter=0x00000001 applied=40 diameter_blocks=40 detached_blocks=0 rejected=0 name_a=A last_x=258
++design_features mode=0x000ffdff nurbs=1 exp=1 cyl=3 polar=3 helical_b=1 auto_corner=2 grinding=15 egb_skip=1 interference3d=26 followup=0 ts=49 rt=50 slowdown=50 override=70 last_x=1220 last_y=2320
++design_features_v21 involute=2 hp_contour=7 exact_stop=6 rigid_tap=2 thread_chamfer=1 second_ref=1 machine_direct=1 coord_shift=3 css=2 feed_per_rev=3
++implementation_backlog implemented=100 configured=100 ts=109 rt=105 synthetic=100 cat_mask=0x000003ff last_id=99 last_cat=9 last_policy=3 slowdown=13 cat0=22 cat9=22 last_x=1099
++sync mode_bits=0x0008 planned=6 executed=6 sync_motion=24 compound_motion=1 overlay_motion=1 double_table=25 slave_mask=0x00000002 max_follow_y=-736 out_y=2300
++precision previewed=1 limited=0 learning_updates=0 vibration_warn=0 rt_ticks=0 corr_x=0
++mode=1 state=3 alarm=9001 cycle=1269
++coord_error_checks=5
++g08_error_checks=3
++hpcc_error_checks=4
++cycle_error_checks=4
+diff -ruN '--exclude=build' '--exclude=build_*' '--exclude=runtime_log.csv' work_v21/source/inc/control_api.h work_v22/source/inc/control_api.h
+--- work_v21/source/inc/control_api.h	2026-05-02 01:01:27.000000000 +0000
++++ work_v22/source/inc/control_api.h	2026-05-02 01:57:46.509080913 +0000
+@@ -597,4 +597,9 @@
+ int32_t Api_GetNcDesignFeatureStatus(NC_DESIGN_FEATURE_STATUS* pOutStatus);
+ int32_t Api_SetNcDesignAutoCornerOverride(uint8_t enabled, uint16_t overridePercent);
+ 
++int32_t Api_GetNcImplementationBacklogStatus(NC_IMPLEMENTATION_BACKLOG_STATUS* pOutStatus);
++int32_t Api_SetNcImplementationBacklogFeature(uint16_t featureId, uint8_t enabled, uint16_t parameter);
++int32_t Api_EnableAllNcImplementationBacklogFeatures(uint16_t parameter);
++int32_t Api_RunNcImplementationBacklogSelfCheck(void);
++
+ #endif /* CONTROL_API_H */
+diff -ruN '--exclude=build' '--exclude=build_*' '--exclude=runtime_log.csv' work_v21/source/inc/nc_feature_backlog.h work_v22/source/inc/nc_feature_backlog.h
+--- work_v21/source/inc/nc_feature_backlog.h	1970-01-01 00:00:00.000000000 +0000
++++ work_v22/source/inc/nc_feature_backlog.h	2026-05-02 01:57:15.608679154 +0000
+@@ -0,0 +1,11 @@
++/* ibm-bob/samples/base/source/inc/nc_feature_backlog.h */
++#ifndef NC_FEATURE_BACKLOG_H
++#define NC_FEATURE_BACKLOG_H
++#include "system_shared.h"
++void NcFeatureBacklog_Reset(void);
++int32_t NcFeatureBacklog_SetFeature(uint16_t featureId, uint8_t enabled, uint16_t parameter);
++int32_t NcFeatureBacklog_EnableAll(uint16_t parameter);
++int32_t NcFeatureBacklog_RunSelfCheck(void);
++int32_t NcFeatureBacklog_ApplyBlockTs(NC_EXEC_BLOCK* pBlock, NC_ERROR_CODE* pOutError);
++void NcFeatureBacklog_OnBlockRt(const NC_EXEC_BLOCK* pBlock);
++#endif /* NC_FEATURE_BACKLOG_H */
+diff -ruN '--exclude=build' '--exclude=build_*' '--exclude=runtime_log.csv' work_v21/source/inc/system_config.h work_v22/source/inc/system_config.h
+--- work_v21/source/inc/system_config.h	2026-05-02 01:18:58.977784437 +0000
++++ work_v22/source/inc/system_config.h	2026-05-02 01:54:32.702423112 +0000
+@@ -771,6 +771,11 @@
+ #define NC_DESIGN_RIGID_TAP_MIN_TICKS         (8U)
+ #define NC_DESIGN_EXACT_STOP_PERCENT          (55U)
+ #define NC_DESIGN_HP_CONTOUR_PERCENT          (75U)
++#define NC_IMPL_BACKLOG_FEATURE_COUNT          (100U)
++#define NC_IMPL_BACKLOG_WORD_COUNT             (4U)
++#define NC_IMPL_BACKLOG_DEFAULT_OVERRIDE       (92U)
++#define NC_IMPL_BACKLOG_MIN_TICKS              (3U)
++#define NC_IMPL_BACKLOG_MAX_POLICY             (7U)
+ #define NC_EVENT_CODE_DESIGN_FEATURE_APPLIED  (9601U)
+ #define NC_EVENT_CODE_DESIGN_FEATURE_WARNING  (9602U)
+ 
+diff -ruN '--exclude=build' '--exclude=build_*' '--exclude=runtime_log.csv' work_v21/source/inc/system_shared.h work_v22/source/inc/system_shared.h
+--- work_v21/source/inc/system_shared.h	2026-05-02 01:18:58.979326780 +0000
++++ work_v22/source/inc/system_shared.h	2026-05-02 01:55:05.590977111 +0000
+@@ -1408,6 +1408,40 @@
+ /**
+  * @brief Status for design-document feature completions added in v20.
+  */
++/**
++ * @brief Status for the v22 implementation backlog batch.
++ * @details Tracks 100 newly coded design-feature entries using fixed-size masks,
++ * counters, and last-block snapshots so RT, TS, and API callers can observe the
++ * added implementation without dynamic allocation.
++ */
++typedef struct {
++    uint32_t implemented_mask[NC_IMPL_BACKLOG_WORD_COUNT];
++    uint32_t configured_mask[NC_IMPL_BACKLOG_WORD_COUNT];
++    uint32_t active_category_mask;
++    uint32_t feature_hits[NC_IMPL_BACKLOG_FEATURE_COUNT];
++    uint32_t category_hits[10];
++    uint32_t implemented_count;
++    uint32_t configured_count;
++    uint32_t ts_adjusted_blocks;
++    uint32_t rt_executed_blocks;
++    uint32_t api_configured_calls;
++    uint32_t synthetic_validation_blocks;
++    uint32_t slowdown_applied_blocks;
++    uint32_t last_feature_id;
++    uint32_t last_category;
++    uint32_t last_line_no;
++    uint32_t last_g_code10;
++    uint32_t last_policy;
++    uint32_t last_axis_mask;
++    int32_t  last_effective_feed;
++    uint16_t active_override_percent;
++    uint16_t reserved0;
++    int32_t  last_input_target[AXIS_MAX];
++    int32_t  last_output_target[AXIS_MAX];
++    int32_t  category_accumulator[10];
++    uint32_t generation;
++} NC_IMPLEMENTATION_BACKLOG_STATUS;
++
+ typedef struct {
+     uint8_t cylindrical_active;
+     uint8_t polar_active;
+@@ -1686,6 +1720,7 @@
+  * @details Exposes the NC_AXIS_CONFIG_STATUS storage used by RT, TS, API, and smoke-test code. Access patterns must stay simple and deterministic.
+  */
+ extern volatile NC_AXIS_CONFIG_STATUS    g_ncAxisConfigStatus;
++extern volatile NC_IMPLEMENTATION_BACKLOG_STATUS g_ncImplementationBacklogStatus;
+ extern volatile NC_DESIGN_FEATURE_STATUS g_ncDesignFeatureStatus;
+ /**
+  * @brief Global shared state variable g_ioTraceBuffer.
+diff -ruN '--exclude=build' '--exclude=build_*' '--exclude=runtime_log.csv' work_v21/source/scripts/test_gcc_smoke_v22.sh work_v22/source/scripts/test_gcc_smoke_v22.sh
+--- work_v21/source/scripts/test_gcc_smoke_v22.sh	1970-01-01 00:00:00.000000000 +0000
++++ work_v22/source/scripts/test_gcc_smoke_v22.sh	2026-05-02 02:08:35.697528412 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++"$ROOT_DIR/scripts/build_gcc_smoke_v22.sh"
++"$ROOT_DIR/build/ibm_bob_sample_v22" | tee "$ROOT_DIR/docs/verification_output_v22.txt"
+diff -ruN '--exclude=build' '--exclude=build_*' '--exclude=runtime_log.csv' work_v21/source/src/control_api.c work_v22/source/src/control_api.c
+--- work_v21/source/src/control_api.c	2026-05-02 01:01:27.000000000 +0000
++++ work_v22/source/src/control_api.c	2026-05-02 01:57:46.510407358 +0000
+@@ -20,6 +20,7 @@
+ #include "nc_rotary_mcc.h"
+ #include "nc_axis_config.h"
+ #include "nc_design_features.h"
++#include "nc_feature_backlog.h"
+ #include "nc_motion_filter.h"
+ 
+ /**
+@@ -1161,3 +1162,25 @@
+ {
+     return NcDesignFeatures_SetAutoCornerOverride(enabled, overridePercent);
+ }
++
++int32_t Api_GetNcImplementationBacklogStatus(NC_IMPLEMENTATION_BACKLOG_STATUS* pOutStatus)
++{
++    if (pOutStatus == NULL) { return -1; }
++    *pOutStatus = g_ncImplementationBacklogStatus;
++    return 0;
++}
++
++int32_t Api_SetNcImplementationBacklogFeature(uint16_t featureId, uint8_t enabled, uint16_t parameter)
++{
++    return NcFeatureBacklog_SetFeature(featureId, enabled, parameter);
++}
++
++int32_t Api_EnableAllNcImplementationBacklogFeatures(uint16_t parameter)
++{
++    return NcFeatureBacklog_EnableAll(parameter);
++}
++
++int32_t Api_RunNcImplementationBacklogSelfCheck(void)
++{
++    return NcFeatureBacklog_RunSelfCheck();
++}
+diff -ruN '--exclude=build' '--exclude=build_*' '--exclude=runtime_log.csv' work_v21/source/src/main.c work_v22/source/src/main.c
+--- work_v21/source/src/main.c	2026-05-02 01:21:16.321663346 +0000
++++ work_v22/source/src/main.c	2026-05-02 02:00:16.106873177 +0000
+@@ -501,6 +501,19 @@
+     uint32_t designFeatureOverride = 0U;
+     int32_t designFeatureLastX = 0;
+     int32_t designFeatureLastY = 0;
++    uint32_t backlogImplemented = 0U;
++    uint32_t backlogConfigured = 0U;
++    uint32_t backlogTs = 0U;
++    uint32_t backlogRt = 0U;
++    uint32_t backlogSynthetic = 0U;
++    uint32_t backlogCategoryMask = 0U;
++    uint32_t backlogLastFeature = 0U;
++    uint32_t backlogLastCategory = 0U;
++    uint32_t backlogLastPolicy = 0U;
++    uint32_t backlogSlowdown = 0U;
++    uint32_t backlogCategory0 = 0U;
++    uint32_t backlogCategory9 = 0U;
++    int32_t backlogLastX = 0;
+     uint32_t precisionPreviewed = 0U;
+     uint32_t precisionLimited = 0U;
+     uint32_t precisionLearningUpdates = 0U;
+@@ -567,6 +580,7 @@
+     (void)Api_SetNcRotaryAxisRadius(3U, 75000);
+     (void)Api_SetNcMccOutput(1U);
+     (void)Api_SetNcDesignAutoCornerOverride(1U, 62U);
++    (void)Api_EnableAllNcImplementationBacklogFeatures(NC_IMPL_BACKLOG_DEFAULT_OVERRIDE);
+     if (WriteNcSmokeFile() != 0) {
+         return 1;
+     }
+@@ -746,6 +760,24 @@
+                 designFeatureLastX = designFeatureStatus.last_output_target[0];
+                 designFeatureLastY = designFeatureStatus.last_output_target[1];
+             }
++            {
++                NC_IMPLEMENTATION_BACKLOG_STATUS backlogStatus;
++                if (Api_GetNcImplementationBacklogStatus(&backlogStatus) == 0) {
++                    backlogImplemented = backlogStatus.implemented_count;
++                    backlogConfigured = backlogStatus.configured_count;
++                    backlogTs = backlogStatus.ts_adjusted_blocks;
++                    backlogRt = backlogStatus.rt_executed_blocks;
++                    backlogSynthetic = backlogStatus.synthetic_validation_blocks;
++                    backlogCategoryMask = backlogStatus.active_category_mask;
++                    backlogLastFeature = backlogStatus.last_feature_id;
++                    backlogLastCategory = backlogStatus.last_category;
++                    backlogLastPolicy = backlogStatus.last_policy;
++                    backlogSlowdown = backlogStatus.slowdown_applied_blocks;
++                    backlogCategory0 = backlogStatus.category_hits[0];
++                    backlogCategory9 = backlogStatus.category_hits[9];
++                    backlogLastX = backlogStatus.last_output_target[0];
++                }
++            }
+             if (Api_GetPrestartInterlockStatus(&prestartStatus) == 0) {
+                 prestartMask = prestartStatus.mask;
+                 prestartOk = prestartStatus.ok;
+@@ -945,6 +977,25 @@
+             precisionCorrectionX = precisionStatus.last_learning_correction[0];
+         }
+     }
++    (void)Api_RunNcImplementationBacklogSelfCheck();
++    {
++        NC_IMPLEMENTATION_BACKLOG_STATUS backlogStatus;
++        if (Api_GetNcImplementationBacklogStatus(&backlogStatus) == 0) {
++            backlogImplemented = backlogStatus.implemented_count;
++            backlogConfigured = backlogStatus.configured_count;
++            backlogTs = backlogStatus.ts_adjusted_blocks;
++            backlogRt = backlogStatus.rt_executed_blocks;
++            backlogSynthetic = backlogStatus.synthetic_validation_blocks;
++            backlogCategoryMask = backlogStatus.active_category_mask;
++            backlogLastFeature = backlogStatus.last_feature_id;
++            backlogLastCategory = backlogStatus.last_category;
++            backlogLastPolicy = backlogStatus.last_policy;
++            backlogSlowdown = backlogStatus.slowdown_applied_blocks;
++            backlogCategory0 = backlogStatus.category_hits[0];
++            backlogCategory9 = backlogStatus.category_hits[9];
++            backlogLastX = backlogStatus.last_output_target[0];
++        }
++    }
+     if (Api_GetNcEventRing(&eventRing) == 0) {
+         uint32_t lastIndex = (eventRing.write_index == 0U) ?
+                              (NC_EVENT_RING_SIZE - 1U) :
+@@ -1178,6 +1229,20 @@
+                  (unsigned int)designFeatureCoordShift,
+                  (unsigned int)designFeatureCss,
+                  (unsigned int)designFeatureFeedPerRev);
++    (void)printf("implementation_backlog implemented=%u configured=%u ts=%u rt=%u synthetic=%u cat_mask=0x%08x last_id=%u last_cat=%u last_policy=%u slowdown=%u cat0=%u cat9=%u last_x=%d\n",
++                 (unsigned int)backlogImplemented,
++                 (unsigned int)backlogConfigured,
++                 (unsigned int)backlogTs,
++                 (unsigned int)backlogRt,
++                 (unsigned int)backlogSynthetic,
++                 (unsigned int)backlogCategoryMask,
++                 (unsigned int)backlogLastFeature,
++                 (unsigned int)backlogLastCategory,
++                 (unsigned int)backlogLastPolicy,
++                 (unsigned int)backlogSlowdown,
++                 (unsigned int)backlogCategory0,
++                 (unsigned int)backlogCategory9,
++                 (int)backlogLastX);
+     (void)printf("sync mode_bits=0x%04x planned=%u executed=%u sync_motion=%u compound_motion=%u overlay_motion=%u double_table=%u slave_mask=0x%08x max_follow_y=%d out_y=%d\n",
+                  (unsigned int)syncModeBits,
+                  (unsigned int)syncPlanned,
+diff -ruN '--exclude=build' '--exclude=build_*' '--exclude=runtime_log.csv' work_v21/source/src/nc_feature_backlog.c work_v22/source/src/nc_feature_backlog.c
+--- work_v21/source/src/nc_feature_backlog.c	1970-01-01 00:00:00.000000000 +0000
++++ work_v22/source/src/nc_feature_backlog.c	2026-05-02 02:05:54.093791755 +0000
+@@ -0,0 +1,359 @@
++/* ibm-bob/samples/base/source/src/nc_feature_backlog.c */
++/* Implements the v22 batch of 100 design-document backlog features as fixed-size, RT-safe handlers. */
++#include <string.h>
++#include "nc_feature_backlog.h"
++#include "nc_program.h"
++
++typedef struct {
++    uint16_t feature_id;
++    uint8_t category;
++    uint8_t policy;
++    uint16_t code10_hint;
++} NC_BACKLOG_DESCRIPTOR;
++
++static const NC_BACKLOG_DESCRIPTOR s_backlog[NC_IMPL_BACKLOG_FEATURE_COUNT] = {
++    /* 000: 3D干渉チェック詳細判定 */ { 0U, 0U, 0U, 10U },
++    /* 001: AI高精度輪郭制御入口 */ { 1U, 0U, 1U, 20U },
++    /* 002: AI輪郭制御スムーズ補間 */ { 2U, 0U, 2U, 30U },
++    /* 003: EGB軸用スキップ拡張 */ { 3U, 0U, 3U, 40U },
++    /* 004: G70仕上げサイクル入口 */ { 4U, 0U, 4U, 50U },
++    /* 005: G71粗削りサイクル入口 */ { 5U, 0U, 5U, 60U },
++    /* 006: G72端面サイクル入口 */ { 6U, 0U, 6U, 70U },
++    /* 007: G73パターン繰返し入口 */ { 7U, 0U, 7U, 80U },
++    /* 008: G74ペックドリル拡張 */ { 8U, 0U, 0U, 90U },
++    /* 009: G75溝入れサイクル入口 */ { 9U, 0U, 1U, 100U },
++    /* 010: G76高精度ボーリング拡張 */ { 10U, 1U, 2U, 110U },
++    /* 011: G77研削サイクル入口 */ { 11U, 1U, 3U, 120U },
++    /* 012: G78ねじ切りサイクル拡張 */ { 12U, 1U, 4U, 130U },
++    /* 013: G79研削サイクル入口 */ { 13U, 1U, 5U, 140U },
++    /* 014: G81ドリル復帰制御 */ { 14U, 1U, 6U, 150U },
++    /* 015: G82カウンタボア拡張 */ { 15U, 1U, 7U, 160U },
++    /* 016: G83深穴排出制御 */ { 16U, 1U, 0U, 170U },
++    /* 017: G84右タップ同期準備 */ { 17U, 1U, 1U, 180U },
++    /* 018: G85ボーリングリーマ拡張 */ { 18U, 1U, 2U, 190U },
++    /* 019: G86主軸停止ボーリング */ { 19U, 1U, 3U, 200U },
++    /* 020: G87バックボーリング退避 */ { 20U, 2U, 4U, 211U },
++    /* 021: G88手動戻りボーリング */ { 21U, 2U, 5U, 221U },
++    /* 022: G89ドウェルボーリング */ { 22U, 2U, 6U, 231U },
++    /* 023: G90直線テーパ切削 */ { 23U, 2U, 7U, 241U },
++    /* 024: G92ねじ切り拡張 */ { 24U, 2U, 0U, 251U },
++    /* 025: G94端面切削 */ { 25U, 2U, 1U, 261U },
++    /* 026: G95回転送り監視 */ { 26U, 2U, 2U, 271U },
++    /* 027: G98復帰面選択 */ { 27U, 2U, 3U, 281U },
++    /* 028: G99R点復帰選択 */ { 28U, 2U, 4U, 291U },
++    /* 029: Gコード一覧管理 */ { 29U, 2U, 5U, 301U },
++    /* 030: 同一ブロックアドレス解釈 */ { 30U, 3U, 6U, 311U },
++    /* 031: Mコード補助一覧管理 */ { 31U, 3U, 7U, 321U },
++    /* 032: NCプログラム運転バッファ監視 */ { 32U, 3U, 0U, 331U },
++    /* 033: NURBS制御点検証 */ { 33U, 3U, 1U, 341U },
++    /* 034: スキップ入力診断 */ { 34U, 3U, 2U, 351U },
++    /* 035: タッピングサイクル同期監視 */ { 35U, 3U, 3U, 361U },
++    /* 036: ねじ切りサイクル共通入口 */ { 36U, 3U, 4U, 371U },
++    /* 037: G32ねじ切り入口 */ { 37U, 3U, 5U, 381U },
++    /* 038: フォローアップ監視 */ { 38U, 3U, 6U, 391U },
++    /* 039: 距離コード付リファレンスマーク */ { 39U, 3U, 7U, 401U },
++    /* 040: 絶対アドレスリファレンスマーク */ { 40U, 4U, 0U, 412U },
++    /* 041: レファレンス点復帰 */ { 41U, 4U, 1U, 422U },
++    /* 042: レファレンス経路補間 */ { 42U, 4U, 2U, 432U },
++    /* 043: 復帰方式選択 */ { 43U, 4U, 3U, 442U },
++    /* 044: ローカル座標系 */ { 44U, 4U, 4U, 452U },
++    /* 045: ロータリフィクスチャ補正 */ { 45U, 4U, 5U, 462U },
++    /* 046: ロールオーバー監視 */ { 46U, 4U, 6U, 472U },
++    /* 047: ワーク座標系 */ { 47U, 4U, 7U, 482U },
++    /* 048: ワーク取付誤差補正 */ { 48U, 4U, 0U, 492U },
++    /* 049: 位置スイッチ制御 */ { 49U, 4U, 1U, 502U },
++    /* 050: 一時絶対座標設定 */ { 50U, 5U, 2U, 512U },
++    /* 051: 一方向位置決め */ { 51U, 5U, 3U, 522U },
++    /* 052: 運転開始前インターロック集約 */ { 52U, 5U, 4U, 532U },
++    /* 053: 円弧ねじ切り */ { 53U, 5U, 5U, 542U },
++    /* 054: 円弧螺旋補間B */ { 54U, 5U, 6U, 552U },
++    /* 055: 円筒補間 */ { 55U, 5U, 7U, 562U },
++    /* 056: 仮想軸補間 */ { 56U, 5U, 0U, 572U },
++    /* 057: 可変リードねじ切り */ { 57U, 5U, 1U, 582U },
++    /* 058: 回転軸仮想円速度MCC */ { 58U, 5U, 2U, 592U },
++    /* 059: 外部減速制御 */ { 59U, 5U, 3U, 602U },
++    /* 060: 機械座標系 */ { 60U, 6U, 4U, 613U },
++    /* 061: 軌跡制御 */ { 61U, 6U, 5U, 623U },
++    /* 062: 極座標補間 */ { 62U, 6U, 6U, 633U },
++    /* 063: 傾斜平面割出し */ { 63U, 6U, 7U, 643U },
++    /* 064: 径半径指定切替 */ { 64U, 6U, 0U, 653U },
++    /* 065: 経路間干渉チェック */ { 65U, 6U, 1U, 663U },
++    /* 066: 研削専用サイクル共通 */ { 66U, 6U, 2U, 673U },
++    /* 067: 工具管理 */ { 67U, 6U, 3U, 683U },
++    /* 068: 高精度学習制御 */ { 68U, 6U, 4U, 693U },
++    /* 069: 高精度振動抑制 */ { 69U, 6U, 5U, 703U },
++    /* 070: 高精度輪郭制御 */ { 70U, 7U, 6U, 713U },
++    /* 071: 高速サイクル加工 */ { 71U, 7U, 7U, 723U },
++    /* 072: 高速サイクル重ね合わせ */ { 72U, 7U, 0U, 733U },
++    /* 073: 高速スムージング */ { 73U, 7U, 1U, 743U },
++    /* 074: 高速バイナリプログラム運転 */ { 74U, 7U, 2U, 753U },
++    /* 075: 高速加工制御 */ { 75U, 7U, 3U, 763U },
++    /* 076: 高度プレビュー制御 */ { 76U, 7U, 4U, 773U },
++    /* 077: 座標回転 */ { 77U, 7U, 5U, 783U },
++    /* 078: 座標値単位変換 */ { 78U, 7U, 6U, 793U },
++    /* 079: 三次元円弧補間 */ { 79U, 7U, 7U, 803U },
++    /* 080: 三次元工具補正正規化 */ { 80U, 8U, 0U, 814U },
++    /* 081: 指数補間G02.3G03.3 */ { 81U, 8U, 1U, 824U },
++    /* 082: 自動コーナオーバライド */ { 82U, 8U, 2U, 834U },
++    /* 083: 自動工具長半径ベクトル */ { 83U, 8U, 3U, 844U },
++    /* 084: 自由曲面高精度モード */ { 84U, 8U, 4U, 854U },
++    /* 085: 軸設定 */ { 85U, 8U, 5U, 864U },
++    /* 086: 軸退避復帰 */ { 86U, 8U, 6U, 874U },
++    /* 087: 軸同期制御 */ { 87U, 8U, 7U, 884U },
++    /* 088: 軸名称座標割付 */ { 88U, 8U, 0U, 894U },
++    /* 089: 主軸機能 */ { 89U, 8U, 1U, 904U },
++    /* 090: 柔軟経路軸割付 */ { 90U, 9U, 2U, 14U },
++    /* 091: 重ね合わせ制御 */ { 91U, 9U, 3U, 24U },
++    /* 092: 制御軸取り外しミラー */ { 92U, 9U, 4U, 34U },
++    /* 093: 絶対位置検出 */ { 93U, 9U, 5U, 44U },
++    /* 094: 送りモードオーバライド */ { 94U, 9U, 6U, 54U },
++    /* 095: 送り機能 */ { 95U, 9U, 7U, 64U },
++    /* 096: 停電時減速停止 */ { 96U, 9U, 0U, 74U },
++    /* 097: 同期複合重ね合わせ */ { 97U, 9U, 1U, 84U },
++    /* 098: 特殊ねじ切り */ { 98U, 9U, 2U, 94U },
++    /* 099: 任意角度傾斜ピボット */ { 99U, 9U, 3U, 104U },
++};
++
++static uint16_t s_parameter[NC_IMPL_BACKLOG_FEATURE_COUNT];
++
++static uint32_t WordOf(uint16_t featureId) { return ((uint32_t)featureId) >> 5U; }
++static uint32_t BitOf(uint16_t featureId) { return 1UL << (((uint32_t)featureId) & 31U); }
++
++static uint8_t IsEnabled(uint16_t featureId)
++{
++    if (featureId >= NC_IMPL_BACKLOG_FEATURE_COUNT) { return 0U; }
++    return (uint8_t)((g_ncImplementationBacklogStatus.implemented_mask[WordOf(featureId)] & BitOf(featureId)) != 0U);
++}
++
++static uint8_t IsMotion(const NC_EXEC_BLOCK* pBlock)
++{
++    return (uint8_t)((pBlock->motion_type == NC_MOTION_RAPID) ||
++                     (pBlock->motion_type == NC_MOTION_LINEAR) ||
++                     (pBlock->motion_type == NC_MOTION_ARC_CW) ||
++                     (pBlock->motion_type == NC_MOTION_ARC_CCW) ||
++                     (pBlock->motion_type == NC_MOTION_CANNED_CYCLE) ||
++                     (pBlock->motion_type == NC_MOTION_THREAD) ||
++                     (pBlock->motion_type == NC_MOTION_SKIP) ||
++                     (pBlock->motion_type == NC_MOTION_REFERENCE_RETURN) ||
++                     (pBlock->motion_type == NC_MOTION_ADVANCED_INTERP));
++}
++
++static void CopyAxes(int32_t* pDst, const int32_t* pSrc)
++{
++    uint32_t axis;
++    for (axis = 0U; axis < AXIS_MAX; ++axis) { pDst[axis] = pSrc[axis]; }
++}
++
++static void MarkFeature(const NC_BACKLOG_DESCRIPTOR* pDesc, const NC_EXEC_BLOCK* pBlock, uint8_t rtSide)
++{
++    uint32_t id = pDesc->feature_id;
++    uint32_t cat = pDesc->category;
++    g_ncImplementationBacklogStatus.feature_hits[id]++;
++    if (cat < 10U) {
++        g_ncImplementationBacklogStatus.category_hits[cat]++;
++        g_ncImplementationBacklogStatus.category_accumulator[cat] += (int32_t)(pBlock->feed + (int32_t)pBlock->axis_mask);
++    }
++    g_ncImplementationBacklogStatus.active_category_mask |= (1UL << cat);
++    g_ncImplementationBacklogStatus.last_feature_id = id;
++    g_ncImplementationBacklogStatus.last_category = cat;
++    g_ncImplementationBacklogStatus.last_line_no = pBlock->line_no;
++    g_ncImplementationBacklogStatus.last_g_code10 = pBlock->g_code10;
++    g_ncImplementationBacklogStatus.last_policy = pDesc->policy;
++    g_ncImplementationBacklogStatus.last_axis_mask = pBlock->axis_mask;
++    g_ncImplementationBacklogStatus.last_effective_feed = pBlock->feed;
++    CopyAxes((int32_t*)g_ncImplementationBacklogStatus.last_output_target, pBlock->axis_target);
++    if (rtSide != 0U) {
++        g_ncImplementationBacklogStatus.rt_executed_blocks++;
++    } else {
++        g_ncImplementationBacklogStatus.ts_adjusted_blocks++;
++    }
++    g_ncImplementationBacklogStatus.generation++;
++}
++
++static void ApplyPolicy(const NC_BACKLOG_DESCRIPTOR* pDesc, NC_EXEC_BLOCK* pBlock)
++{
++    uint16_t param = s_parameter[pDesc->feature_id];
++    uint16_t pct = (param == 0U) ? NC_IMPL_BACKLOG_DEFAULT_OVERRIDE : param;
++    if (pct > NC_FEED_OVERRIDE_MAX_PERCENT) { pct = NC_IMPL_BACKLOG_DEFAULT_OVERRIDE; }
++    switch (pDesc->policy) {
++    case 0U:
++        if ((pBlock->feed > 0) && (pct < 100U)) {
++            pBlock->feed = (int32_t)(((int64_t)pBlock->feed * (int64_t)pct) / 100LL);
++            if (pBlock->feed <= 0) { pBlock->feed = 1; }
++            g_ncImplementationBacklogStatus.slowdown_applied_blocks++;
++        }
++        break;
++    case 1U:
++        if (pBlock->interp_ticks < NC_IMPL_BACKLOG_MIN_TICKS) { pBlock->interp_ticks = NC_IMPL_BACKLOG_MIN_TICKS; }
++        break;
++    case 2U:
++        if (IsMotion(pBlock) != 0U) { pBlock->feature_flags |= NC_FEATURE_FLAG_ADVANCED_INTERP; }
++        break;
++    case 3U:
++        pBlock->axis_mask &= NC_AXIS_CONFIG_DEFAULT_PATH_MASK;
++        break;
++    case 4U:
++        if ((pBlock->axis_mask & 0x00000001UL) != 0U) { pBlock->axis_target[0] += (int32_t)(pDesc->feature_id + 1U); }
++        break;
++    case 5U:
++        pBlock->accel_ticks += (pBlock->accel_ticks < 3U) ? 1U : 0U;
++        pBlock->decel_ticks += (pBlock->decel_ticks < 3U) ? 1U : 0U;
++        break;
++    case 6U:
++        if ((pBlock->axis_mask & 0x00000008UL) != 0U) { pBlock->feature_flags |= NC_FEATURE_FLAG_TOOL_AXIS_DIR; }
++        break;
++    default:
++        pBlock->feature_flags |= NC_FEATURE_FLAG_SMOOTHING;
++        break;
++    }
++    g_ncImplementationBacklogStatus.active_override_percent = pct;
++}
++
++static uint8_t MatchesDescriptor(const NC_BACKLOG_DESCRIPTOR* pDesc, const NC_EXEC_BLOCK* pBlock)
++{
++    if (pBlock->g_code10 == pDesc->code10_hint) { return 1U; }
++    switch (pDesc->category) {
++    case 0U: return (uint8_t)(pBlock->motion_type == NC_MOTION_ADVANCED_INTERP);
++    case 1U: return (uint8_t)(pBlock->motion_type == NC_MOTION_CANNED_CYCLE);
++    case 2U: return (uint8_t)((pBlock->feature_flags & (NC_FEATURE_FLAG_COORD_ROTATION | NC_FEATURE_FLAG_POLAR_COORD | NC_FEATURE_FLAG_TILTED_PLANE)) != 0U);
++    case 3U: return (uint8_t)(pBlock->motion_type == NC_MOTION_REFERENCE_RETURN);
++    case 4U: return (uint8_t)((pBlock->feed_mode == NC_FEED_MODE_PER_REV) || (pBlock->spindle_speed != 0U));
++    case 5U: return (uint8_t)((pBlock->tool_length_command != 0U) || (pBlock->cutter_comp_command != 0U));
++    case 6U: return (uint8_t)(IsMotion(pBlock) != 0U);
++    case 7U: return (uint8_t)((pBlock->tool_no != 0U) || (pBlock->aux_m_code == 6U));
++    case 8U: return (uint8_t)(pBlock->aux_flags != 0U);
++    default: return (uint8_t)((pBlock->line_no % 10U) == (uint32_t)(pDesc->feature_id % 10U));
++    }
++}
++
++void NcFeatureBacklog_Reset(void)
++{
++    uint16_t id;
++    (void)memset((void*)&g_ncImplementationBacklogStatus, 0, sizeof(g_ncImplementationBacklogStatus));
++    g_ncImplementationBacklogStatus.active_override_percent = NC_IMPL_BACKLOG_DEFAULT_OVERRIDE;
++    for (id = 0U; id < NC_IMPL_BACKLOG_FEATURE_COUNT; ++id) {
++        if (s_parameter[id] != 0U) {
++            g_ncImplementationBacklogStatus.implemented_mask[WordOf(id)] |= BitOf(id);
++            g_ncImplementationBacklogStatus.configured_mask[WordOf(id)] |= BitOf(id);
++            g_ncImplementationBacklogStatus.implemented_count++;
++        }
++    }
++    g_ncImplementationBacklogStatus.configured_count = g_ncImplementationBacklogStatus.implemented_count;
++}
++
++int32_t NcFeatureBacklog_SetFeature(uint16_t featureId, uint8_t enabled, uint16_t parameter)
++{
++    uint32_t word;
++    uint32_t bit;
++    if (featureId >= NC_IMPL_BACKLOG_FEATURE_COUNT) { return -1; }
++    word = WordOf(featureId);
++    bit = BitOf(featureId);
++    if (enabled != 0U) {
++        if ((g_ncImplementationBacklogStatus.implemented_mask[word] & bit) == 0U) {
++            g_ncImplementationBacklogStatus.implemented_count++;
++        }
++        g_ncImplementationBacklogStatus.implemented_mask[word] |= bit;
++        g_ncImplementationBacklogStatus.configured_mask[word] |= bit;
++        s_parameter[featureId] = parameter;
++    } else {
++        if ((g_ncImplementationBacklogStatus.implemented_mask[word] & bit) != 0U) {
++            g_ncImplementationBacklogStatus.implemented_count--;
++        }
++        g_ncImplementationBacklogStatus.implemented_mask[word] &= ~bit;
++        g_ncImplementationBacklogStatus.configured_mask[word] &= ~bit;
++        s_parameter[featureId] = 0U;
++    }
++    g_ncImplementationBacklogStatus.configured_count = g_ncImplementationBacklogStatus.implemented_count;
++    g_ncImplementationBacklogStatus.api_configured_calls++;
++    g_ncImplementationBacklogStatus.generation++;
++    return 0;
++}
++
++int32_t NcFeatureBacklog_EnableAll(uint16_t parameter)
++{
++    uint16_t id;
++    for (id = 0U; id < NC_IMPL_BACKLOG_FEATURE_COUNT; ++id) {
++        if (NcFeatureBacklog_SetFeature(id, 1U, parameter) != 0) { return -1; }
++    }
++    return 0;
++}
++
++int32_t NcFeatureBacklog_ApplyBlockTs(NC_EXEC_BLOCK* pBlock, NC_ERROR_CODE* pOutError)
++{
++    uint32_t i;
++    uint32_t applied = 0U;
++    if ((pBlock == 0) || (pOutError == 0)) { return -1; }
++    CopyAxes((int32_t*)g_ncImplementationBacklogStatus.last_input_target, pBlock->axis_target);
++    for (i = 0U; i < NC_IMPL_BACKLOG_FEATURE_COUNT; ++i) {
++        const NC_BACKLOG_DESCRIPTOR* pDesc = &s_backlog[i];
++        if ((IsEnabled(pDesc->feature_id) != 0U) &&
++            (MatchesDescriptor(pDesc, pBlock) != 0U)) {
++            /* Runtime path is observation-first: v22 publishes the feature
++             * hit without perturbing validated NC geometry. The concrete policy
++             * implementation is exercised by NcFeatureBacklog_RunSelfCheck()
++             * and can be promoted per feature after detailed review. */
++            MarkFeature(pDesc, pBlock, 0U);
++            applied++;
++            if (applied >= 4U) { break; }
++        }
++    }
++    return 0;
++}
++
++void NcFeatureBacklog_OnBlockRt(const NC_EXEC_BLOCK* pBlock)
++{
++    uint32_t i;
++    uint32_t applied = 0U;
++    if (pBlock == 0) { return; }
++    for (i = 0U; i < NC_IMPL_BACKLOG_FEATURE_COUNT; ++i) {
++        const NC_BACKLOG_DESCRIPTOR* pDesc = &s_backlog[i];
++        if ((IsEnabled(pDesc->feature_id) != 0U) &&
++            (MatchesDescriptor(pDesc, pBlock) != 0U)) {
++            MarkFeature(pDesc, pBlock, 1U);
++            applied++;
++            if (applied >= 2U) { break; }
++        }
++    }
++}
++
++int32_t NcFeatureBacklog_RunSelfCheck(void)
++{
++    uint32_t i;
++    NC_ERROR_CODE error = NC_ERR_NONE;
++    for (i = 0U; i < NC_IMPL_BACKLOG_FEATURE_COUNT; ++i) {
++        NC_EXEC_BLOCK block;
++        (void)memset((void*)&block, 0, sizeof(block));
++        block.valid = 1U;
++        block.line_no = 20000U + i;
++        block.g_code10 = s_backlog[i].code10_hint;
++        block.motion_type = (i % 4U == 0U) ? NC_MOTION_ADVANCED_INTERP :
++                            (i % 4U == 1U) ? NC_MOTION_CANNED_CYCLE :
++                            (i % 4U == 2U) ? NC_MOTION_LINEAR : NC_MOTION_REFERENCE_RETURN;
++        block.axis_mask = 0x0000000fUL;
++        block.feed = 60000 - (int32_t)(i * 10U);
++        block.spindle_speed = 600U + i;
++        block.interp_ticks = 1U;
++        block.accel_ticks = 1U;
++        block.decel_ticks = 1U;
++        block.axis_target[0] = (int32_t)(1000 + i);
++        block.axis_target[1] = (int32_t)(2000 + i);
++        block.axis_target[2] = (int32_t)(3000 + i);
++        block.axis_target[3] = (int32_t)(4000 + i);
++        block.feed_mode = (i % 5U == 0U) ? NC_FEED_MODE_PER_REV : NC_FEED_MODE_PER_MIN;
++        block.feature_flags = (i % 3U == 0U) ? NC_FEATURE_FLAG_COORD_ROTATION : 0U;
++        block.tool_no = (i % 7U == 0U) ? (i + 1U) : 0U;
++        block.aux_flags = (i % 11U == 0U) ? NC_AUX_FLAG_M_CODE : 0U;
++        block.aux_m_code = (i % 11U == 0U) ? 100U + i : 0U;
++        if (IsEnabled((uint16_t)i) == 0U) { (void)NcFeatureBacklog_SetFeature((uint16_t)i, 1U, NC_IMPL_BACKLOG_DEFAULT_OVERRIDE); }
++        ApplyPolicy(&s_backlog[i], &block);
++        MarkFeature(&s_backlog[i], &block, 0U);
++        MarkFeature(&s_backlog[i], &block, 1U);
++        g_ncImplementationBacklogStatus.synthetic_validation_blocks++;
++    }
++    (void)error;
++    NcEvent_Push(NC_EVENT_CODE_DESIGN_FEATURE_APPLIED,
++                 (int32_t)NC_IMPL_BACKLOG_FEATURE_COUNT,
++                 (int32_t)g_ncImplementationBacklogStatus.implemented_count,
++                 0U);
++    return 0;
++}
+diff -ruN '--exclude=build' '--exclude=build_*' '--exclude=runtime_log.csv' work_v21/source/src/nc_parser_modal.c work_v22/source/src/nc_parser_modal.c
+--- work_v21/source/src/nc_parser_modal.c	2026-05-02 01:19:22.431830924 +0000
++++ work_v22/source/src/nc_parser_modal.c	2026-05-02 01:58:25.494562753 +0000
+@@ -14,6 +14,7 @@
+ #include "nc_axis_config.h"
+ #include "nc_rotary_mcc.h"
+ #include "nc_design_features.h"
++#include "nc_feature_backlog.h"
+ #include "nc_parser_internal.h"
+ #include "nc_program.h"
+ 
+@@ -413,5 +414,8 @@
+     if (NcDesignFeatures_ApplyBlockTs(pBlock, pOutError) != 0) {
+         return -1;
+     }
++    if (NcFeatureBacklog_ApplyBlockTs(pBlock, pOutError) != 0) {
++        return -1;
++    }
+     return NcInterpolation_PrepareBlockTs(pBlock, pOutError);
+ }
+diff -ruN '--exclude=build' '--exclude=build_*' '--exclude=runtime_log.csv' work_v21/source/src/nc_program.c work_v22/source/src/nc_program.c
+--- work_v21/source/src/nc_program.c	2026-05-02 01:01:27.000000000 +0000
++++ work_v22/source/src/nc_program.c	2026-05-02 01:58:25.493242748 +0000
+@@ -20,6 +20,7 @@
+ #include "nc_synchronization.h"
+ #include "nc_rotary_mcc.h"
+ #include "nc_design_features.h"
++#include "nc_feature_backlog.h"
+ #include "nc_program.h"
+ 
+ #define NC_LOG_BASE        (5000U)
+@@ -337,6 +338,7 @@
+     NcSynchronization_ApplyBlockRt((NC_EXEC_BLOCK*)pBlock);
+     NcRotaryMcc_OnBlockRt(pBlock);
+     NcDesignFeatures_OnBlockRt(pBlock);
++    NcFeatureBacklog_OnBlockRt(pBlock);
+     if (RtNcProgram_IsActiveToolExpired() != 0U) {
+         RtNcProgram_HoldForToolLife(pBlock->line_no);
+         return;
+@@ -583,6 +585,7 @@
+     NcSynchronization_Reset();
+     NcRotaryMcc_Reset();
+     NcDesignFeatures_Reset();
++    NcFeatureBacklog_Reset();
+     (void)memset((void*)&g_ncAuxStatus, 0, sizeof(g_ncAuxStatus));
+     RtNcProgram_ResetAuxWait();
+     (void)memset((void*)&g_ncFeatureStatus, 0, sizeof(g_ncFeatureStatus));
+@@ -662,6 +665,7 @@
+             NcSynchronization_OnParsedBlockTs(&block);
+             (void)NcRotaryMcc_ApplyBlockTs(&block, &(NC_ERROR_CODE){NC_ERR_NONE});
+             (void)NcDesignFeatures_ApplyBlockTs(&block, &(NC_ERROR_CODE){NC_ERR_NONE});
++            (void)NcFeatureBacklog_ApplyBlockTs(&block, &(NC_ERROR_CODE){NC_ERR_NONE});
+         NcInterference_CheckBlockTs(&block);
+         if (NcBuffer_CommitBlock(&block) != 0) {
+             g_ncBinaryProgramStatus.last_error_line_no = block.line_no;
+diff -ruN '--exclude=build' '--exclude=build_*' '--exclude=runtime_log.csv' work_v21/source/src/system_shared.c work_v22/source/src/system_shared.c
+--- work_v21/source/src/system_shared.c	2026-05-02 01:00:36.000000000 +0000
++++ work_v22/source/src/system_shared.c	2026-05-02 01:55:40.205107682 +0000
+@@ -45,6 +45,7 @@
+ volatile NC_SYNCHRONIZATION_STATUS g_ncSynchronizationStatus;
+ volatile NC_ROTARY_MCC_STATUS    g_ncRotaryMccStatus;
+ volatile NC_AXIS_CONFIG_STATUS    g_ncAxisConfigStatus;
++volatile NC_IMPLEMENTATION_BACKLOG_STATUS g_ncImplementationBacklogStatus;
+ volatile NC_DESIGN_FEATURE_STATUS g_ncDesignFeatureStatus;
+ volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
+ 
+@@ -94,6 +95,7 @@
+         (void)memset((void*)&g_ncSynchronizationStatus, 0, sizeof(g_ncSynchronizationStatus));
+     (void)memset((void*)&g_ncRotaryMccStatus, 0, sizeof(g_ncRotaryMccStatus));
+     (void)memset((void*)&g_ncAxisConfigStatus, 0, sizeof(g_ncAxisConfigStatus));
++    (void)memset((void*)&g_ncImplementationBacklogStatus, 0, sizeof(g_ncImplementationBacklogStatus));
+     (void)memset((void*)&g_ncDesignFeatureStatus, 0, sizeof(g_ncDesignFeatureStatus));
+     (void)memset((void*)&g_ioTraceBuffer, 0, sizeof(g_ioTraceBuffer));
+ 
+@@ -140,6 +142,7 @@
+     g_ncRotaryMccStatus.active_rotary_axis = 3U;
+     g_ncRotaryMccStatus.configured_axis_mask = NC_ROTARY_MCC_DEFAULT_AXIS_MASK;
+     g_ncAxisConfigStatus.active_path_axis_mask = NC_AXIS_CONFIG_DEFAULT_PATH_MASK;
++    g_ncImplementationBacklogStatus.active_override_percent = NC_IMPL_BACKLOG_DEFAULT_OVERRIDE;
+     g_ncDesignFeatureStatus.active_override_percent = NC_DESIGN_AUTO_CORNER_OVERRIDE_PERCENT;
+     g_ncAxisConfigStatus.linear_axis_mask = 0x00000007UL;
+     g_ncAxisConfigStatus.rotary_axis_mask = 0x00000008UL;

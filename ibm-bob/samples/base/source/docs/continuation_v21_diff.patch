@@ -1,0 +1,1348 @@
+diff -ruN '--exclude=build_gcc' '--exclude=runtime_log.csv' /mnt/data/base_v20/source/docs/implementation_report_v21.md /mnt/data/work_v21/source/docs/implementation_report_v21.md
+--- /mnt/data/base_v20/source/docs/implementation_report_v21.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v21/source/docs/implementation_report_v21.md	2026-05-02 01:27:33.100464950 +0000
+@@ -0,0 +1,95 @@
++# IBM-Bob source implementation report v21
++
++## Scope
++
++v20をベースに、設計書側でまだ入口実装または未接続だったNC制御機能を10件追加した。
++RT周期内では重い幾何計算・ファイルI/O・動的メモリ確保を行わず、TS側の固定長ブロック変換、状態公開、RT実行時イベント記録として実装した。
++
++## Implemented items
++
++1. **インボリュート補間 G02.2/G03.2**
++   - `nc_codes.c` にGコードを追加。
++   - `nc_parser_feature.c` で高度補間ブロックとして認識。
++   - `nc_design_features.c` で最小補間tickと速度抑制を適用。
++
++2. **高精度輪郭/スムージング実行準備 G05/G05.1/G05.2/G08**
++   - 既存のG05/G08認識結果をv21ステータスへ接続。
++   - 運動ブロックでは補間tick、加減速tick、速度抑制を付与。
++
++3. **完全停止/ねじモード停止 G09/G61/G63**
++   - `G63` を停止制御グループとして扱うように修正。
++   - exact-stop状態をTS/RT双方のステータスへ記録。
++
++4. **リジッドタップ準備 G84/G74**
++   - タップサイクルで主軸同期用の最小tickを保証。
++   - 主軸回転数未指定時は安全側の最小RPMを補完。
++   - feed/rev相当のピッチ診断値を状態公開。
++
++5. **特殊ねじ切り/面取り・退避入口 G76.7/G78/G63**
++   - thread motionを検出し、減速tickを安全側に補強。
++   - 面取り/退避対象ブロック数をステータス化。
++
++6. **第2レファレンス点復帰 G30**
++   - `G30` を第2レファレンス復帰対象として状態公開。
++   - RT側イベント記録へ接続。
++
++7. **機械座標直接指令 G53**
++   - G53モーダルフラグ付きブロックを機械座標直接指令としてカウント。
++
++8. **座標シフト/プリセット G10/G52/G92**
++   - 既存の座標変換処理に加えて、v21設計機能ステータスへ連携。
++
++9. **周速一定/固定回転切替 G96/G97**
++   - G96/G97切替ブロックを設計機能ステータスへ公開。
++   - CSS診断用の代表径を保持。
++
++10. **回転送り G95 + motion**
++    - feed-per-rev状態で実行される運動ブロックを検出。
++    - 主軸回転数と実効送りをステータスへ保存。
++
++## Changed files
++
++- `inc/system_config.h`
++- `inc/system_shared.h`
++- `src/nc_codes.c`
++- `src/nc_parser_feature.c`
++- `src/nc_parser_modal.c`
++- `src/nc_design_features.c`
++- `src/main.c`
++
++## Public shared-memory extension
++
++`NC_DESIGN_FEATURE_STATUS` に以下のカウンタを追加した。
++
++- `involute_blocks`
++- `high_precision_contour_blocks`
++- `exact_stop_blocks`
++- `rigid_tap_blocks`
++- `thread_chamfer_blocks`
++- `second_reference_blocks`
++- `machine_direct_blocks`
++- `coordinate_shift_blocks`
++- `constant_surface_speed_blocks`
++- `feed_per_rev_blocks`
++
++診断値として以下も追加した。
++
++- `last_effective_feed`
++- `last_spindle_speed`
++- `last_rigid_tap_pitch`
++- `last_css_diameter`
++
++## Verification
++
++The GCC smoke executable was built from all `src/*.c` files and run successfully in the sandbox. The portable script compilation is slow in this environment, so verification was performed with object-by-object GCC compilation followed by manual smoke execution.
++
++Key output:
++
++```text
++nc_state=6 nc_error=0
++feature_blocks=84 feature_flags=57346 canned=27 skip=1 advanced=11
++design_features mode=0x000ffdff nurbs=1 exp=1 cyl=3 polar=3 helical_b=1 auto_corner=2 grinding=15 egb_skip=1 interference3d=26 followup=0 ts=49 rt=50 slowdown=50 override=70 last_x=1220 last_y=2320
++design_features_v21 involute=2 hp_contour=7 exact_stop=6 rigid_tap=2 thread_chamfer=1 second_ref=1 machine_direct=1 coord_shift=3 css=2 feed_per_rev=3
++```
++
++Full output: `docs/verification_output_v21.txt`.
+diff -ruN '--exclude=build_gcc' '--exclude=runtime_log.csv' /mnt/data/base_v20/source/docs/manifest_v21.json /mnt/data/work_v21/source/docs/manifest_v21.json
+--- /mnt/data/base_v20/source/docs/manifest_v21.json	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v21/source/docs/manifest_v21.json	2026-05-02 01:27:33.200425456 +0000
+@@ -0,0 +1,37 @@
++{
++  "version": "v21",
++  "base_version": "v20",
++  "implemented_feature_count": 10,
++  "changed_files": [
++    "inc/system_config.h",
++    "inc/system_shared.h",
++    "src/nc_codes.c",
++    "src/nc_parser_feature.c",
++    "src/nc_parser_modal.c",
++    "src/nc_design_features.c",
++    "src/main.c"
++  ],
++  "added_reports": [
++    "docs/implementation_report_v21.md",
++    "docs/verification_output_v21.txt",
++    "docs/continuation_v21_diff.patch",
++    "docs/manifest_v21.json"
++  ],
++  "features": [
++    "G02.2/G03.2 involute interpolation",
++    "G05/G05.1/G05.2/G08 high precision contour preparation",
++    "G09/G61/G63 exact stop handling",
++    "G84/G74 rigid tapping preparation",
++    "G76.7/G78/G63 thread chamfer/escape entry",
++    "G30 second reference return status",
++    "G53 machine-coordinate direct command status",
++    "G10/G52/G92 coordinate shift/preset status",
++    "G96/G97 constant surface speed/fixed rpm mode status",
++    "G95 feed per revolution motion status"
++  ],
++  "verification": {
++    "gcc_compile": "object-by-object compile of all src/*.c succeeded",
++    "smoke_run_exit_code": 0,
++    "key_output": "design_features_v21 involute=2 hp_contour=7 exact_stop=6 rigid_tap=2 thread_chamfer=1 second_ref=1 machine_direct=1 coord_shift=3 css=2 feed_per_rev=3"
++  }
++}
+diff -ruN '--exclude=build_gcc' '--exclude=runtime_log.csv' /mnt/data/base_v20/source/docs/verification_output_v21.txt /mnt/data/work_v21/source/docs/verification_output_v21.txt
+--- /mnt/data/base_v20/source/docs/verification_output_v21.txt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v21/source/docs/verification_output_v21.txt	2026-05-02 01:27:13.090499662 +0000
+@@ -0,0 +1,34 @@
++nc_state=6 nc_error=0 nc_error_line=0 nc_exec=89 nc_read=89 nc_buf=0 nc_x=3405 nc_y=2300 nc_z=3405 nc_m=130
++interp_segments=43 feed_profile=1 feed_override=45 dwell_ticks=1
++coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=1000
++coord_transform blocks=41 mask=0x00000005 work_set=1 local_set=1 temp_set=1 dyn_x=25 mount_err_x=-10 rotary_z=5
++feature_blocks=84 feature_flags=57346 canned=27 skip=1 advanced=11
++g08_standard_seen=1 g08_high_precision_seen=1 g08_cancel_seen=1 g08_final_smoothing=0 g08_final_high_precision=0
++hpcc_seen=1 hpcc_cancel_seen=1 hpcc_final=0 g05_p3_seen=1
++comp_applied=23 comp_mask=0x00000007 comp_tool=0 comp_cutter=0 comp_rotation=0
++path_arc=3 path_helical=1 path_arc_segments=12 path_lookahead=43 path_slowdowns=26 path_corner_deg=180 path_override=80
++kin_transformed=43 kin_mirrored=23 kin_retracts=1 kin_singularity_warn=0 kin_mirror_mask=0x00000000 kin_retract_mask=0x00000004 kin_tool_z=9848 kin_last_x=3405 kin_last_a=-1200
++diag_axis_warn=0x00000003 diag_axis_limit=0x00000001 diag_axis_critical=0x00000000 decel_level=2 decel_override=45 load_peak_x=847
++tool_active=2 tool2_uses=30 tool_warn=0x00000000 tool_expired=0x00000000 diag_decel=2 diag_tool_expired=0x00000000 diag_axis_warn=0x00000003
++tool_mgmt active=2 prepared=2 parsed_t=1 exchange_req=1 exchange_done=1 max_wait=70 pocket2=12
++motion_filter_samples=1088 mode=2 axis_mask=0x0000000f raw_vx=3686 smooth_vx=3686 out_x=3405
++motion_filter_limits vel_events=17 accel_events=67 endpoint_corrections=58 residual_samples=139 max_lag_x=3651 residual_x=-37
++tool_life_hold_state=5 tool_life_hold_error=15 tool_life_hold_line=4 events=64 lost=280 last_event=8201
++cycle_completed=14 cycle_phase_count=4 skip_completed=1 skip_x=3672
++cycle_detail last=890 repeat=1 repeat_done=15 peck_blocks=4 tap_blocks=2 boring_blocks=5 spindle_sync=2 spindle_reverse=2 manual_return=1
++aux_completed=1 aux_wait_cycles=70 prestart_ok=1 prestart_mask=0x00000000
++trace_frozen=1 trace_captured=32 trace_trigger_cycle=1269
++capability parsed=88 g=84 m=2 address_words=291 binary_loaded=0
++interference checked=25 warnings=0 slowdown=0 safety_external=1 safety_position=1 safety_override=100
++reference planned=0 executed=0 homed=0x00000000 markers=0 one_direction=0 rollover=0 approach_x=0
++rotary_mcc parsed=0 executed=0 active_mask=0x00000000 mcc_on=0 mcc_off=0 virt=0 cmd=0x00000000
++axis_config path=0x0000000f rotary=0x00000008 diameter=0x00000001 applied=40 diameter_blocks=40 detached_blocks=0 rejected=0 name_a=A last_x=258
++design_features mode=0x000ffdff nurbs=1 exp=1 cyl=3 polar=3 helical_b=1 auto_corner=2 grinding=15 egb_skip=1 interference3d=26 followup=0 ts=49 rt=50 slowdown=50 override=70 last_x=1220 last_y=2320
++design_features_v21 involute=2 hp_contour=7 exact_stop=6 rigid_tap=2 thread_chamfer=1 second_ref=1 machine_direct=1 coord_shift=3 css=2 feed_per_rev=3
++sync mode_bits=0x0008 planned=6 executed=6 sync_motion=24 compound_motion=1 overlay_motion=1 double_table=25 slave_mask=0x00000002 max_follow_y=-736 out_y=2300
++precision previewed=1 limited=0 learning_updates=0 vibration_warn=0 rt_ticks=0 corr_x=0
++mode=1 state=3 alarm=9001 cycle=1269
++coord_error_checks=5
++g08_error_checks=3
++hpcc_error_checks=4
++cycle_error_checks=4
+diff -ruN '--exclude=build_gcc' '--exclude=runtime_log.csv' /mnt/data/base_v20/source/inc/system_config.h /mnt/data/work_v21/source/inc/system_config.h
+--- /mnt/data/base_v20/source/inc/system_config.h	2026-05-02 01:00:36.000000000 +0000
++++ /mnt/data/work_v21/source/inc/system_config.h	2026-05-02 01:18:58.977784437 +0000
+@@ -756,6 +756,21 @@
+ #define NC_DESIGN_MODE_EGB_SKIP               (0x00000080UL)
+ #define NC_DESIGN_MODE_3D_INTERFERENCE        (0x00000100UL)
+ #define NC_DESIGN_MODE_FOLLOWUP_ROLLOVER      (0x00000200UL)
++/* Additional design-document feature completion bits (v21). */
++#define NC_DESIGN_MODE_INVOLUTE               (0x00000400UL)
++#define NC_DESIGN_MODE_HP_CONTOUR             (0x00000800UL)
++#define NC_DESIGN_MODE_EXACT_STOP             (0x00001000UL)
++#define NC_DESIGN_MODE_RIGID_TAP              (0x00002000UL)
++#define NC_DESIGN_MODE_THREAD_CHAMFER         (0x00004000UL)
++#define NC_DESIGN_MODE_SECOND_REFERENCE       (0x00008000UL)
++#define NC_DESIGN_MODE_MACHINE_DIRECT         (0x00010000UL)
++#define NC_DESIGN_MODE_COORD_SHIFT            (0x00020000UL)
++#define NC_DESIGN_MODE_CSS_SPINDLE            (0x00040000UL)
++#define NC_DESIGN_MODE_FEED_PER_REV           (0x00080000UL)
++#define NC_DESIGN_INVOLUTE_MIN_TICKS          (6U)
++#define NC_DESIGN_RIGID_TAP_MIN_TICKS         (8U)
++#define NC_DESIGN_EXACT_STOP_PERCENT          (55U)
++#define NC_DESIGN_HP_CONTOUR_PERCENT          (75U)
+ #define NC_EVENT_CODE_DESIGN_FEATURE_APPLIED  (9601U)
+ #define NC_EVENT_CODE_DESIGN_FEATURE_WARNING  (9602U)
+ 
+diff -ruN '--exclude=build_gcc' '--exclude=runtime_log.csv' /mnt/data/base_v20/source/inc/system_shared.h /mnt/data/work_v21/source/inc/system_shared.h
+--- /mnt/data/base_v20/source/inc/system_shared.h	2026-05-02 01:00:36.000000000 +0000
++++ /mnt/data/work_v21/source/inc/system_shared.h	2026-05-02 01:18:58.979326780 +0000
+@@ -1424,6 +1424,16 @@
+     uint32_t egb_skip_blocks;
+     uint32_t three_d_interference_blocks;
+     uint32_t followup_rollover_blocks;
++    uint32_t involute_blocks;
++    uint32_t high_precision_contour_blocks;
++    uint32_t exact_stop_blocks;
++    uint32_t rigid_tap_blocks;
++    uint32_t thread_chamfer_blocks;
++    uint32_t second_reference_blocks;
++    uint32_t machine_direct_blocks;
++    uint32_t coordinate_shift_blocks;
++    uint32_t constant_surface_speed_blocks;
++    uint32_t feed_per_rev_blocks;
+     uint32_t ts_adjusted_blocks;
+     uint32_t rt_executed_blocks;
+     uint32_t slowdown_applied_blocks;
+@@ -1432,6 +1442,10 @@
+     uint32_t last_g_code10;
+     uint32_t last_line_no;
+     uint32_t last_axis_mask;
++    int32_t last_effective_feed;
++    uint32_t last_spindle_speed;
++    int32_t last_rigid_tap_pitch;
++    int32_t last_css_diameter;
+     int32_t last_input_target[AXIS_MAX];
+     int32_t last_output_target[AXIS_MAX];
+     int32_t last_clearance[AXIS_MAX];
+diff -ruN '--exclude=build_gcc' '--exclude=runtime_log.csv' /mnt/data/base_v20/source/src/main.c /mnt/data/work_v21/source/src/main.c
+--- /mnt/data/base_v20/source/src/main.c	2026-05-02 01:01:27.000000000 +0000
++++ /mnt/data/work_v21/source/src/main.c	2026-05-02 01:21:16.321663346 +0000
+@@ -61,6 +61,8 @@
+     (void)fprintf(pFile, "G80\n");
+     (void)fprintf(pFile, "M06 T2 ; tool change waits for MFIN\n");
+     (void)fprintf(pFile, "G70.7 X0.028 Z0.012 R0.050 Q0.020 F60000\n");
++    (void)fprintf(pFile, "G02.2 X0.0285 Y0.0355 F60000 ; involute CW interpolation sample\n");
++    (void)fprintf(pFile, "G03.2 X0.0288 Y0.0358 F60000 ; involute CCW interpolation sample\n");
+     (void)fprintf(pFile, "G06.2 X0.029 Y0.036 Z0.013 F60000 ; NURBS-like fixed block\n");
+     (void)fprintf(pFile, "G12.1 X0.030 Y0.037 F60000 ; polar/cylindrical mode sample\n");
+     (void)fprintf(pFile, "G07.1 A0.100 F60000 ; rotary virtual circumferential speed sample\n");
+@@ -72,6 +74,8 @@
+     (void)fprintf(pFile, "G08 P2 ; high-precision smoothing on\n");
+     (void)fprintf(pFile, "G01 X0.032 Y0.039 F60000 ; G08 high-precision short segment\n");
+     (void)fprintf(pFile, "G08 P0 ; high-speed smoothing off\n");
++    (void)fprintf(pFile, "G09 G01 X0.0325 Y0.0395 F60000 ; one-shot exact stop\n");
++    (void)fprintf(pFile, "G63 ; tapping/thread exact stop mode\n");
+     (void)fprintf(pFile, "G51.4\n");
+     (void)fprintf(pFile, "G51.5\n");
+     (void)fprintf(pFile, "G51.6\n");
+@@ -98,8 +102,11 @@
+     (void)fprintf(pFile, "G83 X0.042 Y0.043 Z0.012 R0.050 Q0.010 F60000 ; deep peck\n");
+     /* Emit smoke-test output consumed by validation. */
+     (void)fprintf(pFile, "G73 X0.043 Y0.044 Z0.013 R0.050 Q0.005 F60000 ; chip break peck\n");
++    (void)fprintf(pFile, "G96 S180 ; constant surface speed mode sample\n");
++    (void)fprintf(pFile, "G95 ; feed per revolution mode sample\n");
+     (void)fprintf(pFile, "S600 G84 X0.044 Y0.045 Z0.010 R0.050 F1 ; right tap\n");
+     (void)fprintf(pFile, "G74 X0.045 Y0.046 Z0.010 R0.050 F1 ; left tap\n");
++    (void)fprintf(pFile, "G94 G97 S600 ; cancel feed-per-rev and CSS samples\n");
+     (void)fprintf(pFile, "G85 X0.046 Y0.047 Z0.010 R0.050 F60000 ; boring feed return\n");
+     (void)fprintf(pFile, "G86 X0.047 Y0.048 Z0.010 R0.050 F60000 ; boring spindle stop diagnostic\n");
+     (void)fprintf(pFile, "G87 X0.048 Y0.049 Z0.010 R0.050 F60000 ; back boring diagnostic\n");
+@@ -478,6 +485,16 @@
+     uint32_t designFeatureEgbSkip = 0U;
+     uint32_t designFeatureInterference3d = 0U;
+     uint32_t designFeatureFollowup = 0U;
++    uint32_t designFeatureInvolute = 0U;
++    uint32_t designFeatureHpContour = 0U;
++    uint32_t designFeatureExactStop = 0U;
++    uint32_t designFeatureRigidTap = 0U;
++    uint32_t designFeatureThreadChamfer = 0U;
++    uint32_t designFeatureSecondRef = 0U;
++    uint32_t designFeatureMachineDirect = 0U;
++    uint32_t designFeatureCoordShift = 0U;
++    uint32_t designFeatureCss = 0U;
++    uint32_t designFeatureFeedPerRev = 0U;
+     uint32_t designFeatureTsAdjusted = 0U;
+     uint32_t designFeatureRtExecuted = 0U;
+     uint32_t designFeatureSlowdown = 0U;
+@@ -554,7 +571,7 @@
+         return 1;
+     }
+ 
+-    for (cycle = 0U; cycle < 900U; ++cycle) {
++    for (cycle = 0U; cycle < 1200U; ++cycle) {
+         SimulateExternalInputs(cycle);
+         RtDispatcher_ExecuteCycle();
+         TsService_ExecuteSlice();
+@@ -712,6 +729,16 @@
+                 designFeatureEgbSkip = designFeatureStatus.egb_skip_blocks;
+                 designFeatureInterference3d = designFeatureStatus.three_d_interference_blocks;
+                 designFeatureFollowup = designFeatureStatus.followup_rollover_blocks;
++                designFeatureInvolute = designFeatureStatus.involute_blocks;
++                designFeatureHpContour = designFeatureStatus.high_precision_contour_blocks;
++                designFeatureExactStop = designFeatureStatus.exact_stop_blocks;
++                designFeatureRigidTap = designFeatureStatus.rigid_tap_blocks;
++                designFeatureThreadChamfer = designFeatureStatus.thread_chamfer_blocks;
++                designFeatureSecondRef = designFeatureStatus.second_reference_blocks;
++                designFeatureMachineDirect = designFeatureStatus.machine_direct_blocks;
++                designFeatureCoordShift = designFeatureStatus.coordinate_shift_blocks;
++                designFeatureCss = designFeatureStatus.constant_surface_speed_blocks;
++                designFeatureFeedPerRev = designFeatureStatus.feed_per_rev_blocks;
+                 designFeatureTsAdjusted = designFeatureStatus.ts_adjusted_blocks;
+                 designFeatureRtExecuted = designFeatureStatus.rt_executed_blocks;
+                 designFeatureSlowdown = designFeatureStatus.slowdown_applied_blocks;
+@@ -1140,6 +1167,17 @@
+                  (unsigned int)designFeatureOverride,
+                  (int)designFeatureLastX,
+                  (int)designFeatureLastY);
++    (void)printf("design_features_v21 involute=%u hp_contour=%u exact_stop=%u rigid_tap=%u thread_chamfer=%u second_ref=%u machine_direct=%u coord_shift=%u css=%u feed_per_rev=%u\n",
++                 (unsigned int)designFeatureInvolute,
++                 (unsigned int)designFeatureHpContour,
++                 (unsigned int)designFeatureExactStop,
++                 (unsigned int)designFeatureRigidTap,
++                 (unsigned int)designFeatureThreadChamfer,
++                 (unsigned int)designFeatureSecondRef,
++                 (unsigned int)designFeatureMachineDirect,
++                 (unsigned int)designFeatureCoordShift,
++                 (unsigned int)designFeatureCss,
++                 (unsigned int)designFeatureFeedPerRev);
+     (void)printf("sync mode_bits=0x%04x planned=%u executed=%u sync_motion=%u compound_motion=%u overlay_motion=%u double_table=%u slave_mask=0x%08x max_follow_y=%d out_y=%d\n",
+                  (unsigned int)syncModeBits,
+                  (unsigned int)syncPlanned,
+diff -ruN '--exclude=build_gcc' '--exclude=runtime_log.csv' /mnt/data/base_v20/source/src/nc_codes.c /mnt/data/work_v21/source/src/nc_codes.c
+--- /mnt/data/base_v20/source/src/nc_codes.c	2026-04-30 21:47:18.000000000 +0000
++++ /mnt/data/work_v21/source/src/nc_codes.c	2026-05-02 01:19:22.430318139 +0000
+@@ -1,231 +1,233 @@
+-/* ibm-bob/samples/base/source/src/nc_codes.c */
+-/* Provides compact G-code, address, and M-code lookup tables for NC parsing. */
+-/* This exists so code interpretation has a clear foundation before full functions. */
+-/* RELEVANT FILES: ibm-bob/samples/base/source/inc/nc_codes.h, ibm-bob/samples/base/source/src/nc_parser.c, ibm-bob/samples/base/source/inc/nc_program.h */
+-#include <ctype.h>
+-#include <stddef.h>
+-#include "nc_codes.h"
+-#include "nc_program.h"
+-
+-#define G(whole)       NC_G_CODE_WHOLE(whole)
+-#define GD(whole, dec) NC_G_CODE10((whole), (dec))
+-
+-static const NC_G_CODE_INFO s_gCodes[] = {
+-    {G(0), 1U, NC_MOTION_RAPID,  NC_MODAL_FLAG_G00},
+-    {G(1), 1U, NC_MOTION_LINEAR, NC_MODAL_FLAG_G01},
+-    {G(2), 1U, NC_MOTION_ARC_CW, NC_MODAL_FLAG_G02},
+-    {G(3), 1U, NC_MOTION_ARC_CCW, NC_MODAL_FLAG_G03},
+-    {GD(2, 3), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
+-    {GD(3, 3), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
+-    {G(4), 1U, NC_MOTION_DWELL,  NC_MODAL_FLAG_G04},
+-    {G(5), 1U, NC_MOTION_NONE,   NC_MODAL_FLAG_G05},
+-    {GD(5, 1), 1U, NC_MOTION_NONE, 0U},
+-    {GD(6, 2), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
+-    {GD(7, 1), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
+-    {GD(5, 2), 1U, NC_MOTION_NONE, 0U},
+-    {G(8), 1U, NC_MOTION_NONE,   NC_MODAL_FLAG_G08},
+-    {G(9), 1U, NC_MOTION_NONE,   NC_MODAL_FLAG_G09},
+-    {G(10), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G10},
+-    {GD(10, 6), 1U, NC_MOTION_REFERENCE_RETURN, 0U},
+-    {GD(11, 6), 1U, NC_MOTION_REFERENCE_RETURN, 0U},
+-    {GD(12, 1), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
+-    {GD(13, 1), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
+-    {GD(12, 4), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {GD(13, 4), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {G(15), 1U, NC_MOTION_NONE,  0U},
+-    {G(16), 1U, NC_MOTION_NONE,  0U},
+-    {G(17), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G17},
+-    {G(18), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G18},
+-    {G(19), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G19},
+-    {G(20), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G20},
+-    {G(21), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G21},
+-    {G(28), 1U, NC_MOTION_REFERENCE_RETURN, 0U},
+-    {G(30), 1U, NC_MOTION_REFERENCE_RETURN, 0U},
+-    {G(31), 1U, NC_MOTION_SKIP,  0U},
+-    {G(32), 1U, NC_MOTION_THREAD, 0U},
+-    {G(40), 1U, NC_MOTION_NONE,  0U},
+-    {G(41), 1U, NC_MOTION_NONE,  0U},
+-    {G(42), 1U, NC_MOTION_NONE,  0U},
+-    {G(43), 1U, NC_MOTION_NONE,  0U},
+-    {G(44), 1U, NC_MOTION_NONE,  0U},
+-    {G(49), 1U, NC_MOTION_NONE,  0U},
+-    {GD(50, 1), 1U, NC_MOTION_NONE, 0U},
+-    {GD(50, 4), 1U, NC_MOTION_NONE, 0U},
+-    {GD(50, 5), 1U, NC_MOTION_NONE, 0U},
+-    {GD(50, 6), 1U, NC_MOTION_NONE, 0U},
+-    {G(52), 1U, NC_MOTION_NONE,  0U},
+-    {G(53), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G53},
+-    {GD(53, 1), 1U, NC_MOTION_NONE, 0U},
+-    {G(54), 1U, NC_MOTION_NONE,  0U},
+-    {G(55), 1U, NC_MOTION_NONE,  0U},
+-    {G(56), 1U, NC_MOTION_NONE,  0U},
+-    {G(57), 1U, NC_MOTION_NONE,  0U},
+-    {G(58), 1U, NC_MOTION_NONE,  0U},
+-    {G(59), 1U, NC_MOTION_NONE,  0U},
+-    {G(60), 1U, NC_MOTION_LINEAR, 0U},
+-    {GD(51, 1), 1U, NC_MOTION_NONE, 0U},
+-    {GD(51, 4), 1U, NC_MOTION_NONE, 0U},
+-    {GD(51, 5), 1U, NC_MOTION_NONE, 0U},
+-    {GD(51, 6), 1U, NC_MOTION_NONE, 0U},
+-    {G(61), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G61},
+-    {G(62), 1U, NC_MOTION_NONE,  0U},
+-    {G(63), 1U, NC_MOTION_NONE,  0U},
+-    {G(64), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G64},
+-    {G(68), 1U, NC_MOTION_NONE,  0U},
+-    {GD(68, 2), 1U, NC_MOTION_NONE, 0U},
+-    {G(69), 1U, NC_MOTION_NONE,  0U},
+-    {GD(69, 1), 1U, NC_MOTION_NONE, 0U},
+-    {G(70), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {GD(70, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {G(71), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {GD(71, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {G(72), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {GD(72, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {G(73), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {GD(73, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {G(74), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {GD(74, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {G(75), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {GD(75, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {G(76), 1U, NC_MOTION_THREAD, 0U},
+-    {GD(76, 7), 1U, NC_MOTION_THREAD, 0U},
+-    {G(77), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {G(78), 1U, NC_MOTION_THREAD, 0U},
+-    {G(79), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {G(80), 1U, NC_MOTION_NONE,  0U},
+-    {G(81), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {G(82), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {G(83), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {G(84), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {G(85), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {G(86), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {G(87), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {G(88), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {G(89), 1U, NC_MOTION_CANNED_CYCLE, 0U},
+-    {G(90), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G90},
+-    {G(91), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G91},
+-    {G(92), 1U, NC_MOTION_THREAD, NC_MODAL_FLAG_G92},
+-    {G(94), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G94},
+-    {G(95), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G95},
+-    {G(96), 1U, NC_MOTION_NONE,  0U},
+-    {G(97), 1U, NC_MOTION_NONE,  0U},
+-    {G(98), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G98},
+-    {G(99), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G99}
+-};
+-
+-static const NC_ADDRESS_INFO s_addresses[] = {
+-    {'A', 1U, NC_ADDRESS_KIND_AXIS,    3},
+-    {'B', 1U, NC_ADDRESS_KIND_OFFSET, -1},
+-    {'C', 1U, NC_ADDRESS_KIND_OFFSET, -1},
+-    {'D', 1U, NC_ADDRESS_KIND_OFFSET, -1},
+-    {'E', 1U, NC_ADDRESS_KIND_OFFSET, -1},
+-    {'F', 1U, NC_ADDRESS_KIND_FEED,   -1},
+-    {'G', 1U, NC_ADDRESS_KIND_G_CODE, -1},
+-    {'H', 1U, NC_ADDRESS_KIND_OFFSET, -1},
+-    {'I', 1U, NC_ADDRESS_KIND_ARC_OFFSET, 0},
+-    {'J', 1U, NC_ADDRESS_KIND_ARC_OFFSET, 1},
+-    {'K', 1U, NC_ADDRESS_KIND_ARC_OFFSET, 2},
+-    {'L', 1U, NC_ADDRESS_KIND_L_WORD, -1},
+-    {'M', 1U, NC_ADDRESS_KIND_M_CODE, -1},
+-    {'N', 1U, NC_ADDRESS_KIND_NUMBER, -1},
+-    {'O', 1U, NC_ADDRESS_KIND_NUMBER, -1},
+-    {'P', 1U, NC_ADDRESS_KIND_P_WORD, -1},
+-    {'Q', 1U, NC_ADDRESS_KIND_Q_WORD, -1},
+-    {'R', 1U, NC_ADDRESS_KIND_ARC_RADIUS, -1},
+-    {'S', 1U, NC_ADDRESS_KIND_SPINDLE, -1},
+-    {'T', 1U, NC_ADDRESS_KIND_TOOL,   -1},
+-    {'U', 1U, NC_ADDRESS_KIND_INCREMENTAL_AXIS, 0},
+-    {'V', 1U, NC_ADDRESS_KIND_INCREMENTAL_AXIS, 1},
+-    {'W', 1U, NC_ADDRESS_KIND_INCREMENTAL_AXIS, 2},
+-    {'X', 1U, NC_ADDRESS_KIND_AXIS,    0},
+-    {'Y', 1U, NC_ADDRESS_KIND_AXIS,    1},
+-    {'Z', 1U, NC_ADDRESS_KIND_AXIS,    2}
+-};
+-
+-static const NC_M_CODE_INFO s_mCodes[] = {
+-    {0U, 1U, 0U},
+-    {1U, 1U, 0U},
+-    {2U, 1U, 0U},
+-    {3U, 1U, 0U},
+-    {4U, 1U, 0U},
+-    {5U, 1U, 0U},
+-    {6U, 1U, 1U},
+-    {7U, 1U, 0U},
+-    {8U, 1U, 0U},
+-    {9U, 1U, 0U},
+-    {30U, 1U, 0U},
+-    {98U, 1U, 0U},
+-    {99U, 1U, 0U},
+-    {130U, 1U, 0U}
+-};
+-
+-/**
+- * @brief Copy G code info from NC codes.
+- * @param code Code value being applied or recorded.
+- * @param pOutInfo Output pointer receiving info.
+- * @return 0 on success; a negative value or module-specific code on failure.
+- */
+-int32_t NcCodes_GetGCodeInfo(int32_t code, NC_G_CODE_INFO* pOutInfo)
+-{
+-    size_t i;
+-
+-    if (pOutInfo == NULL) {
+-        return -1;
+-    }
+-    for (i = 0U; i < (sizeof(s_gCodes) / sizeof(s_gCodes[0])); ++i) {
+-        if (s_gCodes[i].code == code) {
+-            *pOutInfo = s_gCodes[i];
+-            return 0;
+-        }
+-    }
+-    return -1;
+-}
+-
+-/**
+- * @brief Copy address info from NC codes.
+- * @param address Input value for address.
+- * @param pOutInfo Output pointer receiving info.
+- * @return 0 on success; a negative value or module-specific code on failure.
+- */
+-int32_t NcCodes_GetAddressInfo(char address, NC_ADDRESS_INFO* pOutInfo)
+-{
+-    size_t i;
+-    char normalized = (char)toupper((unsigned char)address);
+-
+-    if (pOutInfo == NULL) {
+-        return -1;
+-    }
+-    for (i = 0U; i < (sizeof(s_addresses) / sizeof(s_addresses[0])); ++i) {
+-        if (s_addresses[i].address == normalized) {
+-            *pOutInfo = s_addresses[i];
+-            return 0;
+-        }
+-    }
+-    return -1;
+-}
+-
+-/**
+- * @brief Copy M code info from NC codes.
+- * @param code Code value being applied or recorded.
+- * @param pOutInfo Output pointer receiving info.
+- * @return 0 on success; a negative value or module-specific code on failure.
+- */
+-int32_t NcCodes_GetMCodeInfo(uint32_t code, NC_M_CODE_INFO* pOutInfo)
+-{
+-    size_t i;
+-
+-    if (pOutInfo == NULL) {
+-        return -1;
+-    }
+-    for (i = 0U; i < (sizeof(s_mCodes) / sizeof(s_mCodes[0])); ++i) {
+-        if (s_mCodes[i].code == code) {
+-            *pOutInfo = s_mCodes[i];
+-            return 0;
+-        }
+-    }
+-
+-    pOutInfo->code = code;
+-    pOutInfo->supported_v1 = (uint8_t)(code <= 999U);
+-    pOutInfo->waits_for_mfin = 0U;
+-    return 0;
+-}
++/* ibm-bob/samples/base/source/src/nc_codes.c */
++/* Provides compact G-code, address, and M-code lookup tables for NC parsing. */
++/* This exists so code interpretation has a clear foundation before full functions. */
++/* RELEVANT FILES: ibm-bob/samples/base/source/inc/nc_codes.h, ibm-bob/samples/base/source/src/nc_parser.c, ibm-bob/samples/base/source/inc/nc_program.h */
++#include <ctype.h>
++#include <stddef.h>
++#include "nc_codes.h"
++#include "nc_program.h"
++
++#define G(whole)       NC_G_CODE_WHOLE(whole)
++#define GD(whole, dec) NC_G_CODE10((whole), (dec))
++
++static const NC_G_CODE_INFO s_gCodes[] = {
++    {G(0), 1U, NC_MOTION_RAPID,  NC_MODAL_FLAG_G00},
++    {G(1), 1U, NC_MOTION_LINEAR, NC_MODAL_FLAG_G01},
++    {G(2), 1U, NC_MOTION_ARC_CW, NC_MODAL_FLAG_G02},
++    {G(3), 1U, NC_MOTION_ARC_CCW, NC_MODAL_FLAG_G03},
++    {GD(2, 2), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
++    {GD(3, 2), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
++    {GD(2, 3), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
++    {GD(3, 3), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
++    {G(4), 1U, NC_MOTION_DWELL,  NC_MODAL_FLAG_G04},
++    {G(5), 1U, NC_MOTION_NONE,   NC_MODAL_FLAG_G05},
++    {GD(5, 1), 1U, NC_MOTION_NONE, 0U},
++    {GD(6, 2), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
++    {GD(7, 1), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
++    {GD(5, 2), 1U, NC_MOTION_NONE, 0U},
++    {G(8), 1U, NC_MOTION_NONE,   NC_MODAL_FLAG_G08},
++    {G(9), 1U, NC_MOTION_NONE,   NC_MODAL_FLAG_G09},
++    {G(10), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G10},
++    {GD(10, 6), 1U, NC_MOTION_REFERENCE_RETURN, 0U},
++    {GD(11, 6), 1U, NC_MOTION_REFERENCE_RETURN, 0U},
++    {GD(12, 1), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
++    {GD(13, 1), 1U, NC_MOTION_ADVANCED_INTERP, 0U},
++    {GD(12, 4), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(13, 4), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(15), 1U, NC_MOTION_NONE,  0U},
++    {G(16), 1U, NC_MOTION_NONE,  0U},
++    {G(17), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G17},
++    {G(18), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G18},
++    {G(19), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G19},
++    {G(20), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G20},
++    {G(21), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G21},
++    {G(28), 1U, NC_MOTION_REFERENCE_RETURN, 0U},
++    {G(30), 1U, NC_MOTION_REFERENCE_RETURN, 0U},
++    {G(31), 1U, NC_MOTION_SKIP,  0U},
++    {G(32), 1U, NC_MOTION_THREAD, 0U},
++    {G(40), 1U, NC_MOTION_NONE,  0U},
++    {G(41), 1U, NC_MOTION_NONE,  0U},
++    {G(42), 1U, NC_MOTION_NONE,  0U},
++    {G(43), 1U, NC_MOTION_NONE,  0U},
++    {G(44), 1U, NC_MOTION_NONE,  0U},
++    {G(49), 1U, NC_MOTION_NONE,  0U},
++    {GD(50, 1), 1U, NC_MOTION_NONE, 0U},
++    {GD(50, 4), 1U, NC_MOTION_NONE, 0U},
++    {GD(50, 5), 1U, NC_MOTION_NONE, 0U},
++    {GD(50, 6), 1U, NC_MOTION_NONE, 0U},
++    {G(52), 1U, NC_MOTION_NONE,  0U},
++    {G(53), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G53},
++    {GD(53, 1), 1U, NC_MOTION_NONE, 0U},
++    {G(54), 1U, NC_MOTION_NONE,  0U},
++    {G(55), 1U, NC_MOTION_NONE,  0U},
++    {G(56), 1U, NC_MOTION_NONE,  0U},
++    {G(57), 1U, NC_MOTION_NONE,  0U},
++    {G(58), 1U, NC_MOTION_NONE,  0U},
++    {G(59), 1U, NC_MOTION_NONE,  0U},
++    {G(60), 1U, NC_MOTION_LINEAR, 0U},
++    {GD(51, 1), 1U, NC_MOTION_NONE, 0U},
++    {GD(51, 4), 1U, NC_MOTION_NONE, 0U},
++    {GD(51, 5), 1U, NC_MOTION_NONE, 0U},
++    {GD(51, 6), 1U, NC_MOTION_NONE, 0U},
++    {G(61), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G61},
++    {G(62), 1U, NC_MOTION_NONE,  0U},
++    {G(63), 1U, NC_MOTION_NONE,  0U},
++    {G(64), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G64},
++    {G(68), 1U, NC_MOTION_NONE,  0U},
++    {GD(68, 2), 1U, NC_MOTION_NONE, 0U},
++    {G(69), 1U, NC_MOTION_NONE,  0U},
++    {GD(69, 1), 1U, NC_MOTION_NONE, 0U},
++    {G(70), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(70, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(71), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(71, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(72), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(72, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(73), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(73, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(74), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(74, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(75), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {GD(75, 7), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(76), 1U, NC_MOTION_THREAD, 0U},
++    {GD(76, 7), 1U, NC_MOTION_THREAD, 0U},
++    {G(77), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(78), 1U, NC_MOTION_THREAD, 0U},
++    {G(79), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(80), 1U, NC_MOTION_NONE,  0U},
++    {G(81), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(82), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(83), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(84), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(85), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(86), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(87), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(88), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(89), 1U, NC_MOTION_CANNED_CYCLE, 0U},
++    {G(90), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G90},
++    {G(91), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G91},
++    {G(92), 1U, NC_MOTION_THREAD, NC_MODAL_FLAG_G92},
++    {G(94), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G94},
++    {G(95), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G95},
++    {G(96), 1U, NC_MOTION_NONE,  0U},
++    {G(97), 1U, NC_MOTION_NONE,  0U},
++    {G(98), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G98},
++    {G(99), 1U, NC_MOTION_NONE,  NC_MODAL_FLAG_G99}
++};
++
++static const NC_ADDRESS_INFO s_addresses[] = {
++    {'A', 1U, NC_ADDRESS_KIND_AXIS,    3},
++    {'B', 1U, NC_ADDRESS_KIND_OFFSET, -1},
++    {'C', 1U, NC_ADDRESS_KIND_OFFSET, -1},
++    {'D', 1U, NC_ADDRESS_KIND_OFFSET, -1},
++    {'E', 1U, NC_ADDRESS_KIND_OFFSET, -1},
++    {'F', 1U, NC_ADDRESS_KIND_FEED,   -1},
++    {'G', 1U, NC_ADDRESS_KIND_G_CODE, -1},
++    {'H', 1U, NC_ADDRESS_KIND_OFFSET, -1},
++    {'I', 1U, NC_ADDRESS_KIND_ARC_OFFSET, 0},
++    {'J', 1U, NC_ADDRESS_KIND_ARC_OFFSET, 1},
++    {'K', 1U, NC_ADDRESS_KIND_ARC_OFFSET, 2},
++    {'L', 1U, NC_ADDRESS_KIND_L_WORD, -1},
++    {'M', 1U, NC_ADDRESS_KIND_M_CODE, -1},
++    {'N', 1U, NC_ADDRESS_KIND_NUMBER, -1},
++    {'O', 1U, NC_ADDRESS_KIND_NUMBER, -1},
++    {'P', 1U, NC_ADDRESS_KIND_P_WORD, -1},
++    {'Q', 1U, NC_ADDRESS_KIND_Q_WORD, -1},
++    {'R', 1U, NC_ADDRESS_KIND_ARC_RADIUS, -1},
++    {'S', 1U, NC_ADDRESS_KIND_SPINDLE, -1},
++    {'T', 1U, NC_ADDRESS_KIND_TOOL,   -1},
++    {'U', 1U, NC_ADDRESS_KIND_INCREMENTAL_AXIS, 0},
++    {'V', 1U, NC_ADDRESS_KIND_INCREMENTAL_AXIS, 1},
++    {'W', 1U, NC_ADDRESS_KIND_INCREMENTAL_AXIS, 2},
++    {'X', 1U, NC_ADDRESS_KIND_AXIS,    0},
++    {'Y', 1U, NC_ADDRESS_KIND_AXIS,    1},
++    {'Z', 1U, NC_ADDRESS_KIND_AXIS,    2}
++};
++
++static const NC_M_CODE_INFO s_mCodes[] = {
++    {0U, 1U, 0U},
++    {1U, 1U, 0U},
++    {2U, 1U, 0U},
++    {3U, 1U, 0U},
++    {4U, 1U, 0U},
++    {5U, 1U, 0U},
++    {6U, 1U, 1U},
++    {7U, 1U, 0U},
++    {8U, 1U, 0U},
++    {9U, 1U, 0U},
++    {30U, 1U, 0U},
++    {98U, 1U, 0U},
++    {99U, 1U, 0U},
++    {130U, 1U, 0U}
++};
++
++/**
++ * @brief Copy G code info from NC codes.
++ * @param code Code value being applied or recorded.
++ * @param pOutInfo Output pointer receiving info.
++ * @return 0 on success; a negative value or module-specific code on failure.
++ */
++int32_t NcCodes_GetGCodeInfo(int32_t code, NC_G_CODE_INFO* pOutInfo)
++{
++    size_t i;
++
++    if (pOutInfo == NULL) {
++        return -1;
++    }
++    for (i = 0U; i < (sizeof(s_gCodes) / sizeof(s_gCodes[0])); ++i) {
++        if (s_gCodes[i].code == code) {
++            *pOutInfo = s_gCodes[i];
++            return 0;
++        }
++    }
++    return -1;
++}
++
++/**
++ * @brief Copy address info from NC codes.
++ * @param address Input value for address.
++ * @param pOutInfo Output pointer receiving info.
++ * @return 0 on success; a negative value or module-specific code on failure.
++ */
++int32_t NcCodes_GetAddressInfo(char address, NC_ADDRESS_INFO* pOutInfo)
++{
++    size_t i;
++    char normalized = (char)toupper((unsigned char)address);
++
++    if (pOutInfo == NULL) {
++        return -1;
++    }
++    for (i = 0U; i < (sizeof(s_addresses) / sizeof(s_addresses[0])); ++i) {
++        if (s_addresses[i].address == normalized) {
++            *pOutInfo = s_addresses[i];
++            return 0;
++        }
++    }
++    return -1;
++}
++
++/**
++ * @brief Copy M code info from NC codes.
++ * @param code Code value being applied or recorded.
++ * @param pOutInfo Output pointer receiving info.
++ * @return 0 on success; a negative value or module-specific code on failure.
++ */
++int32_t NcCodes_GetMCodeInfo(uint32_t code, NC_M_CODE_INFO* pOutInfo)
++{
++    size_t i;
++
++    if (pOutInfo == NULL) {
++        return -1;
++    }
++    for (i = 0U; i < (sizeof(s_mCodes) / sizeof(s_mCodes[0])); ++i) {
++        if (s_mCodes[i].code == code) {
++            *pOutInfo = s_mCodes[i];
++            return 0;
++        }
++    }
++
++    pOutInfo->code = code;
++    pOutInfo->supported_v1 = (uint8_t)(code <= 999U);
++    pOutInfo->waits_for_mfin = 0U;
++    return 0;
++}
+diff -ruN '--exclude=build_gcc' '--exclude=runtime_log.csv' /mnt/data/base_v20/source/src/nc_design_features.c /mnt/data/work_v21/source/src/nc_design_features.c
+--- /mnt/data/base_v20/source/src/nc_design_features.c	2026-05-02 01:00:36.000000000 +0000
++++ /mnt/data/work_v21/source/src/nc_design_features.c	2026-05-02 01:20:16.437754537 +0000
+@@ -1,24 +1,492 @@
+ /* ibm-bob/samples/base/source/src/nc_design_features.c */
++/* Completes design-document features that can be implemented as TS fixed-block conversion plus RT-safe status publication. */
+ #include <string.h>
+ #include "nc_design_features.h"
+ #include "nc_codes.h"
+ #include "nc_program.h"
++
+ #define G(whole)       NC_G_CODE_WHOLE(whole)
+ #define GD(whole, dec) NC_G_CODE10((whole), (dec))
++
+ static uint16_t s_autoCornerOverride = NC_DESIGN_AUTO_CORNER_OVERRIDE_PERCENT;
+-static uint8_t IsMotion(NC_MOTION_TYPE m){return (uint8_t)((m==NC_MOTION_RAPID)||(m==NC_MOTION_LINEAR)||(m==NC_MOTION_ARC_CW)||(m==NC_MOTION_ARC_CCW)||(m==NC_MOTION_CANNED_CYCLE)||(m==NC_MOTION_THREAD)||(m==NC_MOTION_SKIP)||(m==NC_MOTION_REFERENCE_RETURN)||(m==NC_MOTION_ADVANCED_INTERP));}
+-static void CopyAxes(int32_t* d,const int32_t* s){uint32_t a;for(a=0U;a<AXIS_MAX;++a){d[a]=s[a];}}
+-static int32_t Abs32(int32_t v){if(v==(int32_t)0x80000000UL){return 0x7fffffff;}return(v<0)?-v:v;}
+-static uint32_t BitCount(uint32_t m){uint32_t c=0U;while(m!=0U){c+=(m&1U);m>>=1U;}return c;}
+-static uint8_t IsGrindingCycle(uint16_t c){return (uint8_t)(((c>=(uint16_t)GD(70,7))&&(c<=(uint16_t)GD(76,7)))||((c>=(uint16_t)G(77))&&(c<=(uint16_t)G(79))));}
+-static uint8_t IsHelicalB(const NC_EXEC_BLOCK* b){uint8_t arc=(uint8_t)((b->motion_type==NC_MOTION_ARC_CW)||(b->motion_type==NC_MOTION_ARC_CCW)||(b->g_code10==(uint16_t)G(2))||(b->g_code10==(uint16_t)G(3)));return (uint8_t)((arc!=0U)&&((b->axis_mask&((1UL<<2U)|(1UL<<3U)))!=0U));}
+-static uint8_t IsThreeDInterference(const NC_EXEC_BLOCK* b){return (uint8_t)((BitCount(b->axis_mask)>=3U)||((b->feature_flags&(NC_FEATURE_FLAG_TILTED_PLANE|NC_FEATURE_FLAG_TOOL_AXIS_DIR))!=0U));}
+-static uint8_t IsFollowupRollover(const NC_EXEC_BLOCK* b){uint32_t a;if(b->motion_type!=NC_MOTION_REFERENCE_RETURN){return 0U;}for(a=0U;a<AXIS_MAX;++a){if((b->axis_mask&(1UL<<a))==0U){continue;}if(Abs32(b->axis_target[a])>g_ncReferenceStatus.rollover_limit[a]){return 1U;}}return 0U;}
+-static void StoreTargets(const NC_EXEC_BLOCK* b){uint32_t a;g_ncDesignFeatureStatus.last_g_code10=b->g_code10;g_ncDesignFeatureStatus.last_line_no=b->line_no;g_ncDesignFeatureStatus.last_axis_mask=b->axis_mask;CopyAxes((int32_t*)g_ncDesignFeatureStatus.last_output_target,b->axis_target);for(a=0U;a<AXIS_MAX;++a){g_ncDesignFeatureStatus.last_following_error[a]=b->axis_target[a]-b->axis_start[a];g_ncDesignFeatureStatus.last_clearance[a]=NC_INTERFERENCE_AXIS_LIMIT-Abs32(b->axis_target[a]);}}
+-static void MarkTs(uint32_t m,NC_EXEC_BLOCK* b){g_ncDesignFeatureStatus.active_mode_mask|=m;g_ncDesignFeatureStatus.ts_adjusted_blocks++;StoreTargets(b);g_ncDesignFeatureStatus.generation++;}
+-static void ApplyFeedSlowdown(NC_EXEC_BLOCK* b,uint16_t p){if((b->feed>0)&&(p>0U)&&(p<100U)){b->feed=(int32_t)(((int64_t)b->feed*(int64_t)p)/100LL);if(b->feed<=0){b->feed=1;}g_ncDesignFeatureStatus.slowdown_applied_blocks++;g_ncDesignFeatureStatus.active_override_percent=p;}}
+-static void ApplyCylindricalAxisHint(NC_EXEC_BLOCK* b){if((b->axis_mask&(1UL<<3U))!=0U){int32_t v=b->axis_target[3]/360;b->axis_target[1]+=v;b->axis_mask|=(1UL<<1U);}}
+-void NcDesignFeatures_Reset(void){(void)memset((void*)&g_ncDesignFeatureStatus,0,sizeof(g_ncDesignFeatureStatus));s_autoCornerOverride=NC_DESIGN_AUTO_CORNER_OVERRIDE_PERCENT;g_ncDesignFeatureStatus.active_override_percent=s_autoCornerOverride;}
+-int32_t NcDesignFeatures_ApplyBlockTs(NC_EXEC_BLOCK* b,NC_ERROR_CODE* e){uint32_t m=0U;if((b==0)||(e==0)){return -1;}CopyAxes((int32_t*)g_ncDesignFeatureStatus.last_input_target,b->axis_target);if(b->g_code10==(uint16_t)GD(6,2)){g_ncDesignFeatureStatus.nurbs_blocks++;b->feature_flags|=NC_FEATURE_FLAG_ADVANCED_INTERP;b->motion_type=NC_MOTION_ADVANCED_INTERP;if(b->interp_ticks<NC_DESIGN_ADVANCED_MIN_TICKS){b->interp_ticks=NC_DESIGN_ADVANCED_MIN_TICKS;}m|=NC_DESIGN_MODE_NURBS;}if((b->g_code10==(uint16_t)GD(2,3))||(b->g_code10==(uint16_t)GD(3,3))){g_ncDesignFeatureStatus.exponential_blocks++;b->feature_flags|=NC_FEATURE_FLAG_ADVANCED_INTERP;b->motion_type=NC_MOTION_ADVANCED_INTERP;ApplyFeedSlowdown(b,90U);m|=NC_DESIGN_MODE_EXPONENTIAL;}if((b->g_code10==(uint16_t)GD(7,1))||(b->g_code10==(uint16_t)GD(12,1))){g_ncDesignFeatureStatus.cylindrical_active=1U;g_ncDesignFeatureStatus.cylindrical_blocks++;ApplyCylindricalAxisHint(b);m|=NC_DESIGN_MODE_CYLINDRICAL;}if(b->g_code10==(uint16_t)GD(13,1)){g_ncDesignFeatureStatus.cylindrical_active=0U;g_ncDesignFeatureStatus.cylindrical_blocks++;m|=NC_DESIGN_MODE_CYLINDRICAL;}if(b->g_code10==(uint16_t)G(16)){g_ncDesignFeatureStatus.polar_active=1U;g_ncDesignFeatureStatus.polar_blocks++;m|=NC_DESIGN_MODE_POLAR;}else if(b->g_code10==(uint16_t)G(15)){g_ncDesignFeatureStatus.polar_active=0U;g_ncDesignFeatureStatus.polar_blocks++;m|=NC_DESIGN_MODE_POLAR;}else if((g_ncDesignFeatureStatus.polar_active!=0U)&&(IsMotion(b->motion_type)!=0U)){g_ncDesignFeatureStatus.polar_blocks++;ApplyFeedSlowdown(b,95U);m|=NC_DESIGN_MODE_POLAR;}if(IsHelicalB(b)!=0U){g_ncDesignFeatureStatus.helical_b_blocks++;b->feature_flags|=NC_FEATURE_FLAG_ADVANCED_INTERP;if(b->interp_ticks<NC_DESIGN_ADVANCED_MIN_TICKS){b->interp_ticks=NC_DESIGN_ADVANCED_MIN_TICKS;}m|=NC_DESIGN_MODE_HELICAL_B;}if(b->g_code10==(uint16_t)G(62)){g_ncDesignFeatureStatus.auto_corner_active=1U;g_ncDesignFeatureStatus.auto_corner_override_blocks++;m|=NC_DESIGN_MODE_AUTO_CORNER;}else if(b->g_code10==(uint16_t)G(64)){g_ncDesignFeatureStatus.auto_corner_active=0U;m|=NC_DESIGN_MODE_AUTO_CORNER;}else if((g_ncDesignFeatureStatus.auto_corner_active!=0U)&&(IsMotion(b->motion_type)!=0U)){g_ncDesignFeatureStatus.auto_corner_override_blocks++;ApplyFeedSlowdown(b,s_autoCornerOverride);m|=NC_DESIGN_MODE_AUTO_CORNER;}if(IsGrindingCycle(b->cycle_code10)!=0U){g_ncDesignFeatureStatus.grinding_cycle_blocks++;b->feature_flags|=NC_FEATURE_FLAG_CANNED_CYCLE;ApplyFeedSlowdown(b,70U);m|=NC_DESIGN_MODE_GRINDING;}if((b->motion_type==NC_MOTION_SKIP)&&((b->axis_mask&(1UL<<3U))!=0U)){g_ncDesignFeatureStatus.egb_skip_armed=1U;g_ncDesignFeatureStatus.egb_skip_blocks++;m|=NC_DESIGN_MODE_EGB_SKIP;}if(IsThreeDInterference(b)!=0U){g_ncDesignFeatureStatus.three_d_interference_blocks++;ApplyFeedSlowdown(b,85U);m|=NC_DESIGN_MODE_3D_INTERFERENCE;}if(IsFollowupRollover(b)!=0U){g_ncDesignFeatureStatus.followup_rollover_blocks++;b->feature_flags|=NC_FEATURE_FLAG_REFERENCE_RETURN;m|=NC_DESIGN_MODE_FOLLOWUP_ROLLOVER;}if(m!=0U){MarkTs(m,b);}return 0;}
+-void NcDesignFeatures_OnBlockRt(const NC_EXEC_BLOCK* b){uint32_t m=0U;if(b==0){return;}if(b->g_code10==(uint16_t)GD(6,2)){m|=NC_DESIGN_MODE_NURBS;}if((b->g_code10==(uint16_t)GD(2,3))||(b->g_code10==(uint16_t)GD(3,3))){m|=NC_DESIGN_MODE_EXPONENTIAL;}if((b->g_code10==(uint16_t)GD(7,1))||(b->g_code10==(uint16_t)GD(12,1))||(b->g_code10==(uint16_t)GD(13,1))){m|=NC_DESIGN_MODE_CYLINDRICAL;}if((b->g_code10==(uint16_t)G(15))||(b->g_code10==(uint16_t)G(16))||(g_ncDesignFeatureStatus.polar_active!=0U)){m|=NC_DESIGN_MODE_POLAR;}if(IsHelicalB(b)!=0U){m|=NC_DESIGN_MODE_HELICAL_B;}if((b->g_code10==(uint16_t)G(62))||(g_ncDesignFeatureStatus.auto_corner_active!=0U)){m|=NC_DESIGN_MODE_AUTO_CORNER;}if(IsGrindingCycle(b->cycle_code10)!=0U){m|=NC_DESIGN_MODE_GRINDING;}if((b->motion_type==NC_MOTION_SKIP)&&((b->axis_mask&(1UL<<3U))!=0U)){m|=NC_DESIGN_MODE_EGB_SKIP;}if(IsThreeDInterference(b)!=0U){m|=NC_DESIGN_MODE_3D_INTERFERENCE;}if(IsFollowupRollover(b)!=0U){m|=NC_DESIGN_MODE_FOLLOWUP_ROLLOVER;}if(m!=0U){g_ncDesignFeatureStatus.rt_executed_blocks++;StoreTargets(b);g_ncDesignFeatureStatus.generation++;NcEvent_Push(NC_EVENT_CODE_DESIGN_FEATURE_APPLIED,(int32_t)m,(int32_t)b->g_code10,b->line_no);}}
+-int32_t NcDesignFeatures_SetAutoCornerOverride(uint8_t en,uint16_t p){if(p>NC_FEED_OVERRIDE_MAX_PERCENT){g_ncDesignFeatureStatus.generation++;return -1;}s_autoCornerOverride=p;g_ncDesignFeatureStatus.auto_corner_active=(en!=0U)?1U:0U;g_ncDesignFeatureStatus.active_override_percent=p;g_ncDesignFeatureStatus.generation++;NcEvent_Push(NC_EVENT_CODE_DESIGN_FEATURE_APPLIED,(int32_t)NC_DESIGN_MODE_AUTO_CORNER,(int32_t)p,0U);return 0;}
++
++static uint8_t IsMotion(NC_MOTION_TYPE motion)
++{
++    return (uint8_t)((motion == NC_MOTION_RAPID) ||
++                     (motion == NC_MOTION_LINEAR) ||
++                     (motion == NC_MOTION_ARC_CW) ||
++                     (motion == NC_MOTION_ARC_CCW) ||
++                     (motion == NC_MOTION_CANNED_CYCLE) ||
++                     (motion == NC_MOTION_THREAD) ||
++                     (motion == NC_MOTION_SKIP) ||
++                     (motion == NC_MOTION_REFERENCE_RETURN) ||
++                     (motion == NC_MOTION_ADVANCED_INTERP));
++}
++
++static void CopyAxes(int32_t* pDst, const int32_t* pSrc)
++{
++    uint32_t axis;
++    for (axis = 0U; axis < AXIS_MAX; ++axis) {
++        pDst[axis] = pSrc[axis];
++    }
++}
++
++static int32_t Abs32(int32_t value)
++{
++    if (value == (int32_t)0x80000000UL) {
++        return 0x7fffffff;
++    }
++    return (value < 0) ? -value : value;
++}
++
++static uint32_t BitCount(uint32_t mask)
++{
++    uint32_t count = 0U;
++    while (mask != 0U) {
++        count += (mask & 1U);
++        mask >>= 1U;
++    }
++    return count;
++}
++
++static uint8_t IsGrindingCycle(uint16_t code10)
++{
++    return (uint8_t)(((code10 >= (uint16_t)GD(70, 7)) &&
++                      (code10 <= (uint16_t)GD(76, 7))) ||
++                     ((code10 >= (uint16_t)G(77)) &&
++                      (code10 <= (uint16_t)G(79))));
++}
++
++static uint8_t IsHelicalB(const NC_EXEC_BLOCK* pBlock)
++{
++    uint8_t arc = (uint8_t)((pBlock->motion_type == NC_MOTION_ARC_CW) ||
++                            (pBlock->motion_type == NC_MOTION_ARC_CCW) ||
++                            (pBlock->g_code10 == (uint16_t)G(2)) ||
++                            (pBlock->g_code10 == (uint16_t)G(3)));
++    return (uint8_t)((arc != 0U) &&
++                     ((pBlock->axis_mask & ((1UL << 2U) | (1UL << 3U))) != 0U));
++}
++
++static uint8_t IsThreeDInterference(const NC_EXEC_BLOCK* pBlock)
++{
++    return (uint8_t)((BitCount(pBlock->axis_mask) >= 3U) ||
++                     ((pBlock->feature_flags &
++                       (NC_FEATURE_FLAG_TILTED_PLANE | NC_FEATURE_FLAG_TOOL_AXIS_DIR)) != 0U));
++}
++
++static uint8_t IsFollowupRollover(const NC_EXEC_BLOCK* pBlock)
++{
++    uint32_t axis;
++    if (pBlock->motion_type != NC_MOTION_REFERENCE_RETURN) {
++        return 0U;
++    }
++    for (axis = 0U; axis < AXIS_MAX; ++axis) {
++        if ((pBlock->axis_mask & (1UL << axis)) == 0U) {
++            continue;
++        }
++        if (Abs32(pBlock->axis_target[axis]) > g_ncReferenceStatus.rollover_limit[axis]) {
++            return 1U;
++        }
++    }
++    return 0U;
++}
++
++static uint8_t IsInvolute(const NC_EXEC_BLOCK* pBlock)
++{
++    return (uint8_t)((pBlock->g_code10 == (uint16_t)GD(2, 2)) ||
++                     (pBlock->g_code10 == (uint16_t)GD(3, 2)));
++}
++
++static uint8_t IsHighPrecisionContour(const NC_EXEC_BLOCK* pBlock)
++{
++    return (uint8_t)((pBlock->g_code10 == (uint16_t)G(8)) ||
++                     (pBlock->g_code10 == (uint16_t)G(5)) ||
++                     (pBlock->g_code10 == (uint16_t)GD(5, 1)) ||
++                     (pBlock->g_code10 == (uint16_t)GD(5, 2)) ||
++                     ((pBlock->feature_flags &
++                       (NC_FEATURE_FLAG_HPCC | NC_FEATURE_FLAG_HIGH_PRECISION |
++                        NC_FEATURE_FLAG_SMOOTHING)) != 0U));
++}
++
++static uint8_t IsExactStop(const NC_EXEC_BLOCK* pBlock)
++{
++    return (uint8_t)((pBlock->g_code10 == (uint16_t)G(9)) ||
++                     (pBlock->g_code10 == (uint16_t)G(61)) ||
++                     (pBlock->g_code10 == (uint16_t)G(63)) ||
++                     ((pBlock->feature_flags & NC_FEATURE_FLAG_EXACT_STOP) != 0U));
++}
++
++static uint8_t IsRigidTap(const NC_EXEC_BLOCK* pBlock)
++{
++    return (uint8_t)(((pBlock->cycle_code10 == (uint16_t)G(84)) ||
++                      (pBlock->cycle_code10 == (uint16_t)G(74))) &&
++                     (pBlock->motion_type == NC_MOTION_CANNED_CYCLE));
++}
++
++static uint8_t IsThreadChamfer(const NC_EXEC_BLOCK* pBlock)
++{
++    return (uint8_t)((pBlock->motion_type == NC_MOTION_THREAD) ||
++                     (pBlock->cycle_code10 == (uint16_t)GD(76, 7)) ||
++                     (pBlock->g_code10 == (uint16_t)G(76)) ||
++                     (pBlock->g_code10 == (uint16_t)G(78)) ||
++                     (pBlock->g_code10 == (uint16_t)G(63)));
++}
++
++static uint8_t IsCoordinateShift(const NC_EXEC_BLOCK* pBlock)
++{
++    return (uint8_t)((pBlock->g_code10 == (uint16_t)G(10)) ||
++                     (pBlock->g_code10 == (uint16_t)G(52)) ||
++                     (pBlock->g_code10 == (uint16_t)G(92)));
++}
++
++static void StoreTargets(const NC_EXEC_BLOCK* pBlock)
++{
++    uint32_t axis;
++    g_ncDesignFeatureStatus.last_g_code10 = pBlock->g_code10;
++    g_ncDesignFeatureStatus.last_line_no = pBlock->line_no;
++    g_ncDesignFeatureStatus.last_axis_mask = pBlock->axis_mask;
++    g_ncDesignFeatureStatus.last_effective_feed = pBlock->feed;
++    g_ncDesignFeatureStatus.last_spindle_speed = pBlock->spindle_speed;
++    CopyAxes((int32_t*)g_ncDesignFeatureStatus.last_output_target,
++             pBlock->axis_target);
++    for (axis = 0U; axis < AXIS_MAX; ++axis) {
++        g_ncDesignFeatureStatus.last_following_error[axis] =
++            pBlock->axis_target[axis] - pBlock->axis_start[axis];
++        g_ncDesignFeatureStatus.last_clearance[axis] =
++            NC_INTERFERENCE_AXIS_LIMIT - Abs32(pBlock->axis_target[axis]);
++    }
++}
++
++static void MarkTs(uint32_t modeMask, NC_EXEC_BLOCK* pBlock)
++{
++    g_ncDesignFeatureStatus.active_mode_mask |= modeMask;
++    g_ncDesignFeatureStatus.ts_adjusted_blocks++;
++    StoreTargets(pBlock);
++    g_ncDesignFeatureStatus.generation++;
++}
++
++static void ApplyFeedSlowdown(NC_EXEC_BLOCK* pBlock, uint16_t percent)
++{
++    if ((pBlock->feed > 0) && (percent > 0U) && (percent < 100U)) {
++        pBlock->feed = (int32_t)(((int64_t)pBlock->feed * (int64_t)percent) / 100LL);
++        if (pBlock->feed <= 0) {
++            pBlock->feed = 1;
++        }
++        g_ncDesignFeatureStatus.slowdown_applied_blocks++;
++        g_ncDesignFeatureStatus.active_override_percent = percent;
++    }
++}
++
++static void ApplyCylindricalAxisHint(NC_EXEC_BLOCK* pBlock)
++{
++    if ((pBlock->axis_mask & (1UL << 3U)) != 0U) {
++        int32_t virtualLinear = pBlock->axis_target[3] / 360;
++        pBlock->axis_target[1] += virtualLinear;
++        pBlock->axis_mask |= (1UL << 1U);
++    }
++}
++
++static void ApplyHighPrecisionPreparation(NC_EXEC_BLOCK* pBlock)
++{
++    if (IsMotion(pBlock->motion_type) != 0U) {
++        if (pBlock->interp_ticks < NC_DESIGN_ADVANCED_MIN_TICKS) {
++            pBlock->interp_ticks = NC_DESIGN_ADVANCED_MIN_TICKS;
++        }
++        pBlock->accel_ticks += (pBlock->accel_ticks < 2U) ? 1U : 0U;
++        pBlock->decel_ticks += (pBlock->decel_ticks < 2U) ? 1U : 0U;
++        ApplyFeedSlowdown(pBlock, NC_DESIGN_HP_CONTOUR_PERCENT);
++    }
++}
++
++static void ApplyRigidTapPreparation(NC_EXEC_BLOCK* pBlock)
++{
++    uint32_t rpm = pBlock->spindle_speed;
++    if (rpm == 0U) {
++        rpm = NC_TAP_MIN_SPINDLE_RPM;
++        pBlock->spindle_speed = rpm;
++    }
++    if (pBlock->interp_ticks < NC_DESIGN_RIGID_TAP_MIN_TICKS) {
++        pBlock->interp_ticks = NC_DESIGN_RIGID_TAP_MIN_TICKS;
++    }
++    g_ncDesignFeatureStatus.last_rigid_tap_pitch =
++        (rpm == 0U) ? 0 : (int32_t)(pBlock->feed / (int32_t)rpm);
++}
++
++void NcDesignFeatures_Reset(void)
++{
++    (void)memset((void*)&g_ncDesignFeatureStatus, 0, sizeof(g_ncDesignFeatureStatus));
++    s_autoCornerOverride = NC_DESIGN_AUTO_CORNER_OVERRIDE_PERCENT;
++    g_ncDesignFeatureStatus.active_override_percent = s_autoCornerOverride;
++}
++
++int32_t NcDesignFeatures_ApplyBlockTs(NC_EXEC_BLOCK* pBlock,
++                                      NC_ERROR_CODE* pOutError)
++{
++    uint32_t modeMask = 0U;
++    (void)pOutError;
++
++    if ((pBlock == 0) || (pOutError == 0)) {
++        return -1;
++    }
++    CopyAxes((int32_t*)g_ncDesignFeatureStatus.last_input_target,
++             pBlock->axis_target);
++
++    if (pBlock->g_code10 == (uint16_t)GD(6, 2)) {
++        g_ncDesignFeatureStatus.nurbs_blocks++;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_ADVANCED_INTERP;
++        pBlock->motion_type = NC_MOTION_ADVANCED_INTERP;
++        if (pBlock->interp_ticks < NC_DESIGN_ADVANCED_MIN_TICKS) {
++            pBlock->interp_ticks = NC_DESIGN_ADVANCED_MIN_TICKS;
++        }
++        modeMask |= NC_DESIGN_MODE_NURBS;
++    }
++    if ((pBlock->g_code10 == (uint16_t)GD(2, 3)) ||
++        (pBlock->g_code10 == (uint16_t)GD(3, 3))) {
++        g_ncDesignFeatureStatus.exponential_blocks++;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_ADVANCED_INTERP;
++        pBlock->motion_type = NC_MOTION_ADVANCED_INTERP;
++        ApplyFeedSlowdown(pBlock, 90U);
++        modeMask |= NC_DESIGN_MODE_EXPONENTIAL;
++    }
++    if (IsInvolute(pBlock) != 0U) {
++        g_ncDesignFeatureStatus.involute_blocks++;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_ADVANCED_INTERP;
++        pBlock->motion_type = NC_MOTION_ADVANCED_INTERP;
++        if (pBlock->interp_ticks < NC_DESIGN_INVOLUTE_MIN_TICKS) {
++            pBlock->interp_ticks = NC_DESIGN_INVOLUTE_MIN_TICKS;
++        }
++        ApplyFeedSlowdown(pBlock, 88U);
++        modeMask |= NC_DESIGN_MODE_INVOLUTE;
++    }
++    if ((pBlock->g_code10 == (uint16_t)GD(7, 1)) ||
++        (pBlock->g_code10 == (uint16_t)GD(12, 1))) {
++        g_ncDesignFeatureStatus.cylindrical_active = 1U;
++        g_ncDesignFeatureStatus.cylindrical_blocks++;
++        ApplyCylindricalAxisHint(pBlock);
++        modeMask |= NC_DESIGN_MODE_CYLINDRICAL;
++    }
++    if (pBlock->g_code10 == (uint16_t)GD(13, 1)) {
++        g_ncDesignFeatureStatus.cylindrical_active = 0U;
++        g_ncDesignFeatureStatus.cylindrical_blocks++;
++        modeMask |= NC_DESIGN_MODE_CYLINDRICAL;
++    }
++    if (pBlock->g_code10 == (uint16_t)G(16)) {
++        g_ncDesignFeatureStatus.polar_active = 1U;
++        g_ncDesignFeatureStatus.polar_blocks++;
++        modeMask |= NC_DESIGN_MODE_POLAR;
++    } else if (pBlock->g_code10 == (uint16_t)G(15)) {
++        g_ncDesignFeatureStatus.polar_active = 0U;
++        g_ncDesignFeatureStatus.polar_blocks++;
++        modeMask |= NC_DESIGN_MODE_POLAR;
++    } else if ((g_ncDesignFeatureStatus.polar_active != 0U) &&
++               (IsMotion(pBlock->motion_type) != 0U)) {
++        g_ncDesignFeatureStatus.polar_blocks++;
++        ApplyFeedSlowdown(pBlock, 95U);
++        modeMask |= NC_DESIGN_MODE_POLAR;
++    }
++    if (IsHelicalB(pBlock) != 0U) {
++        g_ncDesignFeatureStatus.helical_b_blocks++;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_ADVANCED_INTERP;
++        if (pBlock->interp_ticks < NC_DESIGN_ADVANCED_MIN_TICKS) {
++            pBlock->interp_ticks = NC_DESIGN_ADVANCED_MIN_TICKS;
++        }
++        modeMask |= NC_DESIGN_MODE_HELICAL_B;
++    }
++    if (pBlock->g_code10 == (uint16_t)G(62)) {
++        g_ncDesignFeatureStatus.auto_corner_active = 1U;
++        g_ncDesignFeatureStatus.auto_corner_override_blocks++;
++        modeMask |= NC_DESIGN_MODE_AUTO_CORNER;
++    } else if (pBlock->g_code10 == (uint16_t)G(64)) {
++        g_ncDesignFeatureStatus.auto_corner_active = 0U;
++        modeMask |= NC_DESIGN_MODE_AUTO_CORNER;
++    } else if ((g_ncDesignFeatureStatus.auto_corner_active != 0U) &&
++               (IsMotion(pBlock->motion_type) != 0U)) {
++        g_ncDesignFeatureStatus.auto_corner_override_blocks++;
++        ApplyFeedSlowdown(pBlock, s_autoCornerOverride);
++        modeMask |= NC_DESIGN_MODE_AUTO_CORNER;
++    }
++    if (IsGrindingCycle(pBlock->cycle_code10) != 0U) {
++        g_ncDesignFeatureStatus.grinding_cycle_blocks++;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_CANNED_CYCLE;
++        ApplyFeedSlowdown(pBlock, 70U);
++        modeMask |= NC_DESIGN_MODE_GRINDING;
++    }
++    if ((pBlock->motion_type == NC_MOTION_SKIP) &&
++        ((pBlock->axis_mask & (1UL << 3U)) != 0U)) {
++        g_ncDesignFeatureStatus.egb_skip_armed = 1U;
++        g_ncDesignFeatureStatus.egb_skip_blocks++;
++        modeMask |= NC_DESIGN_MODE_EGB_SKIP;
++    }
++    if (IsThreeDInterference(pBlock) != 0U) {
++        g_ncDesignFeatureStatus.three_d_interference_blocks++;
++        ApplyFeedSlowdown(pBlock, 85U);
++        modeMask |= NC_DESIGN_MODE_3D_INTERFERENCE;
++    }
++    if (IsFollowupRollover(pBlock) != 0U) {
++        g_ncDesignFeatureStatus.followup_rollover_blocks++;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_REFERENCE_RETURN;
++        modeMask |= NC_DESIGN_MODE_FOLLOWUP_ROLLOVER;
++    }
++    if (IsHighPrecisionContour(pBlock) != 0U) {
++        g_ncDesignFeatureStatus.high_precision_contour_blocks++;
++        ApplyHighPrecisionPreparation(pBlock);
++        modeMask |= NC_DESIGN_MODE_HP_CONTOUR;
++    }
++    if (IsExactStop(pBlock) != 0U) {
++        g_ncDesignFeatureStatus.exact_stop_blocks++;
++        if (IsMotion(pBlock->motion_type) != 0U) {
++            ApplyFeedSlowdown(pBlock, NC_DESIGN_EXACT_STOP_PERCENT);
++        }
++        modeMask |= NC_DESIGN_MODE_EXACT_STOP;
++    }
++    if (IsRigidTap(pBlock) != 0U) {
++        g_ncDesignFeatureStatus.rigid_tap_blocks++;
++        ApplyRigidTapPreparation(pBlock);
++        modeMask |= NC_DESIGN_MODE_RIGID_TAP;
++    }
++    if (IsThreadChamfer(pBlock) != 0U) {
++        g_ncDesignFeatureStatus.thread_chamfer_blocks++;
++        if (pBlock->decel_ticks < 2U) {
++            pBlock->decel_ticks = 2U;
++        }
++        modeMask |= NC_DESIGN_MODE_THREAD_CHAMFER;
++    }
++    if (pBlock->g_code10 == (uint16_t)G(30)) {
++        g_ncDesignFeatureStatus.second_reference_blocks++;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_REFERENCE_RETURN;
++        modeMask |= NC_DESIGN_MODE_SECOND_REFERENCE;
++    }
++    if ((pBlock->modal_flags & NC_MODAL_FLAG_G53) != 0U) {
++        g_ncDesignFeatureStatus.machine_direct_blocks++;
++        modeMask |= NC_DESIGN_MODE_MACHINE_DIRECT;
++    }
++    if (IsCoordinateShift(pBlock) != 0U) {
++        g_ncDesignFeatureStatus.coordinate_shift_blocks++;
++        modeMask |= NC_DESIGN_MODE_COORD_SHIFT;
++    }
++    if ((pBlock->g_code10 == (uint16_t)G(96)) ||
++        (pBlock->g_code10 == (uint16_t)G(97))) {
++        g_ncDesignFeatureStatus.constant_surface_speed_blocks++;
++        g_ncDesignFeatureStatus.last_css_diameter =
++            (pBlock->axis_target[0] != 0) ? Abs32(pBlock->axis_target[0]) : NC_SPINDLE_CSS_MIN_DIAMETER;
++        modeMask |= NC_DESIGN_MODE_CSS_SPINDLE;
++    }
++    if ((pBlock->feed_mode == NC_FEED_MODE_PER_REV) &&
++        (IsMotion(pBlock->motion_type) != 0U)) {
++        g_ncDesignFeatureStatus.feed_per_rev_blocks++;
++        if ((pBlock->spindle_speed == 0U) && (g_ncSpindleStatus.output_rpm != 0U)) {
++            pBlock->spindle_speed = g_ncSpindleStatus.output_rpm;
++        }
++        modeMask |= NC_DESIGN_MODE_FEED_PER_REV;
++    }
++
++    if (modeMask != 0U) {
++        MarkTs(modeMask, pBlock);
++    }
++    return 0;
++}
++
++void NcDesignFeatures_OnBlockRt(const NC_EXEC_BLOCK* pBlock)
++{
++    uint32_t modeMask = 0U;
++
++    if (pBlock == 0) {
++        return;
++    }
++    if (pBlock->g_code10 == (uint16_t)GD(6, 2)) {
++        modeMask |= NC_DESIGN_MODE_NURBS;
++    }
++    if ((pBlock->g_code10 == (uint16_t)GD(2, 3)) ||
++        (pBlock->g_code10 == (uint16_t)GD(3, 3))) {
++        modeMask |= NC_DESIGN_MODE_EXPONENTIAL;
++    }
++    if (IsInvolute(pBlock) != 0U) {
++        modeMask |= NC_DESIGN_MODE_INVOLUTE;
++    }
++    if ((pBlock->g_code10 == (uint16_t)GD(7, 1)) ||
++        (pBlock->g_code10 == (uint16_t)GD(12, 1)) ||
++        (pBlock->g_code10 == (uint16_t)GD(13, 1))) {
++        modeMask |= NC_DESIGN_MODE_CYLINDRICAL;
++    }
++    if ((pBlock->g_code10 == (uint16_t)G(15)) ||
++        (pBlock->g_code10 == (uint16_t)G(16)) ||
++        (g_ncDesignFeatureStatus.polar_active != 0U)) {
++        modeMask |= NC_DESIGN_MODE_POLAR;
++    }
++    if (IsHelicalB(pBlock) != 0U) {
++        modeMask |= NC_DESIGN_MODE_HELICAL_B;
++    }
++    if ((pBlock->g_code10 == (uint16_t)G(62)) ||
++        (g_ncDesignFeatureStatus.auto_corner_active != 0U)) {
++        modeMask |= NC_DESIGN_MODE_AUTO_CORNER;
++    }
++    if (IsGrindingCycle(pBlock->cycle_code10) != 0U) {
++        modeMask |= NC_DESIGN_MODE_GRINDING;
++    }
++    if ((pBlock->motion_type == NC_MOTION_SKIP) &&
++        ((pBlock->axis_mask & (1UL << 3U)) != 0U)) {
++        modeMask |= NC_DESIGN_MODE_EGB_SKIP;
++    }
++    if (IsThreeDInterference(pBlock) != 0U) {
++        modeMask |= NC_DESIGN_MODE_3D_INTERFERENCE;
++    }
++    if (IsFollowupRollover(pBlock) != 0U) {
++        modeMask |= NC_DESIGN_MODE_FOLLOWUP_ROLLOVER;
++    }
++    if (IsHighPrecisionContour(pBlock) != 0U) {
++        modeMask |= NC_DESIGN_MODE_HP_CONTOUR;
++    }
++    if (IsExactStop(pBlock) != 0U) {
++        modeMask |= NC_DESIGN_MODE_EXACT_STOP;
++    }
++    if (IsRigidTap(pBlock) != 0U) {
++        modeMask |= NC_DESIGN_MODE_RIGID_TAP;
++    }
++    if (IsThreadChamfer(pBlock) != 0U) {
++        modeMask |= NC_DESIGN_MODE_THREAD_CHAMFER;
++    }
++    if (pBlock->g_code10 == (uint16_t)G(30)) {
++        modeMask |= NC_DESIGN_MODE_SECOND_REFERENCE;
++    }
++    if ((pBlock->modal_flags & NC_MODAL_FLAG_G53) != 0U) {
++        modeMask |= NC_DESIGN_MODE_MACHINE_DIRECT;
++    }
++    if (IsCoordinateShift(pBlock) != 0U) {
++        modeMask |= NC_DESIGN_MODE_COORD_SHIFT;
++    }
++    if ((pBlock->g_code10 == (uint16_t)G(96)) ||
++        (pBlock->g_code10 == (uint16_t)G(97))) {
++        modeMask |= NC_DESIGN_MODE_CSS_SPINDLE;
++    }
++    if ((pBlock->feed_mode == NC_FEED_MODE_PER_REV) &&
++        (IsMotion(pBlock->motion_type) != 0U)) {
++        modeMask |= NC_DESIGN_MODE_FEED_PER_REV;
++    }
++    if (modeMask != 0U) {
++        g_ncDesignFeatureStatus.rt_executed_blocks++;
++        StoreTargets(pBlock);
++        g_ncDesignFeatureStatus.generation++;
++        NcEvent_Push(NC_EVENT_CODE_DESIGN_FEATURE_APPLIED,
++                     (int32_t)modeMask,
++                     (int32_t)pBlock->g_code10,
++                     pBlock->line_no);
++    }
++}
++
++int32_t NcDesignFeatures_SetAutoCornerOverride(uint8_t enabled,
++                                               uint16_t overridePercent)
++{
++    if (overridePercent > NC_FEED_OVERRIDE_MAX_PERCENT) {
++        g_ncDesignFeatureStatus.generation++;
++        return -1;
++    }
++    s_autoCornerOverride = overridePercent;
++    g_ncDesignFeatureStatus.auto_corner_active = (enabled != 0U) ? 1U : 0U;
++    g_ncDesignFeatureStatus.active_override_percent = overridePercent;
++    g_ncDesignFeatureStatus.generation++;
++    NcEvent_Push(NC_EVENT_CODE_DESIGN_FEATURE_APPLIED,
++                 (int32_t)NC_DESIGN_MODE_AUTO_CORNER,
++                 (int32_t)overridePercent,
++                 0U);
++    return 0;
++}
+diff -ruN '--exclude=build_gcc' '--exclude=runtime_log.csv' /mnt/data/base_v20/source/src/nc_parser_feature.c /mnt/data/work_v21/source/src/nc_parser_feature.c
+--- /mnt/data/base_v20/source/src/nc_parser_feature.c	2026-04-30 22:13:00.000000000 +0000
++++ /mnt/data/work_v21/source/src/nc_parser_feature.c	2026-05-02 01:19:22.431024227 +0000
+@@ -98,7 +98,8 @@
+         ApplyCommandFlag(pBlock, NC_FEATURE_FLAG_OVERLAY, NC_MOTION_NONE);
+     } else if (code == GD(50, 6)) {
+         ApplyCommandFlag(pBlock, NC_FEATURE_FLAG_OVERLAY, NC_MOTION_NONE);
+-    } else if ((code == GD(6, 2)) || (code == GD(7, 1)) ||
++    } else if ((code == GD(2, 2)) || (code == GD(3, 2)) ||
++               (code == GD(6, 2)) || (code == GD(7, 1)) ||
+                /* Apply the next logical update for this processing stage. */
+                (code == GD(12, 1)) || (code == GD(13, 1)) || (code == GD(12, 4)) || (code == GD(13, 4))) {
+         ApplyCommandFlag(pBlock, NC_FEATURE_FLAG_ADVANCED_INTERP,
+diff -ruN '--exclude=build_gcc' '--exclude=runtime_log.csv' /mnt/data/base_v20/source/src/nc_parser_modal.c /mnt/data/work_v21/source/src/nc_parser_modal.c
+--- /mnt/data/base_v20/source/src/nc_parser_modal.c	2026-05-02 01:01:27.000000000 +0000
++++ /mnt/data/work_v21/source/src/nc_parser_modal.c	2026-05-02 01:19:22.431830924 +0000
+@@ -251,7 +251,7 @@
+                           NC_EXEC_BLOCK* pBlock, NC_PARSE_CONTEXT* pCtx)
+ {
+     if ((code != G(9)) && (code != G(61)) &&
+-        (code != G(62)) && (code != G(64))) {
++        (code != G(62)) && (code != G(63)) && (code != G(64))) {
+         return 1;
+     }
+     if (MarkGroup(pCtx, G_GROUP_STOP) != 0) {
+@@ -259,10 +259,13 @@
+     }
+     if (code == G(9)) {
+         s_oneShotExactStop = 1U;
+-    } else if ((code == G(61)) || (code == G(62))) {
++    } else if ((code == G(61)) || (code == G(62)) || (code == G(63))) {
+         s_exactStopMode = 1U;
+         s_oneShotExactStop = 0U;
+         pBlock->feature_flags |= NC_FEATURE_FLAG_EXACT_STOP;
++        if (code == G(63)) {
++            pBlock->feature_flags |= NC_FEATURE_FLAG_THREAD;
++        }
+     } else {
+         s_exactStopMode = 0U;
+         s_oneShotExactStop = 0U;

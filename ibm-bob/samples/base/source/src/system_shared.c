@@ -45,6 +45,8 @@ volatile NC_TOOL_MANAGEMENT_STATUS  g_ncToolManagementStatus;
 volatile NC_SYNCHRONIZATION_STATUS g_ncSynchronizationStatus;
 volatile NC_ROTARY_MCC_STATUS    g_ncRotaryMccStatus;
 volatile NC_AXIS_CONFIG_STATUS    g_ncAxisConfigStatus;
+volatile NC_IMPLEMENTATION_BACKLOG_STATUS g_ncImplementationBacklogStatus;
+volatile NC_DESIGN_FEATURE_STATUS g_ncDesignFeatureStatus;
 volatile IO_TRACE_BUFFER    g_ioTraceBuffer;
 
 /**
@@ -93,6 +95,8 @@ void SystemShared_Initialize(void)
         (void)memset((void*)&g_ncSynchronizationStatus, 0, sizeof(g_ncSynchronizationStatus));
     (void)memset((void*)&g_ncRotaryMccStatus, 0, sizeof(g_ncRotaryMccStatus));
     (void)memset((void*)&g_ncAxisConfigStatus, 0, sizeof(g_ncAxisConfigStatus));
+    (void)memset((void*)&g_ncImplementationBacklogStatus, 0, sizeof(g_ncImplementationBacklogStatus));
+    (void)memset((void*)&g_ncDesignFeatureStatus, 0, sizeof(g_ncDesignFeatureStatus));
     (void)memset((void*)&g_ioTraceBuffer, 0, sizeof(g_ioTraceBuffer));
 
     /* Update shared status fields for RT, TS, and API readers. */
@@ -138,6 +142,8 @@ void SystemShared_Initialize(void)
     g_ncRotaryMccStatus.active_rotary_axis = 3U;
     g_ncRotaryMccStatus.configured_axis_mask = NC_ROTARY_MCC_DEFAULT_AXIS_MASK;
     g_ncAxisConfigStatus.active_path_axis_mask = NC_AXIS_CONFIG_DEFAULT_PATH_MASK;
+    g_ncImplementationBacklogStatus.active_override_percent = NC_IMPL_BACKLOG_DEFAULT_OVERRIDE;
+    g_ncDesignFeatureStatus.active_override_percent = NC_DESIGN_AUTO_CORNER_OVERRIDE_PERCENT;
     g_ncAxisConfigStatus.linear_axis_mask = 0x00000007UL;
     g_ncAxisConfigStatus.rotary_axis_mask = 0x00000008UL;
     for (uint32_t tool_index = 1U;

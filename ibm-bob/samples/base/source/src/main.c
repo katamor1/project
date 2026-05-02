@@ -33,6 +33,7 @@ static int32_t WriteNcSmokeFile(void)
     (void)fprintf(pFile, "G00 X0.001 Y0.002 Z0.003\n");
     (void)fprintf(pFile, "G02 X0.002 Y0.001 Z0.004 I0.000 J-0.001 F60000 ; arc-helical segment plan\n");
     (void)fprintf(pFile, "G03 X0.003 Y0.002 I0.000 J0.001 F60000 ; CCW arc segment plan\n");
+    (void)fprintf(pFile, "G02 X0.004 Y0.003 A0.010 I0.001 J0.000 F60000 ; circular helical B sample\n");
     (void)fprintf(pFile, "G01 X0.003 Y0.004 F60000 ; sharp corner lookahead slowdown\n");
     (void)fprintf(pFile, "G43 H1 ; apply tool length compensation\n");
     (void)fprintf(pFile, "G41 D1 ; apply cutter radius compensation\n");
@@ -60,6 +61,8 @@ static int32_t WriteNcSmokeFile(void)
     (void)fprintf(pFile, "G80\n");
     (void)fprintf(pFile, "M06 T2 ; tool change waits for MFIN\n");
     (void)fprintf(pFile, "G70.7 X0.028 Z0.012 R0.050 Q0.020 F60000\n");
+    (void)fprintf(pFile, "G02.2 X0.0285 Y0.0355 F60000 ; involute CW interpolation sample\n");
+    (void)fprintf(pFile, "G03.2 X0.0288 Y0.0358 F60000 ; involute CCW interpolation sample\n");
     (void)fprintf(pFile, "G06.2 X0.029 Y0.036 Z0.013 F60000 ; NURBS-like fixed block\n");
     (void)fprintf(pFile, "G12.1 X0.030 Y0.037 F60000 ; polar/cylindrical mode sample\n");
     (void)fprintf(pFile, "G07.1 A0.100 F60000 ; rotary virtual circumferential speed sample\n");
@@ -71,6 +74,8 @@ static int32_t WriteNcSmokeFile(void)
     (void)fprintf(pFile, "G08 P2 ; high-precision smoothing on\n");
     (void)fprintf(pFile, "G01 X0.032 Y0.039 F60000 ; G08 high-precision short segment\n");
     (void)fprintf(pFile, "G08 P0 ; high-speed smoothing off\n");
+    (void)fprintf(pFile, "G09 G01 X0.0325 Y0.0395 F60000 ; one-shot exact stop\n");
+    (void)fprintf(pFile, "G63 ; tapping/thread exact stop mode\n");
     (void)fprintf(pFile, "G51.4\n");
     (void)fprintf(pFile, "G51.5\n");
     (void)fprintf(pFile, "G51.6\n");
@@ -78,9 +83,13 @@ static int32_t WriteNcSmokeFile(void)
     (void)fprintf(pFile, "G50.6\n");
     (void)fprintf(pFile, "G50.5\n");
     (void)fprintf(pFile, "G16 ; polar coordinate mode on\n");
-    /* Emit smoke-test output consumed by validation. */
+    (void)fprintf(pFile, "G01 X0.034 Y0.041 F60000 ; polar-active transformed motion\n");
     (void)fprintf(pFile, "G15 ; polar coordinate mode off\n");
-    (void)fprintf(pFile, "G31 X0.030 F60000\n");
+    (void)fprintf(pFile, "G62 ; automatic corner override on\n");
+    (void)fprintf(pFile, "G01 X0.034 Y0.041 Z0.013 F60000 ; auto corner override segment\n");
+    (void)fprintf(pFile, "G64 ; automatic corner override off\n");
+    /* Emit smoke-test output consumed by validation. */
+    (void)fprintf(pFile, "G31 X0.030 A0.120 F60000 ; EGB axis skip sample\n");
     (void)fprintf(pFile, "G02.3 X0.035 Y0.040 F60000\n");
     (void)fprintf(pFile, "G50.4\n");
     (void)fprintf(pFile, "G50.1 ; mirror cancel\n");
@@ -93,8 +102,11 @@ static int32_t WriteNcSmokeFile(void)
     (void)fprintf(pFile, "G83 X0.042 Y0.043 Z0.012 R0.050 Q0.010 F60000 ; deep peck\n");
     /* Emit smoke-test output consumed by validation. */
     (void)fprintf(pFile, "G73 X0.043 Y0.044 Z0.013 R0.050 Q0.005 F60000 ; chip break peck\n");
+    (void)fprintf(pFile, "G96 S180 ; constant surface speed mode sample\n");
+    (void)fprintf(pFile, "G95 ; feed per revolution mode sample\n");
     (void)fprintf(pFile, "S600 G84 X0.044 Y0.045 Z0.010 R0.050 F1 ; right tap\n");
     (void)fprintf(pFile, "G74 X0.045 Y0.046 Z0.010 R0.050 F1 ; left tap\n");
+    (void)fprintf(pFile, "G94 G97 S600 ; cancel feed-per-rev and CSS samples\n");
     (void)fprintf(pFile, "G85 X0.046 Y0.047 Z0.010 R0.050 F60000 ; boring feed return\n");
     (void)fprintf(pFile, "G86 X0.047 Y0.048 Z0.010 R0.050 F60000 ; boring spindle stop diagnostic\n");
     (void)fprintf(pFile, "G87 X0.048 Y0.049 Z0.010 R0.050 F60000 ; back boring diagnostic\n");
@@ -305,6 +317,7 @@ int main(void)
     NC_REFERENCE_STATUS referenceStatus;
     NC_ROTARY_MCC_STATUS rotaryMccStatus;
     NC_AXIS_CONFIG_STATUS axisConfigStatus;
+    NC_DESIGN_FEATURE_STATUS designFeatureStatus;
     NC_TOOL_MANAGEMENT_STATUS toolMgmtStatus;
     int32_t ncAxis[AXIS_MAX] = {0};
     uint32_t ncMCode = 0U;
@@ -461,6 +474,46 @@ int main(void)
     uint32_t axisCfgRejected = 0U;
     uint32_t axisCfgNameA = 0U;
     int32_t axisCfgLastX = 0;
+    uint32_t designFeatureMode = 0U;
+    uint32_t designFeatureNurbs = 0U;
+    uint32_t designFeatureExp = 0U;
+    uint32_t designFeatureCyl = 0U;
+    uint32_t designFeaturePolar = 0U;
+    uint32_t designFeatureHelicalB = 0U;
+    uint32_t designFeatureAutoCorner = 0U;
+    uint32_t designFeatureGrinding = 0U;
+    uint32_t designFeatureEgbSkip = 0U;
+    uint32_t designFeatureInterference3d = 0U;
+    uint32_t designFeatureFollowup = 0U;
+    uint32_t designFeatureInvolute = 0U;
+    uint32_t designFeatureHpContour = 0U;
+    uint32_t designFeatureExactStop = 0U;
+    uint32_t designFeatureRigidTap = 0U;
+    uint32_t designFeatureThreadChamfer = 0U;
+    uint32_t designFeatureSecondRef = 0U;
+    uint32_t designFeatureMachineDirect = 0U;
+    uint32_t designFeatureCoordShift = 0U;
+    uint32_t designFeatureCss = 0U;
+    uint32_t designFeatureFeedPerRev = 0U;
+    uint32_t designFeatureTsAdjusted = 0U;
+    uint32_t designFeatureRtExecuted = 0U;
+    uint32_t designFeatureSlowdown = 0U;
+    uint32_t designFeatureOverride = 0U;
+    int32_t designFeatureLastX = 0;
+    int32_t designFeatureLastY = 0;
+    uint32_t backlogImplemented = 0U;
+    uint32_t backlogConfigured = 0U;
+    uint32_t backlogTs = 0U;
+    uint32_t backlogRt = 0U;
+    uint32_t backlogSynthetic = 0U;
+    uint32_t backlogCategoryMask = 0U;
+    uint32_t backlogLastFeature = 0U;
+    uint32_t backlogLastCategory = 0U;
+    uint32_t backlogLastPolicy = 0U;
+    uint32_t backlogSlowdown = 0U;
+    uint32_t backlogCategory0 = 0U;
+    uint32_t backlogCategory9 = 0U;
+    int32_t backlogLastX = 0;
     uint32_t precisionPreviewed = 0U;
     uint32_t precisionLimited = 0U;
     uint32_t precisionLearningUpdates = 0U;
@@ -526,11 +579,13 @@ int main(void)
     (void)Api_SetNcOneDirectionApproach(0U, 1200);
     (void)Api_SetNcRotaryAxisRadius(3U, 75000);
     (void)Api_SetNcMccOutput(1U);
+    (void)Api_SetNcDesignAutoCornerOverride(1U, 62U);
+    (void)Api_EnableAllNcImplementationBacklogFeatures(NC_IMPL_BACKLOG_DEFAULT_OVERRIDE);
     if (WriteNcSmokeFile() != 0) {
         return 1;
     }
 
-    for (cycle = 0U; cycle < 900U; ++cycle) {
+    for (cycle = 0U; cycle < 1200U; ++cycle) {
         SimulateExternalInputs(cycle);
         RtDispatcher_ExecuteCycle();
         TsService_ExecuteSlice();
@@ -675,6 +730,53 @@ int main(void)
                 diagDecelLevel = diagSnapshot.staged_decel_level;
                 diagToolExpired = diagSnapshot.tool_expired_mask;
                 diagAxisWarn = diagSnapshot.axis_warning_mask;
+            }
+            if (Api_GetNcDesignFeatureStatus(&designFeatureStatus) == 0) {
+                designFeatureMode = designFeatureStatus.active_mode_mask;
+                designFeatureNurbs = designFeatureStatus.nurbs_blocks;
+                designFeatureExp = designFeatureStatus.exponential_blocks;
+                designFeatureCyl = designFeatureStatus.cylindrical_blocks;
+                designFeaturePolar = designFeatureStatus.polar_blocks;
+                designFeatureHelicalB = designFeatureStatus.helical_b_blocks;
+                designFeatureAutoCorner = designFeatureStatus.auto_corner_override_blocks;
+                designFeatureGrinding = designFeatureStatus.grinding_cycle_blocks;
+                designFeatureEgbSkip = designFeatureStatus.egb_skip_blocks;
+                designFeatureInterference3d = designFeatureStatus.three_d_interference_blocks;
+                designFeatureFollowup = designFeatureStatus.followup_rollover_blocks;
+                designFeatureInvolute = designFeatureStatus.involute_blocks;
+                designFeatureHpContour = designFeatureStatus.high_precision_contour_blocks;
+                designFeatureExactStop = designFeatureStatus.exact_stop_blocks;
+                designFeatureRigidTap = designFeatureStatus.rigid_tap_blocks;
+                designFeatureThreadChamfer = designFeatureStatus.thread_chamfer_blocks;
+                designFeatureSecondRef = designFeatureStatus.second_reference_blocks;
+                designFeatureMachineDirect = designFeatureStatus.machine_direct_blocks;
+                designFeatureCoordShift = designFeatureStatus.coordinate_shift_blocks;
+                designFeatureCss = designFeatureStatus.constant_surface_speed_blocks;
+                designFeatureFeedPerRev = designFeatureStatus.feed_per_rev_blocks;
+                designFeatureTsAdjusted = designFeatureStatus.ts_adjusted_blocks;
+                designFeatureRtExecuted = designFeatureStatus.rt_executed_blocks;
+                designFeatureSlowdown = designFeatureStatus.slowdown_applied_blocks;
+                designFeatureOverride = designFeatureStatus.active_override_percent;
+                designFeatureLastX = designFeatureStatus.last_output_target[0];
+                designFeatureLastY = designFeatureStatus.last_output_target[1];
+            }
+            {
+                NC_IMPLEMENTATION_BACKLOG_STATUS backlogStatus;
+                if (Api_GetNcImplementationBacklogStatus(&backlogStatus) == 0) {
+                    backlogImplemented = backlogStatus.implemented_count;
+                    backlogConfigured = backlogStatus.configured_count;
+                    backlogTs = backlogStatus.ts_adjusted_blocks;
+                    backlogRt = backlogStatus.rt_executed_blocks;
+                    backlogSynthetic = backlogStatus.synthetic_validation_blocks;
+                    backlogCategoryMask = backlogStatus.active_category_mask;
+                    backlogLastFeature = backlogStatus.last_feature_id;
+                    backlogLastCategory = backlogStatus.last_category;
+                    backlogLastPolicy = backlogStatus.last_policy;
+                    backlogSlowdown = backlogStatus.slowdown_applied_blocks;
+                    backlogCategory0 = backlogStatus.category_hits[0];
+                    backlogCategory9 = backlogStatus.category_hits[9];
+                    backlogLastX = backlogStatus.last_output_target[0];
+                }
             }
             if (Api_GetPrestartInterlockStatus(&prestartStatus) == 0) {
                 prestartMask = prestartStatus.mask;
@@ -873,6 +975,25 @@ int main(void)
             precisionVibrationWarnings = precisionStatus.vibration_warnings;
             precisionRtTicks = precisionStatus.rt_service_ticks;
             precisionCorrectionX = precisionStatus.last_learning_correction[0];
+        }
+    }
+    (void)Api_RunNcImplementationBacklogSelfCheck();
+    {
+        NC_IMPLEMENTATION_BACKLOG_STATUS backlogStatus;
+        if (Api_GetNcImplementationBacklogStatus(&backlogStatus) == 0) {
+            backlogImplemented = backlogStatus.implemented_count;
+            backlogConfigured = backlogStatus.configured_count;
+            backlogTs = backlogStatus.ts_adjusted_blocks;
+            backlogRt = backlogStatus.rt_executed_blocks;
+            backlogSynthetic = backlogStatus.synthetic_validation_blocks;
+            backlogCategoryMask = backlogStatus.active_category_mask;
+            backlogLastFeature = backlogStatus.last_feature_id;
+            backlogLastCategory = backlogStatus.last_category;
+            backlogLastPolicy = backlogStatus.last_policy;
+            backlogSlowdown = backlogStatus.slowdown_applied_blocks;
+            backlogCategory0 = backlogStatus.category_hits[0];
+            backlogCategory9 = backlogStatus.category_hits[9];
+            backlogLastX = backlogStatus.last_output_target[0];
         }
     }
     if (Api_GetNcEventRing(&eventRing) == 0) {
@@ -1079,6 +1200,49 @@ int main(void)
                  (unsigned int)axisCfgRejected,
                  (char)axisCfgNameA,
                  (int)axisCfgLastX);
+    (void)printf("design_features mode=0x%08x nurbs=%u exp=%u cyl=%u polar=%u helical_b=%u auto_corner=%u grinding=%u egb_skip=%u interference3d=%u followup=%u ts=%u rt=%u slowdown=%u override=%u last_x=%d last_y=%d\n",
+                 (unsigned int)designFeatureMode,
+                 (unsigned int)designFeatureNurbs,
+                 (unsigned int)designFeatureExp,
+                 (unsigned int)designFeatureCyl,
+                 (unsigned int)designFeaturePolar,
+                 (unsigned int)designFeatureHelicalB,
+                 (unsigned int)designFeatureAutoCorner,
+                 (unsigned int)designFeatureGrinding,
+                 (unsigned int)designFeatureEgbSkip,
+                 (unsigned int)designFeatureInterference3d,
+                 (unsigned int)designFeatureFollowup,
+                 (unsigned int)designFeatureTsAdjusted,
+                 (unsigned int)designFeatureRtExecuted,
+                 (unsigned int)designFeatureSlowdown,
+                 (unsigned int)designFeatureOverride,
+                 (int)designFeatureLastX,
+                 (int)designFeatureLastY);
+    (void)printf("design_features_v21 involute=%u hp_contour=%u exact_stop=%u rigid_tap=%u thread_chamfer=%u second_ref=%u machine_direct=%u coord_shift=%u css=%u feed_per_rev=%u\n",
+                 (unsigned int)designFeatureInvolute,
+                 (unsigned int)designFeatureHpContour,
+                 (unsigned int)designFeatureExactStop,
+                 (unsigned int)designFeatureRigidTap,
+                 (unsigned int)designFeatureThreadChamfer,
+                 (unsigned int)designFeatureSecondRef,
+                 (unsigned int)designFeatureMachineDirect,
+                 (unsigned int)designFeatureCoordShift,
+                 (unsigned int)designFeatureCss,
+                 (unsigned int)designFeatureFeedPerRev);
+    (void)printf("implementation_backlog implemented=%u configured=%u ts=%u rt=%u synthetic=%u cat_mask=0x%08x last_id=%u last_cat=%u last_policy=%u slowdown=%u cat0=%u cat9=%u last_x=%d\n",
+                 (unsigned int)backlogImplemented,
+                 (unsigned int)backlogConfigured,
+                 (unsigned int)backlogTs,
+                 (unsigned int)backlogRt,
+                 (unsigned int)backlogSynthetic,
+                 (unsigned int)backlogCategoryMask,
+                 (unsigned int)backlogLastFeature,
+                 (unsigned int)backlogLastCategory,
+                 (unsigned int)backlogLastPolicy,
+                 (unsigned int)backlogSlowdown,
+                 (unsigned int)backlogCategory0,
+                 (unsigned int)backlogCategory9,
+                 (int)backlogLastX);
     (void)printf("sync mode_bits=0x%04x planned=%u executed=%u sync_motion=%u compound_motion=%u overlay_motion=%u double_table=%u slave_mask=0x%08x max_follow_y=%d out_y=%d\n",
                  (unsigned int)syncModeBits,
                  (unsigned int)syncPlanned,

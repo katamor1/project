@@ -1,0 +1,79 @@
+{
+  "version": "v20",
+  "base": "ibm_bob_source_unit_tests_additional_v19.zip",
+  "implemented_feature_count": 10,
+  "verification": {
+    "gcc_smoke_build": "PASS",
+    "gcc_smoke_test": "PASS",
+    "nc_state": "6",
+    "nc_error": "0",
+    "design_feature_mode": "0x000001ff"
+  },
+  "changed_files": [
+    {
+      "path": "inc/nc_design_features.h",
+      "size": 454,
+      "sha256": "f0ee755c0317b1e7c8c9585516d49dc23ee09da4a2112df6c20e71f40e2a26f5"
+    },
+    {
+      "path": "src/nc_design_features.c",
+      "size": 7868,
+      "sha256": "771e2c4bde561f36b05b78ded9a4ddfc1ff081fe84ee17592fd9245708e2cf58"
+    },
+    {
+      "path": "inc/system_config.h",
+      "size": 35315,
+      "sha256": "ffbe9616ca7ac94def17d05a586d6b8ae9f30d384bc089983e722d89917f4346"
+    },
+    {
+      "path": "inc/system_shared.h",
+      "size": 68944,
+      "sha256": "b69c06ae07be81d788663a493724ae627b27e96c1c255571063bd7b83c1c87a4"
+    },
+    {
+      "path": "src/system_shared.c",
+      "size": 12409,
+      "sha256": "65875b9c90ca053903ef8797da7422fafd49d8c004613028ec631e0ec3358a3c"
+    },
+    {
+      "path": "inc/control_api.h",
+      "size": 38368,
+      "sha256": "a05b52ad7a572be02913829f60fc9a651b89cb39f44f0df556f7386c5a431c47"
+    },
+    {
+      "path": "src/control_api.c",
+      "size": 37047,
+      "sha256": "7348624eb61deb636af4b7359d2cc399b8484235c15e94a154ff2d40c4f82947"
+    },
+    {
+      "path": "src/nc_parser_modal.c",
+      "size": 16178,
+      "sha256": "c05f2de2b0e6d294000280efa48acba7e088e143c91dbfbb52795b53d35eb096"
+    },
+    {
+      "path": "src/nc_program.c",
+      "size": 28803,
+      "sha256": "b2f97f074196b62cb40dfa15c94c34caae7210ddbbbdbeb813c9288de22970ca"
+    },
+    {
+      "path": "src/main.c",
+      "size": 58011,
+      "sha256": "54d077f64653e213f966d3a975a662983915ebd675d7c9cb7e6cb83683709eaa"
+    },
+    {
+      "path": "docs/implementation_report_v20.md",
+      "size": 2386,
+      "sha256": "0f6297839804401d96efdb698ebf1dda716472be1ca191bf5db1c2b9c282ffdf"
+    },
+    {
+      "path": "docs/verification_output_v20.txt",
+      "size": 3066,
+      "sha256": "31c56ef4b9f57e0b7606d55e9ffea4e45a2ccf7ae71b33b1afd989eefeabbe9c"
+    },
+    {
+      "path": "docs/continuation_v20_diff.patch",
+      "size": 243752,
+      "sha256": "a2fa57005fae57a9758c32eddc18970411e9240cf2e958470f679064433b0191"
+    }
+  ]
+}

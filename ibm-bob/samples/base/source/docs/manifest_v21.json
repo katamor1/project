@@ -1,0 +1,37 @@
+{
+  "version": "v21",
+  "base_version": "v20",
+  "implemented_feature_count": 10,
+  "changed_files": [
+    "inc/system_config.h",
+    "inc/system_shared.h",
+    "src/nc_codes.c",
+    "src/nc_parser_feature.c",
+    "src/nc_parser_modal.c",
+    "src/nc_design_features.c",
+    "src/main.c"
+  ],
+  "added_reports": [
+    "docs/implementation_report_v21.md",
+    "docs/verification_output_v21.txt",
+    "docs/continuation_v21_diff.patch",
+    "docs/manifest_v21.json"
+  ],
+  "features": [
+    "G02.2/G03.2 involute interpolation",
+    "G05/G05.1/G05.2/G08 high precision contour preparation",
+    "G09/G61/G63 exact stop handling",
+    "G84/G74 rigid tapping preparation",
+    "G76.7/G78/G63 thread chamfer/escape entry",
+    "G30 second reference return status",
+    "G53 machine-coordinate direct command status",
+    "G10/G52/G92 coordinate shift/preset status",
+    "G96/G97 constant surface speed/fixed rpm mode status",
+    "G95 feed per revolution motion status"
+  ],
+  "verification": {
+    "gcc_compile": "object-by-object compile of all src/*.c succeeded",
+    "smoke_run_exit_code": 0,
+    "key_output": "design_features_v21 involute=2 hp_contour=7 exact_stop=6 rigid_tap=2 thread_chamfer=1 second_ref=1 machine_direct=1 coord_shift=3 css=2 feed_per_rev=3"
+  }
+}

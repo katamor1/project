@@ -19,6 +19,8 @@
 #include "nc_synchronization.h"
 #include "nc_rotary_mcc.h"
 #include "nc_axis_config.h"
+#include "nc_design_features.h"
+#include "nc_feature_backlog.h"
 #include "nc_motion_filter.h"
 
 /**
@@ -1147,4 +1149,38 @@ int32_t Api_SetNcAxisDetachedMask(uint32_t axisMask)
 int32_t Api_SetNcAxisDiameterMode(uint8_t axis, uint8_t enabled)
 {
     return NcAxisConfig_SetDiameterMode(axis, enabled);
+}
+
+int32_t Api_GetNcDesignFeatureStatus(NC_DESIGN_FEATURE_STATUS* pOutStatus)
+{
+    if (pOutStatus == NULL) { return -1; }
+    *pOutStatus = g_ncDesignFeatureStatus;
+    return 0;
+}
+
+int32_t Api_SetNcDesignAutoCornerOverride(uint8_t enabled, uint16_t overridePercent)
+{
+    return NcDesignFeatures_SetAutoCornerOverride(enabled, overridePercent);
+}
+
+int32_t Api_GetNcImplementationBacklogStatus(NC_IMPLEMENTATION_BACKLOG_STATUS* pOutStatus)
+{
+    if (pOutStatus == NULL) { return -1; }
+    *pOutStatus = g_ncImplementationBacklogStatus;
+    return 0;
+}
+
+int32_t Api_SetNcImplementationBacklogFeature(uint16_t featureId, uint8_t enabled, uint16_t parameter)
+{
+    return NcFeatureBacklog_SetFeature(featureId, enabled, parameter);
+}
+
+int32_t Api_EnableAllNcImplementationBacklogFeatures(uint16_t parameter)
+{
+    return NcFeatureBacklog_EnableAll(parameter);
+}
+
+int32_t Api_RunNcImplementationBacklogSelfCheck(void)
+{
+    return NcFeatureBacklog_RunSelfCheck();
 }

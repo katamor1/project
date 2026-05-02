@@ -1,0 +1,104 @@
+===== test_nc_axis_config_definition_more =====
+[ RUN      ] test_lowercase_axis_name_is_normalized
+[       OK ] test_lowercase_axis_name_is_normalized
+[ RUN      ] test_invalid_axis_type_is_rejected
+[       OK ] test_invalid_axis_type_is_rejected
+
+===== test_nc_axis_config_apply_path_filter_more =====
+[ RUN      ] test_path_filter_removes_non_path_axis
+[       OK ] test_path_filter_removes_non_path_axis
+[ RUN      ] test_null_arguments_are_rejected
+[       OK ] test_null_arguments_are_rejected
+
+===== test_nc_axis_config_diameter_rounding_more =====
+[ RUN      ] test_positive_and_negative_diameter_half_away_from_zero
+[       OK ] test_positive_and_negative_diameter_half_away_from_zero
+
+===== test_nc_coordinate_work_offset_more =====
+[ RUN      ] test_work_offset_affects_machine_target
+[       OK ] test_work_offset_affects_machine_target
+[ RUN      ] test_invalid_work_offset_rejected
+[       OK ] test_invalid_work_offset_rejected
+
+===== test_nc_coordinate_machine_inverse_more =====
+[ RUN      ] test_set_machine_axis_calculates_program_position
+[       OK ] test_set_machine_axis_calculates_program_position
+
+===== test_nc_coordinate_fill_targets_more =====
+[ RUN      ] test_fill_targets_backfills_unspecified_axes
+[       OK ] test_fill_targets_backfills_unspecified_axes
+[ RUN      ] test_fill_targets_null_is_noop
+[       OK ] test_fill_targets_null_is_noop
+
+===== test_nc_coordinate_transform_enable_more =====
+[ RUN      ] test_enable_flags_update_active_mask
+[       OK ] test_enable_flags_update_active_mask
+[ RUN      ] test_invalid_dynamic_fixture_axis_rejected
+[       OK ] test_invalid_dynamic_fixture_axis_rejected
+
+===== test_nc_coordinate_transform_apply_combo_more =====
+[ RUN      ] test_three_corrections_are_summed_on_axis
+[       OK ] test_three_corrections_are_summed_on_axis
+
+===== test_nc_cycle_modal_replay_more =====
+[ RUN      ] test_modal_cycle_is_replayed_for_next_cycle_block
+[       OK ] test_modal_cycle_is_replayed_for_next_cycle_block
+
+===== test_nc_cycle_segment_guards_more =====
+[ RUN      ] test_segment_builder_rejects_nulls
+[       OK ] test_segment_builder_rejects_nulls
+[ RUN      ] test_repeat_word_rounds_to_nearest
+[       OK ] test_repeat_word_rounds_to_nearest
+
+===== test_nc_feed_prepare_motion_zero_override_more =====
+[ RUN      ] test_zero_override_prepares_hold_like_min_ticks
+[       OK ] test_zero_override_prepares_hold_like_min_ticks
+
+===== test_nc_feed_prepare_dwell_bounds_more =====
+[ RUN      ] test_zero_dwell_becomes_one_tick
+[       OK ] test_zero_dwell_becomes_one_tick
+[ RUN      ] test_too_large_dwell_sets_range_error
+[       OK ] test_too_large_dwell_sets_range_error
+
+===== test_nc_interference_check_axis_limit_more =====
+[ RUN      ] test_enabled_axis_limit_sets_warning_and_slowdown
+[       OK ] test_enabled_axis_limit_sets_warning_and_slowdown
+
+===== test_nc_lookahead_null_and_g08_more =====
+[ RUN      ] test_null_is_noop
+[       OK ] test_null_is_noop
+[ RUN      ] test_g08_sets_lookahead_counter
+[       OK ] test_g08_sets_lookahead_counter
+
+===== test_nc_precision_setters_valid_invalid_more =====
+[ RUN      ] test_precision_setters_accept_boundaries
+[       OK ] test_precision_setters_accept_boundaries
+[ RUN      ] test_precision_invalids_rejected
+[       OK ] test_precision_invalids_rejected
+
+===== test_nc_spindle_css_stop_more =====
+[ RUN      ] test_css_parse_then_stop_rt
+[       OK ] test_css_parse_then_stop_rt
+
+===== test_nc_tool_management_prepare_invalid_more =====
+[ RUN      ] test_invalid_tool_prepare_is_rejected
+[       OK ] test_invalid_tool_prepare_is_rejected
+[ RUN      ] test_set_pocket_then_prepare_success
+[       OK ] test_set_pocket_then_prepare_success
+
+===== test_nc_synchronization_overlay_bounds_more =====
+[ RUN      ] test_overlay_axis_rejects_out_of_range
+[       OK ] test_overlay_axis_rejects_out_of_range
+[ RUN      ] test_overlay_axis_sets_mask_and_offset
+[       OK ] test_overlay_axis_sets_mask_and_offset
+
+===== test_nc_reference_one_direction_more =====
+[ RUN      ] test_one_direction_approach_rejects_negative
+[       OK ] test_one_direction_approach_rejects_negative
+[ RUN      ] test_one_direction_approach_records_value
+[       OK ] test_one_direction_approach_records_value
+
+===== test_nc_rotary_mcc_output_service_more =====
+[ RUN      ] test_mcc_output_is_gated_by_machine_state_and_disable_clears
+[       OK ] test_mcc_output_is_gated_by_machine_state_and_disable_clears
+

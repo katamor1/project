@@ -1,0 +1,20 @@
+{
+  "version": "v14",
+  "base_archive": "ibm_bob_source_unit_tests_additional_v13.zip",
+  "added_test_files": 10,
+  "added_test_cases": 40,
+  "verification": "GCC compile/run PASS for the 40 newly added v14 test cases.",
+  "result_file": "build/test_results_v14_added.txt",
+  "test_files": [
+    "tests/test_nc_codes_v14_catalog_more.c",
+    "tests/test_nc_feed_v14_rt_update_more.c",
+    "tests/test_nc_coordinate_v14_invalid_and_modes_more.c",
+    "tests/test_nc_axis_config_v14_masks_more.c",
+    "tests/test_nc_interference_v14_more.c",
+    "tests/test_nc_reference_v14_more.c",
+    "tests/test_nc_spindle_v14_more.c",
+    "tests/test_nc_tool_management_v14_more.c",
+    "tests/test_nc_motion_filter_v14_endpoint_more.c",
+    "tests/test_control_api_v14_more_getters_setters.c"
+  ]
+}

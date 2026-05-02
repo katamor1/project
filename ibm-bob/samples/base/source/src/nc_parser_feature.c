@@ -98,7 +98,8 @@ int32_t NcParser_ApplyFeatureG(int32_t code,
         ApplyCommandFlag(pBlock, NC_FEATURE_FLAG_OVERLAY, NC_MOTION_NONE);
     } else if (code == GD(50, 6)) {
         ApplyCommandFlag(pBlock, NC_FEATURE_FLAG_OVERLAY, NC_MOTION_NONE);
-    } else if ((code == GD(6, 2)) || (code == GD(7, 1)) ||
+    } else if ((code == GD(2, 2)) || (code == GD(3, 2)) ||
+               (code == GD(6, 2)) || (code == GD(7, 1)) ||
                /* Apply the next logical update for this processing stage. */
                (code == GD(12, 1)) || (code == GD(13, 1)) || (code == GD(12, 4)) || (code == GD(13, 4))) {
         ApplyCommandFlag(pBlock, NC_FEATURE_FLAG_ADVANCED_INTERP,

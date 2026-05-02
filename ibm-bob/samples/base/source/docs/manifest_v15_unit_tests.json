@@ -1,0 +1,20 @@
+{
+  "version": "v15",
+  "base_archive": "ibm_bob_source_unit_tests_additional_v14.zip",
+  "added_test_files": 10,
+  "added_test_cases": 40,
+  "verification": "GCC compile/run PASS for the 40 newly added v15 test cases. Result summary is stored in build/test_results_v15_added.txt.",
+  "result_file": "build/test_results_v15_added.txt",
+  "test_files": [
+    "tests/test_nc_capability_v15_history_more.c",
+    "tests/test_nc_lookahead_v15_modes_arcs_more.c",
+    "tests/test_nc_precision_v15_modes_service_more.c",
+    "tests/test_nc_synchronization_v15_modes_following_more.c",
+    "tests/test_nc_rotary_mcc_v15_service_more.c",
+    "tests/test_nc_lathe_cycle_v15_tracking_more.c",
+    "tests/test_nc_safety_motion_v15_latch_release_more.c",
+    "tests/test_nc_diagnostics_v15_snapshot_life_more.c",
+    "tests/test_nc_buffer_v15_wrap_validity_more.c",
+    "tests/test_system_shared_v15_event_log_more.c"
+  ]
+}

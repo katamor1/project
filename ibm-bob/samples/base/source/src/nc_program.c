@@ -19,6 +19,8 @@
 #include "nc_tool_management.h"
 #include "nc_synchronization.h"
 #include "nc_rotary_mcc.h"
+#include "nc_design_features.h"
+#include "nc_feature_backlog.h"
 #include "nc_program.h"
 
 #define NC_LOG_BASE        (5000U)
@@ -335,6 +337,8 @@ static void RtNcProgram_ApplyBlockAux(const NC_EXEC_BLOCK* pBlock)
     NcPrecision_OnBlockRt(pBlock);
     NcSynchronization_ApplyBlockRt((NC_EXEC_BLOCK*)pBlock);
     NcRotaryMcc_OnBlockRt(pBlock);
+    NcDesignFeatures_OnBlockRt(pBlock);
+    NcFeatureBacklog_OnBlockRt(pBlock);
     if (RtNcProgram_IsActiveToolExpired() != 0U) {
         RtNcProgram_HoldForToolLife(pBlock->line_no);
         return;
@@ -580,6 +584,8 @@ static void TsNcProgram_ResetForNewLoad(void)
     NcToolManagement_Reset();
     NcSynchronization_Reset();
     NcRotaryMcc_Reset();
+    NcDesignFeatures_Reset();
+    NcFeatureBacklog_Reset();
     (void)memset((void*)&g_ncAuxStatus, 0, sizeof(g_ncAuxStatus));
     RtNcProgram_ResetAuxWait();
     (void)memset((void*)&g_ncFeatureStatus, 0, sizeof(g_ncFeatureStatus));
@@ -658,6 +664,8 @@ static void TsNcProgram_StartBinaryLoad(void)
             NcToolManagement_OnParsedBlockTs(&block);
             NcSynchronization_OnParsedBlockTs(&block);
             (void)NcRotaryMcc_ApplyBlockTs(&block, &(NC_ERROR_CODE){NC_ERR_NONE});
+            (void)NcDesignFeatures_ApplyBlockTs(&block, &(NC_ERROR_CODE){NC_ERR_NONE});
+            (void)NcFeatureBacklog_ApplyBlockTs(&block, &(NC_ERROR_CODE){NC_ERR_NONE});
         NcInterference_CheckBlockTs(&block);
         if (NcBuffer_CommitBlock(&block) != 0) {
             g_ncBinaryProgramStatus.last_error_line_no = block.line_no;

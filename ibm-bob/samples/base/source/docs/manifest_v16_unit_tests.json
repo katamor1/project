@@ -1,0 +1,129 @@
+{
+  "version": "v16",
+  "created_at": "2026-05-02T00:00:00+09:00",
+  "base_archive": "ibm_bob_source_unit_tests_additional_v15.zip",
+  "output_archive": "ibm_bob_source_unit_tests_additional_v16.zip",
+  "added_test_files": [
+    {
+      "category": "NC補正",
+      "path": "source/tests/test_nc_compensation_v16_transform_more.c",
+      "case_count": 4,
+      "cases": [
+        "負方向工具長補正",
+        "極座標変換",
+        "座標回転キャンセル",
+        "ゼロ長工具径補正no-op"
+      ]
+    },
+    {
+      "category": "座標変換",
+      "path": "source/tests/test_nc_coordinate_transform_v16_enable_more.c",
+      "case_count": 4,
+      "cases": [
+        "有効フラグ別補正適用",
+        "不正軸API拒否",
+        "円弧中心補正",
+        "非モーションno-op"
+      ]
+    },
+    {
+      "category": "軸構成",
+      "path": "source/tests/test_nc_axis_config_v16_filter_more.c",
+      "case_count": 4,
+      "cases": [
+        "軸名正規化",
+        "不正経路軸マスク拒否",
+        "径/半径変換",
+        "制御軸取り外し・経路軸フィルタ"
+      ]
+    },
+    {
+      "category": "キネマティクス",
+      "path": "source/tests/test_nc_kinematics_v16_transform_more.c",
+      "case_count": 4,
+      "cases": [
+        "論理/物理軸割付",
+        "ミラー中心反転",
+        "傾斜特異点警告",
+        "軸退避/復帰マスク"
+      ]
+    },
+    {
+      "category": "補間数学",
+      "path": "source/tests/test_nc_interp_math_v16_geometry_more.c",
+      "case_count": 4,
+      "cases": [
+        "平面軸選択",
+        "CW/CCW掃引方向",
+        "IJK円弧長",
+        "IJK/R競合拒否"
+      ]
+    },
+    {
+      "category": "補間RT",
+      "path": "source/tests/test_nc_interpolation_v16_step_more.c",
+      "case_count": 4,
+      "cases": [
+        "Begin拒否",
+        "直線補間完了",
+        "Cancel",
+        "Dwell時コマンド非出力"
+      ]
+    },
+    {
+      "category": "パーサ内部",
+      "path": "source/tests/test_nc_parser_internal_v16_modal_more.c",
+      "case_count": 4,
+      "cases": [
+        "初期ブロック",
+        "F/S設定",
+        "同一グループ重複拒否",
+        "G53+G91拒否"
+      ]
+    },
+    {
+      "category": "RT制御",
+      "path": "source/tests/test_rt_control_v16_state_more.c",
+      "case_count": 4,
+      "cases": [
+        "起動前インターロックOK",
+        "STOPPED/READY/RUNNING遷移",
+        "AUTO要求拒否/許可",
+        "異常時安全出力"
+      ]
+    },
+    {
+      "category": "TSサービス",
+      "path": "source/tests/test_ts_service_v16_prefetch_ui_more.c",
+      "case_count": 4,
+      "cases": [
+        "prefetch完了",
+        "busy中no-op",
+        "UIスナップショット",
+        "ログflush要求"
+      ]
+    },
+    {
+      "category": "Control API",
+      "path": "source/tests/test_control_api_v16_request_more.c",
+      "case_count": 4,
+      "cases": [
+        "不正運転モード拒否",
+        "NCロード拒否",
+        "バイナリロード受付",
+        "NULL getter拒否"
+      ]
+    }
+  ],
+  "total_added_test_files": 10,
+  "total_added_cases": 40,
+  "verification": {
+    "gcc_build_script": "source/scripts/build_tests_v16_gcc.sh",
+    "gcc_run_script": "source/scripts/run_tests_v16_gcc.sh",
+    "windows_build_script": "source/scripts/build_tests_v16.bat",
+    "windows_run_script": "source/scripts/run_tests_v16.bat",
+    "result_file": "source/build/test_results_v16_added.txt",
+    "passed_cases": 40,
+    "failed_cases": 0
+  }
+}

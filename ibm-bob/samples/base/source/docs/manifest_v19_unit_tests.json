@@ -1,0 +1,141 @@
+{
+  "version": "v19",
+  "created_at": "2026-05-02T00:00:00+09:00",
+  "description": "IBM-Bob additional unit tests v19: 40 new unit test cases for other functions and branches after v18.",
+  "added_test_files": 10,
+  "added_test_cases": 40,
+  "verification": {
+    "gcc_run_script": "source/scripts/run_tests_v19_gcc.sh",
+    "result_file": "source/build/test_results_v19_added.txt",
+    "status": "PASS"
+  },
+  "test_groups": [
+    {
+      "target": "NC axis config",
+      "cases": 4
+    },
+    {
+      "target": "NC compensation",
+      "cases": 4
+    },
+    {
+      "target": "NC coordinate transform",
+      "cases": 4
+    },
+    {
+      "target": "NC kinematics",
+      "cases": 4
+    },
+    {
+      "target": "NC cycle variants",
+      "cases": 4
+    },
+    {
+      "target": "NC feed profiles",
+      "cases": 4
+    },
+    {
+      "target": "NC interpolation runtime",
+      "cases": 4
+    },
+    {
+      "target": "NC reference markers",
+      "cases": 4
+    },
+    {
+      "target": "RT control trace/interlock",
+      "cases": 4
+    },
+    {
+      "target": "Control API gateways",
+      "cases": 4
+    }
+  ],
+  "files": [
+    {
+      "path": "source/build/test_results_v19_added.txt",
+      "size": 6395,
+      "sha256": "d9c406d7a447b54a7070daf8c8e6f4c699bdf5fbde082da3d88a934d93516318"
+    },
+    {
+      "path": "source/docs/unit_test_report_v19.md",
+      "size": 2435,
+      "sha256": "539b9521910d9fd53cdd60faf176df346101aa55ff3c086b4190f2012aa5c216"
+    },
+    {
+      "path": "source/scripts/build_tests_v19.bat",
+      "size": 2355,
+      "sha256": "72aab17f7c577513022811f2a3f9106fb85e74a67ea3436ab6227830d29edde5"
+    },
+    {
+      "path": "source/scripts/build_tests_v19_gcc.sh",
+      "size": 2192,
+      "sha256": "8bca0de6e93a3c439b2f71696e364691ecd160077aa20d5a6ab3e1ac220fdd8c"
+    },
+    {
+      "path": "source/scripts/run_tests_v19.bat",
+      "size": 1012,
+      "sha256": "99b6a0f06113d180ea638201af1a71725212581f66c1c502ef3c793efb01dd08"
+    },
+    {
+      "path": "source/scripts/run_tests_v19_gcc.sh",
+      "size": 892,
+      "sha256": "6fc517c36863e179a75fac4ab7f5ae6096acb47bd32dee10539bacf9e25292ad"
+    },
+    {
+      "path": "source/tests/test_control_api_v19_gateways_more.c",
+      "size": 3341,
+      "sha256": "a7537ea1ddfa095d854baaa952ebbf27f2a542394592cd52e8a4393540fe8c16"
+    },
+    {
+      "path": "source/tests/test_nc_axis_config_v19_apply_more.c",
+      "size": 3297,
+      "sha256": "537e5ca6a633d783a71c62d28ef50d16f18e7f7239d827d2a7e436ffd6269faa"
+    },
+    {
+      "path": "source/tests/test_nc_compensation_v19_commands_more.c",
+      "size": 3586,
+      "sha256": "ad9dd16261449886725c66db39a898f5a382fd51f7e597c84e404d193205793e"
+    },
+    {
+      "path": "source/tests/test_nc_coordinate_transform_v19_modes_more.c",
+      "size": 3790,
+      "sha256": "c1ce83d3056cbca2e4e529605ceb67ad94eba8c17f008cf701675d40c5d7f18f"
+    },
+    {
+      "path": "source/tests/test_nc_cycle_v19_variants_more.c",
+      "size": 3184,
+      "sha256": "bfa045de829232c96c9b6750df6bc9c9eb019f18d06a6bf482fb7f48c074b19b"
+    },
+    {
+      "path": "source/tests/test_nc_feed_v19_profiles_more.c",
+      "size": 2861,
+      "sha256": "a75ce7061fe5de4e48080e48f138b9dacbb3b8bacbdb6a402b4c1bdb69f1aa00"
+    },
+    {
+      "path": "source/tests/test_nc_interpolation_v19_runtime_more.c",
+      "size": 2937,
+      "sha256": "f0e9a3c21dc5c5249ba8fed4385103e867c234aaca0fd7587f33f01a589716e1"
+    },
+    {
+      "path": "source/tests/test_nc_kinematics_v19_commands_more.c",
+      "size": 3341,
+      "sha256": "1de3103e44cf306aee464886354fd63a8e13f2409ec3e8c0290894fa2c02dc77"
+    },
+    {
+      "path": "source/tests/test_nc_reference_v19_markers_more.c",
+      "size": 3157,
+      "sha256": "8838348675c759da9c6c6690c4d118a3d0f321402ddbea46eb19b8665788dc35"
+    },
+    {
+      "path": "source/tests/test_rt_control_v19_trace_more.c",
+      "size": 3034,
+      "sha256": "c2f46e750d524d43ce1c0b5fc0eba12384ccca427ef683c5e244d29f032406ac"
+    },
+    {
+      "path": "source/docs/manifest_v19_unit_tests.json",
+      "size": 3991,
+      "sha256": "455077b4c45ad3e383498c0bed3b9c0edea48bc2f6552301d549654c185ee39e"
+    }
+  ]
+}

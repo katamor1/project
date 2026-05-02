@@ -1,0 +1,26 @@
+IBM-Bob unit test additional v13 manifest
+Added test files: 20
+
+1. tests/test_nc_axis_config_definition_more.c
+2. tests/test_nc_axis_config_apply_path_filter_more.c
+3. tests/test_nc_axis_config_diameter_rounding_more.c
+4. tests/test_nc_coordinate_work_offset_more.c
+5. tests/test_nc_coordinate_machine_inverse_more.c
+6. tests/test_nc_coordinate_fill_targets_more.c
+7. tests/test_nc_coordinate_transform_enable_more.c
+8. tests/test_nc_coordinate_transform_apply_combo_more.c
+9. tests/test_nc_cycle_modal_replay_more.c
+10. tests/test_nc_cycle_segment_guards_more.c
+11. tests/test_nc_feed_prepare_motion_zero_override_more.c
+12. tests/test_nc_feed_prepare_dwell_bounds_more.c
+13. tests/test_nc_interference_check_axis_limit_more.c
+14. tests/test_nc_lookahead_null_and_g08_more.c
+15. tests/test_nc_precision_setters_valid_invalid_more.c
+16. tests/test_nc_spindle_css_stop_more.c
+17. tests/test_nc_tool_management_prepare_invalid_more.c
+18. tests/test_nc_synchronization_overlay_bounds_more.c
+19. tests/test_nc_reference_one_direction_more.c
+20. tests/test_nc_rotary_mcc_output_service_more.c
+
+Local verification: gcc individual build/run PASS for the 20 added tests.
+Existing full-suite rerun should be performed with scripts/run_tests.bat on Windows cl.exe.
