@@ -1,0 +1,442 @@
+diff -ruN -x build -x build_gcc -x runtime_log.csv -x continuation_v23_diff.patch -x manifest_v23.json orig/source/docs/implementation_report_v23.md source_unzip/source/docs/implementation_report_v23.md
+--- orig/source/docs/implementation_report_v23.md	1970-01-01 00:00:00.000000000 +0000
++++ source_unzip/source/docs/implementation_report_v23.md	2026-05-02 10:11:37.273524113 +0000
+@@ -0,0 +1,110 @@
++# IBM-Bob source implementation report v23
++
++## Scope
++
++v22をベースに、設計書ZIP側でまだ「入口実装」または「状態公開中心」に留まっていたNC制御機能を20件追加実装した。既存の `nc_feature_backlog` を拡張し、機能ID `100`〜`119` をv23追加分として割り当てた。
++
++v22までの100件は後方互換のため観測中心のまま維持し、v23追加分だけ `NcFeatureBacklog_ApplyBlockTs()` 内で固定長のTS側ブロック補正を実施する。RT側では従来通り実行カウントとイベント記録のみを行い、Windows API、ファイルI/O、動的メモリ確保、可変長探索は追加していない。
++
++## Implemented 20 items
++
++1. **G70仕上げサイクル実行パス整合**
++   - 仕上げサイクルの最小パス数、cycle flag、最小補間tick、仕上げ送り抑制を追加。
++
++2. **G71粗削りサイクル切込み分割**
++   - `Q` 未指定時の固定切込み量補完、X移動量からのパス数上限付き算出、粗削り送り抑制を追加。
++
++3. **G72端面粗削りサイクル逃げ量補正**
++   - Z軸逃げ量を固定長ブロックへ反映し、RT側では補正済み終点だけを消費する方式にした。
++
++4. **G73パターン繰返し残回数管理**
++   - repeat未指定時の残回数補完、Pワード補完、最小補間tickを追加。
++
++5. **G75溝入れペック分割**
++   - `Q` 未指定時のペック量補完、ドウェルP補完、溝入れcycle flagを追加。
++
++6. **G76複数パスねじ切り安全減速**
++   - thread motion化、feed/rev化、主軸回転数フォールバック、複数パス数補完、安全減速を追加。
++
++7. **G90直線テーパ終点補正**
++   - Z移動量からX終点を補正し、テーパ切削用の固定ブロック終点を作る処理を追加。
++
++8. **G92ねじ切りピッチ保持**
++   - thread motion、feed/rev、送り量/主軸回転数の安全側補完を追加。
++
++9. **G94端面切削退避面補正**
++   - R値未指定時の退避量補完とZ終点補正を追加。
++
++10. **G31高速スキップラッチ**
++    - skip motion化、MFIN待ちフラグ、送り抑制、最小tickを追加。
++
++11. **EGB同期スキップ位相窓**
++    - Pワードを位相窓として補完し、smoothing flagと最小tickを追加。
++
++12. **距離コード付きリファレンスマーク復帰**
++    - reference return化し、距離コード相当のX目標を固定長ブロックへ反映。
++
++13. **絶対アドレスリファレンスマーク復帰**
++    - reference return化し、絶対マーク位置へのXスナップを追加。
++
++14. **位置スイッチ制御ラッチ減速**
++    - axis retract flag、安全減速、最小tickを追加。
++
++15. **ロールオーバー最短回転補正**
++    - A軸を±180度相当範囲へ正規化し、長回り指令を短回り指令に変換。
++
++16. **フォローアップ偏差予兆減速**
++    - 軸移動量が閾値を超えた場合に送りを安全側へ抑制。
++
++17. **ロータリフィクスチャ動的オフセット**
++    - XYZの固定オフセット補正と座標回転flagを固定ブロックへ反映。
++
++18. **ワーク取付誤差固定補正**
++    - XYZの小補正とtilted plane flagを固定ブロックへ反映。
++
++19. **円筒/極座標補間送り正規化**
++    - polar/coord rotation flag、送り抑制、最小tickを追加。
++
++20. **Mコード補助指令ハンドシェイク監視**
++    - Mコード/MFIN待ちflag、補助Mコード未指定時の補完、待ちPワード補完を追加。
++
++## Changed files
++
++- `inc/system_config.h`
++  - `NC_IMPL_BACKLOG_FEATURE_COUNT` を `100U` から `120U` へ拡張。
++  - v23追加範囲、追加件数、ロールオーバー正規化用定数を追加。
++
++- `src/nc_feature_backlog.c`
++  - `s_backlog[]` に機能ID `100`〜`119` の20件を追加。
++  - `ApplyV23Policy()`、`SetMinTicks()`、`SlowFeed()`、`NormalizeRotaryShortestPath()` などのRT安全な固定長補正処理を追加。
++  - `NcFeatureBacklog_ApplyBlockTs()` でv23追加分のみTS側固定ブロック補正を実行。
++
++- `scripts/build_gcc_smoke_v23.sh`
++  - v23用GCCスモークビルドスクリプトを追加。
++
++- `scripts/test_gcc_smoke_v23.sh`
++  - v23用GCCスモークテストスクリプトを追加。
++
++- `docs/verification_output_v23.txt`
++  - v23スモーク実行結果を保存。
++
++- `docs/continuation_v23_diff.patch`
++  - v22入力との差分パッチ。
++
++## Verification
++
++GCC smoke build/test を実行し、正常終了を確認した。
++
++```text
++implementation_backlog implemented=120 configured=120 ts=130 rt=126 synthetic=120 cat_mask=0x000003ff last_id=119 last_cat=4 last_policy=3 slowdown=16 cat0=30 cat9=22 last_x=1119
++nc_state=6 nc_error=0
++cycle_error_checks=4
++```
++
++Full output: `docs/verification_output_v23.txt`.
++
++## Notes
++
++- 今回の20件は、実機制御の完全な幾何演算ではなく、IBM-Bobサンプル基盤に合わせた「固定長NC実行ブロックへの安全側変換」として実装している。
++- 重い幾何計算、テーブル探索、ファイルI/O、動的メモリ確保はTS/RT双方に追加していない。
++- 既存公開API `Api_GetNcImplementationBacklogStatus()`、`Api_SetNcImplementationBacklogFeature()`、`Api_EnableAllNcImplementationBacklogFeatures()`、`Api_RunNcImplementationBacklogSelfCheck()` は互換維持し、feature count拡張だけでv23追加分を操作できる。
+diff -ruN -x build -x build_gcc -x runtime_log.csv -x continuation_v23_diff.patch -x manifest_v23.json orig/source/docs/verification_output_v23.txt source_unzip/source/docs/verification_output_v23.txt
+--- orig/source/docs/verification_output_v23.txt	1970-01-01 00:00:00.000000000 +0000
++++ source_unzip/source/docs/verification_output_v23.txt	2026-05-02 10:10:53.249482743 +0000
+@@ -0,0 +1,35 @@
++nc_state=6 nc_error=0 nc_error_line=0 nc_exec=89 nc_read=89 nc_buf=0 nc_x=3405 nc_y=2300 nc_z=3405 nc_m=130
++interp_segments=44 feed_profile=1 feed_override=45 dwell_ticks=1
++coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=1000
++coord_transform blocks=41 mask=0x00000005 work_set=1 local_set=1 temp_set=1 dyn_x=25 mount_err_x=-10 rotary_z=5
++feature_blocks=84 feature_flags=57346 canned=27 skip=1 advanced=11
++g08_standard_seen=1 g08_high_precision_seen=1 g08_cancel_seen=1 g08_final_smoothing=0 g08_final_high_precision=0
++hpcc_seen=1 hpcc_cancel_seen=1 hpcc_final=0 g05_p3_seen=1
++comp_applied=23 comp_mask=0x00000007 comp_tool=0 comp_cutter=0 comp_rotation=0
++path_arc=3 path_helical=1 path_arc_segments=12 path_lookahead=44 path_slowdowns=27 path_corner_deg=180 path_override=80
++kin_transformed=43 kin_mirrored=23 kin_retracts=1 kin_singularity_warn=0 kin_mirror_mask=0x00000000 kin_retract_mask=0x00000004 kin_tool_z=9848 kin_last_x=3405 kin_last_a=-1200
++diag_axis_warn=0x00000003 diag_axis_limit=0x00000001 diag_axis_critical=0x00000000 decel_level=2 decel_override=45 load_peak_x=847
++tool_active=2 tool2_uses=30 tool_warn=0x00000000 tool_expired=0x00000000 diag_decel=2 diag_tool_expired=0x00000000 diag_axis_warn=0x00000003
++tool_mgmt active=2 prepared=2 parsed_t=1 exchange_req=1 exchange_done=1 max_wait=69 pocket2=12
++motion_filter_samples=1089 mode=2 axis_mask=0x0000000f raw_vx=2789 smooth_vx=2920 out_x=3405
++motion_filter_limits vel_events=20 accel_events=69 endpoint_corrections=61 residual_samples=139 max_lag_x=3651 residual_x=-37
++tool_life_hold_state=5 tool_life_hold_error=15 tool_life_hold_line=4 events=64 lost=286 last_event=9601
++cycle_completed=14 cycle_phase_count=4 skip_completed=1 skip_x=3672
++cycle_detail last=890 repeat=1 repeat_done=15 peck_blocks=4 tap_blocks=2 boring_blocks=5 spindle_sync=2 spindle_reverse=2 manual_return=1
++aux_completed=1 aux_wait_cycles=69 prestart_ok=1 prestart_mask=0x00000000
++trace_frozen=1 trace_captured=32 trace_trigger_cycle=1269
++capability parsed=88 g=84 m=2 address_words=295 binary_loaded=0
++interference checked=25 warnings=0 slowdown=0 safety_external=1 safety_position=1 safety_override=100
++reference planned=0 executed=0 homed=0x00000000 markers=0 one_direction=0 rollover=0 approach_x=0
++rotary_mcc parsed=0 executed=0 active_mask=0x00000000 mcc_on=0 mcc_off=0 virt=0 cmd=0x00000000
++axis_config path=0x0000000f rotary=0x00000008 diameter=0x00000001 applied=40 diameter_blocks=40 detached_blocks=0 rejected=0 name_a=A last_x=258
++design_features mode=0x000ffdff nurbs=1 exp=1 cyl=3 polar=3 helical_b=1 auto_corner=2 grinding=15 egb_skip=1 interference3d=26 followup=0 ts=49 rt=50 slowdown=50 override=70 last_x=1220 last_y=2320
++design_features_v21 involute=2 hp_contour=7 exact_stop=6 rigid_tap=2 thread_chamfer=1 second_ref=1 machine_direct=1 coord_shift=3 css=2 feed_per_rev=3
++implementation_backlog implemented=120 configured=120 ts=130 rt=126 synthetic=120 cat_mask=0x000003ff last_id=119 last_cat=4 last_policy=3 slowdown=16 cat0=30 cat9=22 last_x=1119
++sync mode_bits=0x0008 planned=6 executed=6 sync_motion=24 compound_motion=1 overlay_motion=1 double_table=25 slave_mask=0x00000002 max_follow_y=-736 out_y=2300
++precision previewed=1 limited=0 learning_updates=0 vibration_warn=0 rt_ticks=0 corr_x=0
++mode=1 state=3 alarm=9001 cycle=1269
++coord_error_checks=5
++g08_error_checks=3
++hpcc_error_checks=4
++cycle_error_checks=4
+diff -ruN -x build -x build_gcc -x runtime_log.csv -x continuation_v23_diff.patch -x manifest_v23.json orig/source/inc/system_config.h source_unzip/source/inc/system_config.h
+--- orig/source/inc/system_config.h	2026-05-02 02:22:17.000000000 +0000
++++ source_unzip/source/inc/system_config.h	2026-05-02 10:10:23.996169224 +0000
+@@ -771,11 +771,15 @@
+ #define NC_DESIGN_RIGID_TAP_MIN_TICKS         (8U)
+ #define NC_DESIGN_EXACT_STOP_PERCENT          (55U)
+ #define NC_DESIGN_HP_CONTOUR_PERCENT          (75U)
+-#define NC_IMPL_BACKLOG_FEATURE_COUNT          (100U)
++#define NC_IMPL_BACKLOG_FEATURE_COUNT          (120U)
+ #define NC_IMPL_BACKLOG_WORD_COUNT             (4U)
+ #define NC_IMPL_BACKLOG_DEFAULT_OVERRIDE       (92U)
+ #define NC_IMPL_BACKLOG_MIN_TICKS              (3U)
+ #define NC_IMPL_BACKLOG_MAX_POLICY             (7U)
++#define NC_IMPL_BACKLOG_V23_FIRST_FEATURE       (100U)
++#define NC_IMPL_BACKLOG_V23_ADDED_FEATURES      (20U)
++#define NC_IMPL_BACKLOG_V23_ROTARY_DEG_180      (180000)
++#define NC_IMPL_BACKLOG_V23_ROTARY_DEG_360      (360000)
+ #define NC_EVENT_CODE_DESIGN_FEATURE_APPLIED  (9601U)
+ #define NC_EVENT_CODE_DESIGN_FEATURE_WARNING  (9602U)
+ 
+diff -ruN -x build -x build_gcc -x runtime_log.csv -x continuation_v23_diff.patch -x manifest_v23.json orig/source/scripts/build_gcc_smoke_v23.sh source_unzip/source/scripts/build_gcc_smoke_v23.sh
+--- orig/source/scripts/build_gcc_smoke_v23.sh	1970-01-01 00:00:00.000000000 +0000
++++ source_unzip/source/scripts/build_gcc_smoke_v23.sh	2026-05-02 10:10:50.913803609 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++mkdir -p "$ROOT_DIR/build"
++gcc -std=c99 -Wall -Wextra -I"$ROOT_DIR/inc" "$ROOT_DIR"/src/*.c -lm -o "$ROOT_DIR/build/ibm_bob_sample_v23"
+diff -ruN -x build -x build_gcc -x runtime_log.csv -x continuation_v23_diff.patch -x manifest_v23.json orig/source/scripts/test_gcc_smoke_v23.sh source_unzip/source/scripts/test_gcc_smoke_v23.sh
+--- orig/source/scripts/test_gcc_smoke_v23.sh	1970-01-01 00:00:00.000000000 +0000
++++ source_unzip/source/scripts/test_gcc_smoke_v23.sh	2026-05-02 10:10:50.921419399 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++bash "$ROOT_DIR/scripts/build_gcc_smoke_v23.sh"
++"$ROOT_DIR/build/ibm_bob_sample_v23" | tee "$ROOT_DIR/docs/verification_output_v23.txt"
+diff -ruN -x build -x build_gcc -x runtime_log.csv -x continuation_v23_diff.patch -x manifest_v23.json orig/source/src/nc_feature_backlog.c source_unzip/source/src/nc_feature_backlog.c
+--- orig/source/src/nc_feature_backlog.c	2026-05-02 02:22:11.000000000 +0000
++++ source_unzip/source/src/nc_feature_backlog.c	2026-05-02 10:10:23.997415336 +0000
+@@ -1,5 +1,5 @@
+ /* ibm-bob/samples/base/source/src/nc_feature_backlog.c */
+-/* Implements the v22 batch of 100 design-document backlog features as fixed-size, RT-safe handlers. */
++/* Implements the v22/v23 design-document backlog features as fixed-size, RT-safe handlers. */
+ #include <string.h>
+ #include "nc_feature_backlog.h"
+ #include "nc_program.h"
+@@ -112,6 +112,26 @@
+     /* 097: 同期複合重ね合わせ */ { 97U, 9U, 1U, 84U },
+     /* 098: 特殊ねじ切り */ { 98U, 9U, 2U, 94U },
+     /* 099: 任意角度傾斜ピボット */ { 99U, 9U, 3U, 104U },
++    /* 100: G70仕上げサイクル実行パス整合 */ { 100U, 0U, 0U, 700U },
++    /* 101: G71粗削りサイクル切込み分割 */ { 101U, 0U, 1U, 710U },
++    /* 102: G72端面粗削りサイクル逃げ量補正 */ { 102U, 0U, 2U, 720U },
++    /* 103: G73パターン繰返し残回数管理 */ { 103U, 0U, 3U, 730U },
++    /* 104: G75溝入れペック分割 */ { 104U, 1U, 4U, 750U },
++    /* 105: G76複数パスねじ切り安全減速 */ { 105U, 1U, 5U, 760U },
++    /* 106: G90直線テーパ終点補正 */ { 106U, 1U, 6U, 900U },
++    /* 107: G92ねじ切りピッチ保持 */ { 107U, 1U, 7U, 920U },
++    /* 108: G94端面切削退避面補正 */ { 108U, 2U, 0U, 940U },
++    /* 109: G31高速スキップラッチ */ { 109U, 2U, 1U, 310U },
++    /* 110: EGB同期スキップ位相窓 */ { 110U, 2U, 2U, 311U },
++    /* 111: 距離コード付きリファレンスマーク復帰 */ { 111U, 2U, 3U, 312U },
++    /* 112: 絶対アドレスリファレンスマーク復帰 */ { 112U, 3U, 4U, 313U },
++    /* 113: 位置スイッチ制御ラッチ減速 */ { 113U, 3U, 5U, 314U },
++    /* 114: ロールオーバー最短回転補正 */ { 114U, 3U, 6U, 315U },
++    /* 115: フォローアップ偏差予兆減速 */ { 115U, 3U, 7U, 316U },
++    /* 116: ロータリフィクスチャ動的オフセット */ { 116U, 4U, 0U, 317U },
++    /* 117: ワーク取付誤差固定補正 */ { 117U, 4U, 1U, 318U },
++    /* 118: 円筒/極座標補間送り正規化 */ { 118U, 4U, 2U, 319U },
++    /* 119: Mコード補助指令ハンドシェイク監視 */ { 119U, 4U, 3U, 320U },
+ };
+ 
+ static uint16_t s_parameter[NC_IMPL_BACKLOG_FEATURE_COUNT];
+@@ -144,6 +164,197 @@
+     for (axis = 0U; axis < AXIS_MAX; ++axis) { pDst[axis] = pSrc[axis]; }
+ }
+ 
++
++static int32_t ClampI32(int32_t value, int32_t minValue, int32_t maxValue)
++{
++    if (value < minValue) { return minValue; }
++    if (value > maxValue) { return maxValue; }
++    return value;
++}
++
++static int32_t AbsI32(int32_t value)
++{
++    return (value < 0) ? -value : value;
++}
++
++static uint16_t ParamOrDefault(uint16_t featureId, uint16_t defaultValue)
++{
++    uint16_t p = 0U;
++    if (featureId < NC_IMPL_BACKLOG_FEATURE_COUNT) { p = s_parameter[featureId]; }
++    return (p == 0U) ? defaultValue : p;
++}
++
++static void SetMinTicks(NC_EXEC_BLOCK* pBlock, uint32_t minTicks)
++{
++    if (pBlock->interp_ticks < minTicks) { pBlock->interp_ticks = minTicks; }
++    if (pBlock->accel_ticks == 0U) { pBlock->accel_ticks = 1U; }
++    if (pBlock->decel_ticks == 0U) { pBlock->decel_ticks = 1U; }
++}
++
++static void SlowFeed(NC_EXEC_BLOCK* pBlock, uint16_t percent)
++{
++    uint16_t pct = percent;
++    if (pct == 0U) { pct = NC_IMPL_BACKLOG_DEFAULT_OVERRIDE; }
++    if (pct > NC_FEED_OVERRIDE_MAX_PERCENT) { pct = NC_FEED_OVERRIDE_MAX_PERCENT; }
++    if ((pBlock->feed > 0) && (pct < 100U)) {
++        pBlock->feed = (int32_t)(((int64_t)pBlock->feed * (int64_t)pct) / 100LL);
++        if (pBlock->feed <= 0) { pBlock->feed = 1; }
++        g_ncImplementationBacklogStatus.slowdown_applied_blocks++;
++    }
++    g_ncImplementationBacklogStatus.active_override_percent = pct;
++}
++
++static void NormalizeRotaryShortestPath(NC_EXEC_BLOCK* pBlock, uint32_t axis)
++{
++    int32_t start;
++    int32_t target;
++    int32_t delta;
++    if (axis >= AXIS_MAX) { return; }
++    if ((pBlock->axis_mask & (1UL << axis)) == 0U) { return; }
++    start = pBlock->axis_start[axis];
++    target = pBlock->axis_target[axis];
++    delta = target - start;
++    while (delta > NC_IMPL_BACKLOG_V23_ROTARY_DEG_180) { delta -= NC_IMPL_BACKLOG_V23_ROTARY_DEG_360; }
++    while (delta < -NC_IMPL_BACKLOG_V23_ROTARY_DEG_180) { delta += NC_IMPL_BACKLOG_V23_ROTARY_DEG_360; }
++    pBlock->axis_target[axis] = start + delta;
++}
++
++static void ApplyV23Policy(const NC_BACKLOG_DESCRIPTOR* pDesc, NC_EXEC_BLOCK* pBlock)
++{
++    uint16_t param = ParamOrDefault(pDesc->feature_id, NC_IMPL_BACKLOG_DEFAULT_OVERRIDE);
++    switch (pDesc->feature_id) {
++    case 100U: /* G70 finish cycle: deterministic finish pass envelope. */
++        pBlock->cycle_repeat = (pBlock->cycle_repeat == 0U) ? 1U : pBlock->cycle_repeat;
++        pBlock->cycle_flags |= 0x0001U;
++        SetMinTicks(pBlock, 4U);
++        SlowFeed(pBlock, (uint16_t)ClampI32((int32_t)param, 60, 100));
++        break;
++    case 101U: /* G71 roughing: split depth by Q/parameter and keep RT path bounded. */
++        if (pBlock->q_value <= 0) { pBlock->q_value = (int32_t)ClampI32((int32_t)param * 10, 10, 5000); }
++        pBlock->cycle_repeat = (uint16_t)ClampI32((AbsI32(pBlock->axis_target[0] - pBlock->axis_start[0]) / ClampI32(pBlock->q_value, 1, 5000)) + 1, 1, 20);
++        SetMinTicks(pBlock, 5U);
++        SlowFeed(pBlock, 85U);
++        break;
++    case 102U: /* G72 facing roughing: add safe Z relief. */
++        pBlock->axis_mask |= 0x00000004UL;
++        pBlock->axis_target[2] += (int32_t)ClampI32((int32_t)param, 5, 500);
++        pBlock->cycle_flags |= 0x0002U;
++        SetMinTicks(pBlock, 5U);
++        break;
++    case 103U: /* G73 pattern repeat: provide remaining count and minimum ticks. */
++        pBlock->cycle_repeat = (uint16_t)ClampI32((pBlock->cycle_repeat == 0U) ? (int32_t)(param % 8U) + 2 : pBlock->cycle_repeat, 1, 32);
++        pBlock->p_word = (pBlock->p_word == 0U) ? (uint32_t)(1000U + pDesc->feature_id) : pBlock->p_word;
++        SetMinTicks(pBlock, 6U);
++        break;
++    case 104U: /* G75 groove peck: default Q and dwell guard. */
++        if (pBlock->q_value <= 0) { pBlock->q_value = (int32_t)ClampI32((int32_t)param * 5, 10, 3000); }
++        if (pBlock->p_word == 0U) { pBlock->p_word = 2U; }
++        pBlock->cycle_flags |= 0x0004U;
++        SetMinTicks(pBlock, 6U);
++        break;
++    case 105U: /* G76 multi-pass thread: force per-rev feed and conservative decel. */
++        pBlock->motion_type = NC_MOTION_THREAD;
++        pBlock->feed_mode = NC_FEED_MODE_PER_REV;
++        if (pBlock->spindle_speed == 0U) { pBlock->spindle_speed = 300U; }
++        pBlock->cycle_repeat = (uint16_t)ClampI32((int32_t)(param % 10U) + 2, 2, 16);
++        SetMinTicks(pBlock, 8U);
++        SlowFeed(pBlock, 70U);
++        break;
++    case 106U: /* G90 taper: apply deterministic X correction from Z travel. */
++        if ((pBlock->axis_mask & 0x00000005UL) != 0U) {
++            int32_t zDelta = pBlock->axis_target[2] - pBlock->axis_start[2];
++            pBlock->axis_mask |= 0x00000001UL;
++            pBlock->axis_target[0] += (zDelta / 10) + (int32_t)(param % 20U);
++        }
++        SetMinTicks(pBlock, 4U);
++        break;
++    case 107U: /* G92 thread: preserve pitch with spindle fallback. */
++        pBlock->motion_type = NC_MOTION_THREAD;
++        pBlock->feed_mode = NC_FEED_MODE_PER_REV;
++        if (pBlock->feed <= 0) { pBlock->feed = (int32_t)ClampI32((int32_t)param * 10, 100, 6000); }
++        if (pBlock->spindle_speed == 0U) { pBlock->spindle_speed = 250U; }
++        SetMinTicks(pBlock, 8U);
++        break;
++    case 108U: /* G94 facing: Z clearance/return surface correction. */
++        pBlock->axis_mask |= 0x00000004UL;
++        pBlock->r_value = (pBlock->r_value == 0) ? (int32_t)ClampI32((int32_t)param, 10, 1000) : pBlock->r_value;
++        pBlock->axis_target[2] = pBlock->axis_target[2] + pBlock->r_value;
++        SetMinTicks(pBlock, 4U);
++        break;
++    case 109U: /* G31 high-speed skip latch: mark skip motion and guarded feed. */
++        pBlock->motion_type = NC_MOTION_SKIP;
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        SlowFeed(pBlock, 80U);
++        SetMinTicks(pBlock, 3U);
++        break;
++    case 110U: /* EGB skip phase window: use P as fixed phase window and smoothing flag. */
++        pBlock->p_word = (pBlock->p_word == 0U) ? (uint32_t)ClampI32((int32_t)param, 1, 360) : pBlock->p_word;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_SMOOTHING;
++        SetMinTicks(pBlock, 4U);
++        break;
++    case 111U: /* Distance-coded reference mark: convert to reference-return block. */
++        pBlock->motion_type = NC_MOTION_REFERENCE_RETURN;
++        pBlock->axis_mask |= 0x00000001UL;
++        pBlock->axis_target[0] = pBlock->axis_start[0] + (int32_t)ClampI32((int32_t)param * 10, 10, 10000);
++        SetMinTicks(pBlock, 5U);
++        break;
++    case 112U: /* Absolute-address reference mark: snap X to absolute mark. */
++        pBlock->motion_type = NC_MOTION_REFERENCE_RETURN;
++        pBlock->axis_mask |= 0x00000001UL;
++        pBlock->axis_target[0] = (int32_t)ClampI32((int32_t)param * 100, -100000, 100000);
++        SetMinTicks(pBlock, 5U);
++        break;
++    case 113U: /* Position switch latch: reduce feed and publish guarded line. */
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        SlowFeed(pBlock, 60U);
++        SetMinTicks(pBlock, 6U);
++        break;
++    case 114U: /* Rotary rollover: shortest-path normalization on A axis. */
++        pBlock->axis_mask |= 0x00000008UL;
++        NormalizeRotaryShortestPath(pBlock, 3U);
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
++        break;
++    case 115U: { /* Follow-up error prewarning: slowdown on large commanded travel. */
++        int32_t maxDelta = 0;
++        uint32_t axis;
++        for (axis = 0U; axis < AXIS_MAX; ++axis) {
++            int32_t d = AbsI32(pBlock->axis_target[axis] - pBlock->axis_start[axis]);
++            if (d > maxDelta) { maxDelta = d; }
++        }
++        if (maxDelta > (int32_t)ClampI32((int32_t)param * 20, 100, 20000)) { SlowFeed(pBlock, 65U); }
++        SetMinTicks(pBlock, 4U);
++        break;
++    }
++    case 116U: /* Rotary fixture dynamic offset: fixed offset on XYZ. */
++        pBlock->axis_mask |= 0x00000007UL;
++        pBlock->axis_target[0] += (int32_t)(param % 50U);
++        pBlock->axis_target[1] -= (int32_t)(param % 30U);
++        pBlock->axis_target[2] += (int32_t)(param % 20U);
++        pBlock->feature_flags |= NC_FEATURE_FLAG_COORD_ROTATION;
++        break;
++    case 117U: /* Work setting error compensation: small deterministic XYZ trim. */
++        pBlock->axis_mask |= 0x00000007UL;
++        pBlock->axis_target[0] -= (int32_t)(param % 25U);
++        pBlock->axis_target[1] += (int32_t)(param % 25U);
++        pBlock->axis_target[2] -= (int32_t)(param % 10U);
++        pBlock->feature_flags |= NC_FEATURE_FLAG_TILTED_PLANE;
++        break;
++    case 118U: /* Cylindrical/polar feed normalization. */
++        pBlock->feature_flags |= (NC_FEATURE_FLAG_POLAR_COORD | NC_FEATURE_FLAG_COORD_ROTATION);
++        if (pBlock->feed > 0) { SlowFeed(pBlock, 88U); }
++        SetMinTicks(pBlock, 5U);
++        break;
++    case 119U: /* M-code handshake guard: require MFIN wait and bounded dwell. */
++        pBlock->aux_flags |= NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT;
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 100U + (uint32_t)(param % 100U); }
++        if (pBlock->p_word == 0U) { pBlock->p_word = 5U; }
++        SetMinTicks(pBlock, 4U);
++        break;
++    default:
++        break;
++    }
++}
++
+ static void MarkFeature(const NC_BACKLOG_DESCRIPTOR* pDesc, const NC_EXEC_BLOCK* pBlock, uint8_t rtSide)
+ {
+     uint32_t id = pDesc->feature_id;
+@@ -288,10 +499,11 @@
+         const NC_BACKLOG_DESCRIPTOR* pDesc = &s_backlog[i];
+         if ((IsEnabled(pDesc->feature_id) != 0U) &&
+             (MatchesDescriptor(pDesc, pBlock) != 0U)) {
+-            /* Runtime path is observation-first: v22 publishes the feature
+-             * hit without perturbing validated NC geometry. The concrete policy
+-             * implementation is exercised by NcFeatureBacklog_RunSelfCheck()
+-             * and can be promoted per feature after detailed review. */
++            /* v22 legacy items remain observation-first. v23 additions are
++             * promoted to deterministic fixed-block TS transformations. */
++            if (pDesc->feature_id >= NC_IMPL_BACKLOG_V23_FIRST_FEATURE) {
++                ApplyV23Policy(pDesc, pBlock);
++            }
+             MarkFeature(pDesc, pBlock, 0U);
+             applied++;
+             if (applied >= 4U) { break; }

@@ -1,0 +1,67 @@
+{
+  "package": "ibm_bob_source_implemented_additional_features_v24_20",
+  "base_package": "ibm_bob_source_implemented_additional_features_v23_20",
+  "created_at": "2026-05-02T10:35:00+09:00",
+  "feature_count_before": 120,
+  "feature_count_after": 140,
+  "added_feature_ids": [
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130,
+    131,
+    132,
+    133,
+    134,
+    135,
+    136,
+    137,
+    138,
+    139
+  ],
+  "verification": "GCC smoke build/test passed via source/scripts/test_gcc_smoke_v24.sh",
+  "files": [
+    {
+      "path": "source/inc/system_config.h",
+      "size_bytes": 36790,
+      "sha256": "19e4bc03d5df0b5df31ea30c217598e3e240be2e9e2ee89e2fa997cc044a2656"
+    },
+    {
+      "path": "source/src/nc_feature_backlog.c",
+      "size_bytes": 37522,
+      "sha256": "53a39890a1207bea499141cfa8b1d9229d840320eadde76a84e8a1d976307d63"
+    },
+    {
+      "path": "source/scripts/build_gcc_smoke_v24.sh",
+      "size_bytes": 219,
+      "sha256": "304bd5545547c985b432a21504f7d2148a8ea05028faf9f74899a4878ba09dc9"
+    },
+    {
+      "path": "source/scripts/test_gcc_smoke_v24.sh",
+      "size_bytes": 219,
+      "sha256": "79af843658ed29f11fe60ce0ecea214172d8ed152b79dc25c3aac0bad6cac073"
+    },
+    {
+      "path": "source/docs/implementation_report_v24_20.md",
+      "size_bytes": 4127,
+      "sha256": "64c6870132628c11101e93a800241ce34007b77500deb854b19d03d997dddb97"
+    },
+    {
+      "path": "source/docs/verification_output_v24.txt",
+      "size_bytes": 3353,
+      "sha256": "be053ed9ae95487bc1783bdb385063635eaee6bba06df0b282b50aa4126ec1fb"
+    },
+    {
+      "path": "source/docs/continuation_v24_20_diff.patch",
+      "size_bytes": 14055,
+      "sha256": "396b3d50a1ccf42826a7939148c6935eacc34eb3856124fd264efcfb96c5293c"
+    }
+  ]
+}

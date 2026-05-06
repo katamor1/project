@@ -1,0 +1,42 @@
+[TEST 01] v35 sparse enable TS hit isolation
+[TEST 02] v35 last feature only updates last_feature_id
+[TEST 03] v35 feed override remains inside safe bounds
+[TEST 04] v35 range errors do not mutate status
+[TEST 05] v35 all valid feature names are resolved
+[TEST 06] v36 sparse enable TS hit isolation
+[TEST 07] v36 last feature only updates last_feature_id
+[TEST 08] v36 feed override remains inside safe bounds
+[TEST 09] v36 range errors do not mutate status
+[TEST 10] v36 all valid feature names are resolved
+[TEST 11] v37 sparse enable TS hit isolation
+[TEST 12] v37 last feature only updates last_feature_id
+[TEST 13] v37 feed override remains inside safe bounds
+[TEST 14] v37 range errors do not mutate status
+[TEST 15] v37 all valid feature names are resolved
+[TEST 16] v38 sparse enable TS hit isolation
+[TEST 17] v38 last feature only updates last_feature_id
+[TEST 18] v38 feed override remains inside safe bounds
+[TEST 19] v38 range errors do not mutate status
+[TEST 20] v38 all valid feature names are resolved
+[TEST 21] v39 sparse enable TS hit isolation
+[TEST 22] v39 last feature only updates last_feature_id
+[TEST 23] v39 feed override remains inside safe bounds
+[TEST 24] v39 range errors do not mutate status
+[TEST 25] v39 all valid feature names are resolved
+[TEST 26] v40 sparse enable TS hit isolation
+[TEST 27] v40 last feature only updates last_feature_id
+[TEST 28] v40 feed override remains inside safe bounds
+[TEST 29] v40 range errors do not mutate status
+[TEST 30] v40 all valid feature names are resolved
+[TEST 31] v41 sparse enable TS hit isolation
+[TEST 32] v41 last feature only updates last_feature_id
+[TEST 33] v41 feed override remains inside safe bounds
+[TEST 34] v41 range errors do not mutate status
+[TEST 35] v41 all valid feature names are resolved
+[TEST 36] cross self-check contracts leave active evidence
+[TEST 37] cross zero-enabled TS has no feature hits
+[TEST 38] cross first/last enable contracts
+[TEST 39] cross invalid state and trace base sanity
+[TEST 40] cross implemented counts match constants after init
+UNIT_TEST_SUMMARY tests=40 failures=0
+PASS additional_unit_tests_v47_40

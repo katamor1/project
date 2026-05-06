@@ -1,0 +1,323 @@
+diff -ruN '--exclude=build' '--exclude=*.o' /mnt/data/orig_v25_for_v26/source/docs/verification_output_v26_20.txt /mnt/data/work_v26/source/docs/verification_output_v26_20.txt
+--- /mnt/data/orig_v25_for_v26/source/docs/verification_output_v26_20.txt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v26/source/docs/verification_output_v26_20.txt	2026-05-02 10:54:36.364535026 +0000
+@@ -0,0 +1,35 @@
++nc_state=4 nc_error=0 nc_error_line=0 nc_exec=33 nc_read=89 nc_buf=56 nc_x=0 nc_y=0 nc_z=0 nc_m=0
++interp_segments=0 feed_profile=0 feed_override=0 dwell_ticks=0
++coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=0
++coord_transform blocks=0 mask=0x00000000 work_set=0 local_set=0 temp_set=0 dyn_x=0 mount_err_x=0 rotary_z=0
++feature_blocks=0 feature_flags=0 canned=0 skip=0 advanced=0
++g08_standard_seen=0 g08_high_precision_seen=0 g08_cancel_seen=0 g08_final_smoothing=0 g08_final_high_precision=0
++hpcc_seen=0 hpcc_cancel_seen=0 hpcc_final=0 g05_p3_seen=0
++comp_applied=23 comp_mask=0x00000007 comp_tool=0 comp_cutter=0 comp_rotation=0
++path_arc=3 path_helical=1 path_arc_segments=12 path_lookahead=46 path_slowdowns=29 path_corner_deg=180 path_override=80
++kin_transformed=43 kin_mirrored=23 kin_retracts=1 kin_singularity_warn=0 kin_mirror_mask=0x00000000 kin_retract_mask=0x00000004 kin_tool_z=9848 kin_last_x=3405 kin_last_a=-1200
++diag_axis_warn=0x00000003 diag_axis_limit=0x00000001 diag_axis_critical=0x00000000 decel_level=2 decel_override=45 load_peak_x=847
++tool_active=2 tool2_uses=1 tool_warn=0x00000000 tool_expired=0x00000000 diag_decel=2 diag_tool_expired=0x00000000 diag_axis_warn=0x00000003
++tool_mgmt active=0 prepared=0 parsed_t=0 exchange_req=0 exchange_done=0 max_wait=0 pocket2=0
++motion_filter_samples=159 mode=2 axis_mask=0x0000000f raw_vx=2789 smooth_vx=2920 out_x=3702
++motion_filter_limits vel_events=23 accel_events=61 endpoint_corrections=31 residual_samples=65 max_lag_x=3651 residual_x=-82
++tool_life_hold_state=0 tool_life_hold_error=0 tool_life_hold_line=0 events=64 lost=155 last_event=9601
++cycle_completed=2 cycle_phase_count=51 skip_completed=1 skip_x=1132
++cycle_detail last=830 repeat=1 repeat_done=2 peck_blocks=1 tap_blocks=0 boring_blocks=0 spindle_sync=0 spindle_reverse=0 manual_return=1
++aux_completed=1 aux_wait_cycles=126 prestart_ok=1 prestart_mask=0x00000000
++trace_frozen=0 trace_captured=32 trace_trigger_cycle=0
++capability parsed=88 g=84 m=3 address_words=314 binary_loaded=0
++interference checked=25 warnings=0 slowdown=0 safety_external=1 safety_position=1 safety_override=100
++reference planned=3 executed=3 homed=0x00000001 markers=1 one_direction=1 rollover=0 approach_x=-468
++rotary_mcc parsed=3 executed=0 active_mask=0x00000000 mcc_on=0 mcc_off=0 virt=11 cmd=0x00000003
++axis_config path=0x0000000f rotary=0x00000008 diameter=0x00000001 applied=39 diameter_blocks=39 detached_blocks=0 rejected=0 name_a=A last_x=608
++design_features mode=0x00000000 nurbs=0 exp=0 cyl=0 polar=0 helical_b=0 auto_corner=0 grinding=0 egb_skip=0 interference3d=0 followup=0 ts=0 rt=0 slowdown=0 override=0 last_x=0 last_y=0
++design_features_v21 involute=0 hp_contour=0 exact_stop=0 rigid_tap=0 thread_chamfer=0 second_ref=0 machine_direct=0 coord_shift=0 css=0 feed_per_rev=0
++implementation_backlog implemented=180 configured=180 ts=480 rt=238 synthetic=180 cat_mask=0x000003ff last_id=179 last_cat=9 last_policy=7 slowdown=30 cat0=92 cat9=77 last_x=1179
++sync mode_bits=0x0000 planned=0 executed=0 sync_motion=0 compound_motion=0 overlay_motion=0 double_table=0 slave_mask=0x00000000 max_follow_y=0 out_y=0
++precision previewed=48 limited=23 learning_updates=29 vibration_warn=0 rt_ticks=1195 corr_x=-67
++mode=1 state=2 alarm=0 cycle=1200
++coord_error_checks=5
++g08_error_checks=3
++hpcc_error_checks=4
++cycle_error_checks=4
+diff -ruN '--exclude=build' '--exclude=*.o' /mnt/data/orig_v25_for_v26/source/inc/system_config.h /mnt/data/work_v26/source/inc/system_config.h
+--- /mnt/data/orig_v25_for_v26/source/inc/system_config.h	2026-05-02 10:40:44.000000000 +0000
++++ /mnt/data/work_v26/source/inc/system_config.h	2026-05-02 10:52:18.168520632 +0000
+@@ -771,8 +771,8 @@
+ #define NC_DESIGN_RIGID_TAP_MIN_TICKS         (8U)
+ #define NC_DESIGN_EXACT_STOP_PERCENT          (55U)
+ #define NC_DESIGN_HP_CONTOUR_PERCENT          (75U)
+-#define NC_IMPL_BACKLOG_FEATURE_COUNT          (160U)
+-#define NC_IMPL_BACKLOG_WORD_COUNT             (5U)
++#define NC_IMPL_BACKLOG_FEATURE_COUNT          (180U)
++#define NC_IMPL_BACKLOG_WORD_COUNT             (6U)
+ #define NC_IMPL_BACKLOG_DEFAULT_OVERRIDE       (92U)
+ #define NC_IMPL_BACKLOG_MIN_TICKS              (3U)
+ #define NC_IMPL_BACKLOG_MAX_POLICY             (7U)
+@@ -782,6 +782,8 @@
+ #define NC_IMPL_BACKLOG_V24_ADDED_FEATURES      (20U)
+ #define NC_IMPL_BACKLOG_V25_FIRST_FEATURE       (140U)
+ #define NC_IMPL_BACKLOG_V25_ADDED_FEATURES      (20U)
++#define NC_IMPL_BACKLOG_V26_FIRST_FEATURE       (160U)
++#define NC_IMPL_BACKLOG_V26_ADDED_FEATURES      (20U)
+ #define NC_IMPL_BACKLOG_V23_ROTARY_DEG_180      (180000)
+ #define NC_IMPL_BACKLOG_V23_ROTARY_DEG_360      (360000)
+ #define NC_EVENT_CODE_DESIGN_FEATURE_APPLIED  (9601U)
+diff -ruN '--exclude=build' '--exclude=*.o' /mnt/data/orig_v25_for_v26/source/inc/system_shared.h /mnt/data/work_v26/source/inc/system_shared.h
+--- /mnt/data/orig_v25_for_v26/source/inc/system_shared.h	2026-05-02 10:41:59.000000000 +0000
++++ /mnt/data/work_v26/source/inc/system_shared.h	2026-05-02 10:52:18.169339733 +0000
+@@ -1409,8 +1409,8 @@
+  * @brief Status for design-document feature completions added in v20.
+  */
+ /**
+- * @brief Status for the v22-v25 implementation backlog batches.
+- * @details Tracks 160 coded design-feature entries using fixed-size masks,
++ * @brief Status for the v22-v26 implementation backlog batches.
++ * @details Tracks 180 coded design-feature entries using fixed-size masks,
+  * counters, and last-block snapshots so RT, TS, and API callers can observe the
+  * added implementation without dynamic allocation.
+  */
+diff -ruN '--exclude=build' '--exclude=*.o' /mnt/data/orig_v25_for_v26/source/runtime_log.csv /mnt/data/work_v26/source/runtime_log.csv
+--- /mnt/data/orig_v25_for_v26/source/runtime_log.csv	2026-05-02 10:42:13.000000000 +0000
++++ /mnt/data/work_v26/source/runtime_log.csv	2026-05-02 10:54:36.364252777 +0000
+@@ -185,3 +185,11 @@
+ 1,7101,1,35
+ 1,7102,1,40
+ 3,2001,0,1200
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++1,7101,1,35
++1,7102,1,40
++3,2001,0,1200
+diff -ruN '--exclude=build' '--exclude=*.o' /mnt/data/orig_v25_for_v26/source/scripts/build_gcc_smoke_v26.sh /mnt/data/work_v26/source/scripts/build_gcc_smoke_v26.sh
+--- /mnt/data/orig_v25_for_v26/source/scripts/build_gcc_smoke_v26.sh	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v26/source/scripts/build_gcc_smoke_v26.sh	2026-05-02 10:52:18.170713202 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++mkdir -p "$ROOT_DIR/build"
++gcc -std=c99 -Wall -Wextra -I"$ROOT_DIR/inc" "$ROOT_DIR"/src/*.c -lm -o "$ROOT_DIR/build/ibm_bob_sample_v26"
+diff -ruN '--exclude=build' '--exclude=*.o' /mnt/data/orig_v25_for_v26/source/scripts/test_gcc_smoke_v26.sh /mnt/data/work_v26/source/scripts/test_gcc_smoke_v26.sh
+--- /mnt/data/orig_v25_for_v26/source/scripts/test_gcc_smoke_v26.sh	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v26/source/scripts/test_gcc_smoke_v26.sh	2026-05-02 10:52:18.171185471 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++bash "$ROOT_DIR/scripts/build_gcc_smoke_v26.sh"
++"$ROOT_DIR/build/ibm_bob_sample_v26" | tee "$ROOT_DIR/docs/verification_output_v26_20.txt"
+diff -ruN '--exclude=build' '--exclude=*.o' /mnt/data/orig_v25_for_v26/source/src/nc_feature_backlog.c /mnt/data/work_v26/source/src/nc_feature_backlog.c
+--- /mnt/data/orig_v25_for_v26/source/src/nc_feature_backlog.c	2026-05-02 10:40:44.000000000 +0000
++++ /mnt/data/work_v26/source/src/nc_feature_backlog.c	2026-05-02 10:54:16.859787128 +0000
+@@ -1,5 +1,5 @@
+ /* ibm-bob/samples/base/source/src/nc_feature_backlog.c */
+-/* Implements the v22-v25 design-document backlog features as fixed-size, RT-safe handlers. */
++/* Implements the v22-v26 design-document backlog features as fixed-size, RT-safe handlers. */
+ #include <string.h>
+ #include "nc_feature_backlog.h"
+ #include "nc_program.h"
+@@ -172,6 +172,26 @@
+     /* 157: サブプログラム呼出しネスト制限監視 */ { 157U, 4U, 1U, 467U },
+     /* 158: NCアラーム履歴イベント圧縮 */ { 158U, 4U, 2U, 468U },
+     /* 159: サーボ準備完了待ち補助Mコード監視 */ { 159U, 4U, 3U, 469U },
++    /* 160: 経路間輪郭ブレンド隙間クランプ */ { 160U, 5U, 4U, 470U },
++    /* 161: ドライラン運転フィード上限制限 */ { 161U, 5U, 5U, 471U },
++    /* 162: 再開時モーダル状態整合検査 */ { 162U, 5U, 6U, 472U },
++    /* 163: 主軸オリエントM19位置窓監視 */ { 163U, 5U, 7U, 473U },
++    /* 164: リジッドタップ位相同期監視 */ { 164U, 6U, 0U, 474U },
++    /* 165: ねじ切り逃げ面取りベクトル補正 */ { 165U, 6U, 1U, 475U },
++    /* 166: 深穴加工切粉排出ドウェルガード */ { 166U, 6U, 2U, 476U },
++    /* 167: 研削スパークアウトドウェルガード */ { 167U, 6U, 3U, 477U },
++    /* 168: パレットクランプ確認インターロック */ { 168U, 7U, 4U, 478U },
++    /* 169: 油圧圧力低下段階減速 */ { 169U, 7U, 5U, 479U },
++    /* 170: サーボ偏差移動平均予兆監視 */ { 170U, 7U, 6U, 480U },
++    /* 171: 絶対エンコーダ電池警告ラッチ */ { 171U, 7U, 7U, 481U },
++    /* 172: ソフトリミット事前経路クランプ */ { 172U, 8U, 0U, 482U },
++    /* 173: ストロークエンド近傍オーバライド禁止 */ { 173U, 8U, 1U, 483U },
++    /* 174: 外部フィードホールド入力デバウンス */ { 174U, 8U, 2U, 484U },
++    /* 175: オプショナルストップM01状態ゲート */ { 175U, 8U, 3U, 485U },
++    /* 176: ブロックスキップ指令判定安定化 */ { 176U, 9U, 4U, 486U },
++    /* 177: シングルブロック停止点生成 */ { 177U, 9U, 5U, 487U },
++    /* 178: オーバライドノブ変化率制限 */ { 178U, 9U, 6U, 488U },
++    /* 179: アラームリセット後インターロック解放順序 */ { 179U, 9U, 7U, 489U },
+ };
+ 
+ static uint16_t s_parameter[NC_IMPL_BACKLOG_FEATURE_COUNT];
+@@ -271,6 +291,16 @@
+     pBlock->axis_target[axis] = start + delta;
+ }
+ 
++static void ClampAxisTargets(NC_EXEC_BLOCK* pBlock, int32_t minValue, int32_t maxValue)
++{
++    uint32_t axis;
++    for (axis = 0U; axis < AXIS_MAX; ++axis) {
++        if ((pBlock->axis_mask & (1UL << axis)) != 0U) {
++            pBlock->axis_target[axis] = ClampI32(pBlock->axis_target[axis], minValue, maxValue);
++        }
++    }
++}
++
+ static void ApplyV23Policy(const NC_BACKLOG_DESCRIPTOR* pDesc, NC_EXEC_BLOCK* pBlock)
+ {
+     uint16_t param = ParamOrDefault(pDesc->feature_id, NC_IMPL_BACKLOG_DEFAULT_OVERRIDE);
+@@ -680,6 +710,150 @@
+         SlowFeed(pBlock, 50U);
+         SetMinTicks(pBlock, 6U);
+         break;
++
++    case 160U: /* Cross-path contour blend gap clamp. */
++        pBlock->feature_flags |= (NC_FEATURE_FLAG_ADVANCED_INTERP | NC_FEATURE_FLAG_SMOOTHING);
++        pBlock->axis_mask |= 0x00000003UL;
++        pBlock->axis_target[0] = ClampI32(pBlock->axis_target[0], pBlock->axis_start[0] - 250000, pBlock->axis_start[0] + 250000);
++        pBlock->axis_target[1] = ClampI32(pBlock->axis_target[1], pBlock->axis_start[1] - 250000, pBlock->axis_start[1] + 250000);
++        SlowFeed(pBlock, 84U);
++        SetMinTicks(pBlock, 6U);
++        break;
++    case 161U: /* Dry-run feed cap. */
++        if (pBlock->feed <= 0) { pBlock->feed = 1000; }
++        pBlock->feed = ClampI32(pBlock->feed, 1, (int32_t)ClampI32((int32_t)param * 100, 2000, 30000));
++        pBlock->feed_override_percent = 100U;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
++        SetMinTicks(pBlock, 3U);
++        break;
++    case 162U: /* Restart modal-state consistency check. */
++        pBlock->modal_flags |= 0x00000001UL;
++        if ((pBlock->plane != NC_PLANE_XY) && (pBlock->plane != NC_PLANE_ZX) && (pBlock->plane != NC_PLANE_YZ)) { pBlock->plane = NC_PLANE_XY; }
++        if ((pBlock->feed_mode != NC_FEED_MODE_PER_MIN) && (pBlock->feed_mode != NC_FEED_MODE_PER_REV)) { pBlock->feed_mode = NC_FEED_MODE_PER_MIN; }
++        pBlock->generation++;
++        SetMinTicks(pBlock, 4U);
++        break;
++    case 163U: /* M19 spindle-orientation position window monitor. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        pBlock->aux_m_code = 19U;
++        pBlock->spindle_speed = 0U;
++        pBlock->p_word = (pBlock->p_word == 0U) ? (uint32_t)ClampI32((int32_t)param, 1, 360) : pBlock->p_word;
++        SetMinTicks(pBlock, 5U);
++        break;
++    case 164U: /* Rigid tapping spindle/feed phase monitor. */
++        pBlock->motion_type = NC_MOTION_CANNED_CYCLE;
++        pBlock->feed_mode = NC_FEED_MODE_PER_REV;
++        if (pBlock->spindle_speed == 0U) { pBlock->spindle_speed = 400U; }
++        if (pBlock->feed <= 0) { pBlock->feed = (int32_t)ClampI32((int32_t)param * 10, 100, 5000); }
++        pBlock->cycle_flags |= 0x0040U;
++        SetMinTicks(pBlock, 9U);
++        break;
++    case 165U: /* Thread retract chamfer-vector correction. */
++        pBlock->motion_type = NC_MOTION_THREAD;
++        pBlock->axis_mask |= 0x00000005UL;
++        pBlock->axis_target[0] += (int32_t)ClampI32((int32_t)param, 5, 300);
++        pBlock->axis_target[2] += (int32_t)ClampI32((int32_t)param / 2, 2, 150);
++        SlowFeed(pBlock, 72U);
++        SetMinTicks(pBlock, 8U);
++        break;
++    case 166U: /* Deep-hole chip evacuation dwell guard. */
++        pBlock->motion_type = NC_MOTION_CANNED_CYCLE;
++        pBlock->cycle_flags |= 0x0080U;
++        if (pBlock->q_value <= 0) { pBlock->q_value = (int32_t)ClampI32((int32_t)param * 8, 50, 4000); }
++        if (pBlock->p_word == 0U) { pBlock->p_word = (uint32_t)ClampI32((int32_t)param / 2, 1, 200); }
++        SetMinTicks(pBlock, 10U);
++        break;
++    case 167U: /* Grinding spark-out dwell guard. */
++        pBlock->motion_type = NC_MOTION_CANNED_CYCLE;
++        pBlock->cycle_flags |= 0x0100U;
++        if (pBlock->p_word == 0U) { pBlock->p_word = (uint32_t)ClampI32((int32_t)param, 3, 500); }
++        SlowFeed(pBlock, 58U);
++        SetMinTicks(pBlock, 11U);
++        break;
++    case 168U: /* Pallet-clamp confirmation interlock. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 61U; }
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        pBlock->feed = 1;
++        SetMinTicks(pBlock, 8U);
++        break;
++    case 169U: /* Hydraulic-pressure staged deceleration. */
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        SlowFeed(pBlock, 42U);
++        pBlock->interp_ticks += 8U;
++        pBlock->decel_ticks += 4U;
++        SetMinTicks(pBlock, 12U);
++        break;
++    case 170U: /* Servo following-error moving-average prewarning. */
++        pBlock->feature_flags |= NC_FEATURE_FLAG_SMOOTHING;
++        pBlock->accel_ticks += 2U;
++        pBlock->decel_ticks += 2U;
++        SlowFeed(pBlock, 68U);
++        SetMinTicks(pBlock, 8U);
++        break;
++    case 171U: /* Absolute-encoder battery warning latch. */
++        pBlock->motion_type = NC_MOTION_REFERENCE_RETURN;
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        pBlock->axis_mask |= 0x00000007UL;
++        SlowFeed(pBlock, 50U);
++        SetMinTicks(pBlock, 9U);
++        break;
++    case 172U: /* Soft-limit precheck path clamp. */
++        pBlock->axis_mask |= 0x0000000fUL;
++        ClampAxisTargets(pBlock, -800000, 800000);
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
++        SlowFeed(pBlock, 80U);
++        SetMinTicks(pBlock, 6U);
++        break;
++    case 173U: /* Stroke-end override prohibition. */
++        pBlock->feed_override_percent = 100U;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        if (pBlock->feed <= 0) { pBlock->feed = 1; }
++        pBlock->feed = ClampI32(pBlock->feed, 1, 20000);
++        SetMinTicks(pBlock, 7U);
++        break;
++    case 174U: /* External feed-hold input debounce. */
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        pBlock->p_word = (pBlock->p_word == 0U) ? (uint32_t)ClampI32((int32_t)param / 10, 2, 50) : pBlock->p_word;
++        pBlock->interp_ticks += 2U;
++        SlowFeed(pBlock, 75U);
++        break;
++    case 175U: /* Optional stop M01 state gate. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        pBlock->aux_m_code = 1U;
++        pBlock->feed = 1;
++        pBlock->interp_ticks += 5U;
++        SetMinTicks(pBlock, 7U);
++        break;
++    case 176U: /* Block-skip command decision stabilization. */
++        pBlock->valid = 1U;
++        pBlock->generation++;
++        pBlock->modal_flags |= 0x00000002UL;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
++        SetMinTicks(pBlock, 3U);
++        break;
++    case 177U: /* Single-block stop point generation. */
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        pBlock->decel_ticks += 5U;
++        pBlock->interp_ticks += 5U;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
++        SlowFeed(pBlock, 60U);
++        break;
++    case 178U: /* Override knob rate limiter. */
++        pBlock->feed_override_percent = (uint16_t)ClampI32((int32_t)pBlock->feed_override_percent, 50, 120);
++        pBlock->accel_ticks += 1U;
++        pBlock->decel_ticks += 1U;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_SMOOTHING;
++        SetMinTicks(pBlock, 5U);
++        break;
++    case 179U: /* Alarm-reset interlock release sequence. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 90U; }
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        pBlock->feed = 1;
++        SetMinTicks(pBlock, 10U);
++        break;
+     default:
+         break;
+     }
+@@ -829,7 +1003,7 @@
+         const NC_BACKLOG_DESCRIPTOR* pDesc = &s_backlog[i];
+         if ((IsEnabled(pDesc->feature_id) != 0U) &&
+             (MatchesDescriptor(pDesc, pBlock) != 0U)) {
+-            /* v22 legacy items remain observation-first. v23-v25 additions are
++            /* v22 legacy items remain observation-first. v23-v26 additions are
+              * promoted to deterministic fixed-block TS transformations. */
+             if (pDesc->feature_id >= NC_IMPL_BACKLOG_V23_FIRST_FEATURE) {
+                 ApplyV23Policy(pDesc, pBlock);

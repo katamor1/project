@@ -1,0 +1,42 @@
+[TEST 01] v35 status snapshot independent after mutation
+[TEST 02] v35 non-contiguous enable mask
+[TEST 03] v35 repeated TS apply accumulates hits
+[TEST 04] v35 repeated zero RT ticks count contract
+[TEST 05] v35 all valid feature names resolve
+[TEST 06] v35 disabled TS path has no hits or masks
+[TEST 07] v36 status snapshot independent after mutation
+[TEST 08] v36 non-contiguous enable mask
+[TEST 09] v36 repeated TS apply accumulates hits
+[TEST 10] v36 repeated zero RT ticks count contract
+[TEST 11] v36 all valid feature names resolve
+[TEST 12] v36 disabled TS path has no hits or masks
+[TEST 13] v37 status snapshot independent after mutation
+[TEST 14] v37 non-contiguous enable mask
+[TEST 15] v37 repeated TS apply accumulates hits
+[TEST 16] v37 repeated zero RT ticks count contract
+[TEST 17] v37 all valid feature names resolve
+[TEST 18] v37 disabled TS path has no hits or masks
+[TEST 19] v38 status snapshot independent after mutation
+[TEST 20] v38 non-contiguous enable mask
+[TEST 21] v38 repeated TS apply accumulates hits
+[TEST 22] v38 repeated zero RT ticks count contract
+[TEST 23] v38 all valid feature names resolve
+[TEST 24] v38 disabled TS path has no hits or masks
+[TEST 25] v39 status snapshot independent after mutation
+[TEST 26] v39 non-contiguous enable mask
+[TEST 27] v39 repeated TS apply accumulates hits
+[TEST 28] v39 repeated zero RT ticks count contract
+[TEST 29] v39 all valid feature names resolve
+[TEST 30] v39 disabled TS path has no hits or masks
+[TEST 31] v40 status snapshot independent after mutation
+[TEST 32] v40 non-contiguous enable mask
+[TEST 33] v40 repeated TS apply accumulates hits
+[TEST 34] v40 repeated zero RT ticks count contract
+[TEST 35] v40 all valid feature names resolve
+[TEST 36] v41 status snapshot independent after mutation
+[TEST 37] v41 non-contiguous enable mask
+[TEST 38] v41 repeated TS apply accumulates hits
+[TEST 39] v41 repeated zero RT ticks count contract
+[TEST 40] v41 all valid feature names resolve
+UNIT_TEST_SUMMARY tests=40 failures=0
+PASS additional_unit_tests_v45_40

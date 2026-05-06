@@ -1,0 +1,1133 @@
+diff --git a/source/inc/nc_feature_backlog_v37.h b/source/inc/nc_feature_backlog_v37.h
+new file mode 100644
+--- a/source/inc/nc_feature_backlog_v37.h	2026-05-03 02:15:21.009921600 +0000
++++ b/source/inc/nc_feature_backlog_v37.h	2026-05-03 02:24:38.794245322 +0000
+@@ -0,0 +1,147 @@
++#ifndef NC_FEATURE_BACKLOG_V37_H
++#define NC_FEATURE_BACKLOG_V37_H
++
++#include <stdint.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++/*
++ * IBM-Bob implementation backlog continuation v37_10.
++ *
++ * This module adds feature IDs 285-294 after v36_5.
++ * The implementation follows the IBM-Bob RT/TS split rules:
++ * - fixed-size state only
++ * - no dynamic allocation
++ * - no file I/O
++ * - no Windows API calls
++ * - deterministic loops bounded by NC_FEATURE_BACKLOG_V37_FEATURE_COUNT
++ */
++
++#define NC_IMPL_BACKLOG_FEATURE_COUNT_V36      (285u)
++#define NC_IMPL_BACKLOG_FEATURE_COUNT_V37      (295u)
++#define NC_IMPL_BACKLOG_WORD_COUNT_V37         (10u)
++#define NC_FEATURE_BACKLOG_V37_FEATURE_BASE_ID (285u)
++#define NC_FEATURE_BACKLOG_V37_FEATURE_COUNT   (10u)
++#define NC_FEATURE_BACKLOG_V37_AXIS_COUNT      (8u)
++
++#define NC_FEATURE_BACKLOG_V37_OK              (0)
++#define NC_FEATURE_BACKLOG_V37_ERR_NULL        (-1)
++#define NC_FEATURE_BACKLOG_V37_ERR_RANGE       (-2)
++
++#define NC_FEATURE_BACKLOG_V37_TRACE_NONE      (0u)
++#define NC_FEATURE_BACKLOG_V37_TRACE_BASE      (0x3700u)
++
++/* Added feature IDs: 285-294. */
++typedef enum NC_FEATURE_BACKLOG_V37_ID_TAG {
++    NC_FEATURE_V37_SPINDLE_CHILLER_FLOW_LOW_SLOWDOWN = 285,
++    NC_FEATURE_V37_AXIS_SERVO_FAN_STOP_HOLD = 286,
++    NC_FEATURE_V37_DOOR_LOCK_DUAL_CHANNEL_MISMATCH_TRACE = 287,
++    NC_FEATURE_V37_TOOL_MAGAZINE_HOME_TIMEOUT_INTERLOCK = 288,
++    NC_FEATURE_V37_HYDRAULIC_PRESSURE_RISE_READY_GATE = 289,
++    NC_FEATURE_V37_WORK_AIR_SEAT_CHECK_RETRY_GATE = 290,
++    NC_FEATURE_V37_CHIP_FLUSH_PRESSURE_LOW_HOLD = 291,
++    NC_FEATURE_V37_OPERATOR_PANEL_ENABLE_SWITCH_GUARD = 292,
++    NC_FEATURE_V37_PROBE_BATTERY_LOW_MEASURE_INHIBIT = 293,
++    NC_FEATURE_V37_ABSOLUTE_ENCODER_BATTERY_WARN_TRACE = 294
++} NC_FEATURE_BACKLOG_V37_ID;
++
++typedef enum NC_FEATURE_BACKLOG_V37_POLICY_TAG {
++    NC_FEATURE_BACKLOG_V37_POLICY_MONITOR = 0,
++    NC_FEATURE_BACKLOG_V37_POLICY_GATE = 1,
++    NC_FEATURE_BACKLOG_V37_POLICY_HOLD = 2,
++    NC_FEATURE_BACKLOG_V37_POLICY_INTERLOCK = 3,
++    NC_FEATURE_BACKLOG_V37_POLICY_SLOWDOWN = 4,
++    NC_FEATURE_BACKLOG_V37_POLICY_TRACE = 5,
++    NC_FEATURE_BACKLOG_V37_POLICY_INHIBIT = 6,
++    NC_FEATURE_BACKLOG_V37_POLICY_RETRY = 7
++} NC_FEATURE_BACKLOG_V37_POLICY;
++
++typedef struct NC_FEATURE_BACKLOG_V37_BLOCK_TAG {
++    int32_t axis_target[NC_FEATURE_BACKLOG_V37_AXIS_COUNT];
++    int32_t feed_override_percent;
++    uint32_t aux_request_bits;
++    uint32_t hold_request;
++    uint32_t interlock_mask;
++    uint32_t sequence_gate_mask;
++    uint32_t diagnostics_mask;
++    uint32_t retry_request_mask;
++    uint32_t inhibit_mask;
++    uint32_t trace_event_code;
++} NC_FEATURE_BACKLOG_V37_BLOCK;
++
++typedef struct NC_FEATURE_BACKLOG_V37_RT_IO_TAG {
++    uint32_t cycle_counter;
++    uint32_t spindle_chiller_on;
++    uint32_t spindle_chiller_flow_ok;
++    int32_t spindle_temp_c_x10;
++    uint32_t servo_ready_mask;
++    uint32_t servo_fan_ok_mask;
++    uint32_t servo_monitored_mask;
++    uint32_t door_lock_command;
++    uint32_t door_lock_ch1;
++    uint32_t door_lock_ch2;
++    uint32_t tool_magazine_home_request;
++    uint32_t tool_magazine_home_sensor;
++    uint32_t hydraulic_ready_request;
++    uint32_t hydraulic_pump_on;
++    uint32_t hydraulic_pressure_ok;
++    uint32_t work_air_seat_check_request;
++    uint32_t work_air_blow_on;
++    uint32_t work_air_seat_ok;
++    uint32_t chip_flush_pump_on;
++    uint32_t chip_flush_pressure_ok;
++    uint32_t operator_panel_active;
++    uint32_t operator_enable_required;
++    uint32_t operator_enable_switch_on;
++    uint32_t probe_measure_request;
++    uint32_t probe_battery_low;
++    uint32_t abs_encoder_battery_low_mask;
++} NC_FEATURE_BACKLOG_V37_RT_IO;
++
++typedef struct NC_FEATURE_BACKLOG_V37_STATUS_TAG {
++    uint32_t implemented_count;
++    uint32_t configured_count;
++    uint32_t enabled_mask;
++    uint32_t ts_apply_count;
++    uint32_t rt_tick_count;
++    uint32_t monitor_count;
++    uint32_t gate_count;
++    uint32_t hold_count;
++    uint32_t interlock_count;
++    uint32_t slowdown_count;
++    uint32_t trace_count;
++    uint32_t inhibit_count;
++    uint32_t retry_count;
++    uint32_t warning_count;
++    uint32_t cat_mask;
++    uint32_t last_feature_id;
++    uint32_t last_policy;
++    uint32_t last_trace_event_code;
++    int32_t last_feed_override_percent;
++    int32_t last_x;
++    uint32_t last_fault_mask;
++    uint32_t last_axis_mask;
++    uint32_t per_feature_hits[NC_FEATURE_BACKLOG_V37_FEATURE_COUNT];
++    int32_t per_feature_last_value[NC_FEATURE_BACKLOG_V37_FEATURE_COUNT];
++} NC_FEATURE_BACKLOG_V37_STATUS;
++
++extern NC_FEATURE_BACKLOG_V37_STATUS g_ncFeatureBacklogV37Status;
++
++void NcFeatureBacklogV37_Init(void);
++int NcFeatureBacklogV37_IsFeatureEnabled(uint32_t feature_id);
++int Api_SetNcFeatureBacklogV37Feature(uint32_t feature_id, uint32_t enabled);
++void Api_EnableAllNcFeatureBacklogV37Features(void);
++int Api_GetNcFeatureBacklogV37Status(NC_FEATURE_BACKLOG_V37_STATUS *out_status);
++int Api_RunNcFeatureBacklogV37SelfCheck(void);
++
++void NcFeatureBacklogV37_ApplyBlockTs(NC_FEATURE_BACKLOG_V37_BLOCK *block);
++void NcFeatureBacklogV37_RunRtTick(const NC_FEATURE_BACKLOG_V37_RT_IO *io);
++const char *NcFeatureBacklogV37_GetFeatureName(uint32_t feature_id);
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* NC_FEATURE_BACKLOG_V37_H */
+
+diff --git a/source/src/nc_feature_backlog_v37.c b/source/src/nc_feature_backlog_v37.c
+new file mode 100644
+--- a/source/src/nc_feature_backlog_v37.c	2026-05-03 02:15:21.009921600 +0000
++++ b/source/src/nc_feature_backlog_v37.c	2026-05-03 02:24:38.805866438 +0000
+@@ -0,0 +1,498 @@
++#include "nc_feature_backlog_v37.h"
++
++#include <string.h>
++
++#define V37_BIT(index_) (1u << (uint32_t)(index_))
++#define V37_DEFAULT_FEED_OVERRIDE_PERCENT (100)
++#define V37_MIN_FEED_OVERRIDE_PERCENT     (5)
++#define V37_SPINDLE_TEMP_WARN_C_X10       (550)
++#define V37_SPINDLE_TEMP_HOLD_C_X10       (700)
++#define V37_SPINDLE_FLOW_TIMEOUT_TICKS    (3u)
++#define V37_SERVO_FAN_TIMEOUT_TICKS       (3u)
++#define V37_DOOR_MISMATCH_TIMEOUT_TICKS   (2u)
++#define V37_MAGAZINE_HOME_TIMEOUT_TICKS   (5u)
++#define V37_HYDRAULIC_READY_TIMEOUT_TICKS (4u)
++#define V37_WORK_AIR_RETRY_TIMEOUT_TICKS  (3u)
++#define V37_CHIP_FLUSH_TIMEOUT_TICKS      (3u)
++#define V37_ENABLE_SWITCH_TIMEOUT_TICKS   (2u)
++#define V37_PROBE_BATTERY_TIMEOUT_TICKS   (1u)
++#define V37_ABSENC_WARN_TIMEOUT_TICKS     (2u)
++
++typedef struct V37_FEATURE_DEF_TAG {
++    uint32_t feature_id;
++    NC_FEATURE_BACKLOG_V37_POLICY policy;
++    uint32_t category;
++    const char *name;
++} V37_FEATURE_DEF;
++
++static const V37_FEATURE_DEF k_v37_defs[NC_FEATURE_BACKLOG_V37_FEATURE_COUNT] = {
++    { NC_FEATURE_V37_SPINDLE_CHILLER_FLOW_LOW_SLOWDOWN,      NC_FEATURE_BACKLOG_V37_POLICY_SLOWDOWN, 9u, "spindle chiller flow low staged slowdown" },
++    { NC_FEATURE_V37_AXIS_SERVO_FAN_STOP_HOLD,               NC_FEATURE_BACKLOG_V37_POLICY_HOLD,     9u, "axis servo fan stop hold" },
++    { NC_FEATURE_V37_DOOR_LOCK_DUAL_CHANNEL_MISMATCH_TRACE,  NC_FEATURE_BACKLOG_V37_POLICY_TRACE,    9u, "door lock dual channel mismatch trace" },
++    { NC_FEATURE_V37_TOOL_MAGAZINE_HOME_TIMEOUT_INTERLOCK,   NC_FEATURE_BACKLOG_V37_POLICY_INTERLOCK,9u, "tool magazine home timeout interlock" },
++    { NC_FEATURE_V37_HYDRAULIC_PRESSURE_RISE_READY_GATE,     NC_FEATURE_BACKLOG_V37_POLICY_GATE,     9u, "hydraulic pressure rise ready gate" },
++    { NC_FEATURE_V37_WORK_AIR_SEAT_CHECK_RETRY_GATE,         NC_FEATURE_BACKLOG_V37_POLICY_RETRY,    9u, "work air seat check retry gate" },
++    { NC_FEATURE_V37_CHIP_FLUSH_PRESSURE_LOW_HOLD,           NC_FEATURE_BACKLOG_V37_POLICY_HOLD,     9u, "chip flush pressure low hold" },
++    { NC_FEATURE_V37_OPERATOR_PANEL_ENABLE_SWITCH_GUARD,     NC_FEATURE_BACKLOG_V37_POLICY_INTERLOCK,9u, "operator panel enable switch guard" },
++    { NC_FEATURE_V37_PROBE_BATTERY_LOW_MEASURE_INHIBIT,      NC_FEATURE_BACKLOG_V37_POLICY_INHIBIT,  9u, "probe battery low measure inhibit" },
++    { NC_FEATURE_V37_ABSOLUTE_ENCODER_BATTERY_WARN_TRACE,    NC_FEATURE_BACKLOG_V37_POLICY_TRACE,    9u, "absolute encoder battery warning trace" }
++};
++
++NC_FEATURE_BACKLOG_V37_STATUS g_ncFeatureBacklogV37Status;
++
++static uint32_t s_spindle_flow_wait_ticks;
++static uint32_t s_servo_fan_wait_ticks;
++static uint32_t s_door_mismatch_wait_ticks;
++static uint32_t s_magazine_home_wait_ticks;
++static uint32_t s_hydraulic_ready_wait_ticks;
++static uint32_t s_work_air_retry_wait_ticks;
++static uint32_t s_chip_flush_wait_ticks;
++static uint32_t s_enable_switch_wait_ticks;
++static uint32_t s_probe_battery_wait_ticks;
++static uint32_t s_absenc_warn_wait_ticks;
++
++static uint32_t v37_index_from_feature_id(uint32_t feature_id)
++{
++    if (feature_id < NC_FEATURE_BACKLOG_V37_FEATURE_BASE_ID) {
++        return NC_FEATURE_BACKLOG_V37_FEATURE_COUNT;
++    }
++    return feature_id - NC_FEATURE_BACKLOG_V37_FEATURE_BASE_ID;
++}
++
++static void v37_record_hit(uint32_t index, int32_t value)
++{
++    const V37_FEATURE_DEF *def;
++
++    if (index >= NC_FEATURE_BACKLOG_V37_FEATURE_COUNT) {
++        return;
++    }
++
++    def = &k_v37_defs[index];
++    g_ncFeatureBacklogV37Status.per_feature_hits[index]++;
++    g_ncFeatureBacklogV37Status.per_feature_last_value[index] = value;
++    g_ncFeatureBacklogV37Status.last_feature_id = def->feature_id;
++    g_ncFeatureBacklogV37Status.last_policy = (uint32_t)def->policy;
++    g_ncFeatureBacklogV37Status.cat_mask |= V37_BIT(def->category);
++
++    switch (def->policy) {
++    case NC_FEATURE_BACKLOG_V37_POLICY_MONITOR:
++        g_ncFeatureBacklogV37Status.monitor_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V37_POLICY_GATE:
++        g_ncFeatureBacklogV37Status.gate_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V37_POLICY_HOLD:
++        g_ncFeatureBacklogV37Status.hold_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V37_POLICY_INTERLOCK:
++        g_ncFeatureBacklogV37Status.interlock_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V37_POLICY_SLOWDOWN:
++        g_ncFeatureBacklogV37Status.slowdown_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V37_POLICY_TRACE:
++        g_ncFeatureBacklogV37Status.trace_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V37_POLICY_INHIBIT:
++        g_ncFeatureBacklogV37Status.inhibit_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V37_POLICY_RETRY:
++        g_ncFeatureBacklogV37Status.retry_count++;
++        break;
++    default:
++        g_ncFeatureBacklogV37Status.warning_count++;
++        break;
++    }
++}
++
++static int32_t v37_clamp_feed_override(int32_t value)
++{
++    if (value < V37_MIN_FEED_OVERRIDE_PERCENT) {
++        return V37_MIN_FEED_OVERRIDE_PERCENT;
++    }
++    if (value > V37_DEFAULT_FEED_OVERRIDE_PERCENT) {
++        return V37_DEFAULT_FEED_OVERRIDE_PERCENT;
++    }
++    return value;
++}
++
++void NcFeatureBacklogV37_Init(void)
++{
++    uint32_t i;
++
++    memset(&g_ncFeatureBacklogV37Status, 0, sizeof(g_ncFeatureBacklogV37Status));
++    g_ncFeatureBacklogV37Status.implemented_count = NC_FEATURE_BACKLOG_V37_FEATURE_COUNT;
++    g_ncFeatureBacklogV37Status.configured_count = 0u;
++    g_ncFeatureBacklogV37Status.last_feed_override_percent = V37_DEFAULT_FEED_OVERRIDE_PERCENT;
++
++    for (i = 0u; i < NC_FEATURE_BACKLOG_V37_FEATURE_COUNT; ++i) {
++        g_ncFeatureBacklogV37Status.per_feature_last_value[i] = 0;
++    }
++
++    s_spindle_flow_wait_ticks = 0u;
++    s_servo_fan_wait_ticks = 0u;
++    s_door_mismatch_wait_ticks = 0u;
++    s_magazine_home_wait_ticks = 0u;
++    s_hydraulic_ready_wait_ticks = 0u;
++    s_work_air_retry_wait_ticks = 0u;
++    s_chip_flush_wait_ticks = 0u;
++    s_enable_switch_wait_ticks = 0u;
++    s_probe_battery_wait_ticks = 0u;
++    s_absenc_warn_wait_ticks = 0u;
++}
++
++int NcFeatureBacklogV37_IsFeatureEnabled(uint32_t feature_id)
++{
++    uint32_t index = v37_index_from_feature_id(feature_id);
++    if (index >= NC_FEATURE_BACKLOG_V37_FEATURE_COUNT) {
++        return 0;
++    }
++    return ((g_ncFeatureBacklogV37Status.enabled_mask & V37_BIT(index)) != 0u) ? 1 : 0;
++}
++
++int Api_SetNcFeatureBacklogV37Feature(uint32_t feature_id, uint32_t enabled)
++{
++    uint32_t index = v37_index_from_feature_id(feature_id);
++    uint32_t mask;
++
++    if (index >= NC_FEATURE_BACKLOG_V37_FEATURE_COUNT) {
++        return NC_FEATURE_BACKLOG_V37_ERR_RANGE;
++    }
++
++    mask = V37_BIT(index);
++    if (enabled != 0u) {
++        if ((g_ncFeatureBacklogV37Status.enabled_mask & mask) == 0u) {
++            g_ncFeatureBacklogV37Status.configured_count++;
++        }
++        g_ncFeatureBacklogV37Status.enabled_mask |= mask;
++    } else {
++        if ((g_ncFeatureBacklogV37Status.enabled_mask & mask) != 0u &&
++            g_ncFeatureBacklogV37Status.configured_count > 0u) {
++            g_ncFeatureBacklogV37Status.configured_count--;
++        }
++        g_ncFeatureBacklogV37Status.enabled_mask &= ~mask;
++    }
++
++    return NC_FEATURE_BACKLOG_V37_OK;
++}
++
++void Api_EnableAllNcFeatureBacklogV37Features(void)
++{
++    g_ncFeatureBacklogV37Status.enabled_mask = (1u << NC_FEATURE_BACKLOG_V37_FEATURE_COUNT) - 1u;
++    g_ncFeatureBacklogV37Status.configured_count = NC_FEATURE_BACKLOG_V37_FEATURE_COUNT;
++}
++
++int Api_GetNcFeatureBacklogV37Status(NC_FEATURE_BACKLOG_V37_STATUS *out_status)
++{
++    if (out_status == 0) {
++        return NC_FEATURE_BACKLOG_V37_ERR_NULL;
++    }
++    *out_status = g_ncFeatureBacklogV37Status;
++    return NC_FEATURE_BACKLOG_V37_OK;
++}
++
++const char *NcFeatureBacklogV37_GetFeatureName(uint32_t feature_id)
++{
++    uint32_t index = v37_index_from_feature_id(feature_id);
++    if (index >= NC_FEATURE_BACKLOG_V37_FEATURE_COUNT) {
++        return "unknown";
++    }
++    return k_v37_defs[index].name;
++}
++
++void NcFeatureBacklogV37_ApplyBlockTs(NC_FEATURE_BACKLOG_V37_BLOCK *block)
++{
++    uint32_t index;
++
++    if (block == 0) {
++        g_ncFeatureBacklogV37Status.warning_count++;
++        return;
++    }
++
++    g_ncFeatureBacklogV37Status.ts_apply_count++;
++    if (block->feed_override_percent <= 0) {
++        block->feed_override_percent = V37_DEFAULT_FEED_OVERRIDE_PERCENT;
++    }
++
++    for (index = 0u; index < NC_FEATURE_BACKLOG_V37_FEATURE_COUNT; ++index) {
++        uint32_t feature_bit = V37_BIT(index);
++        uint32_t trace = NC_FEATURE_BACKLOG_V37_TRACE_BASE + index;
++
++        if ((g_ncFeatureBacklogV37Status.enabled_mask & feature_bit) == 0u) {
++            continue;
++        }
++
++        switch (k_v37_defs[index].feature_id) {
++        case NC_FEATURE_V37_SPINDLE_CHILLER_FLOW_LOW_SLOWDOWN:
++            block->diagnostics_mask |= feature_bit;
++            block->feed_override_percent = v37_clamp_feed_override(block->feed_override_percent - 7);
++            v37_record_hit(index, block->feed_override_percent);
++            break;
++        case NC_FEATURE_V37_AXIS_SERVO_FAN_STOP_HOLD:
++            block->hold_request |= feature_bit;
++            block->diagnostics_mask |= feature_bit;
++            v37_record_hit(index, block->axis_target[1]);
++            break;
++        case NC_FEATURE_V37_DOOR_LOCK_DUAL_CHANNEL_MISMATCH_TRACE:
++            block->diagnostics_mask |= feature_bit;
++            block->trace_event_code = trace;
++            g_ncFeatureBacklogV37Status.last_trace_event_code = trace;
++            v37_record_hit(index, block->axis_target[2]);
++            break;
++        case NC_FEATURE_V37_TOOL_MAGAZINE_HOME_TIMEOUT_INTERLOCK:
++            block->sequence_gate_mask |= feature_bit;
++            block->interlock_mask |= feature_bit;
++            v37_record_hit(index, block->axis_target[3]);
++            break;
++        case NC_FEATURE_V37_HYDRAULIC_PRESSURE_RISE_READY_GATE:
++            block->sequence_gate_mask |= feature_bit;
++            block->diagnostics_mask |= feature_bit;
++            v37_record_hit(index, block->axis_target[4]);
++            break;
++        case NC_FEATURE_V37_WORK_AIR_SEAT_CHECK_RETRY_GATE:
++            block->sequence_gate_mask |= feature_bit;
++            block->retry_request_mask |= feature_bit;
++            v37_record_hit(index, block->axis_target[5]);
++            break;
++        case NC_FEATURE_V37_CHIP_FLUSH_PRESSURE_LOW_HOLD:
++            block->hold_request |= feature_bit;
++            block->diagnostics_mask |= feature_bit;
++            v37_record_hit(index, block->axis_target[6]);
++            break;
++        case NC_FEATURE_V37_OPERATOR_PANEL_ENABLE_SWITCH_GUARD:
++            block->sequence_gate_mask |= feature_bit;
++            block->interlock_mask |= feature_bit;
++            v37_record_hit(index, block->axis_target[7]);
++            break;
++        case NC_FEATURE_V37_PROBE_BATTERY_LOW_MEASURE_INHIBIT:
++            block->inhibit_mask |= feature_bit;
++            block->sequence_gate_mask |= feature_bit;
++            v37_record_hit(index, (int32_t)block->inhibit_mask);
++            break;
++        case NC_FEATURE_V37_ABSOLUTE_ENCODER_BATTERY_WARN_TRACE:
++            block->diagnostics_mask |= feature_bit;
++            block->trace_event_code = trace;
++            g_ncFeatureBacklogV37Status.last_trace_event_code = trace;
++            v37_record_hit(index, (int32_t)trace);
++            break;
++        default:
++            g_ncFeatureBacklogV37Status.warning_count++;
++            break;
++        }
++    }
++
++    g_ncFeatureBacklogV37Status.last_feed_override_percent = block->feed_override_percent;
++    g_ncFeatureBacklogV37Status.last_x = block->axis_target[0];
++}
++
++void NcFeatureBacklogV37_RunRtTick(const NC_FEATURE_BACKLOG_V37_RT_IO *io)
++{
++    if (io == 0) {
++        g_ncFeatureBacklogV37Status.warning_count++;
++        return;
++    }
++
++    g_ncFeatureBacklogV37Status.rt_tick_count++;
++
++    if (NcFeatureBacklogV37_IsFeatureEnabled(NC_FEATURE_V37_SPINDLE_CHILLER_FLOW_LOW_SLOWDOWN) != 0) {
++        if (io->spindle_chiller_on != 0u &&
++            (io->spindle_chiller_flow_ok == 0u || io->spindle_temp_c_x10 >= V37_SPINDLE_TEMP_WARN_C_X10)) {
++            s_spindle_flow_wait_ticks++;
++            if (s_spindle_flow_wait_ticks >= V37_SPINDLE_FLOW_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV37Status.last_fault_mask |= V37_BIT(0u);
++                v37_record_hit(0u, io->spindle_temp_c_x10);
++                if (io->spindle_temp_c_x10 >= V37_SPINDLE_TEMP_HOLD_C_X10) {
++                    g_ncFeatureBacklogV37Status.hold_count++;
++                }
++            }
++        } else {
++            s_spindle_flow_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV37_IsFeatureEnabled(NC_FEATURE_V37_AXIS_SERVO_FAN_STOP_HOLD) != 0) {
++        uint32_t monitored = io->servo_ready_mask & io->servo_monitored_mask;
++        uint32_t fan_ng = monitored & ~io->servo_fan_ok_mask;
++        if (fan_ng != 0u) {
++            s_servo_fan_wait_ticks++;
++            if (s_servo_fan_wait_ticks >= V37_SERVO_FAN_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV37Status.last_fault_mask |= V37_BIT(1u);
++                g_ncFeatureBacklogV37Status.last_axis_mask = fan_ng;
++                v37_record_hit(1u, (int32_t)fan_ng);
++            }
++        } else {
++            s_servo_fan_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV37_IsFeatureEnabled(NC_FEATURE_V37_DOOR_LOCK_DUAL_CHANNEL_MISMATCH_TRACE) != 0) {
++        if (io->door_lock_command != 0u && io->door_lock_ch1 != io->door_lock_ch2) {
++            s_door_mismatch_wait_ticks++;
++            if (s_door_mismatch_wait_ticks >= V37_DOOR_MISMATCH_TIMEOUT_TICKS) {
++                uint32_t trace = NC_FEATURE_BACKLOG_V37_TRACE_BASE + 2u;
++                g_ncFeatureBacklogV37Status.last_trace_event_code = trace;
++                g_ncFeatureBacklogV37Status.last_fault_mask |= V37_BIT(2u);
++                v37_record_hit(2u, (int32_t)trace);
++            }
++        } else {
++            s_door_mismatch_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV37_IsFeatureEnabled(NC_FEATURE_V37_TOOL_MAGAZINE_HOME_TIMEOUT_INTERLOCK) != 0) {
++        if (io->tool_magazine_home_request != 0u && io->tool_magazine_home_sensor == 0u) {
++            s_magazine_home_wait_ticks++;
++            if (s_magazine_home_wait_ticks >= V37_MAGAZINE_HOME_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV37Status.last_fault_mask |= V37_BIT(3u);
++                v37_record_hit(3u, (int32_t)s_magazine_home_wait_ticks);
++            }
++        } else {
++            s_magazine_home_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV37_IsFeatureEnabled(NC_FEATURE_V37_HYDRAULIC_PRESSURE_RISE_READY_GATE) != 0) {
++        if (io->hydraulic_ready_request != 0u &&
++            (io->hydraulic_pump_on == 0u || io->hydraulic_pressure_ok == 0u)) {
++            s_hydraulic_ready_wait_ticks++;
++            if (s_hydraulic_ready_wait_ticks >= V37_HYDRAULIC_READY_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV37Status.last_fault_mask |= V37_BIT(4u);
++                v37_record_hit(4u, (int32_t)s_hydraulic_ready_wait_ticks);
++            }
++        } else {
++            s_hydraulic_ready_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV37_IsFeatureEnabled(NC_FEATURE_V37_WORK_AIR_SEAT_CHECK_RETRY_GATE) != 0) {
++        if (io->work_air_seat_check_request != 0u &&
++            (io->work_air_blow_on == 0u || io->work_air_seat_ok == 0u)) {
++            s_work_air_retry_wait_ticks++;
++            if (s_work_air_retry_wait_ticks >= V37_WORK_AIR_RETRY_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV37Status.last_fault_mask |= V37_BIT(5u);
++                v37_record_hit(5u, (int32_t)s_work_air_retry_wait_ticks);
++            }
++        } else {
++            s_work_air_retry_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV37_IsFeatureEnabled(NC_FEATURE_V37_CHIP_FLUSH_PRESSURE_LOW_HOLD) != 0) {
++        if (io->chip_flush_pump_on != 0u && io->chip_flush_pressure_ok == 0u) {
++            s_chip_flush_wait_ticks++;
++            if (s_chip_flush_wait_ticks >= V37_CHIP_FLUSH_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV37Status.last_fault_mask |= V37_BIT(6u);
++                v37_record_hit(6u, (int32_t)s_chip_flush_wait_ticks);
++            }
++        } else {
++            s_chip_flush_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV37_IsFeatureEnabled(NC_FEATURE_V37_OPERATOR_PANEL_ENABLE_SWITCH_GUARD) != 0) {
++        if (io->operator_panel_active != 0u && io->operator_enable_required != 0u && io->operator_enable_switch_on == 0u) {
++            s_enable_switch_wait_ticks++;
++            if (s_enable_switch_wait_ticks >= V37_ENABLE_SWITCH_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV37Status.last_fault_mask |= V37_BIT(7u);
++                v37_record_hit(7u, (int32_t)s_enable_switch_wait_ticks);
++            }
++        } else {
++            s_enable_switch_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV37_IsFeatureEnabled(NC_FEATURE_V37_PROBE_BATTERY_LOW_MEASURE_INHIBIT) != 0) {
++        if (io->probe_measure_request != 0u && io->probe_battery_low != 0u) {
++            s_probe_battery_wait_ticks++;
++            if (s_probe_battery_wait_ticks >= V37_PROBE_BATTERY_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV37Status.last_fault_mask |= V37_BIT(8u);
++                v37_record_hit(8u, (int32_t)s_probe_battery_wait_ticks);
++            }
++        } else {
++            s_probe_battery_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV37_IsFeatureEnabled(NC_FEATURE_V37_ABSOLUTE_ENCODER_BATTERY_WARN_TRACE) != 0) {
++        if (io->abs_encoder_battery_low_mask != 0u) {
++            s_absenc_warn_wait_ticks++;
++            if (s_absenc_warn_wait_ticks >= V37_ABSENC_WARN_TIMEOUT_TICKS) {
++                uint32_t trace = NC_FEATURE_BACKLOG_V37_TRACE_BASE + 9u;
++                g_ncFeatureBacklogV37Status.last_axis_mask = io->abs_encoder_battery_low_mask;
++                g_ncFeatureBacklogV37Status.last_trace_event_code = trace;
++                g_ncFeatureBacklogV37Status.last_fault_mask |= V37_BIT(9u);
++                v37_record_hit(9u, (int32_t)io->abs_encoder_battery_low_mask);
++            }
++        } else {
++            s_absenc_warn_wait_ticks = 0u;
++        }
++    }
++}
++
++int Api_RunNcFeatureBacklogV37SelfCheck(void)
++{
++    NC_FEATURE_BACKLOG_V37_BLOCK block;
++    NC_FEATURE_BACKLOG_V37_RT_IO io;
++    uint32_t i;
++
++    NcFeatureBacklogV37_Init();
++    Api_EnableAllNcFeatureBacklogV37Features();
++
++    memset(&block, 0, sizeof(block));
++    for (i = 0u; i < NC_FEATURE_BACKLOG_V37_AXIS_COUNT; ++i) {
++        block.axis_target[i] = (int32_t)(3700 + (int32_t)i);
++    }
++    block.feed_override_percent = V37_DEFAULT_FEED_OVERRIDE_PERCENT;
++    NcFeatureBacklogV37_ApplyBlockTs(&block);
++
++    memset(&io, 0, sizeof(io));
++    io.spindle_chiller_on = 1u;
++    io.spindle_chiller_flow_ok = 0u;
++    io.spindle_temp_c_x10 = V37_SPINDLE_TEMP_HOLD_C_X10;
++    io.servo_ready_mask = 0x0000000Fu;
++    io.servo_monitored_mask = 0x0000000Fu;
++    io.servo_fan_ok_mask = 0x00000007u;
++    io.door_lock_command = 1u;
++    io.door_lock_ch1 = 1u;
++    io.door_lock_ch2 = 0u;
++    io.tool_magazine_home_request = 1u;
++    io.tool_magazine_home_sensor = 0u;
++    io.hydraulic_ready_request = 1u;
++    io.hydraulic_pump_on = 1u;
++    io.hydraulic_pressure_ok = 0u;
++    io.work_air_seat_check_request = 1u;
++    io.work_air_blow_on = 1u;
++    io.work_air_seat_ok = 0u;
++    io.chip_flush_pump_on = 1u;
++    io.chip_flush_pressure_ok = 0u;
++    io.operator_panel_active = 1u;
++    io.operator_enable_required = 1u;
++    io.operator_enable_switch_on = 0u;
++    io.probe_measure_request = 1u;
++    io.probe_battery_low = 1u;
++    io.abs_encoder_battery_low_mask = 0x00000005u;
++
++    for (i = 0u; i < 6u; ++i) {
++        io.cycle_counter = i;
++        NcFeatureBacklogV37_RunRtTick(&io);
++    }
++
++    if (g_ncFeatureBacklogV37Status.implemented_count != NC_FEATURE_BACKLOG_V37_FEATURE_COUNT) {
++        return NC_FEATURE_BACKLOG_V37_ERR_RANGE;
++    }
++    if (g_ncFeatureBacklogV37Status.configured_count != NC_FEATURE_BACKLOG_V37_FEATURE_COUNT) {
++        return NC_FEATURE_BACKLOG_V37_ERR_RANGE;
++    }
++    if (g_ncFeatureBacklogV37Status.ts_apply_count == 0u ||
++        g_ncFeatureBacklogV37Status.rt_tick_count == 0u ||
++        g_ncFeatureBacklogV37Status.hold_count == 0u ||
++        g_ncFeatureBacklogV37Status.interlock_count == 0u ||
++        g_ncFeatureBacklogV37Status.gate_count == 0u ||
++        g_ncFeatureBacklogV37Status.slowdown_count == 0u ||
++        g_ncFeatureBacklogV37Status.trace_count == 0u ||
++        g_ncFeatureBacklogV37Status.retry_count == 0u ||
++        g_ncFeatureBacklogV37Status.inhibit_count == 0u) {
++        return NC_FEATURE_BACKLOG_V37_ERR_RANGE;
++    }
++    return NC_FEATURE_BACKLOG_V37_OK;
++}
+
+diff --git a/source/tests/test_nc_feature_backlog_v37.c b/source/tests/test_nc_feature_backlog_v37.c
+new file mode 100644
+--- a/source/tests/test_nc_feature_backlog_v37.c	2026-05-03 02:15:21.009921600 +0000
++++ b/source/tests/test_nc_feature_backlog_v37.c	2026-05-03 02:24:56.958772043 +0000
+@@ -0,0 +1,165 @@
++#include "nc_feature_backlog_v37.h"
++
++#include <stdio.h>
++#include <string.h>
++
++static int expect_u32(const char *name, uint32_t actual, uint32_t expected)
++{
++    if (actual != expected) {
++        printf("FAIL %s actual=%u expected=%u\n", name, actual, expected);
++        return 1;
++    }
++    return 0;
++}
++
++static int expect_nonzero(const char *name, uint32_t actual)
++{
++    if (actual == 0u) {
++        printf("FAIL %s actual=0\n", name);
++        return 1;
++    }
++    return 0;
++}
++
++static int expect_less_than(const char *name, int32_t actual, int32_t threshold)
++{
++    if (actual >= threshold) {
++        printf("FAIL %s actual=%d threshold=%d\n", name, actual, threshold);
++        return 1;
++    }
++    return 0;
++}
++
++int main(void)
++{
++    NC_FEATURE_BACKLOG_V37_BLOCK block;
++    NC_FEATURE_BACKLOG_V37_RT_IO io;
++    NC_FEATURE_BACKLOG_V37_STATUS status;
++    uint32_t i;
++    int failures = 0;
++
++    NcFeatureBacklogV37_Init();
++    failures += expect_u32("implemented", g_ncFeatureBacklogV37Status.implemented_count, 10u);
++    failures += expect_u32("configured_init", g_ncFeatureBacklogV37Status.configured_count, 0u);
++
++    if (Api_SetNcFeatureBacklogV37Feature(NC_FEATURE_V37_SPINDLE_CHILLER_FLOW_LOW_SLOWDOWN, 1u) != 0) {
++        printf("FAIL enable feature 285\n");
++        failures++;
++    }
++    if (Api_SetNcFeatureBacklogV37Feature(999u, 1u) == 0) {
++        printf("FAIL out-of-range feature accepted\n");
++        failures++;
++    }
++    if (NcFeatureBacklogV37_IsFeatureEnabled(NC_FEATURE_V37_SPINDLE_CHILLER_FLOW_LOW_SLOWDOWN) == 0) {
++        printf("FAIL enabled feature was not visible\n");
++        failures++;
++    }
++    Api_EnableAllNcFeatureBacklogV37Features();
++    failures += expect_u32("configured_all", g_ncFeatureBacklogV37Status.configured_count, 10u);
++
++    memset(&block, 0, sizeof(block));
++    for (i = 0u; i < NC_FEATURE_BACKLOG_V37_AXIS_COUNT; ++i) {
++        block.axis_target[i] = (int32_t)(1700 + (int32_t)i);
++    }
++    block.feed_override_percent = 100;
++    NcFeatureBacklogV37_ApplyBlockTs(&block);
++
++    failures += expect_nonzero("ts_apply", g_ncFeatureBacklogV37Status.ts_apply_count);
++    failures += expect_nonzero("hold_request", block.hold_request);
++    failures += expect_nonzero("interlock_mask", block.interlock_mask);
++    failures += expect_nonzero("sequence_gate_mask", block.sequence_gate_mask);
++    failures += expect_nonzero("diagnostics_mask", block.diagnostics_mask);
++    failures += expect_nonzero("retry_request", block.retry_request_mask);
++    failures += expect_nonzero("inhibit_mask", block.inhibit_mask);
++    failures += expect_nonzero("trace_event_code", block.trace_event_code);
++    failures += expect_less_than("feed_override", block.feed_override_percent, 100);
++    if (block.axis_target[0] != 1700) {
++        printf("FAIL axis target unexpectedly changed actual=%d expected=1700\n", block.axis_target[0]);
++        failures++;
++    }
++
++    memset(&io, 0, sizeof(io));
++    io.spindle_chiller_on = 1u;
++    io.spindle_chiller_flow_ok = 0u;
++    io.spindle_temp_c_x10 = 710;
++    io.servo_ready_mask = 0x0Fu;
++    io.servo_monitored_mask = 0x0Fu;
++    io.servo_fan_ok_mask = 0x07u;
++    io.door_lock_command = 1u;
++    io.door_lock_ch1 = 1u;
++    io.door_lock_ch2 = 0u;
++    io.tool_magazine_home_request = 1u;
++    io.tool_magazine_home_sensor = 0u;
++    io.hydraulic_ready_request = 1u;
++    io.hydraulic_pump_on = 1u;
++    io.hydraulic_pressure_ok = 0u;
++    io.work_air_seat_check_request = 1u;
++    io.work_air_blow_on = 1u;
++    io.work_air_seat_ok = 0u;
++    io.chip_flush_pump_on = 1u;
++    io.chip_flush_pressure_ok = 0u;
++    io.operator_panel_active = 1u;
++    io.operator_enable_required = 1u;
++    io.operator_enable_switch_on = 0u;
++    io.probe_measure_request = 1u;
++    io.probe_battery_low = 1u;
++    io.abs_encoder_battery_low_mask = 0x05u;
++
++    for (i = 0u; i < 6u; ++i) {
++        io.cycle_counter = i;
++        NcFeatureBacklogV37_RunRtTick(&io);
++    }
++
++    failures += expect_nonzero("rt_tick", g_ncFeatureBacklogV37Status.rt_tick_count);
++    failures += expect_nonzero("hold_count", g_ncFeatureBacklogV37Status.hold_count);
++    failures += expect_nonzero("interlock_count", g_ncFeatureBacklogV37Status.interlock_count);
++    failures += expect_nonzero("gate_count", g_ncFeatureBacklogV37Status.gate_count);
++    failures += expect_nonzero("slowdown_count", g_ncFeatureBacklogV37Status.slowdown_count);
++    failures += expect_nonzero("trace_count", g_ncFeatureBacklogV37Status.trace_count);
++    failures += expect_nonzero("retry_count", g_ncFeatureBacklogV37Status.retry_count);
++    failures += expect_nonzero("inhibit_count", g_ncFeatureBacklogV37Status.inhibit_count);
++    failures += expect_nonzero("fault_mask", g_ncFeatureBacklogV37Status.last_fault_mask);
++    failures += expect_nonzero("axis_mask", g_ncFeatureBacklogV37Status.last_axis_mask);
++
++    if (Api_GetNcFeatureBacklogV37Status(&status) != 0) {
++        printf("FAIL status get\n");
++        failures++;
++    }
++    if (Api_GetNcFeatureBacklogV37Status(0) == 0) {
++        printf("FAIL null status accepted\n");
++        failures++;
++    }
++    if (Api_RunNcFeatureBacklogV37SelfCheck() != 0) {
++        printf("FAIL selfcheck\n");
++        failures++;
++    }
++
++    Api_GetNcFeatureBacklogV37Status(&status);
++    printf("implementation_backlog_v37 implemented=%u configured=%u ts=%u rt=%u hold=%u interlock=%u gate=%u slowdown=%u trace=%u retry=%u inhibit=%u cat_mask=0x%08x last_id=%u last_policy=%u trace=0x%04x fault=0x%08x axis=0x%08x last_x=%d\n",
++           status.implemented_count,
++           status.configured_count,
++           status.ts_apply_count,
++           status.rt_tick_count,
++           status.hold_count,
++           status.interlock_count,
++           status.gate_count,
++           status.slowdown_count,
++           status.trace_count,
++           status.retry_count,
++           status.inhibit_count,
++           status.cat_mask,
++           status.last_feature_id,
++           status.last_policy,
++           status.last_trace_event_code,
++           status.last_fault_mask,
++           status.last_axis_mask,
++           status.last_x);
++
++    if (failures != 0) {
++        printf("FAILED failures=%d\n", failures);
++        return 1;
++    }
++
++    printf("PASS nc_feature_backlog_v37\n");
++    return 0;
++}
+
+diff --git a/source/scripts/build_gcc_smoke_v37_10.sh b/source/scripts/build_gcc_smoke_v37_10.sh
+new file mode 100644
+--- a/source/scripts/build_gcc_smoke_v37_10.sh	2026-05-03 02:15:21.009921600 +0000
++++ b/source/scripts/build_gcc_smoke_v37_10.sh	2026-05-03 02:24:57.052634203 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd "$(dirname "$0")/.."
++mkdir -p build
++gcc -std=c99 -Wall -Wextra -Werror -Iinc src/nc_feature_backlog_v37.c tests/test_nc_feature_backlog_v37.c -o build/test_nc_feature_backlog_v37
+
+diff --git a/source/scripts/test_gcc_smoke_v37_10.sh b/source/scripts/test_gcc_smoke_v37_10.sh
+new file mode 100644
+--- a/source/scripts/test_gcc_smoke_v37_10.sh	2026-05-03 02:15:21.009921600 +0000
++++ b/source/scripts/test_gcc_smoke_v37_10.sh	2026-05-03 02:24:57.066748471 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd "$(dirname "$0")/.."
++scripts/build_gcc_smoke_v37_10.sh
++./build/test_nc_feature_backlog_v37
+
+diff --git a/source/scripts/build_vc2026_v37_10.bat b/source/scripts/build_vc2026_v37_10.bat
+new file mode 100644
+--- a/source/scripts/build_vc2026_v37_10.bat	2026-05-03 02:15:21.009921600 +0000
++++ b/source/scripts/build_vc2026_v37_10.bat	2026-05-03 02:24:57.157654777 +0000
+@@ -0,0 +1,6 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++if not exist build mkdir build
++cl /nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\nc_feature_backlog_v37.c tests\test_nc_feature_backlog_v37.c /Febuild\test_nc_feature_backlog_v37.exe
++exit /b %ERRORLEVEL%
+
+diff --git a/source/scripts/test_vc2026_v37_10.bat b/source/scripts/test_vc2026_v37_10.bat
+new file mode 100644
+--- a/source/scripts/test_vc2026_v37_10.bat	2026-05-03 02:15:21.009921600 +0000
++++ b/source/scripts/test_vc2026_v37_10.bat	2026-05-03 02:24:57.248179369 +0000
+@@ -0,0 +1,6 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++call scripts\build_vc2026_v37_10.bat || exit /b %ERRORLEVEL%
++build\test_nc_feature_backlog_v37.exe
++exit /b %ERRORLEVEL%
+
+diff --git a/source/scripts/build_clang_v37_10.bat b/source/scripts/build_clang_v37_10.bat
+new file mode 100644
+--- a/source/scripts/build_clang_v37_10.bat	2026-05-03 02:15:21.009921600 +0000
++++ b/source/scripts/build_clang_v37_10.bat	2026-05-03 02:24:57.348152571 +0000
+@@ -0,0 +1,6 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++if not exist build mkdir build
++clang -std=c99 -Wall -Wextra -Werror -Iinc src\nc_feature_backlog_v37.c tests\test_nc_feature_backlog_v37.c -o build\test_nc_feature_backlog_v37.exe
++exit /b %ERRORLEVEL%
+
+diff --git a/source/scripts/test_clang_v37_10.bat b/source/scripts/test_clang_v37_10.bat
+new file mode 100644
+--- a/source/scripts/test_clang_v37_10.bat	2026-05-03 02:15:21.009921600 +0000
++++ b/source/scripts/test_clang_v37_10.bat	2026-05-03 02:24:57.367028780 +0000
+@@ -0,0 +1,6 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++call scripts\build_clang_v37_10.bat || exit /b %ERRORLEVEL%
++build\test_nc_feature_backlog_v37.exe
++exit /b %ERRORLEVEL%
+
+diff --git a/source/docs/implementation_report_v37_10.md b/source/docs/implementation_report_v37_10.md
+new file mode 100644
+--- a/source/docs/implementation_report_v37_10.md	2026-05-03 02:15:21.009921600 +0000
++++ b/source/docs/implementation_report_v37_10.md	2026-05-03 02:25:49.167108806 +0000
+@@ -0,0 +1,46 @@
++# IBM-Bob ソースコード追加実装レポート v37_10
++
++## 概要
++
++`v36_5` の続きとして、未実装または入口実装止まりだった安全・保全・運転準備系の機能を 10 件追加した。
++追加IDは `285〜294` とし、既存の v35/v36 と重複しない独立モジュール `nc_feature_backlog_v37` として実装した。
++
++## 追加した機能
++
++| ID | 機能名 | 主な処理方針 |
++|---:|---|---|
++| 285 | 主軸チラー流量低下段階減速 | チラーON中の流量低下または主軸温度上昇時に送りオーバライドを段階低下し、閾値超過ではHOLD側へ寄せる |
++| 286 | 軸サーボファン停止HOLD | 監視対象軸のサーボREADY中にファン異常を検出し、軸マスク付きHOLD要求を記録 |
++| 287 | ドアロック二重系不一致トレース | ドアロック指令中の2ch信号不一致を固定長トレースコードとして保存 |
++| 288 | 工具マガジン原点復帰タイムアウトインターロック | 原点復帰要求中に原点センサが成立しない場合、インターロックとして記録 |
++| 289 | 油圧昇圧READYゲート | READY要求時にポンプ/圧力条件が不足する場合、シーケンスゲートで待機 |
++| 290 | ワーク着座エア確認リトライゲート | エアブローまたは着座確認が不足する場合、リトライ要求を記録 |
++| 291 | 切粉洗浄圧低下HOLD | 切粉洗浄ポンプON中の圧力低下をHOLD条件として検出 |
++| 292 | 操作盤イネーブルスイッチガード | 操作盤有効中にイネーブルスイッチ未成立の場合、インターロックとして扱う |
++| 293 | プローブ電池低下時測定禁止 | 測定要求中のプローブ電池低下を測定禁止・ゲート条件として扱う |
++| 294 | 絶対値エンコーダ電池警告トレース | 軸別電池低下マスクをトレースし、最後の軸マスクとして公開 |
++
++## 実装ファイル
++
++- `source/inc/nc_feature_backlog_v37.h`
++- `source/src/nc_feature_backlog_v37.c`
++- `source/tests/test_nc_feature_backlog_v37.c`
++- `source/scripts/build_gcc_smoke_v37_10.sh`
++- `source/scripts/test_gcc_smoke_v37_10.sh`
++- `source/scripts/build_vc2026_v37_10.bat`
++- `source/scripts/test_vc2026_v37_10.bat`
++- `source/scripts/build_clang_v37_10.bat`
++- `source/scripts/test_clang_v37_10.bat`
++
++## 設計上の制約対応
++
++- RT側処理は `NcFeatureBacklogV37_RunRtTick()` に閉じ、固定長カウンタと固定長ステータスのみ使用する。
++- TS側処理は `NcFeatureBacklogV37_ApplyBlockTs()` に分離し、ブロック単位で `hold_request`、`interlock_mask`、`sequence_gate_mask`、`retry_request_mask`、`inhibit_mask`、`trace_event_code` を設定する。
++- 動的メモリ確保、ファイルI/O、Windows API、非決定長ループは使用していない。
++- 機能有効/無効は `enabled_mask` で管理し、API経由で個別設定できる。
++- `Api_RunNcFeatureBacklogV37SelfCheck()` により、追加10機能の主要カウンタがすべて動作することを確認できる。
++
++## 検証結果
++
++GCC smoke build/test を実行し、PASSを確認した。
++詳細は `source/docs/verification_output_v37_10.txt` を参照。
+
+diff --git a/source/docs/integration_note_v37_10.md b/source/docs/integration_note_v37_10.md
+new file mode 100644
+--- a/source/docs/integration_note_v37_10.md	2026-05-03 02:15:21.009921600 +0000
++++ b/source/docs/integration_note_v37_10.md	2026-05-03 02:25:49.180488604 +0000
+@@ -0,0 +1,41 @@
++# v37_10 統合メモ
++
++## 統合方針
++
++この v37_10 は `v36_5` の続きとして追加する独立モジュールである。
++既存の v35/v36 モジュールと同じ方式で、ヘッダ・Cファイル・テストをプロジェクトへ追加する。
++
++## 追加手順
++
++1. `source/inc/nc_feature_backlog_v37.h` を include 配下へ追加する。
++2. `source/src/nc_feature_backlog_v37.c` を src 配下へ追加する。
++3. ビルド対象に `src\nc_feature_backlog_v37.c` を追加する。
++4. 公開API一覧へ以下を追加する。
++   - `Api_SetNcFeatureBacklogV37Feature()`
++   - `Api_EnableAllNcFeatureBacklogV37Features()`
++   - `Api_GetNcFeatureBacklogV37Status()`
++   - `Api_RunNcFeatureBacklogV37SelfCheck()`
++5. 単体/スモーク確認として `source/tests/test_nc_feature_backlog_v37.c` を追加する。
++
++## Windowsでの確認コマンド
++
++```bat
++cd source
++scripts\test_vc2026_v37_10.bat
++scripts\test_clang_v37_10.bat
++```
++
++## Linux/GCCでの確認コマンド
++
++```sh
++cd source
++scripts/test_gcc_smoke_v37_10.sh
++```
++
++## ID管理
++
++- v35_10: `270〜279`
++- v36_5: `280〜284`
++- v37_10: `285〜294`
++
++次回追加する場合は `295` 以降を使用する。
+
+diff --git a/source/docs/verification_output_v37_10.txt b/source/docs/verification_output_v37_10.txt
+new file mode 100644
+--- a/source/docs/verification_output_v37_10.txt	2026-05-03 02:15:21.009921600 +0000
++++ b/source/docs/verification_output_v37_10.txt	2026-05-03 02:25:21.158185092 +0000
+@@ -0,0 +1,2 @@
++implementation_backlog_v37 implemented=10 configured=10 ts=1 rt=6 hold=14 interlock=9 gate=4 slowdown=5 trace=12 retry=5 inhibit=7 cat_mask=0x00000200 last_id=294 last_policy=5 trace=0x3709 fault=0x000003ff axis=0x00000005 last_x=3700
++PASS nc_feature_backlog_v37
+
+diff --git a/source/docs/manifest_v37_10.json b/source/docs/manifest_v37_10.json
+new file mode 100644
+--- a/source/docs/manifest_v37_10.json	2026-05-03 02:15:21.009921600 +0000
++++ b/source/docs/manifest_v37_10.json	2026-05-03 02:26:40.875988243 +0000
+@@ -0,0 +1,121 @@
++{
++  "version": "v37_10",
++  "base_version": "v36_5",
++  "created_at": "2026-05-03T00:00:00+09:00",
++  "feature_id_range": "285-294",
++  "added_feature_count": 10,
++  "features": [
++    {
++      "id": 285,
++      "name": "主軸チラー流量低下段階減速"
++    },
++    {
++      "id": 286,
++      "name": "軸サーボファン停止HOLD"
++    },
++    {
++      "id": 287,
++      "name": "ドアロック二重系不一致トレース"
++    },
++    {
++      "id": 288,
++      "name": "工具マガジン原点復帰タイムアウトインターロック"
++    },
++    {
++      "id": 289,
++      "name": "油圧昇圧READYゲート"
++    },
++    {
++      "id": 290,
++      "name": "ワーク着座エア確認リトライゲート"
++    },
++    {
++      "id": 291,
++      "name": "切粉洗浄圧低下HOLD"
++    },
++    {
++      "id": 292,
++      "name": "操作盤イネーブルスイッチガード"
++    },
++    {
++      "id": 293,
++      "name": "プローブ電池低下時測定禁止"
++    },
++    {
++      "id": 294,
++      "name": "絶対値エンコーダ電池警告トレース"
++    }
++  ],
++  "verification": {
++    "gcc_smoke": "PASS",
++    "windows_vc2026": "not_run_in_linux_sandbox",
++    "windows_clang": "not_run_in_linux_sandbox"
++  },
++  "files": [
++    {
++      "path": "source/inc/nc_feature_backlog_v37.h",
++      "bytes": 5195,
++      "sha256": "822cb4d52e8e9cf93186cc41483e2fc1c00463168b1d3464111925e8f1c65a8d"
++    },
++    {
++      "path": "source/src/nc_feature_backlog_v37.c",
++      "bytes": 20478,
++      "sha256": "0567a9802408e358134f35e67f7108ddac097d936f50251c1bac232641c995a1"
++    },
++    {
++      "path": "source/tests/test_nc_feature_backlog_v37.c",
++      "bytes": 6188,
++      "sha256": "e074f63a31f697aeff6f28756e061a3d82496d131eb1b23f4693ad7e496c7f2e"
++    },
++    {
++      "path": "source/scripts/build_gcc_smoke_v37_10.sh",
++      "bytes": 220,
++      "sha256": "4a88b25d715cce1bdf25e4f2ff631107bda56097607b44e7163397ec3ec87332"
++    },
++    {
++      "path": "source/scripts/test_gcc_smoke_v37_10.sh",
++      "bytes": 132,
++      "sha256": "782791275e3c1a7b114cde577c6e600d818669d7b0f87430ef8e72f0c0d43cbc"
++    },
++    {
++      "path": "source/scripts/build_vc2026_v37_10.bat",
++      "bytes": 243,
++      "sha256": "c168435fe9a380ed169dfa7647ebdc6325f9b18577df3c006b84816bc9b78f52"
++    },
++    {
++      "path": "source/scripts/test_vc2026_v37_10.bat",
++      "bytes": 154,
++      "sha256": "ea48b2c9bae54af9f54ac31bcf645899b6fe9c188423b4b8381a67697c830bb5"
++    },
++    {
++      "path": "source/scripts/build_clang_v37_10.bat",
++      "bytes": 235,
++      "sha256": "606cf1aaeab125ae763896f511b6f4154bb02d6530792b00c453b6a0d5dda449"
++    },
++    {
++      "path": "source/scripts/test_clang_v37_10.bat",
++      "bytes": 153,
++      "sha256": "1c4db62b3244839dd1a67ab7e9a9b7cd3e0dd03864abef6f740e4cb7132e464a"
++    },
++    {
++      "path": "source/docs/implementation_report_v37_10.md",
++      "bytes": 3251,
++      "sha256": "32c90055a0ffe77bc2cca132f212e9ef715c41268f0ba3e900d1061121eca306"
++    },
++    {
++      "path": "source/docs/integration_note_v37_10.md",
++      "bytes": 1181,
++      "sha256": "091f4e52d0d0d78085548a879553c7a17cd848f624fe5ebb99552bef4a06bacd"
++    },
++    {
++      "path": "source/docs/verification_output_v37_10.txt",
++      "bytes": 263,
++      "sha256": "23a05e027f9947633e750f3603352ffa34245765f771382c5ef241f666137af8"
++    },
++    {
++      "path": "source/docs/continuation_v37_10_diff.patch",
++      "bytes": 46078,
++      "sha256": "self-referential-excluded"
++    }
++  ]
++}
+\ No newline at end of file
+

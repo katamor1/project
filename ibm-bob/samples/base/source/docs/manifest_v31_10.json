@@ -1,0 +1,22 @@
+{
+  "version": "v31_10",
+  "base_available_in_environment": "v28_10",
+  "final_feature_count": 240,
+  "final_word_count": 8,
+  "new_feature_id_range": "230-239",
+  "cumulative_reapplied_id_ranges": ["210-219", "220-229"],
+  "modified_files": [
+    "source/inc/system_config.h",
+    "source/inc/system_shared.h",
+    "source/src/nc_feature_backlog.c",
+    "source/scripts/build_gcc_smoke_v31_10.sh",
+    "source/scripts/test_gcc_smoke_v31_10.sh",
+    "source/docs/implementation_report_v31_10.md",
+    "source/docs/verification_output_v31_10.txt"
+  ],
+  "verification": {
+    "gcc_smoke_build": "passed",
+    "gcc_smoke_test": "passed",
+    "command": "source/scripts/test_gcc_smoke_v31_10.sh"
+  }
+}

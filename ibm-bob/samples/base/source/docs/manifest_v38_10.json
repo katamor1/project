@@ -1,0 +1,43 @@
+{
+  "version": "v38_10",
+  "base_version": "v37_10",
+  "feature_id_range": {
+    "start": 295,
+    "end": 304,
+    "count": 10
+  },
+  "added_files": [
+    "source/inc/nc_feature_backlog_v38.h",
+    "source/src/nc_feature_backlog_v38.c",
+    "source/tests/test_nc_feature_backlog_v38.c",
+    "source/scripts/build_gcc_smoke_v38_10.sh",
+    "source/scripts/test_gcc_smoke_v38_10.sh",
+    "source/scripts/build_vc2026_v38_10.bat",
+    "source/scripts/test_vc2026_v38_10.bat",
+    "source/scripts/build_clang_v38_10.bat",
+    "source/scripts/test_clang_v38_10.bat",
+    "source/docs/implementation_report_v38_10.md",
+    "source/docs/verification_output_v38_10.txt",
+    "source/docs/integration_note_v38_10.md",
+    "source/docs/continuation_v38_10_diff.patch",
+    "source/docs/manifest_v38_10.json"
+  ],
+  "features": [
+    { "id": 295, "name": "機械熱安定READY禁止", "policy": "INHIBIT" },
+    { "id": 296, "name": "油圧フィルタ目詰まりトレース", "policy": "TRACE" },
+    { "id": 297, "name": "ATCポット割出確認インターロック", "policy": "INTERLOCK" },
+    { "id": 298, "name": "パレットID不一致ゲート", "policy": "GATE" },
+    { "id": 299, "name": "Z軸カウンタバランス圧低下HOLD", "policy": "HOLD" },
+    { "id": 300, "name": "サーボ絶対位置不一致トレース", "policy": "TRACE" },
+    { "id": 301, "name": "主軸工具アンクランプ確認リトライ", "policy": "RETRY" },
+    { "id": 302, "name": "クーラントタンク液面低下ゲート", "policy": "GATE" },
+    { "id": 303, "name": "ミストコレクタREADYゲート", "policy": "GATE" },
+    { "id": 304, "name": "安全マット侵入HOLD", "policy": "HOLD" }
+  ],
+  "verification": {
+    "gcc_smoke_build": "PASS",
+    "gcc_smoke_test": "PASS",
+    "vc2026_windows": "not_run_in_linux_sandbox",
+    "clang_windows": "not_run_in_linux_sandbox"
+  }
+}

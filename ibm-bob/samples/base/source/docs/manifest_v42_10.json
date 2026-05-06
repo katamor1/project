@@ -1,0 +1,103 @@
+{
+  "version": "v42_10",
+  "base_version": "v41_10",
+  "feature_id_range": "335-344",
+  "feature_count_added": 10,
+  "module": "nc_feature_backlog_v42",
+  "rt_constraints": [
+    "fixed-size state",
+    "bounded loops",
+    "no dynamic allocation",
+    "no file I/O",
+    "no Windows API"
+  ],
+  "features": [
+    {
+      "id": 335,
+      "macro": "SPINDLE_AIR_PURGE_PRESSURE_GATE",
+      "name_ja": "主軸エアパージ圧低下ゲート",
+      "name_en": "spindle air purge pressure low gate",
+      "policy": "GATE"
+    },
+    {
+      "id": 336,
+      "macro": "AXIS_LIMIT_SWITCH_STUCK_TRACE",
+      "name_ja": "軸リミットスイッチ貼り付きトレース",
+      "name_en": "axis limit switch stuck trace",
+      "policy": "TRACE"
+    },
+    {
+      "id": 337,
+      "macro": "OIL_MIST_SUPPLY_LOW_HOLD",
+      "name_ja": "オイルミスト供給低下HOLD",
+      "name_en": "oil mist supply low hold",
+      "policy": "HOLD"
+    },
+    {
+      "id": 338,
+      "macro": "LOADER_CHUCK_CONFIRM_INTERLOCK",
+      "name_ja": "ローダチャック開閉確認インターロック",
+      "name_en": "loader chuck confirm interlock",
+      "policy": "INTERLOCK"
+    },
+    {
+      "id": 339,
+      "macro": "AUTO_DOOR_MOTION_TIMEOUT_RETRY",
+      "name_ja": "自動扉開閉タイムアウトリトライ",
+      "name_en": "auto door motion timeout retry",
+      "policy": "RETRY"
+    },
+    {
+      "id": 340,
+      "macro": "TABLE_SEATING_SENSOR_MISMATCH_HOLD",
+      "name_ja": "テーブル着座センサ不一致HOLD",
+      "name_en": "table seating sensor mismatch hold",
+      "policy": "HOLD"
+    },
+    {
+      "id": 341,
+      "macro": "DOOR_UNLOCK_DURING_SPINDLE_INHIBIT",
+      "name_ja": "主軸回転中ドア解除禁止",
+      "name_en": "door unlock during spindle rotation inhibit",
+      "policy": "INHIBIT"
+    },
+    {
+      "id": 342,
+      "macro": "TOOL_RFID_READ_FAIL_GATE",
+      "name_ja": "工具ID RFID読取失敗ゲート",
+      "name_en": "tool RFID read fail gate",
+      "policy": "GATE"
+    },
+    {
+      "id": 343,
+      "macro": "MACHINING_ROOM_LIGHT_FAULT_TRACE",
+      "name_ja": "加工室照明異常トレース",
+      "name_en": "machining room light fault trace",
+      "policy": "TRACE"
+    },
+    {
+      "id": 344,
+      "macro": "SERVO_TEMPERATURE_RISE_SLOWDOWN",
+      "name_ja": "サーボ温度上昇段階減速",
+      "name_en": "servo temperature rise staged slowdown",
+      "policy": "SLOWDOWN"
+    }
+  ],
+  "files_added": [
+    "source/inc/nc_feature_backlog_v42.h",
+    "source/src/nc_feature_backlog_v42.c",
+    "source/tests/test_nc_feature_backlog_v42.c",
+    "source/scripts/build_gcc_smoke_v42_10.sh",
+    "source/scripts/test_gcc_smoke_v42_10.sh",
+    "source/scripts/build_vc2026_v42_10.bat",
+    "source/scripts/test_vc2026_v42_10.bat",
+    "source/scripts/build_clang_v42_10.bat",
+    "source/scripts/test_clang_v42_10.bat",
+    "source/docs/implementation_report_v42_10.md",
+    "source/docs/verification_output_v42_10.txt",
+    "source/docs/integration_note_v42_10.md",
+    "source/docs/manifest_v42_10.json",
+    "source/docs/continuation_v42_10_diff.patch"
+  ],
+  "verification_summary": "implementation_backlog_v42 implemented=10 configured=10 ts=1 rt=8 hold=30 interlock=8 gate=15 slowdown=15 trace=16 retry=11 inhibit=17 cat_mask=0x00001000 last_id=344 last_policy=4 trace=0x4209 fault=0x000003ff axis=0x00000002 pressure=60 spindle_rpm=2400 temp=86 table_mismatch=0x00000002 tool_rfid=0 last_x=4200\nPASS nc_feature_backlog_v42"
+}

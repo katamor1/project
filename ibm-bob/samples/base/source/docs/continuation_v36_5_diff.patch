@@ -1,0 +1,873 @@
+diff -ruN '--exclude=build' '--exclude=verification_output_v36_5.txt' ibm_bob_source_implemented_additional_features_v35_10/source/docs/implementation_report_v36_5.md ibm_bob_source_implemented_additional_features_v36_5/source/docs/implementation_report_v36_5.md
+--- ibm_bob_source_implemented_additional_features_v35_10/source/docs/implementation_report_v36_5.md	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_source_implemented_additional_features_v36_5/source/docs/implementation_report_v36_5.md	2026-05-03 02:21:14.451897769 +0000
+@@ -0,0 +1,109 @@
++# IBM-Bob 未実装機能追加実装 v36_5 実装レポート
++
++## 1. 概要
++
++`v35_10` の追加ID `270-279` に続き、`v36_5` として未実装/入口実装止まりだった機械保護・保全系機能を5件追加した。
++
++本実装は、既存IBM-Bob方針に合わせ、RT/TS分離を維持する。
++
++- TS側: 固定長ブロックへのゲート、診断、HOLD、インターロック、熱補正オフセット反映
++- RT側: 固定長I/Oスナップショットに基づく周期監視、タイムアウト判定、状態カウンタ更新
++- 禁止事項: 動的メモリ確保、ファイルI/O、Windows API、非固定長ループなし
++
++## 2. 追加ファイル
++
++| 種別 | パス | 内容 |
++|---|---|---|
++| ヘッダ | `source/inc/nc_feature_backlog_v36.h` | v36_5用API、共有ステータス、RT入力、TSブロック定義 |
++| 実装 | `source/src/nc_feature_backlog_v36.c` | 5機能のTS/RT実装、自診断 |
++| テスト | `source/tests/test_nc_feature_backlog_v36.c` | GCC smoke test |
++| スクリプト | `source/scripts/build_gcc_smoke_v36_5.sh` | GCCビルド |
++| スクリプト | `source/scripts/test_gcc_smoke_v36_5.sh` | GCCビルド+実行 |
++| スクリプト | `source/scripts/build_vc2026_v36_5.bat` | VC2026想定ビルド |
++| スクリプト | `source/scripts/test_vc2026_v36_5.bat` | VC2026想定テスト |
++| スクリプト | `source/scripts/build_clang_v36_5.bat` | clang Windows想定ビルド |
++| スクリプト | `source/scripts/test_clang_v36_5.bat` | clang Windows想定テスト |
++
++## 3. 追加した5機能
++
++| ID | 機能名 | TS側処理 | RT側処理 | 安全側動作 |
++|---:|---|---|---|---|
++| 280 | 潤滑圧低下段階HOLD | 診断/HOLD要求ビット設定 | ポンプON中の圧力/油面低下をタイムアウト監視 | HOLD要求、fault mask更新 |
++| 281 | 軸ブレーキ解除フィードバック不一致ガード | シーケンスゲート/インターロック設定 | ブレーキ解除指令に対する解除FB不足を監視 | インターロック、対象軸mask記録 |
++| 282 | チャッククランプ圧確認 | シーケンスゲート/診断設定 | クランプ指令中の圧力不足、クランプ/アンクランプ同時指令を監視 | ゲート停止、fault mask更新 |
++| 283 | パレットクランプ/アンクランプタイムアウト | シーケンスゲート/インターロック設定 | クランプ/アンクランプ要求とセンサ不一致を監視 | インターロック、timeout記録 |
++| 284 | 熱変位補正READYゲート | 熱補正オフセットのクランプ反映、送り3%低減、ゲート/診断設定 | 補正要求中のREADY未成立、温度差閾値超過を監視 | 段階減速、必要時HOLD、trace記録 |
++
++## 4. API
++
++追加APIは以下。
++
++```c
++void NcFeatureBacklogV36_Init(void);
++int NcFeatureBacklogV36_IsFeatureEnabled(uint32_t feature_id);
++int Api_SetNcFeatureBacklogV36Feature(uint32_t feature_id, uint32_t enabled);
++void Api_EnableAllNcFeatureBacklogV36Features(void);
++int Api_GetNcFeatureBacklogV36Status(NC_FEATURE_BACKLOG_V36_STATUS *out_status);
++int Api_RunNcFeatureBacklogV36SelfCheck(void);
++void NcFeatureBacklogV36_ApplyBlockTs(NC_FEATURE_BACKLOG_V36_BLOCK *block);
++void NcFeatureBacklogV36_RunRtTick(const NC_FEATURE_BACKLOG_V36_RT_IO *io);
++const char *NcFeatureBacklogV36_GetFeatureName(uint32_t feature_id);
++```
++
++## 5. RT安全性
++
++- ループ上限は `NC_FEATURE_BACKLOG_V36_FEATURE_COUNT == 5` に固定
++- 静的状態のみ使用
++- `memset` 以外の標準ライブラリ依存はなし
++- RT tick関数は入力ポインタNULL時に警告カウントのみ更新して復帰
++- タイムアウトカウンタは静的固定長カウンタ
++
++## 6. 検証
++
++GCC smoke build/testを実行しPASSを確認。
++
++```text
++implementation_backlog_v36 implemented=5 configured=5 ts=1 rt=6 hold=8 interlock=7 gate=5 slowdown=4 trace=0 cat_mask=0x00000200 last_id=284 last_policy=4 trace=0x3604 fault=0x0000001f last_x=2812
++PASS nc_feature_backlog_v36
++```
++
++既存v35 smoke testも再実行しPASSを確認。
++
++```text
++implementation_backlog_v35 implemented=10 configured=10 ts=1 rt=6 hold=30 interlock=11 gate=8 slowdown=7 trace=7 cat_mask=0x00000200 last_id=279 last_policy=1 trace=0x3508 last_x=2700
++PASS nc_feature_backlog_v35
++```
++
++## 7. Windows環境での確認コマンド
++
++VC2026:
++
++```bat
++cd source
++scripts\test_vc2026_v36_5.bat
++```
++
++clang Windows:
++
++```bat
++cd source
++scripts\test_clang_v36_5.bat
++```
++
++GCC smoke:
++
++```bash
++cd source
++scripts/test_gcc_smoke_v36_5.sh
++```
++
++## 8. 統合メモ
++
++既存の総合backlogモジュールへ統合する場合は、以下を反映する。
++
++- `NC_IMPL_BACKLOG_FEATURE_COUNT` を `280 -> 285` に拡張
++- `NC_IMPL_BACKLOG_WORD_COUNT` は `9` のまま維持
++- ID `280-284` を機能定義テーブルへ追加
++- 公開ヘッダへv36 APIまたは総合APIラッパーを追加
++- ビルド対象へ `src/nc_feature_backlog_v36.c` を追加
++- 単体/スモークテスト対象へ `tests/test_nc_feature_backlog_v36.c` を追加
+diff -ruN '--exclude=build' '--exclude=verification_output_v36_5.txt' ibm_bob_source_implemented_additional_features_v35_10/source/docs/integration_note_v36_5.md ibm_bob_source_implemented_additional_features_v36_5/source/docs/integration_note_v36_5.md
+--- ibm_bob_source_implemented_additional_features_v35_10/source/docs/integration_note_v36_5.md	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_source_implemented_additional_features_v36_5/source/docs/integration_note_v36_5.md	2026-05-03 02:21:14.466529991 +0000
+@@ -0,0 +1,30 @@
++# v36_5 統合メモ
++
++## 目的
++
++v35_10の次段として、ID `280-284` の5機能を追加する。
++
++## 追加ID
++
++- 280: 潤滑圧低下段階HOLD
++- 281: 軸ブレーキ解除フィードバック不一致ガード
++- 282: チャッククランプ圧確認
++- 283: パレットクランプ/アンクランプタイムアウト
++- 284: 熱変位補正READYゲート
++
++## 統合ポイント
++
++1. `source/inc/nc_feature_backlog_v36.h` をinclude配下に追加する。
++2. `source/src/nc_feature_backlog_v36.c` をビルド対象に追加する。
++3. 既存の統合backlog定義を持つ場合は、総数を `285` にする。
++4. word countは `ceil(285/32)=9` のため変更不要。
++5. Windows確認は `scripts\test_vc2026_v36_5.bat` または `scripts\test_clang_v36_5.bat` を使用する。
++
++## RT/TS分担
++
++- TS: 固定長ブロックにHOLD、インターロック、ゲート、診断、熱補正オフセットを反映。
++- RT: センサ不一致、圧力不足、READY未成立、温度差閾値超過を周期監視。
++
++## 注意
++
++本ZIPはv35_10 ZIPをベースに、v36_5追加モジュールを同梱したもの。既存プロジェクトに取り込む場合は、既存ビルドスクリプトのソース一覧にも `src\nc_feature_backlog_v36.c` を追加すること。
+diff -ruN '--exclude=build' '--exclude=verification_output_v36_5.txt' ibm_bob_source_implemented_additional_features_v35_10/source/inc/nc_feature_backlog_v36.h ibm_bob_source_implemented_additional_features_v36_5/source/inc/nc_feature_backlog_v36.h
+--- ibm_bob_source_implemented_additional_features_v35_10/source/inc/nc_feature_backlog_v36.h	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_source_implemented_additional_features_v36_5/source/inc/nc_feature_backlog_v36.h	2026-05-03 02:20:25.767265383 +0000
+@@ -0,0 +1,127 @@
++#ifndef NC_FEATURE_BACKLOG_V36_H
++#define NC_FEATURE_BACKLOG_V36_H
++
++#include <stdint.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++/*
++ * IBM-Bob implementation backlog continuation v36_5.
++ *
++ * This module adds feature IDs 280-284 after v35_10.
++ * The implementation follows the IBM-Bob RT/TS split rules:
++ * - fixed-size state only
++ * - no dynamic allocation
++ * - no file I/O
++ * - no Windows API calls
++ * - deterministic loops bounded by NC_FEATURE_BACKLOG_V36_FEATURE_COUNT
++ */
++
++#define NC_IMPL_BACKLOG_FEATURE_COUNT_V35      (280u)
++#define NC_IMPL_BACKLOG_FEATURE_COUNT_V36      (285u)
++#define NC_IMPL_BACKLOG_WORD_COUNT_V36         (9u)
++#define NC_FEATURE_BACKLOG_V36_FEATURE_BASE_ID (280u)
++#define NC_FEATURE_BACKLOG_V36_FEATURE_COUNT   (5u)
++#define NC_FEATURE_BACKLOG_V36_AXIS_COUNT      (8u)
++
++#define NC_FEATURE_BACKLOG_V36_OK              (0)
++#define NC_FEATURE_BACKLOG_V36_ERR_NULL        (-1)
++#define NC_FEATURE_BACKLOG_V36_ERR_RANGE       (-2)
++
++#define NC_FEATURE_BACKLOG_V36_TRACE_NONE      (0u)
++#define NC_FEATURE_BACKLOG_V36_TRACE_BASE      (0x3600u)
++
++/* Added feature IDs: 280-284. */
++typedef enum NC_FEATURE_BACKLOG_V36_ID_TAG {
++    NC_FEATURE_V36_LUBE_PRESSURE_LOW_STAGED_HOLD = 280,
++    NC_FEATURE_V36_AXIS_BRAKE_RELEASE_FEEDBACK_GUARD = 281,
++    NC_FEATURE_V36_CHUCK_CLAMP_PRESSURE_CONFIRM = 282,
++    NC_FEATURE_V36_PALLET_CLAMP_UNCLAMP_TIMEOUT = 283,
++    NC_FEATURE_V36_THERMAL_DRIFT_COMP_READY_GATE = 284
++} NC_FEATURE_BACKLOG_V36_ID;
++
++typedef enum NC_FEATURE_BACKLOG_V36_POLICY_TAG {
++    NC_FEATURE_BACKLOG_V36_POLICY_MONITOR = 0,
++    NC_FEATURE_BACKLOG_V36_POLICY_GATE = 1,
++    NC_FEATURE_BACKLOG_V36_POLICY_HOLD = 2,
++    NC_FEATURE_BACKLOG_V36_POLICY_INTERLOCK = 3,
++    NC_FEATURE_BACKLOG_V36_POLICY_SLOWDOWN = 4,
++    NC_FEATURE_BACKLOG_V36_POLICY_TRACE = 5
++} NC_FEATURE_BACKLOG_V36_POLICY;
++
++typedef struct NC_FEATURE_BACKLOG_V36_BLOCK_TAG {
++    int32_t axis_target[NC_FEATURE_BACKLOG_V36_AXIS_COUNT];
++    int32_t feed_override_percent;
++    int32_t thermal_comp_offset_um[NC_FEATURE_BACKLOG_V36_AXIS_COUNT];
++    uint32_t aux_request_bits;
++    uint32_t hold_request;
++    uint32_t interlock_mask;
++    uint32_t sequence_gate_mask;
++    uint32_t diagnostics_mask;
++    uint32_t trace_event_code;
++} NC_FEATURE_BACKLOG_V36_BLOCK;
++
++typedef struct NC_FEATURE_BACKLOG_V36_RT_IO_TAG {
++    uint32_t cycle_counter;
++    uint32_t lube_pump_on;
++    uint32_t lube_pressure_ok;
++    uint32_t lube_level_ok;
++    uint32_t axis_brake_release_command_mask;
++    uint32_t axis_brake_released_feedback_mask;
++    uint32_t axis_brake_expected_mask;
++    uint32_t chuck_clamp_command;
++    uint32_t chuck_unclamp_command;
++    uint32_t chuck_pressure_ok;
++    uint32_t pallet_clamp_request;
++    uint32_t pallet_unclamp_request;
++    uint32_t pallet_clamped_sensor;
++    uint32_t pallet_unclamped_sensor;
++    uint32_t thermal_comp_request;
++    uint32_t thermal_comp_ready;
++    int32_t thermal_delta_c_x10;
++} NC_FEATURE_BACKLOG_V36_RT_IO;
++
++typedef struct NC_FEATURE_BACKLOG_V36_STATUS_TAG {
++    uint32_t implemented_count;
++    uint32_t configured_count;
++    uint32_t enabled_mask;
++    uint32_t ts_apply_count;
++    uint32_t rt_tick_count;
++    uint32_t monitor_count;
++    uint32_t gate_count;
++    uint32_t hold_count;
++    uint32_t interlock_count;
++    uint32_t slowdown_count;
++    uint32_t trace_count;
++    uint32_t warning_count;
++    uint32_t cat_mask;
++    uint32_t last_feature_id;
++    uint32_t last_policy;
++    uint32_t last_trace_event_code;
++    int32_t last_feed_override_percent;
++    int32_t last_x;
++    uint32_t last_fault_mask;
++    uint32_t per_feature_hits[NC_FEATURE_BACKLOG_V36_FEATURE_COUNT];
++    int32_t per_feature_last_value[NC_FEATURE_BACKLOG_V36_FEATURE_COUNT];
++} NC_FEATURE_BACKLOG_V36_STATUS;
++
++extern NC_FEATURE_BACKLOG_V36_STATUS g_ncFeatureBacklogV36Status;
++
++void NcFeatureBacklogV36_Init(void);
++int NcFeatureBacklogV36_IsFeatureEnabled(uint32_t feature_id);
++int Api_SetNcFeatureBacklogV36Feature(uint32_t feature_id, uint32_t enabled);
++void Api_EnableAllNcFeatureBacklogV36Features(void);
++int Api_GetNcFeatureBacklogV36Status(NC_FEATURE_BACKLOG_V36_STATUS *out_status);
++int Api_RunNcFeatureBacklogV36SelfCheck(void);
++
++void NcFeatureBacklogV36_ApplyBlockTs(NC_FEATURE_BACKLOG_V36_BLOCK *block);
++void NcFeatureBacklogV36_RunRtTick(const NC_FEATURE_BACKLOG_V36_RT_IO *io);
++const char *NcFeatureBacklogV36_GetFeatureName(uint32_t feature_id);
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* NC_FEATURE_BACKLOG_V36_H */
+diff -ruN '--exclude=build' '--exclude=verification_output_v36_5.txt' ibm_bob_source_implemented_additional_features_v35_10/source/scripts/build_clang_v36_5.bat ibm_bob_source_implemented_additional_features_v36_5/source/scripts/build_clang_v36_5.bat
+--- ibm_bob_source_implemented_additional_features_v35_10/source/scripts/build_clang_v36_5.bat	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_source_implemented_additional_features_v36_5/source/scripts/build_clang_v36_5.bat	2026-05-03 02:20:40.078557109 +0000
+@@ -0,0 +1,6 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++if not exist build mkdir build
++clang -std=c99 -Wall -Wextra -Werror -Iinc src\nc_feature_backlog_v36.c tests\test_nc_feature_backlog_v36.c -o build\test_nc_feature_backlog_v36.exe
++endlocal
+diff -ruN '--exclude=build' '--exclude=verification_output_v36_5.txt' ibm_bob_source_implemented_additional_features_v35_10/source/scripts/build_gcc_smoke_v36_5.sh ibm_bob_source_implemented_additional_features_v36_5/source/scripts/build_gcc_smoke_v36_5.sh
+--- ibm_bob_source_implemented_additional_features_v35_10/source/scripts/build_gcc_smoke_v36_5.sh	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_source_implemented_additional_features_v36_5/source/scripts/build_gcc_smoke_v36_5.sh	2026-05-03 02:20:39.999041805 +0000
+@@ -0,0 +1,8 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd "$(dirname "$0")/.."
++mkdir -p build
++gcc -std=c99 -Wall -Wextra -Werror -Iinc \
++  src/nc_feature_backlog_v36.c \
++  tests/test_nc_feature_backlog_v36.c \
++  -o build/test_nc_feature_backlog_v36
+diff -ruN '--exclude=build' '--exclude=verification_output_v36_5.txt' ibm_bob_source_implemented_additional_features_v35_10/source/scripts/build_vc2026_v36_5.bat ibm_bob_source_implemented_additional_features_v36_5/source/scripts/build_vc2026_v36_5.bat
+--- ibm_bob_source_implemented_additional_features_v35_10/source/scripts/build_vc2026_v36_5.bat	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_source_implemented_additional_features_v36_5/source/scripts/build_vc2026_v36_5.bat	2026-05-03 02:20:40.045932356 +0000
+@@ -0,0 +1,6 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++if not exist build mkdir build
++cl /nologo /TC /W4 /WX /Iinc src\nc_feature_backlog_v36.c tests\test_nc_feature_backlog_v36.c /Febuild\test_nc_feature_backlog_v36.exe
++endlocal
+diff -ruN '--exclude=build' '--exclude=verification_output_v36_5.txt' ibm_bob_source_implemented_additional_features_v35_10/source/scripts/test_clang_v36_5.bat ibm_bob_source_implemented_additional_features_v36_5/source/scripts/test_clang_v36_5.bat
+--- ibm_bob_source_implemented_additional_features_v35_10/source/scripts/test_clang_v36_5.bat	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_source_implemented_additional_features_v36_5/source/scripts/test_clang_v36_5.bat	2026-05-03 02:20:40.090544620 +0000
+@@ -0,0 +1,6 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++call scripts\build_clang_v36_5.bat || exit /b 1
++build\test_nc_feature_backlog_v36.exe
++endlocal
+diff -ruN '--exclude=build' '--exclude=verification_output_v36_5.txt' ibm_bob_source_implemented_additional_features_v35_10/source/scripts/test_gcc_smoke_v36_5.sh ibm_bob_source_implemented_additional_features_v36_5/source/scripts/test_gcc_smoke_v36_5.sh
+--- ibm_bob_source_implemented_additional_features_v35_10/source/scripts/test_gcc_smoke_v36_5.sh	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_source_implemented_additional_features_v36_5/source/scripts/test_gcc_smoke_v36_5.sh	2026-05-03 02:20:40.023038614 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd "$(dirname "$0")/.."
++scripts/build_gcc_smoke_v36_5.sh
++./build/test_nc_feature_backlog_v36 | tee docs/verification_output_v36_5.txt
+diff -ruN '--exclude=build' '--exclude=verification_output_v36_5.txt' ibm_bob_source_implemented_additional_features_v35_10/source/scripts/test_vc2026_v36_5.bat ibm_bob_source_implemented_additional_features_v36_5/source/scripts/test_vc2026_v36_5.bat
+--- ibm_bob_source_implemented_additional_features_v35_10/source/scripts/test_vc2026_v36_5.bat	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_source_implemented_additional_features_v36_5/source/scripts/test_vc2026_v36_5.bat	2026-05-03 02:20:40.057684513 +0000
+@@ -0,0 +1,6 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++call scripts\build_vc2026_v36_5.bat || exit /b 1
++build\test_nc_feature_backlog_v36.exe
++endlocal
+diff -ruN '--exclude=build' '--exclude=verification_output_v36_5.txt' ibm_bob_source_implemented_additional_features_v35_10/source/src/nc_feature_backlog_v36.c ibm_bob_source_implemented_additional_features_v36_5/source/src/nc_feature_backlog_v36.c
+--- ibm_bob_source_implemented_additional_features_v35_10/source/src/nc_feature_backlog_v36.c	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_source_implemented_additional_features_v36_5/source/src/nc_feature_backlog_v36.c	2026-05-03 02:20:25.782287482 +0000
+@@ -0,0 +1,385 @@
++#include "nc_feature_backlog_v36.h"
++
++#include <string.h>
++
++#define V36_BIT(index_) (1u << (uint32_t)(index_))
++#define V36_DEFAULT_FEED_OVERRIDE_PERCENT (100)
++#define V36_MIN_FEED_OVERRIDE_PERCENT     (5)
++#define V36_LUBE_PRESSURE_TIMEOUT_TICKS   (3u)
++#define V36_BRAKE_RELEASE_TIMEOUT_TICKS   (4u)
++#define V36_CHUCK_PRESSURE_TIMEOUT_TICKS  (3u)
++#define V36_PALLET_TIMEOUT_TICKS          (5u)
++#define V36_THERMAL_READY_TIMEOUT_TICKS   (4u)
++#define V36_THERMAL_WARN_DELTA_C_X10      (80)
++#define V36_THERMAL_HOLD_DELTA_C_X10      (120)
++#define V36_MAX_THERMAL_COMP_UM           (50)
++
++typedef struct V36_FEATURE_DEF_TAG {
++    uint32_t feature_id;
++    NC_FEATURE_BACKLOG_V36_POLICY policy;
++    uint32_t category;
++    const char *name;
++} V36_FEATURE_DEF;
++
++static const V36_FEATURE_DEF k_v36_defs[NC_FEATURE_BACKLOG_V36_FEATURE_COUNT] = {
++    { NC_FEATURE_V36_LUBE_PRESSURE_LOW_STAGED_HOLD,       NC_FEATURE_BACKLOG_V36_POLICY_HOLD,      9u, "lubrication pressure low staged hold" },
++    { NC_FEATURE_V36_AXIS_BRAKE_RELEASE_FEEDBACK_GUARD,   NC_FEATURE_BACKLOG_V36_POLICY_INTERLOCK, 9u, "axis brake release feedback guard" },
++    { NC_FEATURE_V36_CHUCK_CLAMP_PRESSURE_CONFIRM,        NC_FEATURE_BACKLOG_V36_POLICY_GATE,      9u, "chuck clamp pressure confirmation" },
++    { NC_FEATURE_V36_PALLET_CLAMP_UNCLAMP_TIMEOUT,        NC_FEATURE_BACKLOG_V36_POLICY_INTERLOCK, 9u, "pallet clamp/unclamp timeout monitor" },
++    { NC_FEATURE_V36_THERMAL_DRIFT_COMP_READY_GATE,       NC_FEATURE_BACKLOG_V36_POLICY_SLOWDOWN,  9u, "thermal drift compensation ready gate" }
++};
++
++NC_FEATURE_BACKLOG_V36_STATUS g_ncFeatureBacklogV36Status;
++
++static uint32_t s_lube_wait_ticks;
++static uint32_t s_brake_release_wait_ticks;
++static uint32_t s_chuck_pressure_wait_ticks;
++static uint32_t s_pallet_wait_ticks;
++static uint32_t s_thermal_ready_wait_ticks;
++
++static uint32_t v36_index_from_feature_id(uint32_t feature_id)
++{
++    if (feature_id < NC_FEATURE_BACKLOG_V36_FEATURE_BASE_ID) {
++        return NC_FEATURE_BACKLOG_V36_FEATURE_COUNT;
++    }
++    return feature_id - NC_FEATURE_BACKLOG_V36_FEATURE_BASE_ID;
++}
++
++static void v36_record_hit(uint32_t index, int32_t value)
++{
++    const V36_FEATURE_DEF *def;
++
++    if (index >= NC_FEATURE_BACKLOG_V36_FEATURE_COUNT) {
++        return;
++    }
++
++    def = &k_v36_defs[index];
++    g_ncFeatureBacklogV36Status.per_feature_hits[index]++;
++    g_ncFeatureBacklogV36Status.per_feature_last_value[index] = value;
++    g_ncFeatureBacklogV36Status.last_feature_id = def->feature_id;
++    g_ncFeatureBacklogV36Status.last_policy = (uint32_t)def->policy;
++    g_ncFeatureBacklogV36Status.cat_mask |= V36_BIT(def->category);
++
++    switch (def->policy) {
++    case NC_FEATURE_BACKLOG_V36_POLICY_MONITOR:
++        g_ncFeatureBacklogV36Status.monitor_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V36_POLICY_GATE:
++        g_ncFeatureBacklogV36Status.gate_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V36_POLICY_HOLD:
++        g_ncFeatureBacklogV36Status.hold_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V36_POLICY_INTERLOCK:
++        g_ncFeatureBacklogV36Status.interlock_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V36_POLICY_SLOWDOWN:
++        g_ncFeatureBacklogV36Status.slowdown_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V36_POLICY_TRACE:
++        g_ncFeatureBacklogV36Status.trace_count++;
++        break;
++    default:
++        g_ncFeatureBacklogV36Status.warning_count++;
++        break;
++    }
++}
++
++static int32_t v36_clamp_feed_override(int32_t value)
++{
++    if (value < V36_MIN_FEED_OVERRIDE_PERCENT) {
++        return V36_MIN_FEED_OVERRIDE_PERCENT;
++    }
++    if (value > V36_DEFAULT_FEED_OVERRIDE_PERCENT) {
++        return V36_DEFAULT_FEED_OVERRIDE_PERCENT;
++    }
++    return value;
++}
++
++static int32_t v36_clamp_thermal_comp(int32_t value)
++{
++    if (value > V36_MAX_THERMAL_COMP_UM) {
++        return V36_MAX_THERMAL_COMP_UM;
++    }
++    if (value < -V36_MAX_THERMAL_COMP_UM) {
++        return -V36_MAX_THERMAL_COMP_UM;
++    }
++    return value;
++}
++
++void NcFeatureBacklogV36_Init(void)
++{
++    uint32_t i;
++
++    memset(&g_ncFeatureBacklogV36Status, 0, sizeof(g_ncFeatureBacklogV36Status));
++    g_ncFeatureBacklogV36Status.implemented_count = NC_FEATURE_BACKLOG_V36_FEATURE_COUNT;
++    g_ncFeatureBacklogV36Status.configured_count = 0u;
++    g_ncFeatureBacklogV36Status.last_feed_override_percent = V36_DEFAULT_FEED_OVERRIDE_PERCENT;
++
++    for (i = 0u; i < NC_FEATURE_BACKLOG_V36_FEATURE_COUNT; ++i) {
++        g_ncFeatureBacklogV36Status.per_feature_last_value[i] = 0;
++    }
++
++    s_lube_wait_ticks = 0u;
++    s_brake_release_wait_ticks = 0u;
++    s_chuck_pressure_wait_ticks = 0u;
++    s_pallet_wait_ticks = 0u;
++    s_thermal_ready_wait_ticks = 0u;
++}
++
++int NcFeatureBacklogV36_IsFeatureEnabled(uint32_t feature_id)
++{
++    uint32_t index = v36_index_from_feature_id(feature_id);
++    if (index >= NC_FEATURE_BACKLOG_V36_FEATURE_COUNT) {
++        return 0;
++    }
++    return ((g_ncFeatureBacklogV36Status.enabled_mask & V36_BIT(index)) != 0u) ? 1 : 0;
++}
++
++int Api_SetNcFeatureBacklogV36Feature(uint32_t feature_id, uint32_t enabled)
++{
++    uint32_t index = v36_index_from_feature_id(feature_id);
++    uint32_t mask;
++
++    if (index >= NC_FEATURE_BACKLOG_V36_FEATURE_COUNT) {
++        return NC_FEATURE_BACKLOG_V36_ERR_RANGE;
++    }
++
++    mask = V36_BIT(index);
++    if (enabled != 0u) {
++        if ((g_ncFeatureBacklogV36Status.enabled_mask & mask) == 0u) {
++            g_ncFeatureBacklogV36Status.configured_count++;
++        }
++        g_ncFeatureBacklogV36Status.enabled_mask |= mask;
++    } else {
++        if ((g_ncFeatureBacklogV36Status.enabled_mask & mask) != 0u &&
++            g_ncFeatureBacklogV36Status.configured_count > 0u) {
++            g_ncFeatureBacklogV36Status.configured_count--;
++        }
++        g_ncFeatureBacklogV36Status.enabled_mask &= ~mask;
++    }
++
++    return NC_FEATURE_BACKLOG_V36_OK;
++}
++
++void Api_EnableAllNcFeatureBacklogV36Features(void)
++{
++    g_ncFeatureBacklogV36Status.enabled_mask = (1u << NC_FEATURE_BACKLOG_V36_FEATURE_COUNT) - 1u;
++    g_ncFeatureBacklogV36Status.configured_count = NC_FEATURE_BACKLOG_V36_FEATURE_COUNT;
++}
++
++int Api_GetNcFeatureBacklogV36Status(NC_FEATURE_BACKLOG_V36_STATUS *out_status)
++{
++    if (out_status == 0) {
++        return NC_FEATURE_BACKLOG_V36_ERR_NULL;
++    }
++    *out_status = g_ncFeatureBacklogV36Status;
++    return NC_FEATURE_BACKLOG_V36_OK;
++}
++
++const char *NcFeatureBacklogV36_GetFeatureName(uint32_t feature_id)
++{
++    uint32_t index = v36_index_from_feature_id(feature_id);
++    if (index >= NC_FEATURE_BACKLOG_V36_FEATURE_COUNT) {
++        return "unknown";
++    }
++    return k_v36_defs[index].name;
++}
++
++void NcFeatureBacklogV36_ApplyBlockTs(NC_FEATURE_BACKLOG_V36_BLOCK *block)
++{
++    uint32_t index;
++
++    if (block == 0) {
++        g_ncFeatureBacklogV36Status.warning_count++;
++        return;
++    }
++
++    g_ncFeatureBacklogV36Status.ts_apply_count++;
++    if (block->feed_override_percent <= 0) {
++        block->feed_override_percent = V36_DEFAULT_FEED_OVERRIDE_PERCENT;
++    }
++
++    for (index = 0u; index < NC_FEATURE_BACKLOG_V36_FEATURE_COUNT; ++index) {
++        uint32_t feature_bit = V36_BIT(index);
++        uint32_t trace = NC_FEATURE_BACKLOG_V36_TRACE_BASE + index;
++
++        if ((g_ncFeatureBacklogV36Status.enabled_mask & feature_bit) == 0u) {
++            continue;
++        }
++
++        switch (k_v36_defs[index].feature_id) {
++        case NC_FEATURE_V36_LUBE_PRESSURE_LOW_STAGED_HOLD:
++            block->diagnostics_mask |= feature_bit;
++            block->hold_request |= feature_bit;
++            v36_record_hit(index, block->axis_target[0]);
++            break;
++        case NC_FEATURE_V36_AXIS_BRAKE_RELEASE_FEEDBACK_GUARD:
++            block->sequence_gate_mask |= feature_bit;
++            block->interlock_mask |= feature_bit;
++            v36_record_hit(index, block->axis_target[1]);
++            break;
++        case NC_FEATURE_V36_CHUCK_CLAMP_PRESSURE_CONFIRM:
++            block->sequence_gate_mask |= feature_bit;
++            block->diagnostics_mask |= feature_bit;
++            v36_record_hit(index, block->axis_target[2]);
++            break;
++        case NC_FEATURE_V36_PALLET_CLAMP_UNCLAMP_TIMEOUT:
++            block->sequence_gate_mask |= feature_bit;
++            block->interlock_mask |= feature_bit;
++            v36_record_hit(index, block->axis_target[3]);
++            break;
++        case NC_FEATURE_V36_THERMAL_DRIFT_COMP_READY_GATE:
++            block->sequence_gate_mask |= feature_bit;
++            block->diagnostics_mask |= feature_bit;
++            block->feed_override_percent = v36_clamp_feed_override(block->feed_override_percent - 3);
++            block->thermal_comp_offset_um[0] = v36_clamp_thermal_comp(block->thermal_comp_offset_um[0]);
++            block->axis_target[0] += block->thermal_comp_offset_um[0];
++            block->trace_event_code = trace;
++            g_ncFeatureBacklogV36Status.last_trace_event_code = trace;
++            v36_record_hit(index, block->feed_override_percent);
++            break;
++        default:
++            g_ncFeatureBacklogV36Status.warning_count++;
++            break;
++        }
++    }
++
++    g_ncFeatureBacklogV36Status.last_feed_override_percent = block->feed_override_percent;
++    g_ncFeatureBacklogV36Status.last_x = block->axis_target[0];
++}
++
++void NcFeatureBacklogV36_RunRtTick(const NC_FEATURE_BACKLOG_V36_RT_IO *io)
++{
++    if (io == 0) {
++        g_ncFeatureBacklogV36Status.warning_count++;
++        return;
++    }
++
++    g_ncFeatureBacklogV36Status.rt_tick_count++;
++
++    if (NcFeatureBacklogV36_IsFeatureEnabled(NC_FEATURE_V36_LUBE_PRESSURE_LOW_STAGED_HOLD) != 0) {
++        if (io->lube_pump_on != 0u && (io->lube_pressure_ok == 0u || io->lube_level_ok == 0u)) {
++            s_lube_wait_ticks++;
++            if (s_lube_wait_ticks >= V36_LUBE_PRESSURE_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV36Status.last_fault_mask |= V36_BIT(0u);
++                v36_record_hit(0u, (int32_t)s_lube_wait_ticks);
++            }
++        } else {
++            s_lube_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV36_IsFeatureEnabled(NC_FEATURE_V36_AXIS_BRAKE_RELEASE_FEEDBACK_GUARD) != 0) {
++        uint32_t expected = io->axis_brake_release_command_mask & io->axis_brake_expected_mask;
++        uint32_t missing = expected & ~io->axis_brake_released_feedback_mask;
++        if (missing != 0u) {
++            s_brake_release_wait_ticks++;
++            if (s_brake_release_wait_ticks >= V36_BRAKE_RELEASE_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV36Status.last_fault_mask |= missing;
++                v36_record_hit(1u, (int32_t)missing);
++            }
++        } else {
++            s_brake_release_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV36_IsFeatureEnabled(NC_FEATURE_V36_CHUCK_CLAMP_PRESSURE_CONFIRM) != 0) {
++        if ((io->chuck_clamp_command != 0u && io->chuck_pressure_ok == 0u) ||
++            (io->chuck_clamp_command != 0u && io->chuck_unclamp_command != 0u)) {
++            s_chuck_pressure_wait_ticks++;
++            if (s_chuck_pressure_wait_ticks >= V36_CHUCK_PRESSURE_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV36Status.last_fault_mask |= V36_BIT(2u);
++                v36_record_hit(2u, (int32_t)s_chuck_pressure_wait_ticks);
++            }
++        } else {
++            s_chuck_pressure_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV36_IsFeatureEnabled(NC_FEATURE_V36_PALLET_CLAMP_UNCLAMP_TIMEOUT) != 0) {
++        if ((io->pallet_clamp_request != 0u && io->pallet_clamped_sensor == 0u) ||
++            (io->pallet_unclamp_request != 0u && io->pallet_unclamped_sensor == 0u) ||
++            (io->pallet_clamp_request != 0u && io->pallet_unclamp_request != 0u)) {
++            s_pallet_wait_ticks++;
++            if (s_pallet_wait_ticks >= V36_PALLET_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV36Status.last_fault_mask |= V36_BIT(3u);
++                v36_record_hit(3u, (int32_t)s_pallet_wait_ticks);
++            }
++        } else {
++            s_pallet_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV36_IsFeatureEnabled(NC_FEATURE_V36_THERMAL_DRIFT_COMP_READY_GATE) != 0) {
++        if (io->thermal_comp_request != 0u &&
++            (io->thermal_comp_ready == 0u || io->thermal_delta_c_x10 >= V36_THERMAL_WARN_DELTA_C_X10)) {
++            s_thermal_ready_wait_ticks++;
++            if (s_thermal_ready_wait_ticks >= V36_THERMAL_READY_TIMEOUT_TICKS) {
++                uint32_t trace = NC_FEATURE_BACKLOG_V36_TRACE_BASE + 4u;
++                g_ncFeatureBacklogV36Status.last_trace_event_code = trace;
++                g_ncFeatureBacklogV36Status.last_fault_mask |= V36_BIT(4u);
++                v36_record_hit(4u, io->thermal_delta_c_x10);
++                if (io->thermal_delta_c_x10 >= V36_THERMAL_HOLD_DELTA_C_X10) {
++                    g_ncFeatureBacklogV36Status.hold_count++;
++                }
++            }
++        } else {
++            s_thermal_ready_wait_ticks = 0u;
++        }
++    }
++}
++
++int Api_RunNcFeatureBacklogV36SelfCheck(void)
++{
++    NC_FEATURE_BACKLOG_V36_BLOCK block;
++    NC_FEATURE_BACKLOG_V36_RT_IO io;
++    uint32_t i;
++
++    NcFeatureBacklogV36_Init();
++    Api_EnableAllNcFeatureBacklogV36Features();
++
++    memset(&block, 0, sizeof(block));
++    for (i = 0u; i < NC_FEATURE_BACKLOG_V36_AXIS_COUNT; ++i) {
++        block.axis_target[i] = (int32_t)(2800 + (int32_t)i);
++    }
++    block.feed_override_percent = V36_DEFAULT_FEED_OVERRIDE_PERCENT;
++    block.thermal_comp_offset_um[0] = 12;
++    NcFeatureBacklogV36_ApplyBlockTs(&block);
++
++    memset(&io, 0, sizeof(io));
++    io.lube_pump_on = 1u;
++    io.lube_pressure_ok = 0u;
++    io.lube_level_ok = 1u;
++    io.axis_brake_release_command_mask = 0x00000003u;
++    io.axis_brake_expected_mask = 0x00000003u;
++    io.axis_brake_released_feedback_mask = 0x00000001u;
++    io.chuck_clamp_command = 1u;
++    io.chuck_pressure_ok = 0u;
++    io.pallet_clamp_request = 1u;
++    io.pallet_clamped_sensor = 0u;
++    io.thermal_comp_request = 1u;
++    io.thermal_comp_ready = 0u;
++    io.thermal_delta_c_x10 = V36_THERMAL_HOLD_DELTA_C_X10;
++
++    for (i = 0u; i < 6u; ++i) {
++        io.cycle_counter = i;
++        NcFeatureBacklogV36_RunRtTick(&io);
++    }
++
++    if (g_ncFeatureBacklogV36Status.implemented_count != NC_FEATURE_BACKLOG_V36_FEATURE_COUNT) {
++        return NC_FEATURE_BACKLOG_V36_ERR_RANGE;
++    }
++    if (g_ncFeatureBacklogV36Status.configured_count != NC_FEATURE_BACKLOG_V36_FEATURE_COUNT) {
++        return NC_FEATURE_BACKLOG_V36_ERR_RANGE;
++    }
++    if (g_ncFeatureBacklogV36Status.ts_apply_count == 0u ||
++        g_ncFeatureBacklogV36Status.rt_tick_count == 0u ||
++        g_ncFeatureBacklogV36Status.hold_count == 0u ||
++        g_ncFeatureBacklogV36Status.interlock_count == 0u ||
++        g_ncFeatureBacklogV36Status.gate_count == 0u ||
++        g_ncFeatureBacklogV36Status.slowdown_count == 0u) {
++        return NC_FEATURE_BACKLOG_V36_ERR_RANGE;
++    }
++    return NC_FEATURE_BACKLOG_V36_OK;
++}
+diff -ruN '--exclude=build' '--exclude=verification_output_v36_5.txt' ibm_bob_source_implemented_additional_features_v35_10/source/tests/test_nc_feature_backlog_v36.c ibm_bob_source_implemented_additional_features_v36_5/source/tests/test_nc_feature_backlog_v36.c
+--- ibm_bob_source_implemented_additional_features_v35_10/source/tests/test_nc_feature_backlog_v36.c	1970-01-01 00:00:00.000000000 +0000
++++ ibm_bob_source_implemented_additional_features_v36_5/source/tests/test_nc_feature_backlog_v36.c	2026-05-03 02:20:39.985541281 +0000
+@@ -0,0 +1,141 @@
++#include "nc_feature_backlog_v36.h"
++
++#include <stdio.h>
++#include <string.h>
++
++static int expect_u32(const char *name, uint32_t actual, uint32_t expected)
++{
++    if (actual != expected) {
++        printf("FAIL %s actual=%u expected=%u\n", name, actual, expected);
++        return 1;
++    }
++    return 0;
++}
++
++static int expect_nonzero(const char *name, uint32_t actual)
++{
++    if (actual == 0u) {
++        printf("FAIL %s actual=0\n", name);
++        return 1;
++    }
++    return 0;
++}
++
++static int expect_less_than(const char *name, int32_t actual, int32_t threshold)
++{
++    if (actual >= threshold) {
++        printf("FAIL %s actual=%d threshold=%d\n", name, actual, threshold);
++        return 1;
++    }
++    return 0;
++}
++
++int main(void)
++{
++    NC_FEATURE_BACKLOG_V36_BLOCK block;
++    NC_FEATURE_BACKLOG_V36_RT_IO io;
++    NC_FEATURE_BACKLOG_V36_STATUS status;
++    uint32_t i;
++    int failures = 0;
++
++    NcFeatureBacklogV36_Init();
++    failures += expect_u32("implemented", g_ncFeatureBacklogV36Status.implemented_count, 5u);
++    failures += expect_u32("configured_init", g_ncFeatureBacklogV36Status.configured_count, 0u);
++
++    if (Api_SetNcFeatureBacklogV36Feature(NC_FEATURE_V36_LUBE_PRESSURE_LOW_STAGED_HOLD, 1u) != 0) {
++        printf("FAIL enable feature 280\n");
++        failures++;
++    }
++    if (Api_SetNcFeatureBacklogV36Feature(999u, 1u) == 0) {
++        printf("FAIL out-of-range feature accepted\n");
++        failures++;
++    }
++    Api_EnableAllNcFeatureBacklogV36Features();
++    failures += expect_u32("configured_all", g_ncFeatureBacklogV36Status.configured_count, 5u);
++
++    memset(&block, 0, sizeof(block));
++    for (i = 0u; i < NC_FEATURE_BACKLOG_V36_AXIS_COUNT; ++i) {
++        block.axis_target[i] = (int32_t)(1300 + (int32_t)i);
++    }
++    block.feed_override_percent = 100;
++    block.thermal_comp_offset_um[0] = 15;
++    NcFeatureBacklogV36_ApplyBlockTs(&block);
++
++    failures += expect_nonzero("ts_apply", g_ncFeatureBacklogV36Status.ts_apply_count);
++    failures += expect_nonzero("hold_request", block.hold_request);
++    failures += expect_nonzero("interlock_mask", block.interlock_mask);
++    failures += expect_nonzero("sequence_gate_mask", block.sequence_gate_mask);
++    failures += expect_nonzero("diagnostics_mask", block.diagnostics_mask);
++    failures += expect_nonzero("trace_event_code", block.trace_event_code);
++    failures += expect_less_than("feed_override", block.feed_override_percent, 100);
++    if (block.axis_target[0] != 1315) {
++        printf("FAIL thermal compensated x actual=%d expected=1315\n", block.axis_target[0]);
++        failures++;
++    }
++
++    memset(&io, 0, sizeof(io));
++    io.lube_pump_on = 1u;
++    io.lube_pressure_ok = 0u;
++    io.lube_level_ok = 1u;
++    io.axis_brake_release_command_mask = 0x03u;
++    io.axis_brake_expected_mask = 0x03u;
++    io.axis_brake_released_feedback_mask = 0x01u;
++    io.chuck_clamp_command = 1u;
++    io.chuck_pressure_ok = 0u;
++    io.pallet_clamp_request = 1u;
++    io.pallet_clamped_sensor = 0u;
++    io.thermal_comp_request = 1u;
++    io.thermal_comp_ready = 0u;
++    io.thermal_delta_c_x10 = 130;
++
++    for (i = 0u; i < 6u; ++i) {
++        io.cycle_counter = i;
++        NcFeatureBacklogV36_RunRtTick(&io);
++    }
++
++    failures += expect_nonzero("rt_tick", g_ncFeatureBacklogV36Status.rt_tick_count);
++    failures += expect_nonzero("hold_count", g_ncFeatureBacklogV36Status.hold_count);
++    failures += expect_nonzero("interlock_count", g_ncFeatureBacklogV36Status.interlock_count);
++    failures += expect_nonzero("gate_count", g_ncFeatureBacklogV36Status.gate_count);
++    failures += expect_nonzero("slowdown_count", g_ncFeatureBacklogV36Status.slowdown_count);
++    failures += expect_nonzero("fault_mask", g_ncFeatureBacklogV36Status.last_fault_mask);
++
++    if (Api_GetNcFeatureBacklogV36Status(&status) != 0) {
++        printf("FAIL status get\n");
++        failures++;
++    }
++    if (Api_GetNcFeatureBacklogV36Status(0) == 0) {
++        printf("FAIL null status accepted\n");
++        failures++;
++    }
++    if (Api_RunNcFeatureBacklogV36SelfCheck() != 0) {
++        printf("FAIL selfcheck\n");
++        failures++;
++    }
++
++    Api_GetNcFeatureBacklogV36Status(&status);
++    printf("implementation_backlog_v36 implemented=%u configured=%u ts=%u rt=%u hold=%u interlock=%u gate=%u slowdown=%u trace=%u cat_mask=0x%08x last_id=%u last_policy=%u trace=0x%04x fault=0x%08x last_x=%d\n",
++           status.implemented_count,
++           status.configured_count,
++           status.ts_apply_count,
++           status.rt_tick_count,
++           status.hold_count,
++           status.interlock_count,
++           status.gate_count,
++           status.slowdown_count,
++           status.trace_count,
++           status.cat_mask,
++           status.last_feature_id,
++           status.last_policy,
++           status.last_trace_event_code,
++           status.last_fault_mask,
++           status.last_x);
++
++    if (failures != 0) {
++        printf("FAILED failures=%d\n", failures);
++        return 1;
++    }
++
++    printf("PASS nc_feature_backlog_v36\n");
++    return 0;
++}

@@ -1,0 +1,263 @@
+diff -ruN '--exclude=build' '--exclude=runtime_log.csv' '--exclude=verification_output_v27_20.txt' '--exclude=continuation_v27_20_diff.patch' orig_v26_for_v27/inc/system_config.h work_v27/source/inc/system_config.h
+--- orig_v26_for_v27/inc/system_config.h	2026-05-02 10:52:18.000000000 +0000
++++ work_v27/source/inc/system_config.h	2026-05-02 11:25:48.885704563 +0000
+@@ -771,8 +771,8 @@
+ #define NC_DESIGN_RIGID_TAP_MIN_TICKS         (8U)
+ #define NC_DESIGN_EXACT_STOP_PERCENT          (55U)
+ #define NC_DESIGN_HP_CONTOUR_PERCENT          (75U)
+-#define NC_IMPL_BACKLOG_FEATURE_COUNT          (180U)
+-#define NC_IMPL_BACKLOG_WORD_COUNT             (6U)
++#define NC_IMPL_BACKLOG_FEATURE_COUNT          (200U)
++#define NC_IMPL_BACKLOG_WORD_COUNT             (7U)
+ #define NC_IMPL_BACKLOG_DEFAULT_OVERRIDE       (92U)
+ #define NC_IMPL_BACKLOG_MIN_TICKS              (3U)
+ #define NC_IMPL_BACKLOG_MAX_POLICY             (7U)
+@@ -784,6 +784,8 @@
+ #define NC_IMPL_BACKLOG_V25_ADDED_FEATURES      (20U)
+ #define NC_IMPL_BACKLOG_V26_FIRST_FEATURE       (160U)
+ #define NC_IMPL_BACKLOG_V26_ADDED_FEATURES      (20U)
++#define NC_IMPL_BACKLOG_V27_FIRST_FEATURE       (180U)
++#define NC_IMPL_BACKLOG_V27_ADDED_FEATURES      (20U)
+ #define NC_IMPL_BACKLOG_V23_ROTARY_DEG_180      (180000)
+ #define NC_IMPL_BACKLOG_V23_ROTARY_DEG_360      (360000)
+ #define NC_EVENT_CODE_DESIGN_FEATURE_APPLIED  (9601U)
+diff -ruN '--exclude=build' '--exclude=runtime_log.csv' '--exclude=verification_output_v27_20.txt' '--exclude=continuation_v27_20_diff.patch' orig_v26_for_v27/inc/system_shared.h work_v27/source/inc/system_shared.h
+--- orig_v26_for_v27/inc/system_shared.h	2026-05-02 10:52:18.000000000 +0000
++++ work_v27/source/inc/system_shared.h	2026-05-02 11:25:48.886343984 +0000
+@@ -1409,8 +1409,8 @@
+  * @brief Status for design-document feature completions added in v20.
+  */
+ /**
+- * @brief Status for the v22-v26 implementation backlog batches.
+- * @details Tracks 180 coded design-feature entries using fixed-size masks,
++ * @brief Status for the v22-v27 implementation backlog batches.
++ * @details Tracks 200 coded design-feature entries using fixed-size masks,
+  * counters, and last-block snapshots so RT, TS, and API callers can observe the
+  * added implementation without dynamic allocation.
+  */
+diff -ruN '--exclude=build' '--exclude=runtime_log.csv' '--exclude=verification_output_v27_20.txt' '--exclude=continuation_v27_20_diff.patch' orig_v26_for_v27/scripts/build_gcc_smoke_v27.sh work_v27/source/scripts/build_gcc_smoke_v27.sh
+--- orig_v26_for_v27/scripts/build_gcc_smoke_v27.sh	1970-01-01 00:00:00.000000000 +0000
++++ work_v27/source/scripts/build_gcc_smoke_v27.sh	2026-05-02 11:25:48.887488574 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++mkdir -p "$ROOT_DIR/build"
++gcc -std=c99 -Wall -Wextra -I"$ROOT_DIR/inc" "$ROOT_DIR"/src/*.c -lm -o "$ROOT_DIR/build/ibm_bob_sample_v27"
+diff -ruN '--exclude=build' '--exclude=runtime_log.csv' '--exclude=verification_output_v27_20.txt' '--exclude=continuation_v27_20_diff.patch' orig_v26_for_v27/scripts/test_gcc_smoke_v27.sh work_v27/source/scripts/test_gcc_smoke_v27.sh
+--- orig_v26_for_v27/scripts/test_gcc_smoke_v27.sh	1970-01-01 00:00:00.000000000 +0000
++++ work_v27/source/scripts/test_gcc_smoke_v27.sh	2026-05-02 11:25:48.887867434 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++bash "$ROOT_DIR/scripts/build_gcc_smoke_v27.sh"
++"$ROOT_DIR/build/ibm_bob_sample_v27" | tee "$ROOT_DIR/docs/verification_output_v27_20.txt"
+diff -ruN '--exclude=build' '--exclude=runtime_log.csv' '--exclude=verification_output_v27_20.txt' '--exclude=continuation_v27_20_diff.patch' orig_v26_for_v27/src/nc_feature_backlog.c work_v27/source/src/nc_feature_backlog.c
+--- orig_v26_for_v27/src/nc_feature_backlog.c	2026-05-02 10:54:16.000000000 +0000
++++ work_v27/source/src/nc_feature_backlog.c	2026-05-02 11:25:48.887198357 +0000
+@@ -1,5 +1,5 @@
+ /* ibm-bob/samples/base/source/src/nc_feature_backlog.c */
+-/* Implements the v22-v26 design-document backlog features as fixed-size, RT-safe handlers. */
++/* Implements the v22-v27 design-document backlog features as fixed-size, RT-safe handlers. */
+ #include <string.h>
+ #include "nc_feature_backlog.h"
+ #include "nc_program.h"
+@@ -192,6 +192,26 @@
+     /* 177: シングルブロック停止点生成 */ { 177U, 9U, 5U, 487U },
+     /* 178: オーバライドノブ変化率制限 */ { 178U, 9U, 6U, 488U },
+     /* 179: アラームリセット後インターロック解放順序 */ { 179U, 9U, 7U, 489U },
++    /* 180: 加工中ワーク座標系変更禁止ラッチ */ { 180U, 0U, 0U, 490U },
++    /* 181: プログラム停止時補助軸減速退避 */ { 181U, 0U, 1U, 491U },
++    /* 182: 主軸負荷ピークホールド減速 */ { 182U, 0U, 2U, 492U },
++    /* 183: 工具交換アーム干渉領域クランプ */ { 183U, 0U, 3U, 493U },
++    /* 184: クランプ/アンクランプMコード順序監視 */ { 184U, 1U, 4U, 494U },
++    /* 185: APCパレット番号整合監視 */ { 185U, 1U, 5U, 495U },
++    /* 186: タレット割出し完了待ち監視 */ { 186U, 1U, 6U, 496U },
++    /* 187: ローダ/アンローダ干渉待ち合わせ */ { 187U, 1U, 7U, 497U },
++    /* 188: 主軸同期C軸切替ガード */ { 188U, 2U, 0U, 498U },
++    /* 189: C軸輪郭制御送り正規化 */ { 189U, 2U, 1U, 499U },
++    /* 190: 極小円弧半径丸め補正 */ { 190U, 2U, 2U, 500U },
++    /* 191: ヘリカル補間Z送り同期補正 */ { 191U, 2U, 3U, 501U },
++    /* 192: 工具長摩耗補正上限ガード */ { 192U, 3U, 4U, 502U },
++    /* 193: 工具径摩耗補正上限ガード */ { 193U, 3U, 5U, 503U },
++    /* 194: G10パラメータ書込み運転中禁止 */ { 194U, 3U, 6U, 504U },
++    /* 195: 通信異常時NCバッファ消費停止 */ { 195U, 3U, 7U, 505U },
++    /* 196: 先読み異常時安全停止ブロック生成 */ { 196U, 4U, 0U, 506U },
++    /* 197: ドライランI/O出力抑止 */ { 197U, 4U, 1U, 507U },
++    /* 198: シミュレーションモード安全出力マスク */ { 198U, 4U, 2U, 508U },
++    /* 199: 保守モード軸単独送り速度制限 */ { 199U, 4U, 3U, 509U },
+ };
+ 
+ static uint16_t s_parameter[NC_IMPL_BACKLOG_FEATURE_COUNT];
+@@ -854,6 +874,161 @@
+         pBlock->feed = 1;
+         SetMinTicks(pBlock, 10U);
+         break;
++
++    case 180U: /* Work-coordinate change inhibit latch during machining. */
++        pBlock->modal_flags |= 0x00000004UL;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
++        if (IsMotion(pBlock) != 0U) { SlowFeed(pBlock, 86U); }
++        SetMinTicks(pBlock, 5U);
++        break;
++    case 181U: /* Program stop auxiliary-axis decel retract. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 0U; }
++        pBlock->axis_mask |= 0x00000008UL;
++        pBlock->axis_target[3] = pBlock->axis_start[3] + (int32_t)ClampI32((int32_t)param * 20, 100, 20000);
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        SlowFeed(pBlock, 55U);
++        SetMinTicks(pBlock, 9U);
++        break;
++    case 182U: /* Spindle-load peak hold deceleration. */
++        if (pBlock->spindle_speed == 0U) { pBlock->spindle_speed = 300U; }
++        pBlock->feed = (pBlock->feed <= 0) ? 1 : pBlock->feed;
++        pBlock->decel_ticks += 3U;
++        SlowFeed(pBlock, 62U);
++        SetMinTicks(pBlock, 8U);
++        break;
++    case 183U: /* Tool-change arm interference area clamp. */
++        pBlock->axis_mask |= 0x00000007UL;
++        pBlock->axis_target[0] = ClampI32(pBlock->axis_target[0], -600000, 600000);
++        pBlock->axis_target[1] = ClampI32(pBlock->axis_target[1], -600000, 600000);
++        pBlock->axis_target[2] = ClampI32(pBlock->axis_target[2], -200000, 800000);
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        SetMinTicks(pBlock, 7U);
++        break;
++    case 184U: /* Clamp/unclamp M-code sequence monitor. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 10U + (uint32_t)(param % 2U); }
++        pBlock->generation++;
++        pBlock->feed = 1;
++        SetMinTicks(pBlock, 6U);
++        break;
++    case 185U: /* APC pallet number consistency monitor. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        pBlock->p_word = (pBlock->p_word == 0U) ? (uint32_t)ClampI32((int32_t)param % 32, 1, 31) : pBlock->p_word;
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 60U; }
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
++        SetMinTicks(pBlock, 8U);
++        break;
++    case 186U: /* Turret indexing completion wait monitor. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        pBlock->tool_no = (pBlock->tool_no == 0U) ? (uint32_t)ClampI32((int32_t)param % 40, 1, 39) : pBlock->tool_no;
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 6U; }
++        SlowFeed(pBlock, 50U);
++        SetMinTicks(pBlock, 9U);
++        break;
++    case 187U: /* Loader/unloader interference wait. */
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        pBlock->axis_mask |= 0x00000003UL;
++        pBlock->axis_target[0] = ClampI32(pBlock->axis_target[0], -300000, 300000);
++        pBlock->axis_target[1] = ClampI32(pBlock->axis_target[1], -300000, 300000);
++        SlowFeed(pBlock, 48U);
++        SetMinTicks(pBlock, 10U);
++        break;
++    case 188U: /* Spindle-synchronous C-axis changeover guard. */
++        pBlock->axis_mask |= 0x00000008UL;
++        pBlock->feature_flags |= (NC_FEATURE_FLAG_TOOL_AXIS_DIR | NC_FEATURE_FLAG_AXIS_ASSIGNMENT);
++        if (pBlock->spindle_speed == 0U) { pBlock->spindle_speed = 200U; }
++        NormalizeRotaryShortestPath(pBlock, 3U);
++        SlowFeed(pBlock, 66U);
++        SetMinTicks(pBlock, 8U);
++        break;
++    case 189U: /* C-axis contour feed normalization. */
++        pBlock->axis_mask |= 0x00000009UL;
++        NormalizeRotaryShortestPath(pBlock, 3U);
++        pBlock->feed = ClampI32((pBlock->feed <= 0) ? 1000 : pBlock->feed, 1, 24000);
++        pBlock->feature_flags |= NC_FEATURE_FLAG_SMOOTHING;
++        SetMinTicks(pBlock, 6U);
++        break;
++    case 190U: /* Tiny arc-radius rounding correction. */
++        if ((pBlock->motion_type == NC_MOTION_ARC_CW) || (pBlock->motion_type == NC_MOTION_ARC_CCW)) {
++            pBlock->arc_radius = ClampI32((pBlock->arc_radius == 0) ? (int32_t)param : pBlock->arc_radius, 10, 2000000);
++            pBlock->arc_center[0] = ClampI32(pBlock->arc_center[0], -2000000, 2000000);
++            pBlock->arc_center[1] = ClampI32(pBlock->arc_center[1], -2000000, 2000000);
++        }
++        pBlock->feature_flags |= NC_FEATURE_FLAG_SMOOTHING;
++        SetMinTicks(pBlock, 5U);
++        break;
++    case 191U: /* Helical interpolation Z-feed synchronization. */
++        pBlock->motion_type = (pBlock->motion_type == NC_MOTION_RAPID) ? NC_MOTION_LINEAR : pBlock->motion_type;
++        pBlock->axis_mask |= 0x00000004UL;
++        pBlock->axis_target[2] = pBlock->axis_start[2] + SafeDivI32((pBlock->axis_target[2] - pBlock->axis_start[2]), 1);
++        pBlock->feature_flags |= NC_FEATURE_FLAG_ADVANCED_INTERP;
++        SlowFeed(pBlock, 78U);
++        SetMinTicks(pBlock, 7U);
++        break;
++    case 192U: /* Tool-length wear correction upper guard. */
++        pBlock->tool_length_command = (pBlock->tool_length_command == NC_TOOL_LENGTH_CMD_NONE) ? NC_TOOL_LENGTH_CMD_POSITIVE : pBlock->tool_length_command;
++        pBlock->h_offset_no = (uint16_t)ClampI32((int32_t)((pBlock->h_offset_no == 0U) ? (param % 99U) + 1U : pBlock->h_offset_no), 1, 99);
++        pBlock->axis_mask |= 0x00000004UL;
++        pBlock->axis_target[2] = ClampI32(pBlock->axis_target[2], -900000, 900000);
++        pBlock->feature_flags |= NC_FEATURE_FLAG_TOOL_LENGTH;
++        SetMinTicks(pBlock, 4U);
++        break;
++    case 193U: /* Cutter-radius wear correction upper guard. */
++        pBlock->cutter_comp_command = (pBlock->cutter_comp_command == NC_CUTTER_COMP_CMD_NONE) ? NC_CUTTER_COMP_CMD_LEFT : pBlock->cutter_comp_command;
++        pBlock->d_offset_no = (uint16_t)ClampI32((int32_t)((pBlock->d_offset_no == 0U) ? (param % 99U) + 1U : pBlock->d_offset_no), 1, 99);
++        pBlock->axis_mask |= 0x00000003UL;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_CUTTER_RADIUS;
++        SlowFeed(pBlock, 88U);
++        SetMinTicks(pBlock, 4U);
++        break;
++    case 194U: /* Inhibit G10 parameter write while running. */
++        pBlock->g_code10 = 100U;
++        pBlock->modal_flags |= 0x00000008UL;
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        pBlock->feed = 1;
++        SetMinTicks(pBlock, 6U);
++        break;
++    case 195U: /* Stop NC buffer consumption during communication error. */
++        pBlock->valid = 1U;
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        pBlock->feed = 1;
++        pBlock->interp_ticks += 6U;
++        SetMinTicks(pBlock, 10U);
++        break;
++    case 196U: /* Generate safety-stop block on lookahead fault. */
++        pBlock->motion_type = NC_MOTION_LINEAR;
++        pBlock->axis_mask = 0U;
++        pBlock->feed = 1;
++        pBlock->accel_ticks = 1U;
++        pBlock->decel_ticks += 8U;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        SetMinTicks(pBlock, 12U);
++        break;
++    case 197U: /* Dry-run I/O output suppression. */
++        pBlock->aux_flags &= ~NC_AUX_FLAG_M_CODE;
++        pBlock->aux_m_code = 0U;
++        pBlock->feed = ClampI32((pBlock->feed <= 0) ? 1000 : pBlock->feed, 1, 50000);
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
++        SetMinTicks(pBlock, 3U);
++        break;
++    case 198U: /* Simulation-mode safe output mask. */
++        pBlock->aux_flags = 0U;
++        pBlock->aux_m_code = 0U;
++        pBlock->feature_flags |= (NC_FEATURE_FLAG_AXIS_ASSIGNMENT | NC_FEATURE_FLAG_SMOOTHING);
++        pBlock->feed_override_percent = 100U;
++        SetMinTicks(pBlock, 3U);
++        break;
++    case 199U: /* Maintenance-mode independent-axis jog speed limit. */
++        pBlock->axis_mask &= 0x0000000fUL;
++        pBlock->feed = ClampI32((pBlock->feed <= 0) ? 500 : pBlock->feed, 1, 12000);
++        pBlock->accel_ticks += 1U;
++        pBlock->decel_ticks += 1U;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
++        SetMinTicks(pBlock, 5U);
++        break;
+     default:
+         break;
+     }
+@@ -1003,7 +1178,7 @@
+         const NC_BACKLOG_DESCRIPTOR* pDesc = &s_backlog[i];
+         if ((IsEnabled(pDesc->feature_id) != 0U) &&
+             (MatchesDescriptor(pDesc, pBlock) != 0U)) {
+-            /* v22 legacy items remain observation-first. v23-v26 additions are
++            /* v22 legacy items remain observation-first. v23-v27 additions are
+              * promoted to deterministic fixed-block TS transformations. */
+             if (pDesc->feature_id >= NC_IMPL_BACKLOG_V23_FIRST_FEATURE) {
+                 ApplyV23Policy(pDesc, pBlock);

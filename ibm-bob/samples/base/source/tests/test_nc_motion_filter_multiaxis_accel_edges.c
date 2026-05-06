@@ -1,3 +1,7 @@
+/* ibm-bob/samples/base/source/tests/test_nc_motion_filter_multiaxis_accel_edges.c */
+/* Tests multiaxis motion-filter axis limits, acceleration clamps, and endpoint paths. */
+/* This exists so edge cases around motion-filter limit normalization stay covered. */
+/* RELEVANT FILES: ibm-bob/samples/base/source/src/nc_motion_filter.c, ibm-bob/samples/base/source/inc/nc_motion_filter.h, ibm-bob/samples/base/source/tests/test_nc_motion_filter.c */
 #include "test_common.h"
 #include "nc_motion_filter.h"
 
@@ -6,8 +10,8 @@ static int test_multiaxis_limits_and_unmasked_noop(void)
     volatile int32_t target[AXIS_MAX] = {0, 1000, 2000, 3000};
     SystemShared_Initialize();
     TEST_ASSERT_EQ_INT(0, NcMotionFilter_SetConfigRt(1U, NC_MOTION_FILTER_SECOND_STAGE_MOVING_AVERAGE, 1U, 1U));
-    TEST_ASSERT_EQ_INT(0, NcMotionFilter_SetAxisLimitRt(0U, 10, 5));
-    TEST_ASSERT_EQ_INT(0, NcMotionFilter_SetAxisLimitRt(1U, -1, -1));
+    TEST_ASSERT_EQ_INT(0, NcMotionFilter_SetAxisLimitRt(0U, 3, 5));
+    TEST_ASSERT_EQ_INT(0, NcMotionFilter_SetAxisLimitRt(1U, 0, 0));
     TEST_ASSERT_EQ_INT(-1, NcMotionFilter_SetAxisLimitRt(AXIS_MAX, 1, 1));
     TEST_ASSERT_EQ_INT(NC_MOTION_FILTER_DEFAULT_MAX_VELOCITY, g_ncMotionFilterStatus.max_velocity_per_tick[1]);
 

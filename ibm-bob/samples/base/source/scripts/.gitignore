@@ -1,0 +1,5 @@
+# ibm-bob/samples/base/source/scripts/.gitignore
+# Ignores accidental generated output under the scripts folder.
+# This exists so scripts stay source-only when a script is run from the wrong working directory.
+# RELEVANT FILES: ibm-bob/samples/base/source/scripts/README.md, ibm-bob/samples/base/source/build, ibm-bob/samples/base/source/scripts/run_tests.bat
+/build/

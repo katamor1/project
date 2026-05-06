@@ -1,0 +1,242 @@
+diff -ruN '--exclude=build' '--exclude=runtime_log.csv' '--exclude=continuation_v24_20_diff.patch' '--exclude=verification_output_v24.txt' '--exclude=implementation_report_v24_20.md' '--exclude=manifest_v24_20.json' /mnt/data/orig_v23_20/source/inc/system_config.h /mnt/data/work_v24/source/inc/system_config.h
+--- /mnt/data/orig_v23_20/source/inc/system_config.h	2026-05-02 10:10:23.000000000 +0000
++++ /mnt/data/work_v24/source/inc/system_config.h	2026-05-02 10:31:14.901491169 +0000
+@@ -771,13 +771,15 @@
+ #define NC_DESIGN_RIGID_TAP_MIN_TICKS         (8U)
+ #define NC_DESIGN_EXACT_STOP_PERCENT          (55U)
+ #define NC_DESIGN_HP_CONTOUR_PERCENT          (75U)
+-#define NC_IMPL_BACKLOG_FEATURE_COUNT          (120U)
+-#define NC_IMPL_BACKLOG_WORD_COUNT             (4U)
++#define NC_IMPL_BACKLOG_FEATURE_COUNT          (140U)
++#define NC_IMPL_BACKLOG_WORD_COUNT             (5U)
+ #define NC_IMPL_BACKLOG_DEFAULT_OVERRIDE       (92U)
+ #define NC_IMPL_BACKLOG_MIN_TICKS              (3U)
+ #define NC_IMPL_BACKLOG_MAX_POLICY             (7U)
+ #define NC_IMPL_BACKLOG_V23_FIRST_FEATURE       (100U)
+ #define NC_IMPL_BACKLOG_V23_ADDED_FEATURES      (20U)
++#define NC_IMPL_BACKLOG_V24_FIRST_FEATURE       (120U)
++#define NC_IMPL_BACKLOG_V24_ADDED_FEATURES      (20U)
+ #define NC_IMPL_BACKLOG_V23_ROTARY_DEG_180      (180000)
+ #define NC_IMPL_BACKLOG_V23_ROTARY_DEG_360      (360000)
+ #define NC_EVENT_CODE_DESIGN_FEATURE_APPLIED  (9601U)
+diff -ruN '--exclude=build' '--exclude=runtime_log.csv' '--exclude=continuation_v24_20_diff.patch' '--exclude=verification_output_v24.txt' '--exclude=implementation_report_v24_20.md' '--exclude=manifest_v24_20.json' /mnt/data/orig_v23_20/source/scripts/build_gcc_smoke_v24.sh /mnt/data/work_v24/source/scripts/build_gcc_smoke_v24.sh
+--- /mnt/data/orig_v23_20/source/scripts/build_gcc_smoke_v24.sh	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v24/source/scripts/build_gcc_smoke_v24.sh	2026-05-02 10:31:14.902445372 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++mkdir -p "$ROOT_DIR/build"
++gcc -std=c99 -Wall -Wextra -I"$ROOT_DIR/inc" "$ROOT_DIR"/src/*.c -lm -o "$ROOT_DIR/build/ibm_bob_sample_v24"
+diff -ruN '--exclude=build' '--exclude=runtime_log.csv' '--exclude=continuation_v24_20_diff.patch' '--exclude=verification_output_v24.txt' '--exclude=implementation_report_v24_20.md' '--exclude=manifest_v24_20.json' /mnt/data/orig_v23_20/source/scripts/test_gcc_smoke_v24.sh /mnt/data/work_v24/source/scripts/test_gcc_smoke_v24.sh
+--- /mnt/data/orig_v23_20/source/scripts/test_gcc_smoke_v24.sh	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v24/source/scripts/test_gcc_smoke_v24.sh	2026-05-02 10:31:14.902542295 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++bash "$ROOT_DIR/scripts/build_gcc_smoke_v24.sh"
++"$ROOT_DIR/build/ibm_bob_sample_v24" | tee "$ROOT_DIR/docs/verification_output_v24.txt"
+diff -ruN '--exclude=build' '--exclude=runtime_log.csv' '--exclude=continuation_v24_20_diff.patch' '--exclude=verification_output_v24.txt' '--exclude=implementation_report_v24_20.md' '--exclude=manifest_v24_20.json' /mnt/data/orig_v23_20/source/src/nc_feature_backlog.c /mnt/data/work_v24/source/src/nc_feature_backlog.c
+--- /mnt/data/orig_v23_20/source/src/nc_feature_backlog.c	2026-05-02 10:10:23.000000000 +0000
++++ /mnt/data/work_v24/source/src/nc_feature_backlog.c	2026-05-02 10:32:09.263709768 +0000
+@@ -132,6 +132,26 @@
+     /* 117: ワーク取付誤差固定補正 */ { 117U, 4U, 1U, 318U },
+     /* 118: 円筒/極座標補間送り正規化 */ { 118U, 4U, 2U, 319U },
+     /* 119: Mコード補助指令ハンドシェイク監視 */ { 119U, 4U, 3U, 320U },
++    /* 120: 5軸RTCP工具先端点補正 */ { 120U, 5U, 4U, 430U },
++    /* 121: 傾斜作業平面B/C角正規化 */ { 121U, 5U, 5U, 431U },
++    /* 122: TCPM工具中心点制御送り補正 */ { 122U, 5U, 6U, 432U },
++    /* 123: 高速微小線分連続圧縮 */ { 123U, 6U, 7U, 433U },
++    /* 124: 曲率連続加減速先読み */ { 124U, 6U, 0U, 434U },
++    /* 125: ジャーク制限S字加減速 */ { 125U, 6U, 1U, 435U },
++    /* 126: コーナR自動挿入 */ { 126U, 6U, 2U, 436U },
++    /* 127: 面取り自動挿入 */ { 127U, 6U, 3U, 437U },
++    /* 128: 先読みバッファ下限HOLD回避減速 */ { 128U, 7U, 4U, 438U },
++    /* 129: NCシーケンスサーチ再開位置検証 */ { 129U, 7U, 5U, 439U },
++    /* 130: PLC補助コードキュー二重化 */ { 130U, 7U, 6U, 440U },
++    /* 131: クーラント/エアブローMコードインターロック */ { 131U, 7U, 7U, 441U },
++    /* 132: 主軸定周速CSS径ゼロガード */ { 132U, 8U, 0U, 442U },
++    /* 133: 主軸ギア段自動選択 */ { 133U, 8U, 1U, 443U },
++    /* 134: ATC原点復帰確認 */ { 134U, 8U, 2U, 444U },
++    /* 135: 工具摩耗補正微調整 */ { 135U, 8U, 3U, 445U },
++    /* 136: プローブ測定結果ワーク補正反映 */ { 136U, 9U, 4U, 446U },
++    /* 137: 研削ドレス量補正 */ { 137U, 9U, 5U, 447U },
++    /* 138: 非常停止復帰後再開禁止ラッチ */ { 138U, 9U, 6U, 448U },
++    /* 139: ドア開時安全速度監視 */ { 139U, 9U, 7U, 449U },
+ };
+ 
+ static uint16_t s_parameter[NC_IMPL_BACKLOG_FEATURE_COUNT];
+@@ -204,6 +224,18 @@
+     g_ncImplementationBacklogStatus.active_override_percent = pct;
+ }
+ 
++static int32_t SafeDivI32(int32_t value, int32_t divisor)
++{
++    if (divisor == 0) { return value; }
++    return value / divisor;
++}
++
++static void SetFeatureFlagAndTicks(NC_EXEC_BLOCK* pBlock, uint32_t featureFlag, uint32_t minTicks)
++{
++    pBlock->feature_flags |= featureFlag;
++    SetMinTicks(pBlock, minTicks);
++}
++
+ static void NormalizeRotaryShortestPath(NC_EXEC_BLOCK* pBlock, uint32_t axis)
+ {
+     int32_t start;
+@@ -350,6 +382,144 @@
+         if (pBlock->p_word == 0U) { pBlock->p_word = 5U; }
+         SetMinTicks(pBlock, 4U);
+         break;
++
++    case 120U: /* 5-axis RTCP: keep tool tip target stable while tilting A/B. */
++        pBlock->axis_mask |= 0x0000001fUL;
++        pBlock->tool_axis_command = 1U;
++        pBlock->tool_axis_angle_deg[0] = ClampI32(pBlock->tool_axis_angle_deg[0] + (int32_t)(param % 15U), -90000, 90000);
++        pBlock->tool_axis_angle_deg[1] = ClampI32(pBlock->tool_axis_angle_deg[1] - (int32_t)(param % 12U), -90000, 90000);
++        pBlock->axis_target[0] += SafeDivI32(pBlock->tool_axis_angle_deg[0], 1000);
++        pBlock->axis_target[1] += SafeDivI32(pBlock->tool_axis_angle_deg[1], 1000);
++        SetFeatureFlagAndTicks(pBlock, NC_FEATURE_FLAG_TOOL_AXIS_DIR, 6U);
++        break;
++    case 121U: /* Tilted work plane B/C normalization. */
++        pBlock->kinematics_command = 1U;
++        pBlock->axis_mask |= 0x00000018UL;
++        pBlock->tilt_angle_deg[1] = ClampI32(pBlock->tilt_angle_deg[1] + (int32_t)(param % 30U), -180000, 180000);
++        pBlock->tilt_angle_deg[2] = ClampI32(pBlock->tilt_angle_deg[2] - (int32_t)(param % 30U), -180000, 180000);
++        NormalizeRotaryShortestPath(pBlock, 3U);
++        NormalizeRotaryShortestPath(pBlock, 4U);
++        SetFeatureFlagAndTicks(pBlock, NC_FEATURE_FLAG_TILTED_PLANE, 6U);
++        break;
++    case 122U: /* TCPM feed compensation for tool-center-point motion. */
++        pBlock->tool_axis_command = 1U;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_TOOL_AXIS_DIR;
++        if (pBlock->feed > 0) { SlowFeed(pBlock, 82U); }
++        pBlock->interp_ticks += (pBlock->interp_ticks < 12U) ? 2U : 0U;
++        break;
++    case 123U: /* High-speed tiny segment compression. */
++        if (AbsI32(pBlock->axis_target[0] - pBlock->axis_start[0]) < (int32_t)ClampI32((int32_t)param, 20, 500)) {
++            pBlock->feature_flags |= NC_FEATURE_FLAG_SMOOTHING;
++            if (pBlock->interp_ticks > 2U) { pBlock->interp_ticks--; }
++            if (pBlock->feed > 0) { SlowFeed(pBlock, 96U); }
++        }
++        break;
++    case 124U: /* Curvature continuous lookahead acceleration. */
++        pBlock->feature_flags |= NC_FEATURE_FLAG_ADVANCED_INTERP;
++        pBlock->accel_ticks += 2U;
++        pBlock->decel_ticks += 2U;
++        SlowFeed(pBlock, 90U);
++        SetMinTicks(pBlock, 7U);
++        break;
++    case 125U: /* Jerk-limited S-curve acceleration profile. */
++        pBlock->feed_profile = NC_FEED_PROFILE_TRAPEZOID;
++        pBlock->accel_ticks += (pBlock->accel_ticks < 8U) ? 3U : 1U;
++        pBlock->decel_ticks += (pBlock->decel_ticks < 8U) ? 3U : 1U;
++        SetFeatureFlagAndTicks(pBlock, NC_FEATURE_FLAG_SMOOTHING, 8U);
++        break;
++    case 126U: /* Auto corner radius insertion. */
++        pBlock->feature_flags |= NC_FEATURE_FLAG_SMOOTHING;
++        if (pBlock->r_value == 0) { pBlock->r_value = (int32_t)ClampI32((int32_t)param, 5, 500); }
++        pBlock->axis_target[0] -= SafeDivI32(pBlock->r_value, 4);
++        pBlock->axis_target[1] += SafeDivI32(pBlock->r_value, 4);
++        SetMinTicks(pBlock, 5U);
++        break;
++    case 127U: /* Automatic chamfer insertion at block end. */
++        pBlock->feature_flags |= NC_FEATURE_FLAG_SMOOTHING;
++        if (pBlock->q_value == 0) { pBlock->q_value = (int32_t)ClampI32((int32_t)param, 3, 300); }
++        pBlock->axis_target[0] -= SafeDivI32(pBlock->q_value, 3);
++        pBlock->axis_target[1] -= SafeDivI32(pBlock->q_value, 3);
++        SetMinTicks(pBlock, 5U);
++        break;
++    case 128U: /* Lookahead low-watermark slowdown to avoid HOLD underrun. */
++        pBlock->feature_flags |= NC_FEATURE_FLAG_ADVANCED_INTERP;
++        SlowFeed(pBlock, 72U);
++        pBlock->interp_ticks += 3U;
++        SetMinTicks(pBlock, 8U);
++        break;
++    case 129U: /* Sequence search resume-position verification. */
++        if (pBlock->p_word == 0U) { pBlock->p_word = 2000U + pBlock->line_no; }
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
++        pBlock->axis_mask &= NC_AXIS_CONFIG_DEFAULT_PATH_MASK;
++        SetMinTicks(pBlock, 4U);
++        break;
++    case 130U: /* Dual PLC auxiliary queue guard. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 200U + (uint32_t)(param % 80U); }
++        if (pBlock->p_word == 0U) { pBlock->p_word = 2U; }
++        SetMinTicks(pBlock, 4U);
++        break;
++    case 131U: /* Coolant/air-blow M-code interlock. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = ((param & 1U) != 0U) ? 8U : 7U; }
++        SlowFeed(pBlock, 95U);
++        SetMinTicks(pBlock, 3U);
++        break;
++    case 132U: /* CSS spindle zero-diameter guard. */
++        if (pBlock->axis_target[0] == 0) { pBlock->axis_target[0] = (int32_t)ClampI32((int32_t)param, 1, 1000); }
++        if (pBlock->spindle_speed == 0U) { pBlock->spindle_speed = 500U; }
++        pBlock->feed_mode = NC_FEED_MODE_PER_REV;
++        SetMinTicks(pBlock, 4U);
++        break;
++    case 133U: /* Automatic spindle gear range selection. */
++        if (pBlock->spindle_speed == 0U) { pBlock->spindle_speed = 600U + (uint32_t)(param * 2U); }
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = (pBlock->spindle_speed > 1200U) ? 42U : 41U; }
++        pBlock->aux_flags |= NC_AUX_FLAG_M_CODE;
++        SetMinTicks(pBlock, 3U);
++        break;
++    case 134U: /* ATC home-position confirmation before tool exchange. */
++        pBlock->tool_no = (pBlock->tool_no == 0U) ? (uint32_t)((param % 24U) + 1U) : pBlock->tool_no;
++        pBlock->aux_m_code = 6U;
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        SetMinTicks(pBlock, 5U);
++        break;
++    case 135U: /* Tool wear fine adjustment. */
++        pBlock->tool_length_command = (pBlock->tool_length_command == 0U) ? 43U : pBlock->tool_length_command;
++        pBlock->h_offset_no = (pBlock->h_offset_no == 0U) ? (uint16_t)((param % 32U) + 1U) : pBlock->h_offset_no;
++        pBlock->axis_mask |= 0x00000004UL;
++        pBlock->axis_target[2] += (int32_t)(param % 8U) - 4;
++        SetMinTicks(pBlock, 4U);
++        break;
++    case 136U: /* Probe measurement result reflected to work offset. */
++        pBlock->motion_type = NC_MOTION_SKIP;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_TILTED_PLANE;
++        pBlock->axis_mask |= 0x00000007UL;
++        pBlock->axis_target[0] += (int32_t)(param % 10U);
++        pBlock->axis_target[1] -= (int32_t)(param % 10U);
++        SetMinTicks(pBlock, 5U);
++        break;
++    case 137U: /* Grinding dresser amount compensation. */
++        pBlock->motion_type = NC_MOTION_CANNED_CYCLE;
++        pBlock->cycle_flags |= 0x0020U;
++        pBlock->axis_mask |= 0x00000004UL;
++        pBlock->axis_target[2] -= (int32_t)ClampI32((int32_t)param, 1, 200);
++        SlowFeed(pBlock, 68U);
++        SetMinTicks(pBlock, 9U);
++        break;
++    case 138U: /* Restart inhibit latch after emergency stop recovery. */
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        pBlock->feed = 1;
++        pBlock->interp_ticks += 10U;
++        SetMinTicks(pBlock, 12U);
++        break;
++    case 139U: /* Door-open safe speed monitoring. */
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        SlowFeed(pBlock, 30U);
++        pBlock->interp_ticks += 6U;
++        SetMinTicks(pBlock, 10U);
++        break;
+     default:
+         break;
+     }
+@@ -499,7 +669,7 @@
+         const NC_BACKLOG_DESCRIPTOR* pDesc = &s_backlog[i];
+         if ((IsEnabled(pDesc->feature_id) != 0U) &&
+             (MatchesDescriptor(pDesc, pBlock) != 0U)) {
+-            /* v22 legacy items remain observation-first. v23 additions are
++            /* v22 legacy items remain observation-first. v23/v24 additions are
+              * promoted to deterministic fixed-block TS transformations. */
+             if (pDesc->feature_id >= NC_IMPL_BACKLOG_V23_FIRST_FEATURE) {
+                 ApplyV23Policy(pDesc, pBlock);

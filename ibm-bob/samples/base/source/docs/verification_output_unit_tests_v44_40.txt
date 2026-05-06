@@ -1,0 +1,42 @@
+[TEST 01] v35 self-check callable return contract
+[TEST 02] v35 feature ID boundaries
+[TEST 03] v35 NULL RT tick warning without rt count
+[TEST 04] v35 zeroed RT tick safe path
+[TEST 05] v35 TS disabled feature exclusion and re-enable
+[TEST 06] v36 self-check callable return contract
+[TEST 07] v36 feature ID boundaries
+[TEST 08] v36 NULL RT tick warning without rt count
+[TEST 09] v36 zeroed RT tick safe path
+[TEST 10] v36 TS disabled feature exclusion and re-enable
+[TEST 11] v37 self-check callable return contract
+[TEST 12] v37 feature ID boundaries
+[TEST 13] v37 NULL RT tick warning without rt count
+[TEST 14] v37 zeroed RT tick safe path
+[TEST 15] v37 TS disabled feature exclusion and re-enable
+[TEST 16] v38 self-check callable return contract
+[TEST 17] v38 feature ID boundaries
+[TEST 18] v38 NULL RT tick warning without rt count
+[TEST 19] v38 zeroed RT tick safe path
+[TEST 20] v38 TS disabled feature exclusion and re-enable
+[TEST 21] v39 self-check callable return contract
+[TEST 22] v39 feature ID boundaries
+[TEST 23] v39 NULL RT tick warning without rt count
+[TEST 24] v39 zeroed RT tick safe path
+[TEST 25] v39 TS disabled feature exclusion and re-enable
+[TEST 26] v40 self-check callable return contract
+[TEST 27] v40 feature ID boundaries
+[TEST 28] v40 NULL RT tick warning without rt count
+[TEST 29] v40 zeroed RT tick safe path
+[TEST 30] v40 TS disabled feature exclusion and re-enable
+[TEST 31] v41 self-check callable return contract
+[TEST 32] v41 feature ID boundaries
+[TEST 33] v41 NULL RT tick warning without rt count
+[TEST 34] v41 zeroed RT tick safe path
+[TEST 35] v41 TS disabled feature exclusion and re-enable
+[TEST 36] v42 self-check callable return contract
+[TEST 37] v42 feature ID boundaries
+[TEST 38] v42 NULL RT tick warning without rt count
+[TEST 39] v42 zeroed RT tick safe path
+[TEST 40] v42 TS disabled feature exclusion and re-enable
+UNIT_TEST_SUMMARY tests=40 failures=0
+PASS additional_unit_tests_v44_40

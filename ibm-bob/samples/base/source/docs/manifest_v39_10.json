@@ -1,0 +1,35 @@
+{
+  "version": "v39_10",
+  "base_version": "v38_10",
+  "feature_id_range": "305-314",
+  "feature_count_added": 10,
+  "total_feature_count_after_v39": 315,
+  "word_count_after_v39": 10,
+  "added_files": [
+    "source/inc/nc_feature_backlog_v39.h",
+    "source/src/nc_feature_backlog_v39.c",
+    "source/tests/test_nc_feature_backlog_v39.c",
+    "source/scripts/build_gcc_smoke_v39_10.sh",
+    "source/scripts/test_gcc_smoke_v39_10.sh",
+    "source/scripts/build_vc2026_v39_10.bat",
+    "source/scripts/test_vc2026_v39_10.bat",
+    "source/scripts/build_clang_v39_10.bat",
+    "source/scripts/test_clang_v39_10.bat",
+    "source/docs/implementation_report_v39_10.md",
+    "source/docs/verification_output_v39_10.txt",
+    "source/docs/continuation_v39_10_diff.patch",
+    "source/docs/integration_note_v39_10.md",
+    "source/docs/manifest_v39_10.json"
+  ],
+  "rt_safety": {
+    "dynamic_allocation": false,
+    "file_io": false,
+    "windows_api": false,
+    "bounded_loop": true
+  },
+  "verification": {
+    "gcc_smoke_test": "PASS",
+    "vc2026_windows": "not executed in Linux sandbox",
+    "clang_windows": "not executed in Linux sandbox"
+  }
+}

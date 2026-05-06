@@ -1,0 +1,576 @@
+Binary files /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/build/test_nc_feature_backlog_additional_v45_40 and /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/build/test_nc_feature_backlog_additional_v45_40 differ
+diff -ruN /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/build/unit_test_results_v45_40.txt /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/build/unit_test_results_v45_40.txt
+--- /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/build/unit_test_results_v45_40.txt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/build/unit_test_results_v45_40.txt	2026-05-03 03:33:30.696310672 +0000
+@@ -0,0 +1,42 @@
++[TEST 01] v35 status snapshot independent after mutation
++[TEST 02] v35 non-contiguous enable mask
++[TEST 03] v35 repeated TS apply accumulates hits
++[TEST 04] v35 repeated zero RT ticks count contract
++[TEST 05] v35 all valid feature names resolve
++[TEST 06] v35 disabled TS path has no hits or masks
++[TEST 07] v36 status snapshot independent after mutation
++[TEST 08] v36 non-contiguous enable mask
++[TEST 09] v36 repeated TS apply accumulates hits
++[TEST 10] v36 repeated zero RT ticks count contract
++[TEST 11] v36 all valid feature names resolve
++[TEST 12] v36 disabled TS path has no hits or masks
++[TEST 13] v37 status snapshot independent after mutation
++[TEST 14] v37 non-contiguous enable mask
++[TEST 15] v37 repeated TS apply accumulates hits
++[TEST 16] v37 repeated zero RT ticks count contract
++[TEST 17] v37 all valid feature names resolve
++[TEST 18] v37 disabled TS path has no hits or masks
++[TEST 19] v38 status snapshot independent after mutation
++[TEST 20] v38 non-contiguous enable mask
++[TEST 21] v38 repeated TS apply accumulates hits
++[TEST 22] v38 repeated zero RT ticks count contract
++[TEST 23] v38 all valid feature names resolve
++[TEST 24] v38 disabled TS path has no hits or masks
++[TEST 25] v39 status snapshot independent after mutation
++[TEST 26] v39 non-contiguous enable mask
++[TEST 27] v39 repeated TS apply accumulates hits
++[TEST 28] v39 repeated zero RT ticks count contract
++[TEST 29] v39 all valid feature names resolve
++[TEST 30] v39 disabled TS path has no hits or masks
++[TEST 31] v40 status snapshot independent after mutation
++[TEST 32] v40 non-contiguous enable mask
++[TEST 33] v40 repeated TS apply accumulates hits
++[TEST 34] v40 repeated zero RT ticks count contract
++[TEST 35] v40 all valid feature names resolve
++[TEST 36] v41 status snapshot independent after mutation
++[TEST 37] v41 non-contiguous enable mask
++[TEST 38] v41 repeated TS apply accumulates hits
++[TEST 39] v41 repeated zero RT ticks count contract
++[TEST 40] v41 all valid feature names resolve
++UNIT_TEST_SUMMARY tests=40 failures=0
++PASS additional_unit_tests_v45_40
+diff -ruN /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/docs/continuation_unit_tests_v45_40_diff.patch /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/docs/continuation_unit_tests_v45_40_diff.patch
+--- /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/docs/continuation_unit_tests_v45_40_diff.patch	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/docs/continuation_unit_tests_v45_40_diff.patch	2026-05-03 03:33:46.095943890 +0000
+@@ -0,0 +1,47 @@
++Binary files /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/build/test_nc_feature_backlog_additional_v45_40 and /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/build/test_nc_feature_backlog_additional_v45_40 differ
++diff -ruN /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/build/unit_test_results_v45_40.txt /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/build/unit_test_results_v45_40.txt
++--- /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/build/unit_test_results_v45_40.txt	1970-01-01 00:00:00.000000000 +0000
+++++ /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/build/unit_test_results_v45_40.txt	2026-05-03 03:33:30.696310672 +0000
++@@ -0,0 +1,42 @@
+++[TEST 01] v35 status snapshot independent after mutation
+++[TEST 02] v35 non-contiguous enable mask
+++[TEST 03] v35 repeated TS apply accumulates hits
+++[TEST 04] v35 repeated zero RT ticks count contract
+++[TEST 05] v35 all valid feature names resolve
+++[TEST 06] v35 disabled TS path has no hits or masks
+++[TEST 07] v36 status snapshot independent after mutation
+++[TEST 08] v36 non-contiguous enable mask
+++[TEST 09] v36 repeated TS apply accumulates hits
+++[TEST 10] v36 repeated zero RT ticks count contract
+++[TEST 11] v36 all valid feature names resolve
+++[TEST 12] v36 disabled TS path has no hits or masks
+++[TEST 13] v37 status snapshot independent after mutation
+++[TEST 14] v37 non-contiguous enable mask
+++[TEST 15] v37 repeated TS apply accumulates hits
+++[TEST 16] v37 repeated zero RT ticks count contract
+++[TEST 17] v37 all valid feature names resolve
+++[TEST 18] v37 disabled TS path has no hits or masks
+++[TEST 19] v38 status snapshot independent after mutation
+++[TEST 20] v38 non-contiguous enable mask
+++[TEST 21] v38 repeated TS apply accumulates hits
+++[TEST 22] v38 repeated zero RT ticks count contract
+++[TEST 23] v38 all valid feature names resolve
+++[TEST 24] v38 disabled TS path has no hits or masks
+++[TEST 25] v39 status snapshot independent after mutation
+++[TEST 26] v39 non-contiguous enable mask
+++[TEST 27] v39 repeated TS apply accumulates hits
+++[TEST 28] v39 repeated zero RT ticks count contract
+++[TEST 29] v39 all valid feature names resolve
+++[TEST 30] v39 disabled TS path has no hits or masks
+++[TEST 31] v40 status snapshot independent after mutation
+++[TEST 32] v40 non-contiguous enable mask
+++[TEST 33] v40 repeated TS apply accumulates hits
+++[TEST 34] v40 repeated zero RT ticks count contract
+++[TEST 35] v40 all valid feature names resolve
+++[TEST 36] v41 status snapshot independent after mutation
+++[TEST 37] v41 non-contiguous enable mask
+++[TEST 38] v41 repeated TS apply accumulates hits
+++[TEST 39] v41 repeated zero RT ticks count contract
+++[TEST 40] v41 all valid feature names resolve
+++UNIT_TEST_SUMMARY tests=40 failures=0
+++PASS additional_unit_tests_v45_40
+diff -ruN /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/docs/unit_test_report_v45_40.md /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/docs/unit_test_report_v45_40.md
+--- /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/docs/unit_test_report_v45_40.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/docs/unit_test_report_v45_40.md	2026-05-03 03:33:45.915325001 +0000
+@@ -0,0 +1,60 @@
++# IBM-Bob 単体テスト追加レポート v45_40
++
++## 概要
++
++`ibm_bob_source_implemented_additional_features_v41_10` をベースに、追加バックログ機能 `v35〜v41` を対象とする単体テストを40件追加した。
++
++## 追加ファイル
++
++- `source/tests/test_nc_feature_backlog_additional_v45_40.c`
++- `source/scripts/build_gcc_unit_tests_v45_40.sh`
++- `source/scripts/test_gcc_unit_tests_v45_40.sh`
++- `source/scripts/build_vc2026_unit_tests_v45_40.bat`
++- `source/scripts/test_vc2026_unit_tests_v45_40.bat`
++- `source/scripts/build_clang_unit_tests_v45_40.bat`
++- `source/scripts/test_clang_unit_tests_v45_40.bat`
++
++## 追加テスト観点
++
++今回の40件では、既存の各モジュール別スモークテストと重複しすぎないよう、以下を重点確認した。
++
++1. 状態スナップショット取得後にAPIで状態を変更しても、取得済みスナップショットが独立していること
++2. 非連続feature IDを有効化/無効化した場合の `enabled_mask` と `configured_count` の整合性
++3. TS固定長ブロックを複数回適用した場合の `ts_apply_count` と `per_feature_hits[]` の累積
++4. zero初期化RT入力を複数tick実行しても、tickカウントとwarningカウントがAPI契約どおりであること
++5. 各モジュールの全valid feature IDが `unknown` ではない名称へ解決されること
++6. feature未有効状態でTS固定長ブロックを適用しても、hitや副作用マスクを記録しないこと
++
++## テスト件数
++
++| 対象モジュール | 追加件数 |
++|---|---:|
++| `nc_feature_backlog_v35` | 6 |
++| `nc_feature_backlog_v36` | 6 |
++| `nc_feature_backlog_v37` | 6 |
++| `nc_feature_backlog_v38` | 6 |
++| `nc_feature_backlog_v39` | 6 |
++| `nc_feature_backlog_v40` | 5 |
++| `nc_feature_backlog_v41` | 5 |
++| **合計** | **40** |
++
++## 検証結果
++
++GCCスモーク単体テストを実行し、40件すべてPASSした。
++
++```text
++UNIT_TEST_SUMMARY tests=40 failures=0
++PASS additional_unit_tests_v45_40
++```
++
++## Windows環境での確認コマンド
++
++```bat
++cd source
++scripts\test_vc2026_unit_tests_v45_40.bat
++scripts\test_clang_unit_tests_v45_40.bat
++```
++
++## 補足
++
++このLinuxサンドボックスではVC2026 / clang Windows版の実行は未実施。Windows側では上記BATを使用して確認する。
+diff -ruN /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/docs/verification_output_unit_tests_v45_40.txt /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/docs/verification_output_unit_tests_v45_40.txt
+--- /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/docs/verification_output_unit_tests_v45_40.txt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/docs/verification_output_unit_tests_v45_40.txt	2026-05-03 03:33:46.001086224 +0000
+@@ -0,0 +1,42 @@
++[TEST 01] v35 status snapshot independent after mutation
++[TEST 02] v35 non-contiguous enable mask
++[TEST 03] v35 repeated TS apply accumulates hits
++[TEST 04] v35 repeated zero RT ticks count contract
++[TEST 05] v35 all valid feature names resolve
++[TEST 06] v35 disabled TS path has no hits or masks
++[TEST 07] v36 status snapshot independent after mutation
++[TEST 08] v36 non-contiguous enable mask
++[TEST 09] v36 repeated TS apply accumulates hits
++[TEST 10] v36 repeated zero RT ticks count contract
++[TEST 11] v36 all valid feature names resolve
++[TEST 12] v36 disabled TS path has no hits or masks
++[TEST 13] v37 status snapshot independent after mutation
++[TEST 14] v37 non-contiguous enable mask
++[TEST 15] v37 repeated TS apply accumulates hits
++[TEST 16] v37 repeated zero RT ticks count contract
++[TEST 17] v37 all valid feature names resolve
++[TEST 18] v37 disabled TS path has no hits or masks
++[TEST 19] v38 status snapshot independent after mutation
++[TEST 20] v38 non-contiguous enable mask
++[TEST 21] v38 repeated TS apply accumulates hits
++[TEST 22] v38 repeated zero RT ticks count contract
++[TEST 23] v38 all valid feature names resolve
++[TEST 24] v38 disabled TS path has no hits or masks
++[TEST 25] v39 status snapshot independent after mutation
++[TEST 26] v39 non-contiguous enable mask
++[TEST 27] v39 repeated TS apply accumulates hits
++[TEST 28] v39 repeated zero RT ticks count contract
++[TEST 29] v39 all valid feature names resolve
++[TEST 30] v39 disabled TS path has no hits or masks
++[TEST 31] v40 status snapshot independent after mutation
++[TEST 32] v40 non-contiguous enable mask
++[TEST 33] v40 repeated TS apply accumulates hits
++[TEST 34] v40 repeated zero RT ticks count contract
++[TEST 35] v40 all valid feature names resolve
++[TEST 36] v41 status snapshot independent after mutation
++[TEST 37] v41 non-contiguous enable mask
++[TEST 38] v41 repeated TS apply accumulates hits
++[TEST 39] v41 repeated zero RT ticks count contract
++[TEST 40] v41 all valid feature names resolve
++UNIT_TEST_SUMMARY tests=40 failures=0
++PASS additional_unit_tests_v45_40
+diff -ruN /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/scripts/build_clang_unit_tests_v45_40.bat /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/scripts/build_clang_unit_tests_v45_40.bat
+--- /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/scripts/build_clang_unit_tests_v45_40.bat	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/scripts/build_clang_unit_tests_v45_40.bat	2026-05-03 03:33:00.125616670 +0000
+@@ -0,0 +1,15 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++if not exist build mkdir build
++clang -std=c99 -Wall -Wextra -Iinc ^
++  tests\test_nc_feature_backlog_additional_v45_40.c ^
++  src\nc_feature_backlog_v35.c ^
++  src\nc_feature_backlog_v36.c ^
++  src\nc_feature_backlog_v37.c ^
++  src\nc_feature_backlog_v38.c ^
++  src\nc_feature_backlog_v39.c ^
++  src\nc_feature_backlog_v40.c ^
++  src\nc_feature_backlog_v41.c ^
++  -o build\test_nc_feature_backlog_additional_v45_40.exe
++endlocal
+diff -ruN /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/scripts/build_gcc_unit_tests_v45_40.sh /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/scripts/build_gcc_unit_tests_v45_40.sh
+--- /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/scripts/build_gcc_unit_tests_v45_40.sh	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/scripts/build_gcc_unit_tests_v45_40.sh	2026-05-03 03:33:00.002639392 +0000
+@@ -0,0 +1,14 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd "$(dirname "$0")/.."
++mkdir -p build
++gcc -std=c99 -Wall -Wextra -Iinc \
++  tests/test_nc_feature_backlog_additional_v45_40.c \
++  src/nc_feature_backlog_v35.c \
++  src/nc_feature_backlog_v36.c \
++  src/nc_feature_backlog_v37.c \
++  src/nc_feature_backlog_v38.c \
++  src/nc_feature_backlog_v39.c \
++  src/nc_feature_backlog_v40.c \
++  src/nc_feature_backlog_v41.c \
++  -o build/test_nc_feature_backlog_additional_v45_40
+diff -ruN /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/scripts/build_vc2026_unit_tests_v45_40.bat /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/scripts/build_vc2026_unit_tests_v45_40.bat
+--- /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/scripts/build_vc2026_unit_tests_v45_40.bat	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/scripts/build_vc2026_unit_tests_v45_40.bat	2026-05-03 03:33:00.108499855 +0000
+@@ -0,0 +1,15 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++if not exist build mkdir build
++cl /nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc ^
++  tests\test_nc_feature_backlog_additional_v45_40.c ^
++  src\nc_feature_backlog_v35.c ^
++  src\nc_feature_backlog_v36.c ^
++  src\nc_feature_backlog_v37.c ^
++  src\nc_feature_backlog_v38.c ^
++  src\nc_feature_backlog_v39.c ^
++  src\nc_feature_backlog_v40.c ^
++  src\nc_feature_backlog_v41.c ^
++  /Febuild\test_nc_feature_backlog_additional_v45_40.exe
++endlocal
+diff -ruN /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/scripts/test_clang_unit_tests_v45_40.bat /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/scripts/test_clang_unit_tests_v45_40.bat
+--- /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/scripts/test_clang_unit_tests_v45_40.bat	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/scripts/test_clang_unit_tests_v45_40.bat	2026-05-03 03:33:00.197837162 +0000
+@@ -0,0 +1,7 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++call scripts\build_clang_unit_tests_v45_40.bat || exit /b 1
++build\test_nc_feature_backlog_additional_v45_40.exe > build\unit_test_results_v45_40.txt
++type build\unit_test_results_v45_40.txt
++endlocal
+diff -ruN /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/scripts/test_gcc_unit_tests_v45_40.sh /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/scripts/test_gcc_unit_tests_v45_40.sh
+--- /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/scripts/test_gcc_unit_tests_v45_40.sh	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/scripts/test_gcc_unit_tests_v45_40.sh	2026-05-03 03:33:00.022605011 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd "$(dirname "$0")/.."
++scripts/build_gcc_unit_tests_v45_40.sh
++build/test_nc_feature_backlog_additional_v45_40 | tee build/unit_test_results_v45_40.txt
+diff -ruN /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/scripts/test_vc2026_unit_tests_v45_40.bat /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/scripts/test_vc2026_unit_tests_v45_40.bat
+--- /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/scripts/test_vc2026_unit_tests_v45_40.bat	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/scripts/test_vc2026_unit_tests_v45_40.bat	2026-05-03 03:33:00.116563324 +0000
+@@ -0,0 +1,7 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++call scripts\build_vc2026_unit_tests_v45_40.bat || exit /b 1
++build\test_nc_feature_backlog_additional_v45_40.exe > build\unit_test_results_v45_40.txt
++type build\unit_test_results_v45_40.txt
++endlocal
+diff -ruN /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/tests/test_nc_feature_backlog_additional_v45_40.c /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/tests/test_nc_feature_backlog_additional_v45_40.c
+--- /mnt/data/work_unit_v45/ibm_bob_source_implemented_additional_features_v41_10/source/tests/test_nc_feature_backlog_additional_v45_40.c	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_unit_tests_additional_v45_40/source/tests/test_nc_feature_backlog_additional_v45_40.c	2026-05-03 03:33:25.295942969 +0000
+@@ -0,0 +1,277 @@
++/*
++ * IBM-Bob additional unit tests v45_40.
++ *
++ * Adds 40 unit tests for backlog modules v35-v41.
++ * Coverage split:
++ *   - v35-v39: 6 tests each = 30
++ *   - v40-v41: 5 tests each = 10
++ * Total: 40 tests.
++ *
++ * Focus points:
++ *   1) status snapshot copy independence
++ *   2) non-contiguous enable mask/count consistency
++ *   3) repeated TS application hit accumulation
++ *   4) repeated zero-input RT tick contract
++ *   5) valid feature-name resolution for all IDs
++ *   6) disabled TS path does not record hits or side-effect masks
++ */
++#include "nc_feature_backlog_v35.h"
++#include "nc_feature_backlog_v36.h"
++#include "nc_feature_backlog_v37.h"
++#include "nc_feature_backlog_v38.h"
++#include "nc_feature_backlog_v39.h"
++#include "nc_feature_backlog_v40.h"
++#include "nc_feature_backlog_v41.h"
++
++#include <stdint.h>
++#include <stdio.h>
++#include <string.h>
++
++#if defined(__GNUC__)
++#define IBM_BOB_UNUSED __attribute__((unused))
++#else
++#define IBM_BOB_UNUSED
++#endif
++
++static uint32_t g_tests_run = 0u;
++static uint32_t g_tests_failed = 0u;
++
++static void test_begin(const char *name)
++{
++    g_tests_run++;
++    printf("[TEST %02u] %s\n", g_tests_run, name);
++}
++
++static void fail_u32(const char *expr, uint32_t actual, uint32_t expected, const char *file, int line)
++{
++    g_tests_failed++;
++    printf("  FAIL %s:%d %s actual=%u expected=%u\n", file, line, expr, actual, expected);
++}
++
++static void fail_i32(const char *expr, int32_t actual, int32_t expected, const char *file, int line)
++{
++    g_tests_failed++;
++    printf("  FAIL %s:%d %s actual=%d expected=%d\n", file, line, expr, actual, expected);
++}
++
++static void fail_true(const char *expr, const char *file, int line)
++{
++    g_tests_failed++;
++    printf("  FAIL %s:%d %s\n", file, line, expr);
++}
++
++#define EXPECT_EQ_U32(actual_, expected_) do { \
++    uint32_t a__ = (uint32_t)(actual_); \
++    uint32_t e__ = (uint32_t)(expected_); \
++    if (a__ != e__) { fail_u32(#actual_, a__, e__, __FILE__, __LINE__); } \
++} while (0)
++
++#define EXPECT_EQ_I32(actual_, expected_) do { \
++    int32_t a__ = (int32_t)(actual_); \
++    int32_t e__ = (int32_t)(expected_); \
++    if (a__ != e__) { fail_i32(#actual_, a__, e__, __FILE__, __LINE__); } \
++} while (0)
++
++#define EXPECT_TRUE(expr_) do { \
++    if (!(expr_)) { fail_true(#expr_, __FILE__, __LINE__); } \
++} while (0)
++
++#define EXPECT_NONZERO_U32(value_) do { \
++    if ((uint32_t)(value_) == 0u) { fail_true(#value_ " != 0", __FILE__, __LINE__); } \
++} while (0)
++
++#define DEFINE_V45_COMMON_TESTS(VNUM) \
++static uint32_t sum_hits_v##VNUM(const NC_FEATURE_BACKLOG_V##VNUM##_STATUS *status) \
++{ \
++    uint32_t i; \
++    uint32_t sum = 0u; \
++    for (i = 0u; i < NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_COUNT; ++i) { \
++        sum += status->per_feature_hits[i]; \
++    } \
++    return sum; \
++} \
++static void fill_block_v##VNUM(NC_FEATURE_BACKLOG_V##VNUM##_BLOCK *block, int32_t base_value) \
++{ \
++    uint32_t i; \
++    memset(block, 0, sizeof(*block)); \
++    block->feed_override_percent = 100; \
++    for (i = 0u; i < NC_FEATURE_BACKLOG_V##VNUM##_AXIS_COUNT; ++i) { \
++        block->axis_target[i] = base_value + (int32_t)i; \
++    } \
++} \
++static void test_v##VNUM##_v45_01_status_snapshot_independent_after_mutation(void) \
++{ \
++    NC_FEATURE_BACKLOG_V##VNUM##_STATUS before_status; \
++    NC_FEATURE_BACKLOG_V##VNUM##_STATUS after_status; \
++    test_begin("v" #VNUM " status snapshot independent after mutation"); \
++    NcFeatureBacklogV##VNUM##_Init(); \
++    EXPECT_EQ_U32(Api_GetNcFeatureBacklogV##VNUM##Status(&before_status), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    Api_EnableAllNcFeatureBacklogV##VNUM##Features(); \
++    EXPECT_EQ_U32(Api_GetNcFeatureBacklogV##VNUM##Status(&after_status), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(before_status.configured_count, 0u); \
++    EXPECT_EQ_U32(before_status.enabled_mask, 0u); \
++    EXPECT_EQ_U32(after_status.configured_count, NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_COUNT); \
++    EXPECT_NONZERO_U32(after_status.enabled_mask); \
++    EXPECT_EQ_U32(before_status.implemented_count, after_status.implemented_count); \
++} \
++static void test_v##VNUM##_v45_02_non_contiguous_enable_mask(void) \
++{ \
++    NC_FEATURE_BACKLOG_V##VNUM##_STATUS status; \
++    uint32_t base = NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_BASE_ID; \
++    uint32_t mid_index = NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_COUNT / 2u; \
++    uint32_t last_index = NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_COUNT - 1u; \
++    uint32_t expected_mask = (1u << 0u) | (1u << last_index); \
++    test_begin("v" #VNUM " non-contiguous enable mask"); \
++    NcFeatureBacklogV##VNUM##_Init(); \
++    EXPECT_EQ_U32(Api_SetNcFeatureBacklogV##VNUM##Feature(base + 0u, 1u), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(Api_SetNcFeatureBacklogV##VNUM##Feature(base + mid_index, 1u), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(Api_SetNcFeatureBacklogV##VNUM##Feature(base + last_index, 1u), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(Api_SetNcFeatureBacklogV##VNUM##Feature(base + mid_index, 0u), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(Api_GetNcFeatureBacklogV##VNUM##Status(&status), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(status.configured_count, 2u); \
++    EXPECT_EQ_U32(status.enabled_mask, expected_mask); \
++    EXPECT_EQ_U32(NcFeatureBacklogV##VNUM##_IsFeatureEnabled(base + 0u), 1u); \
++    EXPECT_EQ_U32(NcFeatureBacklogV##VNUM##_IsFeatureEnabled(base + mid_index), 0u); \
++    EXPECT_EQ_U32(NcFeatureBacklogV##VNUM##_IsFeatureEnabled(base + last_index), 1u); \
++} \
++static void test_v##VNUM##_v45_03_repeated_ts_apply_accumulates_hits(void) \
++{ \
++    NC_FEATURE_BACKLOG_V##VNUM##_BLOCK first_block; \
++    NC_FEATURE_BACKLOG_V##VNUM##_BLOCK second_block; \
++    NC_FEATURE_BACKLOG_V##VNUM##_STATUS status; \
++    test_begin("v" #VNUM " repeated TS apply accumulates hits"); \
++    NcFeatureBacklogV##VNUM##_Init(); \
++    Api_EnableAllNcFeatureBacklogV##VNUM##Features(); \
++    fill_block_v##VNUM(&first_block, (int32_t)(VNUM * 1000)); \
++    fill_block_v##VNUM(&second_block, (int32_t)(VNUM * 1000 + 25)); \
++    NcFeatureBacklogV##VNUM##_ApplyBlockTs(&first_block); \
++    NcFeatureBacklogV##VNUM##_ApplyBlockTs(&second_block); \
++    EXPECT_EQ_U32(Api_GetNcFeatureBacklogV##VNUM##Status(&status), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(status.ts_apply_count, 2u); \
++    EXPECT_EQ_U32(status.warning_count, 0u); \
++    EXPECT_EQ_U32(sum_hits_v##VNUM(&status), NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_COUNT * 2u); \
++    EXPECT_EQ_U32(status.per_feature_hits[0], 2u); \
++    EXPECT_EQ_U32(status.per_feature_hits[NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_COUNT - 1u], 2u); \
++    EXPECT_EQ_I32(status.last_x, second_block.axis_target[0]); \
++} \
++static void test_v##VNUM##_v45_04_repeated_zero_rt_ticks_count_contract(void) \
++{ \
++    NC_FEATURE_BACKLOG_V##VNUM##_RT_IO io; \
++    NC_FEATURE_BACKLOG_V##VNUM##_STATUS status; \
++    uint32_t i; \
++    test_begin("v" #VNUM " repeated zero RT ticks count contract"); \
++    NcFeatureBacklogV##VNUM##_Init(); \
++    Api_EnableAllNcFeatureBacklogV##VNUM##Features(); \
++    memset(&io, 0, sizeof(io)); \
++    for (i = 0u; i < 3u; ++i) { \
++        io.cycle_counter = 100u + i; \
++        NcFeatureBacklogV##VNUM##_RunRtTick(&io); \
++    } \
++    EXPECT_EQ_U32(Api_GetNcFeatureBacklogV##VNUM##Status(&status), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(status.rt_tick_count, 3u); \
++    EXPECT_EQ_U32(status.warning_count, 0u); \
++    EXPECT_EQ_U32(status.configured_count, NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_COUNT); \
++} \
++static void test_v##VNUM##_v45_05_all_valid_feature_names_resolve(void) \
++{ \
++    uint32_t i; \
++    uint32_t base = NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_BASE_ID; \
++    test_begin("v" #VNUM " all valid feature names resolve"); \
++    NcFeatureBacklogV##VNUM##_Init(); \
++    for (i = 0u; i < NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_COUNT; ++i) { \
++        const char *name = NcFeatureBacklogV##VNUM##_GetFeatureName(base + i); \
++        EXPECT_TRUE(name != (const char *)0); \
++        EXPECT_TRUE(strcmp(name, "unknown") != 0); \
++        EXPECT_TRUE(strlen(name) > 0u); \
++    } \
++    EXPECT_TRUE(strcmp(NcFeatureBacklogV##VNUM##_GetFeatureName(base + NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_COUNT), "unknown") == 0); \
++} \
++static IBM_BOB_UNUSED void test_v##VNUM##_v45_06_disabled_ts_has_no_hits_or_masks(void) \
++{ \
++    NC_FEATURE_BACKLOG_V##VNUM##_BLOCK block; \
++    NC_FEATURE_BACKLOG_V##VNUM##_STATUS status; \
++    test_begin("v" #VNUM " disabled TS path has no hits or masks"); \
++    NcFeatureBacklogV##VNUM##_Init(); \
++    fill_block_v##VNUM(&block, (int32_t)(VNUM * 1000 + 50)); \
++    NcFeatureBacklogV##VNUM##_ApplyBlockTs(&block); \
++    EXPECT_EQ_U32(Api_GetNcFeatureBacklogV##VNUM##Status(&status), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(status.ts_apply_count, 1u); \
++    EXPECT_EQ_U32(status.configured_count, 0u); \
++    EXPECT_EQ_U32(sum_hits_v##VNUM(&status), 0u); \
++    EXPECT_EQ_U32(block.aux_request_bits, 0u); \
++    EXPECT_EQ_U32(block.hold_request, 0u); \
++    EXPECT_EQ_U32(block.interlock_mask, 0u); \
++    EXPECT_EQ_U32(block.sequence_gate_mask, 0u); \
++    EXPECT_EQ_U32(block.diagnostics_mask, 0u); \
++    EXPECT_EQ_U32(block.trace_event_code, 0u); \
++}
++
++DEFINE_V45_COMMON_TESTS(35)
++DEFINE_V45_COMMON_TESTS(36)
++DEFINE_V45_COMMON_TESTS(37)
++DEFINE_V45_COMMON_TESTS(38)
++DEFINE_V45_COMMON_TESTS(39)
++DEFINE_V45_COMMON_TESTS(40)
++DEFINE_V45_COMMON_TESTS(41)
++
++int main(void)
++{
++    test_v35_v45_01_status_snapshot_independent_after_mutation();
++    test_v35_v45_02_non_contiguous_enable_mask();
++    test_v35_v45_03_repeated_ts_apply_accumulates_hits();
++    test_v35_v45_04_repeated_zero_rt_ticks_count_contract();
++    test_v35_v45_05_all_valid_feature_names_resolve();
++    test_v35_v45_06_disabled_ts_has_no_hits_or_masks();
++
++    test_v36_v45_01_status_snapshot_independent_after_mutation();
++    test_v36_v45_02_non_contiguous_enable_mask();
++    test_v36_v45_03_repeated_ts_apply_accumulates_hits();
++    test_v36_v45_04_repeated_zero_rt_ticks_count_contract();
++    test_v36_v45_05_all_valid_feature_names_resolve();
++    test_v36_v45_06_disabled_ts_has_no_hits_or_masks();
++
++    test_v37_v45_01_status_snapshot_independent_after_mutation();
++    test_v37_v45_02_non_contiguous_enable_mask();
++    test_v37_v45_03_repeated_ts_apply_accumulates_hits();
++    test_v37_v45_04_repeated_zero_rt_ticks_count_contract();
++    test_v37_v45_05_all_valid_feature_names_resolve();
++    test_v37_v45_06_disabled_ts_has_no_hits_or_masks();
++
++    test_v38_v45_01_status_snapshot_independent_after_mutation();
++    test_v38_v45_02_non_contiguous_enable_mask();
++    test_v38_v45_03_repeated_ts_apply_accumulates_hits();
++    test_v38_v45_04_repeated_zero_rt_ticks_count_contract();
++    test_v38_v45_05_all_valid_feature_names_resolve();
++    test_v38_v45_06_disabled_ts_has_no_hits_or_masks();
++
++    test_v39_v45_01_status_snapshot_independent_after_mutation();
++    test_v39_v45_02_non_contiguous_enable_mask();
++    test_v39_v45_03_repeated_ts_apply_accumulates_hits();
++    test_v39_v45_04_repeated_zero_rt_ticks_count_contract();
++    test_v39_v45_05_all_valid_feature_names_resolve();
++    test_v39_v45_06_disabled_ts_has_no_hits_or_masks();
++
++    test_v40_v45_01_status_snapshot_independent_after_mutation();
++    test_v40_v45_02_non_contiguous_enable_mask();
++    test_v40_v45_03_repeated_ts_apply_accumulates_hits();
++    test_v40_v45_04_repeated_zero_rt_ticks_count_contract();
++    test_v40_v45_05_all_valid_feature_names_resolve();
++
++    test_v41_v45_01_status_snapshot_independent_after_mutation();
++    test_v41_v45_02_non_contiguous_enable_mask();
++    test_v41_v45_03_repeated_ts_apply_accumulates_hits();
++    test_v41_v45_04_repeated_zero_rt_ticks_count_contract();
++    test_v41_v45_05_all_valid_feature_names_resolve();
++
++    printf("UNIT_TEST_SUMMARY tests=%u failures=%u\n", g_tests_run, g_tests_failed);
++    if (g_tests_run != 40u) {
++        printf("FAILED expected exactly 40 test cases\n");
++        return 1;
++    }
++    if (g_tests_failed != 0u) {
++        printf("FAILED failures=%u\n", g_tests_failed);
++        return 1;
++    }
++    printf("PASS additional_unit_tests_v45_40\n");
++    return 0;
++}

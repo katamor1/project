@@ -1,0 +1,1057 @@
+Binary files /mnt/data/work_v40_before/source/build/test_nc_feature_backlog_v40 and /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/build/test_nc_feature_backlog_v40 differ
+diff -ruN /mnt/data/work_v40_before/source/docs/implementation_report_v40_10.md /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/docs/implementation_report_v40_10.md
+--- /mnt/data/work_v40_before/source/docs/implementation_report_v40_10.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/docs/implementation_report_v40_10.md	2026-05-03 02:40:50.866503738 +0000
+@@ -0,0 +1,41 @@
++# IBM-Bob source implementation report v40_10
++
++## 概要
++
++v39_10 の続きとして、未実装/入口実装止まりだった安全・保全・周辺装置READY系の機能を ID 315〜324 の10件として追加した。RT側は固定長状態、固定長ループ、動的メモリ確保なし、ファイルI/Oなし、Windows APIなしの方針を維持する。
++
++## 追加機能
++
++315. レーザエリアスキャナ侵入HOLD
++316. 主軸振動上昇トレース
++317. 送り軸潤滑ポンプREADYゲート
++318. NCプログラム署名不一致実行禁止
++319. チャック開閉センサ二重化不一致インターロック
++320. 工具折損検出後自動退避要求
++321. 工具長測定値急変HOLD
++322. クーラント温度高段階減速
++323. パレット搬送ロボットREADYタイムアウト
++324. 安全PLCハートビート喪失即時HOLD
++
++## 追加ファイル
++
++- `source/inc/nc_feature_backlog_v40.h`
++- `source/src/nc_feature_backlog_v40.c`
++- `source/tests/test_nc_feature_backlog_v40.c`
++- `source/scripts/build_gcc_smoke_v40_10.sh`
++- `source/scripts/test_gcc_smoke_v40_10.sh`
++- `source/scripts/build_vc2026_v40_10.bat`
++- `source/scripts/test_vc2026_v40_10.bat`
++- `source/scripts/build_clang_v40_10.bat`
++- `source/scripts/test_clang_v40_10.bat`
++
++## 実装方針
++
++- TS側 `NcFeatureBacklogV40_ApplyBlockTs()` では、NC固定長ブロックに対し HOLD、INTERLOCK、GATE、INHIBIT、RETRACT、RETRY、TRACE、SLOWDOWN を固定長ビットマスクとして反映する。
++- RT側 `NcFeatureBacklogV40_RunRtTick()` では、センサ入力を周期ごとに監視し、チャタリング/瞬断を避けるため短い固定tickカウンタでタイムアウト判定する。
++- 安全PLCハートビートはカウンタ停止を検出し、一定tick継続時にHOLDとして状態公開する。
++- 工具長測定値急変、主軸振動、クーラント温度は閾値超過を診断値として保持し、状態スナップショットで確認可能にする。
++
++## 検証
++
++GCC smoke build/test を実行し、`PASS nc_feature_backlog_v40` を確認した。
+diff -ruN /mnt/data/work_v40_before/source/docs/integration_note_v40_10.md /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/docs/integration_note_v40_10.md
+--- /mnt/data/work_v40_before/source/docs/integration_note_v40_10.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/docs/integration_note_v40_10.md	2026-05-03 02:40:50.866881666 +0000
+@@ -0,0 +1,22 @@
++# v40_10 integration note
++
++`v39_10` までの追加モジュール群に対して、`nc_feature_backlog_v40` を追加する。
++
++## 統合手順
++
++1. `source/inc/nc_feature_backlog_v40.h` を公開ヘッダ候補として追加する。
++2. `source/src/nc_feature_backlog_v40.c` をビルド対象に追加する。
++3. 初期化シーケンスで `NcFeatureBacklogV40_Init()` を呼ぶ。
++4. 機種別に必要な機能だけを `Api_SetNcFeatureBacklogV40Feature()` または `Api_EnableAllNcFeatureBacklogV40Features()` で有効化する。
++5. TS側のNC固定長ブロック生成後に `NcFeatureBacklogV40_ApplyBlockTs()` を適用する。
++6. RT周期処理で `NcFeatureBacklogV40_RunRtTick()` に固定長I/Oスナップショットを渡す。
++
++## Windows確認
++
++```bat
++cd source
++scripts\test_vc2026_v40_10.bat
++scripts\test_clang_v40_10.bat
++```
++
++Linux/GCC確認は `scripts/test_gcc_smoke_v40_10.sh` で実行済み。
+diff -ruN /mnt/data/work_v40_before/source/docs/manifest_v40_10.json /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/docs/manifest_v40_10.json
+--- /mnt/data/work_v40_before/source/docs/manifest_v40_10.json	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/docs/manifest_v40_10.json	2026-05-03 02:40:50.867407778 +0000
+@@ -0,0 +1,78 @@
++{
++  "version": "v40_10",
++  "base_version": "v39_10",
++  "feature_id_range": "315-324",
++  "feature_count": 10,
++  "implemented_features": [
++    {
++      "id": 315,
++      "name_ja": "レーザエリアスキャナ侵入HOLD"
++    },
++    {
++      "id": 316,
++      "name_ja": "主軸振動上昇トレース"
++    },
++    {
++      "id": 317,
++      "name_ja": "送り軸潤滑ポンプREADYゲート"
++    },
++    {
++      "id": 318,
++      "name_ja": "NCプログラム署名不一致実行禁止"
++    },
++    {
++      "id": 319,
++      "name_ja": "チャック開閉センサ二重化不一致インターロック"
++    },
++    {
++      "id": 320,
++      "name_ja": "工具折損検出後自動退避要求"
++    },
++    {
++      "id": 321,
++      "name_ja": "工具長測定値急変HOLD"
++    },
++    {
++      "id": 322,
++      "name_ja": "クーラント温度高段階減速"
++    },
++    {
++      "id": 323,
++      "name_ja": "パレット搬送ロボットREADYタイムアウト"
++    },
++    {
++      "id": 324,
++      "name_ja": "安全PLCハートビート喪失即時HOLD"
++    }
++  ],
++  "added_files": [
++    "source/inc/nc_feature_backlog_v40.h",
++    "source/src/nc_feature_backlog_v40.c",
++    "source/tests/test_nc_feature_backlog_v40.c",
++    "source/scripts/build_gcc_smoke_v40_10.sh",
++    "source/scripts/test_gcc_smoke_v40_10.sh",
++    "source/scripts/build_vc2026_v40_10.bat",
++    "source/scripts/test_vc2026_v40_10.bat",
++    "source/scripts/build_clang_v40_10.bat",
++    "source/scripts/test_clang_v40_10.bat",
++    "source/docs/implementation_report_v40_10.md",
++    "source/docs/verification_output_v40_10.txt",
++    "source/docs/integration_note_v40_10.md",
++    "source/docs/continuation_v40_10_diff.patch"
++  ],
++  "verification": {
++    "gcc_smoke": "PASS",
++    "vc2026": "not run in Linux sandbox",
++    "clang_windows": "not run in Linux sandbox",
++    "output": [
++      "implementation_backlog_v40 implemented=10 configured=10 ts=1 rt=8 hold=39 interlock=7 gate=6 slowdown=13 trace=13 retry=5 inhibit=8 retract=15 cat_mask=0x00000400 last_id=324 last_policy=2 trace=0x4009 fault=0x000003ff axis=0x00000005 chuck=1/0 vibration=76 tool_delta=185 coolant=51 heartbeat=77 last_x=4000",
++      "PASS nc_feature_backlog_v40"
++    ]
++  },
++  "rt_constraints": {
++    "dynamic_allocation": false,
++    "file_io": false,
++    "windows_api": false,
++    "bounded_loop_count": "NC_FEATURE_BACKLOG_V40_FEATURE_COUNT"
++  }
++}
+\ No newline at end of file
+diff -ruN /mnt/data/work_v40_before/source/docs/verification_output_v40_10.txt /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/docs/verification_output_v40_10.txt
+--- /mnt/data/work_v40_before/source/docs/verification_output_v40_10.txt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/docs/verification_output_v40_10.txt	2026-05-03 02:40:50.866060397 +0000
+@@ -0,0 +1,2 @@
++implementation_backlog_v40 implemented=10 configured=10 ts=1 rt=8 hold=39 interlock=7 gate=6 slowdown=13 trace=13 retry=5 inhibit=8 retract=15 cat_mask=0x00000400 last_id=324 last_policy=2 trace=0x4009 fault=0x000003ff axis=0x00000005 chuck=1/0 vibration=76 tool_delta=185 coolant=51 heartbeat=77 last_x=4000
++PASS nc_feature_backlog_v40
+diff -ruN /mnt/data/work_v40_before/source/inc/nc_feature_backlog_v40.h /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/inc/nc_feature_backlog_v40.h
+--- /mnt/data/work_v40_before/source/inc/nc_feature_backlog_v40.h	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/inc/nc_feature_backlog_v40.h	2026-05-03 02:40:48.654044766 +0000
+@@ -0,0 +1,153 @@
++#ifndef NC_FEATURE_BACKLOG_V40_H
++#define NC_FEATURE_BACKLOG_V40_H
++
++#include <stdint.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++/*
++ * IBM-Bob implementation backlog continuation v40_10.
++ *
++ * This module adds feature IDs 315-324 after v39_10.
++ * The implementation follows the IBM-Bob RT/TS split rules:
++ * - fixed-size state only
++ * - no dynamic allocation
++ * - no file I/O
++ * - no Windows API calls
++ * - deterministic loops bounded by NC_FEATURE_BACKLOG_V40_FEATURE_COUNT
++ */
++
++#define NC_IMPL_BACKLOG_FEATURE_COUNT_V39      (315u)
++#define NC_IMPL_BACKLOG_FEATURE_COUNT_V40      (325u)
++#define NC_IMPL_BACKLOG_WORD_COUNT_V40         (11u)
++#define NC_FEATURE_BACKLOG_V40_FEATURE_BASE_ID (315u)
++#define NC_FEATURE_BACKLOG_V40_FEATURE_COUNT   (10u)
++#define NC_FEATURE_BACKLOG_V40_AXIS_COUNT      (8u)
++
++#define NC_FEATURE_BACKLOG_V40_OK              (0)
++#define NC_FEATURE_BACKLOG_V40_ERR_NULL        (-1)
++#define NC_FEATURE_BACKLOG_V40_ERR_RANGE       (-2)
++
++#define NC_FEATURE_BACKLOG_V40_TRACE_NONE      (0u)
++#define NC_FEATURE_BACKLOG_V40_TRACE_BASE      (0x4000u)
++
++/* Added feature IDs: 315-324. */
++typedef enum NC_FEATURE_BACKLOG_V40_ID_TAG {
++    NC_FEATURE_V40_LASER_AREA_SCANNER_INTRUSION_HOLD = 315,
++    NC_FEATURE_V40_SPINDLE_VIBRATION_RISE_TRACE = 316,
++    NC_FEATURE_V40_FEED_AXIS_LUBE_PUMP_READY_GATE = 317,
++    NC_FEATURE_V40_NC_PROGRAM_SIGNATURE_MISMATCH_INHIBIT = 318,
++    NC_FEATURE_V40_CHUCK_SENSOR_DUAL_MISMATCH_INTERLOCK = 319,
++    NC_FEATURE_V40_TOOL_BREAK_AUTO_RETRACT_REQUEST = 320,
++    NC_FEATURE_V40_TOOL_LENGTH_MEASURE_JUMP_HOLD = 321,
++    NC_FEATURE_V40_COOLANT_TEMPERATURE_HIGH_SLOWDOWN = 322,
++    NC_FEATURE_V40_PALLET_ROBOT_READY_TIMEOUT_RETRY = 323,
++    NC_FEATURE_V40_SAFETY_PLC_HEARTBEAT_LOST_HOLD = 324
++} NC_FEATURE_BACKLOG_V40_ID;
++
++typedef enum NC_FEATURE_BACKLOG_V40_POLICY_TAG {
++    NC_FEATURE_BACKLOG_V40_POLICY_MONITOR = 0,
++    NC_FEATURE_BACKLOG_V40_POLICY_GATE = 1,
++    NC_FEATURE_BACKLOG_V40_POLICY_HOLD = 2,
++    NC_FEATURE_BACKLOG_V40_POLICY_INTERLOCK = 3,
++    NC_FEATURE_BACKLOG_V40_POLICY_SLOWDOWN = 4,
++    NC_FEATURE_BACKLOG_V40_POLICY_TRACE = 5,
++    NC_FEATURE_BACKLOG_V40_POLICY_INHIBIT = 6,
++    NC_FEATURE_BACKLOG_V40_POLICY_RETRY = 7,
++    NC_FEATURE_BACKLOG_V40_POLICY_RETRACT = 8
++} NC_FEATURE_BACKLOG_V40_POLICY;
++
++typedef struct NC_FEATURE_BACKLOG_V40_BLOCK_TAG {
++    int32_t axis_target[NC_FEATURE_BACKLOG_V40_AXIS_COUNT];
++    int32_t feed_override_percent;
++    uint32_t aux_request_bits;
++    uint32_t hold_request;
++    uint32_t interlock_mask;
++    uint32_t sequence_gate_mask;
++    uint32_t diagnostics_mask;
++    uint32_t retry_request_mask;
++    uint32_t inhibit_mask;
++    uint32_t retract_request_mask;
++    uint32_t trace_event_code;
++} NC_FEATURE_BACKLOG_V40_BLOCK;
++
++typedef struct NC_FEATURE_BACKLOG_V40_RT_IO_TAG {
++    uint32_t cycle_counter;
++    uint32_t laser_area_scanner_required;
++    uint32_t laser_area_intrusion_detected;
++    uint32_t spindle_vibration_monitor;
++    int32_t spindle_vibration_um;
++    uint32_t feed_axis_lube_required_mask;
++    uint32_t feed_axis_lube_ready_mask;
++    uint32_t nc_program_signature_check_request;
++    uint32_t nc_program_signature_ok;
++    uint32_t chuck_dual_sensor_check_request;
++    uint32_t chuck_sensor_a_closed;
++    uint32_t chuck_sensor_b_closed;
++    uint32_t tool_break_monitor_request;
++    uint32_t tool_break_detected;
++    uint32_t tool_length_measure_check_request;
++    int32_t tool_length_last_um;
++    int32_t tool_length_current_um;
++    uint32_t coolant_temperature_monitor;
++    int32_t coolant_temperature_c;
++    uint32_t pallet_robot_ready_required;
++    uint32_t pallet_robot_ready;
++    uint32_t safety_plc_heartbeat_monitor;
++    uint32_t safety_plc_heartbeat_counter;
++} NC_FEATURE_BACKLOG_V40_RT_IO;
++
++typedef struct NC_FEATURE_BACKLOG_V40_STATUS_TAG {
++    uint32_t implemented_count;
++    uint32_t configured_count;
++    uint32_t enabled_mask;
++    uint32_t ts_apply_count;
++    uint32_t rt_tick_count;
++    uint32_t monitor_count;
++    uint32_t gate_count;
++    uint32_t hold_count;
++    uint32_t interlock_count;
++    uint32_t slowdown_count;
++    uint32_t trace_count;
++    uint32_t inhibit_count;
++    uint32_t retry_count;
++    uint32_t retract_count;
++    uint32_t warning_count;
++    uint32_t cat_mask;
++    uint32_t last_feature_id;
++    uint32_t last_policy;
++    uint32_t last_trace_event_code;
++    int32_t last_feed_override_percent;
++    int32_t last_x;
++    uint32_t last_fault_mask;
++    uint32_t last_axis_mask;
++    uint32_t last_sensor_a;
++    uint32_t last_sensor_b;
++    int32_t last_spindle_vibration_um;
++    int32_t last_tool_length_delta_um;
++    int32_t last_coolant_temperature_c;
++    uint32_t last_heartbeat_counter;
++    uint32_t per_feature_hits[NC_FEATURE_BACKLOG_V40_FEATURE_COUNT];
++    int32_t per_feature_last_value[NC_FEATURE_BACKLOG_V40_FEATURE_COUNT];
++} NC_FEATURE_BACKLOG_V40_STATUS;
++
++extern NC_FEATURE_BACKLOG_V40_STATUS g_ncFeatureBacklogV40Status;
++
++void NcFeatureBacklogV40_Init(void);
++int NcFeatureBacklogV40_IsFeatureEnabled(uint32_t feature_id);
++int Api_SetNcFeatureBacklogV40Feature(uint32_t feature_id, uint32_t enabled);
++void Api_EnableAllNcFeatureBacklogV40Features(void);
++int Api_GetNcFeatureBacklogV40Status(NC_FEATURE_BACKLOG_V40_STATUS *out_status);
++int Api_RunNcFeatureBacklogV40SelfCheck(void);
++
++void NcFeatureBacklogV40_ApplyBlockTs(NC_FEATURE_BACKLOG_V40_BLOCK *block);
++void NcFeatureBacklogV40_RunRtTick(const NC_FEATURE_BACKLOG_V40_RT_IO *io);
++const char *NcFeatureBacklogV40_GetFeatureName(uint32_t feature_id);
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* NC_FEATURE_BACKLOG_V40_H */
+diff -ruN /mnt/data/work_v40_before/source/scripts/build_clang_v40_10.bat /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/scripts/build_clang_v40_10.bat
+--- /mnt/data/work_v40_before/source/scripts/build_clang_v40_10.bat	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/scripts/build_clang_v40_10.bat	2026-05-03 02:40:48.662036636 +0000
+@@ -0,0 +1,5 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++if not exist build mkdir build
++clang.exe -std=c99 -Wall -Wextra -Iinc src\nc_feature_backlog_v40.c tests\test_nc_feature_backlog_v40.c -o build\test_nc_feature_backlog_v40.exe
+diff -ruN /mnt/data/work_v40_before/source/scripts/build_gcc_smoke_v40_10.sh /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/scripts/build_gcc_smoke_v40_10.sh
+--- /mnt/data/work_v40_before/source/scripts/build_gcc_smoke_v40_10.sh	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/scripts/build_gcc_smoke_v40_10.sh	2026-05-03 02:40:48.660326771 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd "$(dirname "$0")/.."
++mkdir -p build
++gcc -std=c99 -Wall -Wextra -Iinc src/nc_feature_backlog_v40.c tests/test_nc_feature_backlog_v40.c -o build/test_nc_feature_backlog_v40
+diff -ruN /mnt/data/work_v40_before/source/scripts/build_vc2026_v40_10.bat /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/scripts/build_vc2026_v40_10.bat
+--- /mnt/data/work_v40_before/source/scripts/build_vc2026_v40_10.bat	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/scripts/build_vc2026_v40_10.bat	2026-05-03 02:40:48.661236168 +0000
+@@ -0,0 +1,5 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++if not exist build mkdir build
++cl.exe /nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\nc_feature_backlog_v40.c tests\test_nc_feature_backlog_v40.c /Febuild\test_nc_feature_backlog_v40.exe
+diff -ruN /mnt/data/work_v40_before/source/scripts/test_clang_v40_10.bat /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/scripts/test_clang_v40_10.bat
+--- /mnt/data/work_v40_before/source/scripts/test_clang_v40_10.bat	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/scripts/test_clang_v40_10.bat	2026-05-03 02:40:48.662372306 +0000
+@@ -0,0 +1,5 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++call scripts\build_clang_v40_10.bat || exit /b 1
++build\test_nc_feature_backlog_v40.exe
+diff -ruN /mnt/data/work_v40_before/source/scripts/test_gcc_smoke_v40_10.sh /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/scripts/test_gcc_smoke_v40_10.sh
+--- /mnt/data/work_v40_before/source/scripts/test_gcc_smoke_v40_10.sh	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/scripts/test_gcc_smoke_v40_10.sh	2026-05-03 02:40:48.660683327 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd "$(dirname "$0")/.."
++scripts/build_gcc_smoke_v40_10.sh
++build/test_nc_feature_backlog_v40
+diff -ruN /mnt/data/work_v40_before/source/scripts/test_vc2026_v40_10.bat /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/scripts/test_vc2026_v40_10.bat
+--- /mnt/data/work_v40_before/source/scripts/test_vc2026_v40_10.bat	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/scripts/test_vc2026_v40_10.bat	2026-05-03 02:40:48.661560844 +0000
+@@ -0,0 +1,5 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++call scripts\build_vc2026_v40_10.bat || exit /b 1
++build\test_nc_feature_backlog_v40.exe
+diff -ruN /mnt/data/work_v40_before/source/src/nc_feature_backlog_v40.c /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/src/nc_feature_backlog_v40.c
+--- /mnt/data/work_v40_before/source/src/nc_feature_backlog_v40.c	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/src/nc_feature_backlog_v40.c	2026-05-03 02:40:48.659425075 +0000
+@@ -0,0 +1,504 @@
++#include "nc_feature_backlog_v40.h"
++
++#include <string.h>
++
++#define V40_BIT(index_) (1u << (uint32_t)(index_))
++#define V40_DEFAULT_FEED_OVERRIDE_PERCENT           (100)
++#define V40_MIN_FEED_OVERRIDE_PERCENT               (5)
++#define V40_SPINDLE_VIBRATION_WARN_UM               (45)
++#define V40_SPINDLE_VIBRATION_TRACE_UM              (70)
++#define V40_TOOL_LENGTH_DELTA_HOLD_UM               (120)
++#define V40_COOLANT_TEMP_WARN_C                     (42)
++#define V40_COOLANT_TEMP_HIGH_C                     (48)
++#define V40_LASER_INTRUSION_TIMEOUT_TICKS           (1u)
++#define V40_SPINDLE_VIBRATION_TIMEOUT_TICKS         (2u)
++#define V40_FEED_AXIS_LUBE_TIMEOUT_TICKS            (3u)
++#define V40_PROGRAM_SIGNATURE_TIMEOUT_TICKS         (1u)
++#define V40_CHUCK_SENSOR_TIMEOUT_TICKS              (2u)
++#define V40_TOOL_BREAK_TIMEOUT_TICKS                (1u)
++#define V40_TOOL_LENGTH_JUMP_TIMEOUT_TICKS          (1u)
++#define V40_COOLANT_TEMP_TIMEOUT_TICKS              (2u)
++#define V40_PALLET_ROBOT_READY_TIMEOUT_TICKS        (4u)
++#define V40_SAFETY_PLC_HEARTBEAT_TIMEOUT_TICKS      (3u)
++
++typedef struct V40_FEATURE_DEF_TAG {
++    uint32_t feature_id;
++    NC_FEATURE_BACKLOG_V40_POLICY policy;
++    uint32_t category;
++    const char *name;
++} V40_FEATURE_DEF;
++
++static const V40_FEATURE_DEF k_v40_defs[NC_FEATURE_BACKLOG_V40_FEATURE_COUNT] = {
++    { NC_FEATURE_V40_LASER_AREA_SCANNER_INTRUSION_HOLD,       NC_FEATURE_BACKLOG_V40_POLICY_HOLD,      10u, "laser area scanner intrusion hold" },
++    { NC_FEATURE_V40_SPINDLE_VIBRATION_RISE_TRACE,            NC_FEATURE_BACKLOG_V40_POLICY_TRACE,     10u, "spindle vibration rise trace" },
++    { NC_FEATURE_V40_FEED_AXIS_LUBE_PUMP_READY_GATE,          NC_FEATURE_BACKLOG_V40_POLICY_GATE,      10u, "feed axis lubrication pump ready gate" },
++    { NC_FEATURE_V40_NC_PROGRAM_SIGNATURE_MISMATCH_INHIBIT,   NC_FEATURE_BACKLOG_V40_POLICY_INHIBIT,   10u, "NC program signature mismatch inhibit" },
++    { NC_FEATURE_V40_CHUCK_SENSOR_DUAL_MISMATCH_INTERLOCK,    NC_FEATURE_BACKLOG_V40_POLICY_INTERLOCK, 10u, "chuck dual sensor mismatch interlock" },
++    { NC_FEATURE_V40_TOOL_BREAK_AUTO_RETRACT_REQUEST,         NC_FEATURE_BACKLOG_V40_POLICY_RETRACT,   10u, "tool break auto retract request" },
++    { NC_FEATURE_V40_TOOL_LENGTH_MEASURE_JUMP_HOLD,           NC_FEATURE_BACKLOG_V40_POLICY_HOLD,      10u, "tool length measurement jump hold" },
++    { NC_FEATURE_V40_COOLANT_TEMPERATURE_HIGH_SLOWDOWN,       NC_FEATURE_BACKLOG_V40_POLICY_SLOWDOWN,  10u, "coolant temperature high slowdown" },
++    { NC_FEATURE_V40_PALLET_ROBOT_READY_TIMEOUT_RETRY,        NC_FEATURE_BACKLOG_V40_POLICY_RETRY,     10u, "pallet robot ready timeout retry" },
++    { NC_FEATURE_V40_SAFETY_PLC_HEARTBEAT_LOST_HOLD,          NC_FEATURE_BACKLOG_V40_POLICY_HOLD,      10u, "safety PLC heartbeat lost hold" }
++};
++
++NC_FEATURE_BACKLOG_V40_STATUS g_ncFeatureBacklogV40Status;
++
++static uint32_t s_laser_intrusion_wait_ticks;
++static uint32_t s_spindle_vibration_wait_ticks;
++static uint32_t s_feed_axis_lube_wait_ticks;
++static uint32_t s_program_signature_wait_ticks;
++static uint32_t s_chuck_sensor_wait_ticks;
++static uint32_t s_tool_break_wait_ticks;
++static uint32_t s_tool_length_jump_wait_ticks;
++static uint32_t s_coolant_temp_wait_ticks;
++static uint32_t s_pallet_robot_ready_wait_ticks;
++static uint32_t s_safety_plc_heartbeat_wait_ticks;
++static uint32_t s_last_safety_plc_heartbeat_counter;
++static uint32_t s_heartbeat_initialized;
++
++static uint32_t v40_index_from_feature_id(uint32_t feature_id)
++{
++    if (feature_id < NC_FEATURE_BACKLOG_V40_FEATURE_BASE_ID) {
++        return NC_FEATURE_BACKLOG_V40_FEATURE_COUNT;
++    }
++    return feature_id - NC_FEATURE_BACKLOG_V40_FEATURE_BASE_ID;
++}
++
++static int32_t v40_abs_i32(int32_t value)
++{
++    return (value < 0) ? -value : value;
++}
++
++static int32_t v40_clamp_i32(int32_t value, int32_t min_value, int32_t max_value)
++{
++    if (value < min_value) {
++        return min_value;
++    }
++    if (value > max_value) {
++        return max_value;
++    }
++    return value;
++}
++
++static int32_t v40_apply_slowdown(int32_t feed_override_percent, int32_t reduction_percent)
++{
++    int32_t next_value = feed_override_percent - reduction_percent;
++    return v40_clamp_i32(next_value, V40_MIN_FEED_OVERRIDE_PERCENT, V40_DEFAULT_FEED_OVERRIDE_PERCENT);
++}
++
++static void v40_record_hit(uint32_t index, int32_t value)
++{
++    const V40_FEATURE_DEF *def;
++
++    if (index >= NC_FEATURE_BACKLOG_V40_FEATURE_COUNT) {
++        return;
++    }
++
++    def = &k_v40_defs[index];
++    g_ncFeatureBacklogV40Status.per_feature_hits[index]++;
++    g_ncFeatureBacklogV40Status.per_feature_last_value[index] = value;
++    g_ncFeatureBacklogV40Status.last_feature_id = def->feature_id;
++    g_ncFeatureBacklogV40Status.last_policy = (uint32_t)def->policy;
++    g_ncFeatureBacklogV40Status.cat_mask |= V40_BIT(def->category);
++
++    switch (def->policy) {
++    case NC_FEATURE_BACKLOG_V40_POLICY_MONITOR:
++        g_ncFeatureBacklogV40Status.monitor_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V40_POLICY_GATE:
++        g_ncFeatureBacklogV40Status.gate_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V40_POLICY_HOLD:
++        g_ncFeatureBacklogV40Status.hold_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V40_POLICY_INTERLOCK:
++        g_ncFeatureBacklogV40Status.interlock_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V40_POLICY_SLOWDOWN:
++        g_ncFeatureBacklogV40Status.slowdown_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V40_POLICY_TRACE:
++        g_ncFeatureBacklogV40Status.trace_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V40_POLICY_INHIBIT:
++        g_ncFeatureBacklogV40Status.inhibit_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V40_POLICY_RETRY:
++        g_ncFeatureBacklogV40Status.retry_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V40_POLICY_RETRACT:
++        g_ncFeatureBacklogV40Status.retract_count++;
++        break;
++    default:
++        g_ncFeatureBacklogV40Status.warning_count++;
++        break;
++    }
++}
++
++static void v40_record_trace(uint32_t index)
++{
++    uint32_t trace;
++
++    if (index >= NC_FEATURE_BACKLOG_V40_FEATURE_COUNT) {
++        return;
++    }
++
++    trace = NC_FEATURE_BACKLOG_V40_TRACE_BASE + index;
++    g_ncFeatureBacklogV40Status.last_trace_event_code = trace;
++}
++
++static void v40_record_fault(uint32_t index, uint32_t fault_bit, int32_t value)
++{
++    g_ncFeatureBacklogV40Status.last_fault_mask |= fault_bit;
++    v40_record_trace(index);
++    v40_record_hit(index, value);
++}
++
++static uint32_t v40_wait_or_clear(uint32_t *wait_ticks, uint32_t active, uint32_t timeout_ticks)
++{
++    if (active == 0u) {
++        *wait_ticks = 0u;
++        return 0u;
++    }
++
++    if (*wait_ticks < timeout_ticks) {
++        (*wait_ticks)++;
++        return 0u;
++    }
++
++    return 1u;
++}
++
++static void v40_reset_counters(void)
++{
++    s_laser_intrusion_wait_ticks = 0u;
++    s_spindle_vibration_wait_ticks = 0u;
++    s_feed_axis_lube_wait_ticks = 0u;
++    s_program_signature_wait_ticks = 0u;
++    s_chuck_sensor_wait_ticks = 0u;
++    s_tool_break_wait_ticks = 0u;
++    s_tool_length_jump_wait_ticks = 0u;
++    s_coolant_temp_wait_ticks = 0u;
++    s_pallet_robot_ready_wait_ticks = 0u;
++    s_safety_plc_heartbeat_wait_ticks = 0u;
++    s_last_safety_plc_heartbeat_counter = 0u;
++    s_heartbeat_initialized = 0u;
++}
++
++void NcFeatureBacklogV40_Init(void)
++{
++    memset(&g_ncFeatureBacklogV40Status, 0, sizeof(g_ncFeatureBacklogV40Status));
++    g_ncFeatureBacklogV40Status.implemented_count = NC_FEATURE_BACKLOG_V40_FEATURE_COUNT;
++    g_ncFeatureBacklogV40Status.last_feed_override_percent = V40_DEFAULT_FEED_OVERRIDE_PERCENT;
++    v40_reset_counters();
++}
++
++int NcFeatureBacklogV40_IsFeatureEnabled(uint32_t feature_id)
++{
++    uint32_t index = v40_index_from_feature_id(feature_id);
++
++    if (index >= NC_FEATURE_BACKLOG_V40_FEATURE_COUNT) {
++        return 0;
++    }
++
++    return ((g_ncFeatureBacklogV40Status.enabled_mask & V40_BIT(index)) != 0u) ? 1 : 0;
++}
++
++int Api_SetNcFeatureBacklogV40Feature(uint32_t feature_id, uint32_t enabled)
++{
++    uint32_t index = v40_index_from_feature_id(feature_id);
++    uint32_t scan;
++
++    if (index >= NC_FEATURE_BACKLOG_V40_FEATURE_COUNT) {
++        return NC_FEATURE_BACKLOG_V40_ERR_RANGE;
++    }
++
++    if (enabled != 0u) {
++        g_ncFeatureBacklogV40Status.enabled_mask |= V40_BIT(index);
++    } else {
++        g_ncFeatureBacklogV40Status.enabled_mask &= ~V40_BIT(index);
++    }
++
++    g_ncFeatureBacklogV40Status.configured_count = 0u;
++    for (scan = 0u; scan < NC_FEATURE_BACKLOG_V40_FEATURE_COUNT; ++scan) {
++        if ((g_ncFeatureBacklogV40Status.enabled_mask & V40_BIT(scan)) != 0u) {
++            g_ncFeatureBacklogV40Status.configured_count++;
++        }
++    }
++
++    return NC_FEATURE_BACKLOG_V40_OK;
++}
++
++void Api_EnableAllNcFeatureBacklogV40Features(void)
++{
++    uint32_t index;
++
++    g_ncFeatureBacklogV40Status.enabled_mask = 0u;
++    for (index = 0u; index < NC_FEATURE_BACKLOG_V40_FEATURE_COUNT; ++index) {
++        g_ncFeatureBacklogV40Status.enabled_mask |= V40_BIT(index);
++    }
++    g_ncFeatureBacklogV40Status.configured_count = NC_FEATURE_BACKLOG_V40_FEATURE_COUNT;
++}
++
++int Api_GetNcFeatureBacklogV40Status(NC_FEATURE_BACKLOG_V40_STATUS *out_status)
++{
++    if (out_status == 0) {
++        return NC_FEATURE_BACKLOG_V40_ERR_NULL;
++    }
++
++    *out_status = g_ncFeatureBacklogV40Status;
++    return NC_FEATURE_BACKLOG_V40_OK;
++}
++
++const char *NcFeatureBacklogV40_GetFeatureName(uint32_t feature_id)
++{
++    uint32_t index = v40_index_from_feature_id(feature_id);
++
++    if (index >= NC_FEATURE_BACKLOG_V40_FEATURE_COUNT) {
++        return "unknown";
++    }
++
++    return k_v40_defs[index].name;
++}
++
++void NcFeatureBacklogV40_ApplyBlockTs(NC_FEATURE_BACKLOG_V40_BLOCK *block)
++{
++    uint32_t index;
++
++    if (block == 0) {
++        g_ncFeatureBacklogV40Status.warning_count++;
++        return;
++    }
++
++    g_ncFeatureBacklogV40Status.ts_apply_count++;
++
++    if (block->feed_override_percent <= 0) {
++        block->feed_override_percent = V40_DEFAULT_FEED_OVERRIDE_PERCENT;
++    }
++
++    for (index = 0u; index < NC_FEATURE_BACKLOG_V40_FEATURE_COUNT; ++index) {
++        const V40_FEATURE_DEF *def;
++        uint32_t feature_bit;
++        uint32_t trace;
++
++        if ((g_ncFeatureBacklogV40Status.enabled_mask & V40_BIT(index)) == 0u) {
++            continue;
++        }
++
++        def = &k_v40_defs[index];
++        feature_bit = V40_BIT(index);
++        trace = NC_FEATURE_BACKLOG_V40_TRACE_BASE + index;
++
++        switch (def->feature_id) {
++        case NC_FEATURE_V40_LASER_AREA_SCANNER_INTRUSION_HOLD:
++            block->hold_request |= feature_bit;
++            block->sequence_gate_mask |= feature_bit;
++            v40_record_hit(index, (int32_t)feature_bit);
++            break;
++        case NC_FEATURE_V40_SPINDLE_VIBRATION_RISE_TRACE:
++            block->diagnostics_mask |= feature_bit;
++            block->trace_event_code = trace;
++            g_ncFeatureBacklogV40Status.last_trace_event_code = trace;
++            v40_record_hit(index, (int32_t)trace);
++            break;
++        case NC_FEATURE_V40_FEED_AXIS_LUBE_PUMP_READY_GATE:
++            block->sequence_gate_mask |= feature_bit;
++            block->aux_request_bits |= feature_bit;
++            v40_record_hit(index, (int32_t)block->aux_request_bits);
++            break;
++        case NC_FEATURE_V40_NC_PROGRAM_SIGNATURE_MISMATCH_INHIBIT:
++            block->inhibit_mask |= feature_bit;
++            block->diagnostics_mask |= feature_bit;
++            v40_record_hit(index, (int32_t)block->inhibit_mask);
++            break;
++        case NC_FEATURE_V40_CHUCK_SENSOR_DUAL_MISMATCH_INTERLOCK:
++            block->interlock_mask |= feature_bit;
++            block->sequence_gate_mask |= feature_bit;
++            v40_record_hit(index, block->axis_target[0]);
++            break;
++        case NC_FEATURE_V40_TOOL_BREAK_AUTO_RETRACT_REQUEST:
++            block->retract_request_mask |= feature_bit;
++            block->hold_request |= feature_bit;
++            block->trace_event_code = trace;
++            g_ncFeatureBacklogV40Status.last_trace_event_code = trace;
++            v40_record_hit(index, (int32_t)block->retract_request_mask);
++            break;
++        case NC_FEATURE_V40_TOOL_LENGTH_MEASURE_JUMP_HOLD:
++            block->hold_request |= feature_bit;
++            block->diagnostics_mask |= feature_bit;
++            v40_record_hit(index, block->axis_target[2]);
++            break;
++        case NC_FEATURE_V40_COOLANT_TEMPERATURE_HIGH_SLOWDOWN:
++            block->feed_override_percent = v40_apply_slowdown(block->feed_override_percent, 7);
++            block->diagnostics_mask |= feature_bit;
++            v40_record_hit(index, block->feed_override_percent);
++            break;
++        case NC_FEATURE_V40_PALLET_ROBOT_READY_TIMEOUT_RETRY:
++            block->retry_request_mask |= feature_bit;
++            block->sequence_gate_mask |= feature_bit;
++            v40_record_hit(index, (int32_t)block->retry_request_mask);
++            break;
++        case NC_FEATURE_V40_SAFETY_PLC_HEARTBEAT_LOST_HOLD:
++            block->hold_request |= feature_bit;
++            block->interlock_mask |= feature_bit;
++            block->trace_event_code = trace;
++            g_ncFeatureBacklogV40Status.last_trace_event_code = trace;
++            block->feed_override_percent = v40_apply_slowdown(block->feed_override_percent, 12);
++            v40_record_hit(index, block->feed_override_percent);
++            break;
++        default:
++            g_ncFeatureBacklogV40Status.warning_count++;
++            break;
++        }
++    }
++
++    g_ncFeatureBacklogV40Status.last_feed_override_percent = block->feed_override_percent;
++    g_ncFeatureBacklogV40Status.last_x = block->axis_target[0];
++}
++
++void NcFeatureBacklogV40_RunRtTick(const NC_FEATURE_BACKLOG_V40_RT_IO *io)
++{
++    uint32_t fault_bit;
++
++    if (io == 0) {
++        g_ncFeatureBacklogV40Status.warning_count++;
++        return;
++    }
++
++    g_ncFeatureBacklogV40Status.rt_tick_count++;
++    g_ncFeatureBacklogV40Status.last_fault_mask = 0u;
++
++    if (NcFeatureBacklogV40_IsFeatureEnabled(NC_FEATURE_V40_LASER_AREA_SCANNER_INTRUSION_HOLD) != 0) {
++        uint32_t active = ((io->laser_area_scanner_required != 0u) && (io->laser_area_intrusion_detected != 0u)) ? 1u : 0u;
++        if (v40_wait_or_clear(&s_laser_intrusion_wait_ticks, active, V40_LASER_INTRUSION_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V40_BIT(0u);
++            v40_record_fault(0u, fault_bit, (int32_t)io->laser_area_intrusion_detected);
++            g_ncFeatureBacklogV40Status.hold_count++;
++        }
++    }
++
++    if (NcFeatureBacklogV40_IsFeatureEnabled(NC_FEATURE_V40_SPINDLE_VIBRATION_RISE_TRACE) != 0) {
++        uint32_t active = ((io->spindle_vibration_monitor != 0u) && (io->spindle_vibration_um >= V40_SPINDLE_VIBRATION_WARN_UM)) ? 1u : 0u;
++        if (v40_wait_or_clear(&s_spindle_vibration_wait_ticks, active, V40_SPINDLE_VIBRATION_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V40_BIT(1u);
++            g_ncFeatureBacklogV40Status.last_spindle_vibration_um = io->spindle_vibration_um;
++            v40_record_fault(1u, fault_bit, io->spindle_vibration_um);
++            if (io->spindle_vibration_um >= V40_SPINDLE_VIBRATION_TRACE_UM) {
++                g_ncFeatureBacklogV40Status.trace_count++;
++            }
++        }
++    }
++
++    if (NcFeatureBacklogV40_IsFeatureEnabled(NC_FEATURE_V40_FEED_AXIS_LUBE_PUMP_READY_GATE) != 0) {
++        uint32_t missing = io->feed_axis_lube_required_mask & ~io->feed_axis_lube_ready_mask;
++        if (v40_wait_or_clear(&s_feed_axis_lube_wait_ticks, missing != 0u, V40_FEED_AXIS_LUBE_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V40_BIT(2u);
++            g_ncFeatureBacklogV40Status.last_axis_mask = missing;
++            v40_record_fault(2u, fault_bit, (int32_t)missing);
++        }
++    }
++
++    if (NcFeatureBacklogV40_IsFeatureEnabled(NC_FEATURE_V40_NC_PROGRAM_SIGNATURE_MISMATCH_INHIBIT) != 0) {
++        uint32_t active = ((io->nc_program_signature_check_request != 0u) && (io->nc_program_signature_ok == 0u)) ? 1u : 0u;
++        if (v40_wait_or_clear(&s_program_signature_wait_ticks, active, V40_PROGRAM_SIGNATURE_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V40_BIT(3u);
++            v40_record_fault(3u, fault_bit, (int32_t)io->nc_program_signature_ok);
++        }
++    }
++
++    if (NcFeatureBacklogV40_IsFeatureEnabled(NC_FEATURE_V40_CHUCK_SENSOR_DUAL_MISMATCH_INTERLOCK) != 0) {
++        uint32_t mismatch = ((io->chuck_dual_sensor_check_request != 0u) && (io->chuck_sensor_a_closed != io->chuck_sensor_b_closed)) ? 1u : 0u;
++        if (v40_wait_or_clear(&s_chuck_sensor_wait_ticks, mismatch, V40_CHUCK_SENSOR_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V40_BIT(4u);
++            g_ncFeatureBacklogV40Status.last_sensor_a = io->chuck_sensor_a_closed;
++            g_ncFeatureBacklogV40Status.last_sensor_b = io->chuck_sensor_b_closed;
++            v40_record_fault(4u, fault_bit, (int32_t)io->chuck_sensor_a_closed);
++        }
++    }
++
++    if (NcFeatureBacklogV40_IsFeatureEnabled(NC_FEATURE_V40_TOOL_BREAK_AUTO_RETRACT_REQUEST) != 0) {
++        uint32_t active = ((io->tool_break_monitor_request != 0u) && (io->tool_break_detected != 0u)) ? 1u : 0u;
++        if (v40_wait_or_clear(&s_tool_break_wait_ticks, active, V40_TOOL_BREAK_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V40_BIT(5u);
++            v40_record_fault(5u, fault_bit, (int32_t)io->tool_break_detected);
++            g_ncFeatureBacklogV40Status.retract_count++;
++        }
++    }
++
++    if (NcFeatureBacklogV40_IsFeatureEnabled(NC_FEATURE_V40_TOOL_LENGTH_MEASURE_JUMP_HOLD) != 0) {
++        int32_t delta = v40_abs_i32(io->tool_length_current_um - io->tool_length_last_um);
++        uint32_t active = ((io->tool_length_measure_check_request != 0u) && (delta >= V40_TOOL_LENGTH_DELTA_HOLD_UM)) ? 1u : 0u;
++        if (v40_wait_or_clear(&s_tool_length_jump_wait_ticks, active, V40_TOOL_LENGTH_JUMP_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V40_BIT(6u);
++            g_ncFeatureBacklogV40Status.last_tool_length_delta_um = delta;
++            v40_record_fault(6u, fault_bit, delta);
++            g_ncFeatureBacklogV40Status.hold_count++;
++        }
++    }
++
++    if (NcFeatureBacklogV40_IsFeatureEnabled(NC_FEATURE_V40_COOLANT_TEMPERATURE_HIGH_SLOWDOWN) != 0) {
++        uint32_t active = ((io->coolant_temperature_monitor != 0u) && (io->coolant_temperature_c >= V40_COOLANT_TEMP_WARN_C)) ? 1u : 0u;
++        if (v40_wait_or_clear(&s_coolant_temp_wait_ticks, active, V40_COOLANT_TEMP_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V40_BIT(7u);
++            g_ncFeatureBacklogV40Status.last_coolant_temperature_c = io->coolant_temperature_c;
++            v40_record_fault(7u, fault_bit, io->coolant_temperature_c);
++            if (io->coolant_temperature_c >= V40_COOLANT_TEMP_HIGH_C) {
++                g_ncFeatureBacklogV40Status.slowdown_count++;
++            }
++        }
++    }
++
++    if (NcFeatureBacklogV40_IsFeatureEnabled(NC_FEATURE_V40_PALLET_ROBOT_READY_TIMEOUT_RETRY) != 0) {
++        uint32_t active = ((io->pallet_robot_ready_required != 0u) && (io->pallet_robot_ready == 0u)) ? 1u : 0u;
++        if (v40_wait_or_clear(&s_pallet_robot_ready_wait_ticks, active, V40_PALLET_ROBOT_READY_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V40_BIT(8u);
++            v40_record_fault(8u, fault_bit, (int32_t)io->pallet_robot_ready);
++        }
++    }
++
++    if (NcFeatureBacklogV40_IsFeatureEnabled(NC_FEATURE_V40_SAFETY_PLC_HEARTBEAT_LOST_HOLD) != 0) {
++        uint32_t heartbeat_lost = 0u;
++        if (io->safety_plc_heartbeat_monitor != 0u) {
++            if (s_heartbeat_initialized == 0u) {
++                s_last_safety_plc_heartbeat_counter = io->safety_plc_heartbeat_counter;
++                s_heartbeat_initialized = 1u;
++            } else if (s_last_safety_plc_heartbeat_counter == io->safety_plc_heartbeat_counter) {
++                heartbeat_lost = 1u;
++            } else {
++                s_last_safety_plc_heartbeat_counter = io->safety_plc_heartbeat_counter;
++            }
++        }
++        if (v40_wait_or_clear(&s_safety_plc_heartbeat_wait_ticks, heartbeat_lost, V40_SAFETY_PLC_HEARTBEAT_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V40_BIT(9u);
++            g_ncFeatureBacklogV40Status.last_heartbeat_counter = io->safety_plc_heartbeat_counter;
++            v40_record_fault(9u, fault_bit, (int32_t)io->safety_plc_heartbeat_counter);
++            g_ncFeatureBacklogV40Status.hold_count++;
++        }
++    }
++}
++
++int Api_RunNcFeatureBacklogV40SelfCheck(void)
++{
++    uint32_t index;
++
++    if (NC_FEATURE_BACKLOG_V40_FEATURE_COUNT != 10u) {
++        return NC_FEATURE_BACKLOG_V40_ERR_RANGE;
++    }
++    if (NC_IMPL_BACKLOG_FEATURE_COUNT_V40 != 325u) {
++        return NC_FEATURE_BACKLOG_V40_ERR_RANGE;
++    }
++    if (NC_IMPL_BACKLOG_WORD_COUNT_V40 != 11u) {
++        return NC_FEATURE_BACKLOG_V40_ERR_RANGE;
++    }
++
++    for (index = 0u; index < NC_FEATURE_BACKLOG_V40_FEATURE_COUNT; ++index) {
++        if (k_v40_defs[index].feature_id != (NC_FEATURE_BACKLOG_V40_FEATURE_BASE_ID + index)) {
++            return NC_FEATURE_BACKLOG_V40_ERR_RANGE;
++        }
++        if (k_v40_defs[index].name == 0) {
++            return NC_FEATURE_BACKLOG_V40_ERR_NULL;
++        }
++    }
++
++    return NC_FEATURE_BACKLOG_V40_OK;
++}
+diff -ruN /mnt/data/work_v40_before/source/tests/test_nc_feature_backlog_v40.c /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/tests/test_nc_feature_backlog_v40.c
+--- /mnt/data/work_v40_before/source/tests/test_nc_feature_backlog_v40.c	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v40_10/source/tests/test_nc_feature_backlog_v40.c	2026-05-03 02:40:48.659861310 +0000
+@@ -0,0 +1,173 @@
++#include "nc_feature_backlog_v40.h"
++
++#include <stdio.h>
++#include <string.h>
++
++static int expect_u32(const char *name, uint32_t actual, uint32_t expected)
++{
++    if (actual != expected) {
++        printf("FAIL %s actual=%u expected=%u\n", name, actual, expected);
++        return 1;
++    }
++    return 0;
++}
++
++static int expect_nonzero(const char *name, uint32_t actual)
++{
++    if (actual == 0u) {
++        printf("FAIL %s actual=0\n", name);
++        return 1;
++    }
++    return 0;
++}
++
++static int expect_less_than(const char *name, int32_t actual, int32_t threshold)
++{
++    if (actual >= threshold) {
++        printf("FAIL %s actual=%d threshold=%d\n", name, actual, threshold);
++        return 1;
++    }
++    return 0;
++}
++
++int main(void)
++{
++    NC_FEATURE_BACKLOG_V40_BLOCK block;
++    NC_FEATURE_BACKLOG_V40_RT_IO io;
++    NC_FEATURE_BACKLOG_V40_STATUS status;
++    uint32_t i;
++    int failures = 0;
++
++    NcFeatureBacklogV40_Init();
++    failures += expect_u32("implemented", g_ncFeatureBacklogV40Status.implemented_count, 10u);
++    failures += expect_u32("configured_init", g_ncFeatureBacklogV40Status.configured_count, 0u);
++
++    if (Api_SetNcFeatureBacklogV40Feature(NC_FEATURE_V40_LASER_AREA_SCANNER_INTRUSION_HOLD, 1u) != 0) {
++        printf("FAIL enable feature 315\n");
++        failures++;
++    }
++    if (Api_SetNcFeatureBacklogV40Feature(999u, 1u) == 0) {
++        printf("FAIL out-of-range feature accepted\n");
++        failures++;
++    }
++    if (NcFeatureBacklogV40_IsFeatureEnabled(NC_FEATURE_V40_LASER_AREA_SCANNER_INTRUSION_HOLD) == 0) {
++        printf("FAIL enabled feature was not visible\n");
++        failures++;
++    }
++    Api_EnableAllNcFeatureBacklogV40Features();
++    failures += expect_u32("configured_all", g_ncFeatureBacklogV40Status.configured_count, 10u);
++
++    memset(&block, 0, sizeof(block));
++    for (i = 0u; i < NC_FEATURE_BACKLOG_V40_AXIS_COUNT; ++i) {
++        block.axis_target[i] = (int32_t)(4000 + (int32_t)i);
++    }
++    block.feed_override_percent = 100;
++    NcFeatureBacklogV40_ApplyBlockTs(&block);
++
++    failures += expect_nonzero("ts_apply", g_ncFeatureBacklogV40Status.ts_apply_count);
++    failures += expect_nonzero("hold_request", block.hold_request);
++    failures += expect_nonzero("interlock_mask", block.interlock_mask);
++    failures += expect_nonzero("sequence_gate_mask", block.sequence_gate_mask);
++    failures += expect_nonzero("diagnostics_mask", block.diagnostics_mask);
++    failures += expect_nonzero("retry_request", block.retry_request_mask);
++    failures += expect_nonzero("inhibit_mask", block.inhibit_mask);
++    failures += expect_nonzero("retract_request", block.retract_request_mask);
++    failures += expect_nonzero("trace_event_code", block.trace_event_code);
++    failures += expect_less_than("feed_override", block.feed_override_percent, 100);
++    if (block.axis_target[0] != 4000) {
++        printf("FAIL axis target unexpectedly changed actual=%d expected=4000\n", block.axis_target[0]);
++        failures++;
++    }
++
++    memset(&io, 0, sizeof(io));
++    io.laser_area_scanner_required = 1u;
++    io.laser_area_intrusion_detected = 1u;
++    io.spindle_vibration_monitor = 1u;
++    io.spindle_vibration_um = 76;
++    io.feed_axis_lube_required_mask = 0x0Fu;
++    io.feed_axis_lube_ready_mask = 0x0Au;
++    io.nc_program_signature_check_request = 1u;
++    io.nc_program_signature_ok = 0u;
++    io.chuck_dual_sensor_check_request = 1u;
++    io.chuck_sensor_a_closed = 1u;
++    io.chuck_sensor_b_closed = 0u;
++    io.tool_break_monitor_request = 1u;
++    io.tool_break_detected = 1u;
++    io.tool_length_measure_check_request = 1u;
++    io.tool_length_last_um = 1200;
++    io.tool_length_current_um = 1385;
++    io.coolant_temperature_monitor = 1u;
++    io.coolant_temperature_c = 51;
++    io.pallet_robot_ready_required = 1u;
++    io.pallet_robot_ready = 0u;
++    io.safety_plc_heartbeat_monitor = 1u;
++    io.safety_plc_heartbeat_counter = 77u;
++
++    for (i = 0u; i < 8u; ++i) {
++        io.cycle_counter = i;
++        NcFeatureBacklogV40_RunRtTick(&io);
++    }
++
++    failures += expect_nonzero("rt_tick", g_ncFeatureBacklogV40Status.rt_tick_count);
++    failures += expect_nonzero("hold_count", g_ncFeatureBacklogV40Status.hold_count);
++    failures += expect_nonzero("interlock_count", g_ncFeatureBacklogV40Status.interlock_count);
++    failures += expect_nonzero("gate_count", g_ncFeatureBacklogV40Status.gate_count);
++    failures += expect_nonzero("trace_count", g_ncFeatureBacklogV40Status.trace_count);
++    failures += expect_nonzero("retry_count", g_ncFeatureBacklogV40Status.retry_count);
++    failures += expect_nonzero("inhibit_count", g_ncFeatureBacklogV40Status.inhibit_count);
++    failures += expect_nonzero("slowdown_count", g_ncFeatureBacklogV40Status.slowdown_count);
++    failures += expect_nonzero("retract_count", g_ncFeatureBacklogV40Status.retract_count);
++    failures += expect_nonzero("fault_mask", g_ncFeatureBacklogV40Status.last_fault_mask);
++    failures += expect_nonzero("axis_mask", g_ncFeatureBacklogV40Status.last_axis_mask);
++    failures += expect_u32("sensor_a", g_ncFeatureBacklogV40Status.last_sensor_a, 1u);
++    failures += expect_u32("sensor_b", g_ncFeatureBacklogV40Status.last_sensor_b, 0u);
++
++    if (Api_GetNcFeatureBacklogV40Status(&status) != 0) {
++        printf("FAIL status get\n");
++        failures++;
++    }
++    if (Api_GetNcFeatureBacklogV40Status(0) == 0) {
++        printf("FAIL null status accepted\n");
++        failures++;
++    }
++    if (Api_RunNcFeatureBacklogV40SelfCheck() != 0) {
++        printf("FAIL selfcheck\n");
++        failures++;
++    }
++
++    Api_GetNcFeatureBacklogV40Status(&status);
++    printf("implementation_backlog_v40 implemented=%u configured=%u ts=%u rt=%u hold=%u interlock=%u gate=%u slowdown=%u trace=%u retry=%u inhibit=%u retract=%u cat_mask=0x%08x last_id=%u last_policy=%u trace=0x%04x fault=0x%08x axis=0x%08x chuck=%u/%u vibration=%d tool_delta=%d coolant=%d heartbeat=%u last_x=%d\n",
++           status.implemented_count,
++           status.configured_count,
++           status.ts_apply_count,
++           status.rt_tick_count,
++           status.hold_count,
++           status.interlock_count,
++           status.gate_count,
++           status.slowdown_count,
++           status.trace_count,
++           status.retry_count,
++           status.inhibit_count,
++           status.retract_count,
++           status.cat_mask,
++           status.last_feature_id,
++           status.last_policy,
++           status.last_trace_event_code,
++           status.last_fault_mask,
++           status.last_axis_mask,
++           status.last_sensor_a,
++           status.last_sensor_b,
++           status.last_spindle_vibration_um,
++           status.last_tool_length_delta_um,
++           status.last_coolant_temperature_c,
++           status.last_heartbeat_counter,
++           status.last_x);
++
++    if (failures != 0) {
++        printf("FAILED failures=%d\n", failures);
++        return 1;
++    }
++
++    printf("PASS nc_feature_backlog_v40\n");
++    return 0;
++}

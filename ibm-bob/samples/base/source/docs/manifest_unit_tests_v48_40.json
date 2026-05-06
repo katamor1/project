@@ -1,0 +1,26 @@
+{
+  "name": "ibm_bob_source_unit_tests_additional_v48_40",
+  "version": "v48_40",
+  "base_assumption": "Apply as an overlay on the latest IBM-Bob source tree after v47_40.",
+  "added_test_count": 40,
+  "verification": {
+    "gcc_standalone_returncode": 0,
+    "expected_summary": "UNIT_TEST_SUMMARY tests=40 failures=0",
+    "status": "PASS"
+  },
+  "files": [
+    "source/build/test_nc_feature_backlog_additional_v48_40",
+    "source/build/test_results_v48_40.txt",
+    "source/docs/continuation_unit_tests_v48_40_diff.patch",
+    "source/docs/manifest_unit_tests_v48_40.json",
+    "source/docs/unit_test_report_v48_40.md",
+    "source/docs/verification_output_unit_tests_v48_40.txt",
+    "source/scripts/build_clang_unit_tests_v48_40.bat",
+    "source/scripts/build_gcc_unit_tests_v48_40.sh",
+    "source/scripts/build_vc2026_unit_tests_v48_40.bat",
+    "source/scripts/test_clang_unit_tests_v48_40.bat",
+    "source/scripts/test_gcc_unit_tests_v48_40.sh",
+    "source/scripts/test_vc2026_unit_tests_v48_40.bat",
+    "source/tests/test_nc_feature_backlog_additional_v48_40.c"
+  ]
+}

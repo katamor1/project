@@ -1,0 +1,42 @@
+[TEST 01] v35 double enable/disable is idempotent
+[TEST 02] v35 NULL status API returns ERR_NULL
+[TEST 03] v35 Init after activity clears counters
+[TEST 04] v35 reverse disable clears all bits
+[TEST 05] v35 invalid feature names below and above range
+[TEST 06] v35 partially disabled TS excludes edge features
+[TEST 07] v36 double enable/disable is idempotent
+[TEST 08] v36 NULL status API returns ERR_NULL
+[TEST 09] v36 Init after activity clears counters
+[TEST 10] v36 reverse disable clears all bits
+[TEST 11] v36 invalid feature names below and above range
+[TEST 12] v36 partially disabled TS excludes edge features
+[TEST 13] v37 double enable/disable is idempotent
+[TEST 14] v37 NULL status API returns ERR_NULL
+[TEST 15] v37 Init after activity clears counters
+[TEST 16] v37 reverse disable clears all bits
+[TEST 17] v37 invalid feature names below and above range
+[TEST 18] v37 partially disabled TS excludes edge features
+[TEST 19] v38 double enable/disable is idempotent
+[TEST 20] v38 NULL status API returns ERR_NULL
+[TEST 21] v38 Init after activity clears counters
+[TEST 22] v38 reverse disable clears all bits
+[TEST 23] v38 invalid feature names below and above range
+[TEST 24] v38 partially disabled TS excludes edge features
+[TEST 25] v39 double enable/disable is idempotent
+[TEST 26] v39 NULL status API returns ERR_NULL
+[TEST 27] v39 Init after activity clears counters
+[TEST 28] v39 reverse disable clears all bits
+[TEST 29] v39 invalid feature names below and above range
+[TEST 30] v39 partially disabled TS excludes edge features
+[TEST 31] v40 double enable/disable is idempotent
+[TEST 32] v40 NULL status API returns ERR_NULL
+[TEST 33] v40 Init after activity clears counters
+[TEST 34] v40 reverse disable clears all bits
+[TEST 35] v40 invalid feature names below and above range
+[TEST 36] v41 double enable/disable is idempotent
+[TEST 37] v41 NULL status API returns ERR_NULL
+[TEST 38] v41 Init after activity clears counters
+[TEST 39] v41 reverse disable clears all bits
+[TEST 40] v41 invalid feature names below and above range
+UNIT_TEST_SUMMARY tests=40 failures=0
+PASS additional_unit_tests_v46_40

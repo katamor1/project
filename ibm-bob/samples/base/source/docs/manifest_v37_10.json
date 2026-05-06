@@ -1,0 +1,121 @@
+{
+  "version": "v37_10",
+  "base_version": "v36_5",
+  "created_at": "2026-05-03T00:00:00+09:00",
+  "feature_id_range": "285-294",
+  "added_feature_count": 10,
+  "features": [
+    {
+      "id": 285,
+      "name": "主軸チラー流量低下段階減速"
+    },
+    {
+      "id": 286,
+      "name": "軸サーボファン停止HOLD"
+    },
+    {
+      "id": 287,
+      "name": "ドアロック二重系不一致トレース"
+    },
+    {
+      "id": 288,
+      "name": "工具マガジン原点復帰タイムアウトインターロック"
+    },
+    {
+      "id": 289,
+      "name": "油圧昇圧READYゲート"
+    },
+    {
+      "id": 290,
+      "name": "ワーク着座エア確認リトライゲート"
+    },
+    {
+      "id": 291,
+      "name": "切粉洗浄圧低下HOLD"
+    },
+    {
+      "id": 292,
+      "name": "操作盤イネーブルスイッチガード"
+    },
+    {
+      "id": 293,
+      "name": "プローブ電池低下時測定禁止"
+    },
+    {
+      "id": 294,
+      "name": "絶対値エンコーダ電池警告トレース"
+    }
+  ],
+  "verification": {
+    "gcc_smoke": "PASS",
+    "windows_vc2026": "not_run_in_linux_sandbox",
+    "windows_clang": "not_run_in_linux_sandbox"
+  },
+  "files": [
+    {
+      "path": "source/inc/nc_feature_backlog_v37.h",
+      "bytes": 5195,
+      "sha256": "822cb4d52e8e9cf93186cc41483e2fc1c00463168b1d3464111925e8f1c65a8d"
+    },
+    {
+      "path": "source/src/nc_feature_backlog_v37.c",
+      "bytes": 20478,
+      "sha256": "0567a9802408e358134f35e67f7108ddac097d936f50251c1bac232641c995a1"
+    },
+    {
+      "path": "source/tests/test_nc_feature_backlog_v37.c",
+      "bytes": 6188,
+      "sha256": "e074f63a31f697aeff6f28756e061a3d82496d131eb1b23f4693ad7e496c7f2e"
+    },
+    {
+      "path": "source/scripts/build_gcc_smoke_v37_10.sh",
+      "bytes": 220,
+      "sha256": "4a88b25d715cce1bdf25e4f2ff631107bda56097607b44e7163397ec3ec87332"
+    },
+    {
+      "path": "source/scripts/test_gcc_smoke_v37_10.sh",
+      "bytes": 132,
+      "sha256": "782791275e3c1a7b114cde577c6e600d818669d7b0f87430ef8e72f0c0d43cbc"
+    },
+    {
+      "path": "source/scripts/build_vc2026_v37_10.bat",
+      "bytes": 243,
+      "sha256": "c168435fe9a380ed169dfa7647ebdc6325f9b18577df3c006b84816bc9b78f52"
+    },
+    {
+      "path": "source/scripts/test_vc2026_v37_10.bat",
+      "bytes": 154,
+      "sha256": "ea48b2c9bae54af9f54ac31bcf645899b6fe9c188423b4b8381a67697c830bb5"
+    },
+    {
+      "path": "source/scripts/build_clang_v37_10.bat",
+      "bytes": 235,
+      "sha256": "606cf1aaeab125ae763896f511b6f4154bb02d6530792b00c453b6a0d5dda449"
+    },
+    {
+      "path": "source/scripts/test_clang_v37_10.bat",
+      "bytes": 153,
+      "sha256": "1c4db62b3244839dd1a67ab7e9a9b7cd3e0dd03864abef6f740e4cb7132e464a"
+    },
+    {
+      "path": "source/docs/implementation_report_v37_10.md",
+      "bytes": 3251,
+      "sha256": "32c90055a0ffe77bc2cca132f212e9ef715c41268f0ba3e900d1061121eca306"
+    },
+    {
+      "path": "source/docs/integration_note_v37_10.md",
+      "bytes": 1181,
+      "sha256": "091f4e52d0d0d78085548a879553c7a17cd848f624fe5ebb99552bef4a06bacd"
+    },
+    {
+      "path": "source/docs/verification_output_v37_10.txt",
+      "bytes": 263,
+      "sha256": "23a05e027f9947633e750f3603352ffa34245765f771382c5ef241f666137af8"
+    },
+    {
+      "path": "source/docs/continuation_v37_10_diff.patch",
+      "bytes": 46039,
+      "sha256": "self-referential-excluded"
+    }
+  ]
+}

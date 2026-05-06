@@ -1,0 +1,263 @@
+Binary files /mnt/data/base_v32_for_diff/source/build/ibm_bob_sample_v33_10 and /mnt/data/work_v33/source/build/ibm_bob_sample_v33_10 differ
+diff -ruN /mnt/data/base_v32_for_diff/source/docs/continuation_v33_10_diff.patch /mnt/data/work_v33/source/docs/continuation_v33_10_diff.patch
+--- /mnt/data/base_v32_for_diff/source/docs/continuation_v33_10_diff.patch	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v33/source/docs/continuation_v33_10_diff.patch	2026-05-03 00:06:26.120537673 +0000
+@@ -0,0 +1 @@
++Binary files /mnt/data/base_v32_for_diff/source/build/ibm_bob_sample_v33_10 and /mnt/data/work_v33/source/build/ibm_bob_sample_v33_10 differ
+diff -ruN /mnt/data/base_v32_for_diff/source/docs/implementation_report_v33_10.md /mnt/data/work_v33/source/docs/implementation_report_v33_10.md
+--- /mnt/data/base_v32_for_diff/source/docs/implementation_report_v33_10.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v33/source/docs/implementation_report_v33_10.md	2026-05-03 00:06:26.003945545 +0000
+@@ -0,0 +1,50 @@
++# IBM-Bob ソースコード追加実装レポート v33_10
++
++## 概要
++
++`ibm_bob_source_implemented_additional_features_v32_10` をベースに、未実装/入口実装止まりだった機能を10件追加した。
++
++- 対象モジュール: `src/nc_feature_backlog.c`, `inc/system_config.h`
++- 追加ID: `250`〜`259`
++- 実装方式: TS側の固定長 `NC_EXEC_BLOCK` 補正 + RT側の状態更新/イベントカウント
++- RT制約: 動的メモリ確保、ファイルI/O、Windows API呼び出しなし
++
++## 追加した10機能
++
++| ID | 機能名 | 実装概要 |
++|---:|---|---|
++| 250 | 主軸ベルト滑り予兆監視 | 主軸速度未設定時の補完、送り減速、減速tick追加、予兆モーダルラッチ |
++| 251 | クーラントフィルタ目詰まりHOLD | MFIN待ち、軸退避フラグ、送り減速、長めの減速tick付与 |
++| 252 | エアシリンダ到達端確認Mコード監視 | Mコード/MFIN待ち、タイムアウト用P word補完、監視ラッチ |
++| 253 | ワーク洗浄ノズル位置インターロック | Mコード待ち、XY可動範囲クランプ、軸割付フラグ、送り減速 |
++| 254 | ロボット搬入出エリア干渉待ち | Mコード待ち、干渉待ちP word設定、軸退避フラグ、送り減速 |
++| 255 | チャック把握力段階監視 | 主軸速度補完、MFIN待ち、送り減速、減速tick追加 |
++| 256 | センタースルークーラント圧上昇待ち | Mコード/MFIN待ち、圧上昇待ちP word補完、平滑化フラグ |
++| 257 | 切粉堆積センサ安全減速 | MFIN待ち、軸退避フラグ、送り減速、減速tick追加 |
++| 258 | 機械照明/扉ロック保守モードゲート | Mコード/MFIN待ち、保守時の送り上限クランプ、軸割付フラグ |
++| 259 | UPS低残量安全停止シーケンス | MFIN待ち、軸退避フラグ、送り最小化、停止用減速tick追加 |
++
++## 変更点
++
++- `NC_IMPL_BACKLOG_FEATURE_COUNT`: `250U` → `260U`
++- `NC_IMPL_BACKLOG_WORD_COUNT`: `8U` → `9U`
++- `s_backlog[]` にID `250`〜`259` の10件を追加
++- `ApplyV23Policy()` にID `250`〜`259` の固定長ブロック補正caseを追加
++- GCCスモークビルド/テスト用に `build_gcc_smoke_v33_10.sh` / `test_gcc_smoke_v33_10.sh` を追加
++
++## 検証
++
++この環境では GCC smoke build/test を実行し、正常終了を確認した。
++詳細は `verification_output_v33_10.txt` を参照。
++
++## Windows側確認
++
++Windows / Visual Studio / clang 環境では、ZIP展開後に以下を実行する。
++
++```bat
++cd source
++scripts\build_vc2026.bat
++scripts\test_vc2026.bat
++scripts\build_clang.bat
++scripts\test_clang.bat
++```
+diff -ruN /mnt/data/base_v32_for_diff/source/docs/verification_output_v33_10.txt /mnt/data/work_v33/source/docs/verification_output_v33_10.txt
+--- /mnt/data/base_v32_for_diff/source/docs/verification_output_v33_10.txt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v33/source/docs/verification_output_v33_10.txt	2026-05-03 00:06:09.192678608 +0000
+@@ -0,0 +1,35 @@
++nc_state=4 nc_error=0 nc_error_line=0 nc_exec=32 nc_read=89 nc_buf=57 nc_x=0 nc_y=0 nc_z=0 nc_m=0
++interp_segments=0 feed_profile=0 feed_override=0 dwell_ticks=0
++coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=0
++coord_transform blocks=0 mask=0x00000000 work_set=0 local_set=0 temp_set=0 dyn_x=0 mount_err_x=0 rotary_z=0
++feature_blocks=0 feature_flags=0 canned=0 skip=0 advanced=0
++g08_standard_seen=0 g08_high_precision_seen=0 g08_cancel_seen=0 g08_final_smoothing=0 g08_final_high_precision=0
++hpcc_seen=0 hpcc_cancel_seen=0 hpcc_final=0 g05_p3_seen=0
++comp_applied=23 comp_mask=0x00000007 comp_tool=0 comp_cutter=0 comp_rotation=0
++path_arc=3 path_helical=1 path_arc_segments=12 path_lookahead=47 path_slowdowns=29 path_corner_deg=180 path_override=80
++kin_transformed=43 kin_mirrored=23 kin_retracts=1 kin_singularity_warn=0 kin_mirror_mask=0x00000000 kin_retract_mask=0x00000004 kin_tool_z=9848 kin_last_x=3405 kin_last_a=-1200
++diag_axis_warn=0x00000003 diag_axis_limit=0x00000001 diag_axis_critical=0x00000000 decel_level=2 decel_override=45 load_peak_x=847
++tool_active=0 tool2_uses=0 tool_warn=0x00000000 tool_expired=0x00000000 diag_decel=2 diag_tool_expired=0x00000000 diag_axis_warn=0x00000003
++tool_mgmt active=0 prepared=0 parsed_t=0 exchange_req=0 exchange_done=0 max_wait=0 pocket2=0
++motion_filter_samples=182 mode=2 axis_mask=0x0000000f raw_vx=2783 smooth_vx=2475 out_x=3702
++motion_filter_limits vel_events=32 accel_events=92 endpoint_corrections=30 residual_samples=87 max_lag_x=5847 residual_x=-82
++tool_life_hold_state=0 tool_life_hold_error=0 tool_life_hold_line=0 events=64 lost=181 last_event=9601
++cycle_completed=2 cycle_phase_count=51 skip_completed=1 skip_x=2460
++cycle_detail last=830 repeat=1 repeat_done=2 peck_blocks=1 tap_blocks=0 boring_blocks=0 spindle_sync=0 spindle_reverse=0 manual_return=1
++aux_completed=8 aux_wait_cycles=0 prestart_ok=1 prestart_mask=0x00000000
++trace_frozen=0 trace_captured=32 trace_trigger_cycle=0
++capability parsed=88 g=84 m=15 address_words=339 binary_loaded=0
++interference checked=26 warnings=0 slowdown=0 safety_external=1 safety_position=1 safety_override=100
++reference planned=3 executed=3 homed=0x00000001 markers=1 one_direction=1 rollover=0 approach_x=-468
++rotary_mcc parsed=3 executed=0 active_mask=0x00000000 mcc_on=0 mcc_off=0 virt=11 cmd=0x00000003
++axis_config path=0x0000000f rotary=0x00000008 diameter=0x00000001 applied=39 diameter_blocks=39 detached_blocks=0 rejected=0 name_a=A last_x=608
++design_features mode=0x00000000 nurbs=0 exp=0 cyl=0 polar=0 helical_b=0 auto_corner=0 grinding=0 egb_skip=0 interference3d=0 followup=0 ts=0 rt=0 slowdown=0 override=0 last_x=0 last_y=0
++design_features_v21 involute=0 hp_contour=0 exact_stop=0 rigid_tap=0 thread_chamfer=0 second_ref=0 machine_direct=0 coord_shift=0 css=0 feed_per_rev=0
++implementation_backlog implemented=260 configured=260 ts=604 rt=322 synthetic=260 cat_mask=0x000003ff last_id=259 last_cat=9 last_policy=7 slowdown=62 cat0=112 cat9=114 last_x=1259
++sync mode_bits=0x0000 planned=0 executed=0 sync_motion=0 compound_motion=0 overlay_motion=0 double_table=0 slave_mask=0x00000000 max_follow_y=0 out_y=0
++precision previewed=53 limited=50 learning_updates=36 vibration_warn=0 rt_ticks=1195 corr_x=-67
++mode=1 state=2 alarm=0 cycle=1200
++coord_error_checks=5
++g08_error_checks=3
++hpcc_error_checks=4
++cycle_error_checks=4
+diff -ruN /mnt/data/base_v32_for_diff/source/inc/system_config.h /mnt/data/work_v33/source/inc/system_config.h
+--- /mnt/data/base_v32_for_diff/source/inc/system_config.h	2026-05-02 16:26:41.000000000 +0000
++++ /mnt/data/work_v33/source/inc/system_config.h	2026-05-03 00:05:53.946700634 +0000
+@@ -771,8 +771,8 @@
+ #define NC_DESIGN_RIGID_TAP_MIN_TICKS         (8U)
+ #define NC_DESIGN_EXACT_STOP_PERCENT          (55U)
+ #define NC_DESIGN_HP_CONTOUR_PERCENT          (75U)
+-#define NC_IMPL_BACKLOG_FEATURE_COUNT          (250U)
+-#define NC_IMPL_BACKLOG_WORD_COUNT             (8U)
++#define NC_IMPL_BACKLOG_FEATURE_COUNT          (260U)
++#define NC_IMPL_BACKLOG_WORD_COUNT             (9U)
+ #define NC_IMPL_BACKLOG_DEFAULT_OVERRIDE       (92U)
+ #define NC_IMPL_BACKLOG_MIN_TICKS              (3U)
+ #define NC_IMPL_BACKLOG_MAX_POLICY             (7U)
+diff -ruN /mnt/data/base_v32_for_diff/source/runtime_log.csv /mnt/data/work_v33/source/runtime_log.csv
+--- /mnt/data/base_v32_for_diff/source/runtime_log.csv	2026-05-02 16:27:20.000000000 +0000
++++ /mnt/data/work_v33/source/runtime_log.csv	2026-05-03 00:06:09.192390833 +0000
+@@ -225,3 +225,11 @@
+ 1,7101,1,35
+ 1,7102,1,40
+ 3,2001,0,1200
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++1,7101,1,35
++1,7102,1,40
++3,2001,0,1200
+diff -ruN /mnt/data/base_v32_for_diff/source/scripts/build_gcc_smoke_v33_10.sh /mnt/data/work_v33/source/scripts/build_gcc_smoke_v33_10.sh
+--- /mnt/data/base_v32_for_diff/source/scripts/build_gcc_smoke_v33_10.sh	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v33/source/scripts/build_gcc_smoke_v33_10.sh	2026-05-03 00:05:54.126569660 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++mkdir -p "$ROOT_DIR/build"
++gcc -std=c99 -Wall -Wextra -I"$ROOT_DIR/inc" "$ROOT_DIR"/src/*.c -lm -o "$ROOT_DIR/build/ibm_bob_sample_v33_10"
+diff -ruN /mnt/data/base_v32_for_diff/source/scripts/test_gcc_smoke_v33_10.sh /mnt/data/work_v33/source/scripts/test_gcc_smoke_v33_10.sh
+--- /mnt/data/base_v32_for_diff/source/scripts/test_gcc_smoke_v33_10.sh	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v33/source/scripts/test_gcc_smoke_v33_10.sh	2026-05-03 00:05:54.126823784 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++bash "$ROOT_DIR/scripts/build_gcc_smoke_v33_10.sh"
++"$ROOT_DIR/build/ibm_bob_sample_v33_10" | tee "$ROOT_DIR/docs/verification_output_v33_10.txt"
+diff -ruN /mnt/data/base_v32_for_diff/source/src/nc_feature_backlog.c /mnt/data/work_v33/source/src/nc_feature_backlog.c
+--- /mnt/data/base_v32_for_diff/source/src/nc_feature_backlog.c	2026-05-02 16:26:41.000000000 +0000
++++ /mnt/data/work_v33/source/src/nc_feature_backlog.c	2026-05-03 00:05:53.951152607 +0000
+@@ -1,5 +1,5 @@
+ /* ibm-bob/samples/base/source/src/nc_feature_backlog.c */
+-/* Implements the v22-v32 design-document backlog features as fixed-size, RT-safe handlers. */
++/* Implements the v22-v33 design-document backlog features as fixed-size, RT-safe handlers. */
+ #include <string.h>
+ #include "nc_feature_backlog.h"
+ #include "nc_program.h"
+@@ -262,6 +262,16 @@
+     /* 247: 先読み中工具補正未登録ブロック停止 */ { 247U, 5U, 3U, 557U },
+     /* 248: 送り軸ブレーキ解除確認 */ { 248U, 8U, 4U, 558U },
+     /* 249: 非常停止入力チャタリング診断 */ { 249U, 9U, 5U, 559U },
++    /* 250: 主軸ベルト滑り予兆監視 */ { 250U, 4U, 6U, 560U },
++    /* 251: クーラントフィルタ目詰まりHOLD */ { 251U, 9U, 7U, 561U },
++    /* 252: エアシリンダ到達端確認Mコード監視 */ { 252U, 8U, 0U, 562U },
++    /* 253: ワーク洗浄ノズル位置インターロック */ { 253U, 8U, 1U, 563U },
++    /* 254: ロボット搬入出エリア干渉待ち */ { 254U, 9U, 2U, 564U },
++    /* 255: チャック把握力段階監視 */ { 255U, 4U, 3U, 565U },
++    /* 256: センタースルークーラント圧上昇待ち */ { 256U, 8U, 4U, 566U },
++    /* 257: 切粉堆積センサ安全減速 */ { 257U, 9U, 5U, 567U },
++    /* 258: 機械照明/扉ロック保守モードゲート */ { 258U, 8U, 6U, 568U },
++    /* 259: UPS低残量安全停止シーケンス */ { 259U, 9U, 7U, 569U },
+ };
+ 
+ static uint16_t s_parameter[NC_IMPL_BACKLOG_FEATURE_COUNT];
+@@ -1521,6 +1531,89 @@
+         pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
+         SetMinTicks(pBlock, 15U);
+         break;
++    case 250U: /* Spindle-belt slip predictive monitor. */
++        if (pBlock->spindle_speed == 0U) { pBlock->spindle_speed = 900U + (uint32_t)(param * 3U); }
++        pBlock->feature_flags |= NC_FEATURE_FLAG_SMOOTHING;
++        pBlock->modal_flags |= 0x00004000UL;
++        SlowFeed(pBlock, (uint16_t)ClampI32(72 - (int32_t)(param % 18U), 45, 72));
++        pBlock->decel_ticks += 4U;
++        SetMinTicks(pBlock, 10U);
++        break;
++    case 251U: /* Coolant-filter clog HOLD latch. */
++        pBlock->modal_flags |= 0x00008000UL;
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        SlowFeed(pBlock, 42U);
++        pBlock->decel_ticks += 8U;
++        SetMinTicks(pBlock, 12U);
++        break;
++    case 252U: /* Air-cylinder end-position confirmation M-code monitor. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 82U; }
++        pBlock->p_word = (pBlock->p_word == 0U) ? (uint32_t)ClampI32((int32_t)(param % 50U), 5, 49) : pBlock->p_word;
++        pBlock->modal_flags |= 0x00010000UL;
++        SetMinTicks(pBlock, 8U);
++        break;
++    case 253U: /* Work-wash nozzle position interlock. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 83U; }
++        pBlock->axis_mask |= 0x00000003UL;
++        pBlock->axis_target[0] = ClampI32(pBlock->axis_target[0], -300000, 300000);
++        pBlock->axis_target[1] = ClampI32(pBlock->axis_target[1], -300000, 300000);
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
++        SlowFeed(pBlock, 67U);
++        SetMinTicks(pBlock, 9U);
++        break;
++    case 254U: /* Robot load/unload area interference wait. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 84U; }
++        pBlock->modal_flags |= 0x00020000UL;
++        pBlock->p_word = (pBlock->p_word == 0U) ? (uint32_t)(6000U + (param % 500U)) : pBlock->p_word;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        SlowFeed(pBlock, 55U);
++        SetMinTicks(pBlock, 11U);
++        break;
++    case 255U: /* Chuck gripping-force staged monitor. */
++        if (pBlock->spindle_speed == 0U) { pBlock->spindle_speed = 250U + (uint32_t)(param * 2U); }
++        pBlock->modal_flags |= 0x00040000UL;
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        SlowFeed(pBlock, 50U);
++        pBlock->decel_ticks += 6U;
++        SetMinTicks(pBlock, 10U);
++        break;
++    case 256U: /* Through-spindle coolant pressure-rise wait. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 85U; }
++        pBlock->p_word = (pBlock->p_word == 0U) ? (uint32_t)ClampI32((int32_t)(param % 70U), 6, 69) : pBlock->p_word;
++        pBlock->modal_flags |= 0x00080000UL;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_SMOOTHING;
++        SetMinTicks(pBlock, 8U);
++        break;
++    case 257U: /* Chip-accumulation sensor safe deceleration. */
++        pBlock->modal_flags |= 0x00100000UL;
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        SlowFeed(pBlock, 38U);
++        pBlock->decel_ticks += 9U;
++        SetMinTicks(pBlock, 13U);
++        break;
++    case 258U: /* Machine-light/door-lock maintenance-mode gate. */
++        pBlock->modal_flags |= 0x00200000UL;
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 86U; }
++        pBlock->feed = ClampI32((pBlock->feed <= 0) ? 1200 : pBlock->feed, 1, 12000);
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
++        SetMinTicks(pBlock, 7U);
++        break;
++    case 259U: /* UPS-low-battery safe-stop sequence. */
++        pBlock->modal_flags |= 0x00400000UL;
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        pBlock->feed = 1;
++        pBlock->accel_ticks += 2U;
++        pBlock->decel_ticks += 14U;
++        SetMinTicks(pBlock, 16U);
++        break;
+     default:
+         break;
+     }

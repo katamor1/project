@@ -1,0 +1,46 @@
+{
+  "version": "v26_20",
+  "base_version": "v25_20",
+  "feature_count_before": 160,
+  "feature_count_after": 180,
+  "word_count_before": 5,
+  "word_count_after": 6,
+  "added_feature_id_range": [160, 179],
+  "added_features": [
+    "経路間輪郭ブレンド隙間クランプ",
+    "ドライラン運転フィード上限制限",
+    "再開時モーダル状態整合検査",
+    "主軸オリエントM19位置窓監視",
+    "リジッドタップ位相同期監視",
+    "ねじ切り逃げ面取りベクトル補正",
+    "深穴加工切粉排出ドウェルガード",
+    "研削スパークアウトドウェルガード",
+    "パレットクランプ確認インターロック",
+    "油圧圧力低下段階減速",
+    "サーボ偏差移動平均予兆監視",
+    "絶対エンコーダ電池警告ラッチ",
+    "ソフトリミット事前経路クランプ",
+    "ストロークエンド近傍オーバライド禁止",
+    "外部フィードホールド入力デバウンス",
+    "オプショナルストップM01状態ゲート",
+    "ブロックスキップ指令判定安定化",
+    "シングルブロック停止点生成",
+    "オーバライドノブ変化率制限",
+    "アラームリセット後インターロック解放順序"
+  ],
+  "changed_files": [
+    "source/inc/system_config.h",
+    "source/inc/system_shared.h",
+    "source/src/nc_feature_backlog.c",
+    "source/scripts/build_gcc_smoke_v26.sh",
+    "source/scripts/test_gcc_smoke_v26.sh",
+    "source/docs/implementation_report_v26_20.md",
+    "source/docs/verification_output_v26_20.txt",
+    "source/docs/continuation_v26_20_diff.patch"
+  ],
+  "verification": {
+    "gcc_smoke_build": "passed",
+    "gcc_smoke_test": "passed",
+    "key_output": "implementation_backlog implemented=180 configured=180 ts=480 rt=238 synthetic=180 cat_mask=0x000003ff last_id=179 last_cat=9 last_policy=7 slowdown=30 cat0=92 cat9=77 last_x=1179"
+  }
+}

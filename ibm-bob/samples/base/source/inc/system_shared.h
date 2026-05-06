@@ -1409,8 +1409,8 @@ typedef struct {
  * @brief Status for design-document feature completions added in v20.
  */
 /**
- * @brief Status for the v22 implementation backlog batch.
- * @details Tracks 100 newly coded design-feature entries using fixed-size masks,
+ * @brief Status for the v22-v32 implementation backlog batches.
+ * @details Tracks 250 coded design-feature entries using fixed-size masks,
  * counters, and last-block snapshots so RT, TS, and API callers can observe the
  * added implementation without dynamic allocation.
  */

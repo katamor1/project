@@ -1,0 +1,36 @@
+{
+  "version": "v28_10",
+  "base_version": "v27_20",
+  "feature_count_before": 200,
+  "feature_count_after": 210,
+  "word_count_before": 7,
+  "word_count_after": 7,
+  "added_feature_ids": [200,201,202,203,204,205,206,207,208,209],
+  "added_features": [
+    "輪郭先読み急峻角ブレーキ",
+    "微小円弧チョード誤差補正",
+    "高速加工G05.1有効範囲監視",
+    "ナノ補間丸め誤差蓄積リセット",
+    "工具先端点姿勢変化率制限",
+    "自動潤滑ポンプREADY監視",
+    "クランプエア圧低下HOLDラッチ",
+    "切削油温度上昇フィード制限",
+    "チャック回転中ドアロック二重確認",
+    "主軸冷却ファン異常段階減速"
+  ],
+  "changed_files": [
+    "source/inc/system_config.h",
+    "source/src/nc_feature_backlog.c",
+    "source/scripts/build_gcc_smoke_v28_10.sh",
+    "source/scripts/test_gcc_smoke_v28_10.sh",
+    "source/docs/implementation_report_v28_10.md",
+    "source/docs/verification_output_v28_10.txt",
+    "source/docs/manifest_v28_10.json",
+    "source/docs/continuation_v28_10_diff.patch"
+  ],
+  "verification": {
+    "gcc_smoke_build": "passed",
+    "gcc_smoke_test": "passed",
+    "output_file": "source/docs/verification_output_v28_10.txt"
+  }
+}

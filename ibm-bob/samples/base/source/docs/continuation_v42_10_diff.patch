@@ -1,0 +1,1026 @@
+Binary files /mnt/data/work_v42_before/source/build/test_nc_feature_backlog_v42 and /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/build/test_nc_feature_backlog_v42 differ
+diff -ruN /mnt/data/work_v42_before/source/docs/implementation_report_v42_10.md /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/docs/implementation_report_v42_10.md
+--- /mnt/data/work_v42_before/source/docs/implementation_report_v42_10.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/docs/implementation_report_v42_10.md	2026-05-03 02:50:11.566608983 +0000
+@@ -0,0 +1,57 @@
++# IBM-Bob Source Implementation Report v42_10
++
++## 概要
++
++`v41_10` の続きとして、ID `335〜344` の10機能を追加した。実装は `nc_feature_backlog_v42` として分離し、既存の backlog continuation 方式と同じく、固定長ステータス、固定長ループ、RT側ファイルI/Oなし、動的メモリ確保なしの制約を守る。
++
++## 追加した10機能
++
++| ID | 機能 | 方針 |
++|---:|---|---|
++| 335 | 主軸エアパージ圧低下ゲート | GATE |
++| 336 | 軸リミットスイッチ貼り付きトレース | TRACE |
++| 337 | オイルミスト供給低下HOLD | HOLD |
++| 338 | ローダチャック開閉確認インターロック | INTERLOCK |
++| 339 | 自動扉開閉タイムアウトリトライ | RETRY |
++| 340 | テーブル着座センサ不一致HOLD | HOLD |
++| 341 | 主軸回転中ドア解除禁止 | INHIBIT |
++| 342 | 工具ID RFID読取失敗ゲート | GATE |
++| 343 | 加工室照明異常トレース | TRACE |
++| 344 | サーボ温度上昇段階減速 | SLOWDOWN |
++
++
++## 追加ファイル
++
++- `source/inc/nc_feature_backlog_v42.h`
++- `source/src/nc_feature_backlog_v42.c`
++- `source/tests/test_nc_feature_backlog_v42.c`
++- `source/scripts/build_gcc_smoke_v42_10.sh`
++- `source/scripts/test_gcc_smoke_v42_10.sh`
++- `source/scripts/build_vc2026_v42_10.bat`
++- `source/scripts/test_vc2026_v42_10.bat`
++- `source/scripts/build_clang_v42_10.bat`
++- `source/scripts/test_clang_v42_10.bat`
++
++## 実装方針
++
++- TS側 `NcFeatureBacklogV42_ApplyBlockTs()` で、実行ブロックに対する gate / hold / interlock / retry / inhibit / trace / slowdown の固定長マスク更新を行う。
++- RT側 `NcFeatureBacklogV42_RunRtTick()` で、主軸エアパージ圧、軸リミットスイッチ、オイルミスト圧、ローダチャック、自動扉、テーブル着座、主軸回転中ドア解除、RFID、照明、サーボ温度を監視する。
++- チャタリング・一時的欠落を吸収するため、各機能に固定tickの待ちカウンタを持たせる。
++- 共有状態は `NC_FEATURE_BACKLOG_V42_STATUS` に集約し、APIからスナップショット取得できる。
++
++## 検証
++
++GCC smoke build/test を実行済み。
++
++```text
++implementation_backlog_v42 implemented=10 configured=10 ts=1 rt=8 hold=30 interlock=8 gate=15 slowdown=15 trace=16 retry=11 inhibit=17 cat_mask=0x00001000 last_id=344 last_policy=4 trace=0x4209 fault=0x000003ff axis=0x00000002 pressure=60 spindle_rpm=2400 temp=86 table_mismatch=0x00000002 tool_rfid=0 last_x=4200
++PASS nc_feature_backlog_v42
++```
++
++## Windows確認
++
++```bat
++cd source
++scripts\test_vc2026_v42_10.bat
++scripts\test_clang_v42_10.bat
++```
+diff -ruN /mnt/data/work_v42_before/source/docs/integration_note_v42_10.md /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/docs/integration_note_v42_10.md
+--- /mnt/data/work_v42_before/source/docs/integration_note_v42_10.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/docs/integration_note_v42_10.md	2026-05-03 02:50:11.567068137 +0000
+@@ -0,0 +1,13 @@
++# Integration Note v42_10
++
++`v42_10` は `v41_10` の後続追加モジュールである。既存本体へ統合する場合は、以下を追加する。
++
++1. `source/inc/nc_feature_backlog_v42.h` を公開ヘッダ群へ追加する。
++2. `source/src/nc_feature_backlog_v42.c` をビルド対象へ追加する。
++3. システム初期化時に `NcFeatureBacklogV42_Init()` を呼ぶ。
++4. 設備構成または評価用設定で `Api_EnableAllNcFeatureBacklogV42Features()` または個別 `Api_SetNcFeatureBacklogV42Feature()` を呼ぶ。
++5. TS側の固定ブロック確定処理から `NcFeatureBacklogV42_ApplyBlockTs()` を呼ぶ。
++6. RT周期処理から `NcFeatureBacklogV42_RunRtTick()` を呼ぶ。
++7. 状態表示・診断ログから `Api_GetNcFeatureBacklogV42Status()` を参照する。
++
++RT側実装は固定長カウンタと整数演算のみで、ファイルI/O、動的メモリ、Windows API呼び出しは行わない。
+diff -ruN /mnt/data/work_v42_before/source/docs/manifest_v42_10.json /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/docs/manifest_v42_10.json
+--- /mnt/data/work_v42_before/source/docs/manifest_v42_10.json	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/docs/manifest_v42_10.json	2026-05-03 02:50:11.567529617 +0000
+@@ -0,0 +1,103 @@
++{
++  "version": "v42_10",
++  "base_version": "v41_10",
++  "feature_id_range": "335-344",
++  "feature_count_added": 10,
++  "module": "nc_feature_backlog_v42",
++  "rt_constraints": [
++    "fixed-size state",
++    "bounded loops",
++    "no dynamic allocation",
++    "no file I/O",
++    "no Windows API"
++  ],
++  "features": [
++    {
++      "id": 335,
++      "macro": "SPINDLE_AIR_PURGE_PRESSURE_GATE",
++      "name_ja": "主軸エアパージ圧低下ゲート",
++      "name_en": "spindle air purge pressure low gate",
++      "policy": "GATE"
++    },
++    {
++      "id": 336,
++      "macro": "AXIS_LIMIT_SWITCH_STUCK_TRACE",
++      "name_ja": "軸リミットスイッチ貼り付きトレース",
++      "name_en": "axis limit switch stuck trace",
++      "policy": "TRACE"
++    },
++    {
++      "id": 337,
++      "macro": "OIL_MIST_SUPPLY_LOW_HOLD",
++      "name_ja": "オイルミスト供給低下HOLD",
++      "name_en": "oil mist supply low hold",
++      "policy": "HOLD"
++    },
++    {
++      "id": 338,
++      "macro": "LOADER_CHUCK_CONFIRM_INTERLOCK",
++      "name_ja": "ローダチャック開閉確認インターロック",
++      "name_en": "loader chuck confirm interlock",
++      "policy": "INTERLOCK"
++    },
++    {
++      "id": 339,
++      "macro": "AUTO_DOOR_MOTION_TIMEOUT_RETRY",
++      "name_ja": "自動扉開閉タイムアウトリトライ",
++      "name_en": "auto door motion timeout retry",
++      "policy": "RETRY"
++    },
++    {
++      "id": 340,
++      "macro": "TABLE_SEATING_SENSOR_MISMATCH_HOLD",
++      "name_ja": "テーブル着座センサ不一致HOLD",
++      "name_en": "table seating sensor mismatch hold",
++      "policy": "HOLD"
++    },
++    {
++      "id": 341,
++      "macro": "DOOR_UNLOCK_DURING_SPINDLE_INHIBIT",
++      "name_ja": "主軸回転中ドア解除禁止",
++      "name_en": "door unlock during spindle rotation inhibit",
++      "policy": "INHIBIT"
++    },
++    {
++      "id": 342,
++      "macro": "TOOL_RFID_READ_FAIL_GATE",
++      "name_ja": "工具ID RFID読取失敗ゲート",
++      "name_en": "tool RFID read fail gate",
++      "policy": "GATE"
++    },
++    {
++      "id": 343,
++      "macro": "MACHINING_ROOM_LIGHT_FAULT_TRACE",
++      "name_ja": "加工室照明異常トレース",
++      "name_en": "machining room light fault trace",
++      "policy": "TRACE"
++    },
++    {
++      "id": 344,
++      "macro": "SERVO_TEMPERATURE_RISE_SLOWDOWN",
++      "name_ja": "サーボ温度上昇段階減速",
++      "name_en": "servo temperature rise staged slowdown",
++      "policy": "SLOWDOWN"
++    }
++  ],
++  "files_added": [
++    "source/inc/nc_feature_backlog_v42.h",
++    "source/src/nc_feature_backlog_v42.c",
++    "source/tests/test_nc_feature_backlog_v42.c",
++    "source/scripts/build_gcc_smoke_v42_10.sh",
++    "source/scripts/test_gcc_smoke_v42_10.sh",
++    "source/scripts/build_vc2026_v42_10.bat",
++    "source/scripts/test_vc2026_v42_10.bat",
++    "source/scripts/build_clang_v42_10.bat",
++    "source/scripts/test_clang_v42_10.bat",
++    "source/docs/implementation_report_v42_10.md",
++    "source/docs/verification_output_v42_10.txt",
++    "source/docs/integration_note_v42_10.md",
++    "source/docs/manifest_v42_10.json",
++    "source/docs/continuation_v42_10_diff.patch"
++  ],
++  "verification_summary": "implementation_backlog_v42 implemented=10 configured=10 ts=1 rt=8 hold=30 interlock=8 gate=15 slowdown=15 trace=16 retry=11 inhibit=17 cat_mask=0x00001000 last_id=344 last_policy=4 trace=0x4209 fault=0x000003ff axis=0x00000002 pressure=60 spindle_rpm=2400 temp=86 table_mismatch=0x00000002 tool_rfid=0 last_x=4200\nPASS nc_feature_backlog_v42"
++}
+\ No newline at end of file
+diff -ruN /mnt/data/work_v42_before/source/docs/verification_output_v42_10.txt /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/docs/verification_output_v42_10.txt
+--- /mnt/data/work_v42_before/source/docs/verification_output_v42_10.txt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/docs/verification_output_v42_10.txt	2026-05-03 02:50:11.566126064 +0000
+@@ -0,0 +1,2 @@
++implementation_backlog_v42 implemented=10 configured=10 ts=1 rt=8 hold=30 interlock=8 gate=15 slowdown=15 trace=16 retry=11 inhibit=17 cat_mask=0x00001000 last_id=344 last_policy=4 trace=0x4209 fault=0x000003ff axis=0x00000002 pressure=60 spindle_rpm=2400 temp=86 table_mismatch=0x00000002 tool_rfid=0 last_x=4200
++PASS nc_feature_backlog_v42
+diff -ruN /mnt/data/work_v42_before/source/inc/nc_feature_backlog_v42.h /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/inc/nc_feature_backlog_v42.h
+--- /mnt/data/work_v42_before/source/inc/nc_feature_backlog_v42.h	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/inc/nc_feature_backlog_v42.h	2026-05-03 02:50:09.870082585 +0000
+@@ -0,0 +1,147 @@
++#ifndef NC_FEATURE_BACKLOG_V42_H
++#define NC_FEATURE_BACKLOG_V42_H
++
++#include <stdint.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++/*
++ * IBM-Bob implementation backlog continuation v42_10.
++ *
++ * This module adds feature IDs 335-344 after v41_10.
++ * RT constraints: fixed-size state only, no dynamic allocation,
++ * no file I/O, no Windows API calls, and bounded loops.
++ */
++
++#define NC_IMPL_BACKLOG_FEATURE_COUNT_V41      (335u)
++#define NC_IMPL_BACKLOG_FEATURE_COUNT_V42      (345u)
++#define NC_IMPL_BACKLOG_WORD_COUNT_V42         (11u)
++#define NC_FEATURE_BACKLOG_V42_FEATURE_BASE_ID (335u)
++#define NC_FEATURE_BACKLOG_V42_FEATURE_COUNT   (10u)
++#define NC_FEATURE_BACKLOG_V42_AXIS_COUNT      (8u)
++
++#define NC_FEATURE_BACKLOG_V42_OK              (0)
++#define NC_FEATURE_BACKLOG_V42_ERR_NULL        (-1)
++#define NC_FEATURE_BACKLOG_V42_ERR_RANGE       (-2)
++
++#define NC_FEATURE_BACKLOG_V42_TRACE_NONE      (0u)
++#define NC_FEATURE_BACKLOG_V42_TRACE_BASE      (0x4200u)
++
++/* Added feature IDs: 335-344. */
++typedef enum NC_FEATURE_BACKLOG_V42_ID_TAG {
++    NC_FEATURE_V42_SPINDLE_AIR_PURGE_PRESSURE_GATE = 335,
++    NC_FEATURE_V42_AXIS_LIMIT_SWITCH_STUCK_TRACE = 336,
++    NC_FEATURE_V42_OIL_MIST_SUPPLY_LOW_HOLD = 337,
++    NC_FEATURE_V42_LOADER_CHUCK_CONFIRM_INTERLOCK = 338,
++    NC_FEATURE_V42_AUTO_DOOR_MOTION_TIMEOUT_RETRY = 339,
++    NC_FEATURE_V42_TABLE_SEATING_SENSOR_MISMATCH_HOLD = 340,
++    NC_FEATURE_V42_DOOR_UNLOCK_DURING_SPINDLE_INHIBIT = 341,
++    NC_FEATURE_V42_TOOL_RFID_READ_FAIL_GATE = 342,
++    NC_FEATURE_V42_MACHINING_ROOM_LIGHT_FAULT_TRACE = 343,
++    NC_FEATURE_V42_SERVO_TEMPERATURE_RISE_SLOWDOWN = 344
++} NC_FEATURE_BACKLOG_V42_ID;
++
++typedef enum NC_FEATURE_BACKLOG_V42_POLICY_TAG {
++    NC_FEATURE_BACKLOG_V42_POLICY_MONITOR = 0,
++    NC_FEATURE_BACKLOG_V42_POLICY_GATE = 1,
++    NC_FEATURE_BACKLOG_V42_POLICY_HOLD = 2,
++    NC_FEATURE_BACKLOG_V42_POLICY_INTERLOCK = 3,
++    NC_FEATURE_BACKLOG_V42_POLICY_SLOWDOWN = 4,
++    NC_FEATURE_BACKLOG_V42_POLICY_TRACE = 5,
++    NC_FEATURE_BACKLOG_V42_POLICY_INHIBIT = 6,
++    NC_FEATURE_BACKLOG_V42_POLICY_RETRY = 7
++} NC_FEATURE_BACKLOG_V42_POLICY;
++
++typedef struct NC_FEATURE_BACKLOG_V42_BLOCK_TAG {
++    int32_t axis_target[NC_FEATURE_BACKLOG_V42_AXIS_COUNT];
++    int32_t feed_override_percent;
++    uint32_t aux_request_bits;
++    uint32_t hold_request;
++    uint32_t interlock_mask;
++    uint32_t sequence_gate_mask;
++    uint32_t diagnostics_mask;
++    uint32_t retry_request_mask;
++    uint32_t inhibit_mask;
++    uint32_t trace_event_code;
++} NC_FEATURE_BACKLOG_V42_BLOCK;
++
++typedef struct NC_FEATURE_BACKLOG_V42_RT_IO_TAG {
++    uint32_t cycle_counter;
++    uint32_t spindle_air_purge_required;
++    int32_t spindle_air_pressure_kpa;
++    uint32_t axis_limit_switch_monitor;
++    uint32_t commanded_axis_mask;
++    uint32_t limit_switch_active_mask;
++    uint32_t oil_mist_monitor;
++    int32_t oil_mist_pressure_kpa;
++    uint32_t loader_chuck_check_request;
++    uint32_t loader_chuck_open_signal;
++    uint32_t loader_chuck_closed_signal;
++    uint32_t auto_door_command_active;
++    uint32_t auto_door_done;
++    uint32_t table_seat_check_request;
++    uint32_t table_seat_a_mask;
++    uint32_t table_seat_b_mask;
++    uint32_t door_unlock_request;
++    int32_t spindle_speed_rpm;
++    uint32_t tool_rfid_required;
++    uint32_t tool_rfid_read_ok;
++    uint32_t machining_room_light_monitor;
++    uint32_t machining_room_light_ok;
++    uint32_t servo_temperature_monitor;
++    uint32_t servo_temperature_axis_mask;
++    int32_t servo_temperature_c;
++} NC_FEATURE_BACKLOG_V42_RT_IO;
++
++typedef struct NC_FEATURE_BACKLOG_V42_STATUS_TAG {
++    uint32_t implemented_count;
++    uint32_t configured_count;
++    uint32_t enabled_mask;
++    uint32_t ts_apply_count;
++    uint32_t rt_tick_count;
++    uint32_t monitor_count;
++    uint32_t gate_count;
++    uint32_t hold_count;
++    uint32_t interlock_count;
++    uint32_t slowdown_count;
++    uint32_t trace_count;
++    uint32_t inhibit_count;
++    uint32_t retry_count;
++    uint32_t warning_count;
++    uint32_t cat_mask;
++    uint32_t last_feature_id;
++    uint32_t last_policy;
++    uint32_t last_trace_event_code;
++    int32_t last_feed_override_percent;
++    int32_t last_x;
++    uint32_t last_fault_mask;
++    uint32_t last_axis_mask;
++    int32_t last_pressure_kpa;
++    int32_t last_spindle_speed_rpm;
++    int32_t last_temperature_c;
++    uint32_t last_table_mismatch_mask;
++    uint32_t last_tool_rfid_ok;
++    uint32_t per_feature_hits[NC_FEATURE_BACKLOG_V42_FEATURE_COUNT];
++    int32_t per_feature_last_value[NC_FEATURE_BACKLOG_V42_FEATURE_COUNT];
++} NC_FEATURE_BACKLOG_V42_STATUS;
++
++extern NC_FEATURE_BACKLOG_V42_STATUS g_ncFeatureBacklogV42Status;
++
++void NcFeatureBacklogV42_Init(void);
++int NcFeatureBacklogV42_IsFeatureEnabled(uint32_t feature_id);
++int Api_SetNcFeatureBacklogV42Feature(uint32_t feature_id, uint32_t enabled);
++void Api_EnableAllNcFeatureBacklogV42Features(void);
++int Api_GetNcFeatureBacklogV42Status(NC_FEATURE_BACKLOG_V42_STATUS *out_status);
++int Api_RunNcFeatureBacklogV42SelfCheck(void);
++
++void NcFeatureBacklogV42_ApplyBlockTs(NC_FEATURE_BACKLOG_V42_BLOCK *block);
++void NcFeatureBacklogV42_RunRtTick(const NC_FEATURE_BACKLOG_V42_RT_IO *io);
++const char *NcFeatureBacklogV42_GetFeatureName(uint32_t feature_id);
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* NC_FEATURE_BACKLOG_V42_H */
+diff -ruN /mnt/data/work_v42_before/source/scripts/build_clang_v42_10.bat /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/scripts/build_clang_v42_10.bat
+--- /mnt/data/work_v42_before/source/scripts/build_clang_v42_10.bat	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/scripts/build_clang_v42_10.bat	2026-05-03 02:50:09.872263123 +0000
+@@ -0,0 +1,5 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++if not exist build mkdir build
++clang -std=c99 -Wall -Wextra -Iinc tests\test_nc_feature_backlog_v42.c src\nc_feature_backlog_v42.c -o build\test_nc_feature_backlog_v42.exe
+diff -ruN /mnt/data/work_v42_before/source/scripts/build_gcc_smoke_v42_10.sh /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/scripts/build_gcc_smoke_v42_10.sh
+--- /mnt/data/work_v42_before/source/scripts/build_gcc_smoke_v42_10.sh	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/scripts/build_gcc_smoke_v42_10.sh	2026-05-03 02:50:09.871166706 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd "$(dirname "$0")/.."
++mkdir -p build
++gcc -std=c99 -Wall -Wextra -Iinc tests/test_nc_feature_backlog_v42.c src/nc_feature_backlog_v42.c -o build/test_nc_feature_backlog_v42
+diff -ruN /mnt/data/work_v42_before/source/scripts/build_vc2026_v42_10.bat /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/scripts/build_vc2026_v42_10.bat
+--- /mnt/data/work_v42_before/source/scripts/build_vc2026_v42_10.bat	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/scripts/build_vc2026_v42_10.bat	2026-05-03 02:50:09.871795736 +0000
+@@ -0,0 +1,5 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++if not exist build mkdir build
++cl /nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc tests\test_nc_feature_backlog_v42.c src\nc_feature_backlog_v42.c /Febuild\test_nc_feature_backlog_v42.exe
+diff -ruN /mnt/data/work_v42_before/source/scripts/test_clang_v42_10.bat /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/scripts/test_clang_v42_10.bat
+--- /mnt/data/work_v42_before/source/scripts/test_clang_v42_10.bat	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/scripts/test_clang_v42_10.bat	2026-05-03 02:50:09.872377799 +0000
+@@ -0,0 +1,5 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++call scripts\build_clang_v42_10.bat || exit /b 1
++build\test_nc_feature_backlog_v42.exe
+diff -ruN /mnt/data/work_v42_before/source/scripts/test_gcc_smoke_v42_10.sh /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/scripts/test_gcc_smoke_v42_10.sh
+--- /mnt/data/work_v42_before/source/scripts/test_gcc_smoke_v42_10.sh	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/scripts/test_gcc_smoke_v42_10.sh	2026-05-03 02:50:09.871449333 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd "$(dirname "$0")/.."
++scripts/build_gcc_smoke_v42_10.sh
++build/test_nc_feature_backlog_v42
+diff -ruN /mnt/data/work_v42_before/source/scripts/test_vc2026_v42_10.bat /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/scripts/test_vc2026_v42_10.bat
+--- /mnt/data/work_v42_before/source/scripts/test_vc2026_v42_10.bat	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/scripts/test_vc2026_v42_10.bat	2026-05-03 02:50:09.872065240 +0000
+@@ -0,0 +1,5 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++call scripts\build_vc2026_v42_10.bat || exit /b 1
++build\test_nc_feature_backlog_v42.exe
+diff -ruN /mnt/data/work_v42_before/source/src/nc_feature_backlog_v42.c /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/src/nc_feature_backlog_v42.c
+--- /mnt/data/work_v42_before/source/src/nc_feature_backlog_v42.c	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/src/nc_feature_backlog_v42.c	2026-05-03 02:50:09.870523658 +0000
+@@ -0,0 +1,453 @@
++#include "nc_feature_backlog_v42.h"
++
++#include <string.h>
++
++#define V42_BIT(index_) (1u << (uint32_t)(index_))
++#define V42_DEFAULT_FEED_OVERRIDE_PERCENT      (100)
++#define V42_MIN_FEED_OVERRIDE_PERCENT          (5)
++#define V42_SPINDLE_AIR_PRESSURE_MIN_KPA       (450)
++#define V42_OIL_MIST_PRESSURE_MIN_KPA          (90)
++#define V42_SPINDLE_ROTATION_RPM_MIN           (30)
++#define V42_SERVO_TEMPERATURE_WARN_C           (72)
++#define V42_SERVO_TEMPERATURE_LIMIT_C          (82)
++
++#define V42_SPINDLE_AIR_TIMEOUT_TICKS          (2u)
++#define V42_AXIS_LIMIT_TIMEOUT_TICKS           (2u)
++#define V42_OIL_MIST_TIMEOUT_TICKS             (2u)
++#define V42_LOADER_CHUCK_TIMEOUT_TICKS         (2u)
++#define V42_AUTO_DOOR_TIMEOUT_TICKS            (4u)
++#define V42_TABLE_SEAT_TIMEOUT_TICKS           (2u)
++#define V42_DOOR_UNLOCK_TIMEOUT_TICKS          (1u)
++#define V42_TOOL_RFID_TIMEOUT_TICKS            (3u)
++#define V42_ROOM_LIGHT_TIMEOUT_TICKS           (2u)
++#define V42_SERVO_TEMP_TIMEOUT_TICKS           (2u)
++
++typedef struct V42_FEATURE_DEF_TAG {
++    uint32_t feature_id;
++    NC_FEATURE_BACKLOG_V42_POLICY policy;
++    uint32_t category;
++    const char *name;
++} V42_FEATURE_DEF;
++
++static const V42_FEATURE_DEF k_v42_defs[NC_FEATURE_BACKLOG_V42_FEATURE_COUNT] = {
++    { NC_FEATURE_V42_SPINDLE_AIR_PURGE_PRESSURE_GATE, NC_FEATURE_BACKLOG_V42_POLICY_GATE, 12u, "spindle air purge pressure low gate" },
++    { NC_FEATURE_V42_AXIS_LIMIT_SWITCH_STUCK_TRACE, NC_FEATURE_BACKLOG_V42_POLICY_TRACE, 12u, "axis limit switch stuck trace" },
++    { NC_FEATURE_V42_OIL_MIST_SUPPLY_LOW_HOLD, NC_FEATURE_BACKLOG_V42_POLICY_HOLD, 12u, "oil mist supply low hold" },
++    { NC_FEATURE_V42_LOADER_CHUCK_CONFIRM_INTERLOCK, NC_FEATURE_BACKLOG_V42_POLICY_INTERLOCK, 12u, "loader chuck confirm interlock" },
++    { NC_FEATURE_V42_AUTO_DOOR_MOTION_TIMEOUT_RETRY, NC_FEATURE_BACKLOG_V42_POLICY_RETRY, 12u, "auto door motion timeout retry" },
++    { NC_FEATURE_V42_TABLE_SEATING_SENSOR_MISMATCH_HOLD, NC_FEATURE_BACKLOG_V42_POLICY_HOLD, 12u, "table seating sensor mismatch hold" },
++    { NC_FEATURE_V42_DOOR_UNLOCK_DURING_SPINDLE_INHIBIT, NC_FEATURE_BACKLOG_V42_POLICY_INHIBIT, 12u, "door unlock during spindle rotation inhibit" },
++    { NC_FEATURE_V42_TOOL_RFID_READ_FAIL_GATE, NC_FEATURE_BACKLOG_V42_POLICY_GATE, 12u, "tool RFID read fail gate" },
++    { NC_FEATURE_V42_MACHINING_ROOM_LIGHT_FAULT_TRACE, NC_FEATURE_BACKLOG_V42_POLICY_TRACE, 12u, "machining room light fault trace" },
++    { NC_FEATURE_V42_SERVO_TEMPERATURE_RISE_SLOWDOWN, NC_FEATURE_BACKLOG_V42_POLICY_SLOWDOWN, 12u, "servo temperature rise staged slowdown" }
++};
++
++NC_FEATURE_BACKLOG_V42_STATUS g_ncFeatureBacklogV42Status;
++
++static uint32_t s_spindle_air_wait_ticks;
++static uint32_t s_axis_limit_wait_ticks;
++static uint32_t s_oil_mist_wait_ticks;
++static uint32_t s_loader_chuck_wait_ticks;
++static uint32_t s_auto_door_wait_ticks;
++static uint32_t s_table_seat_wait_ticks;
++static uint32_t s_door_unlock_wait_ticks;
++static uint32_t s_tool_rfid_wait_ticks;
++static uint32_t s_room_light_wait_ticks;
++static uint32_t s_servo_temp_wait_ticks;
++
++static uint32_t v42_index_from_feature_id(uint32_t feature_id)
++{
++    if (feature_id < NC_FEATURE_BACKLOG_V42_FEATURE_BASE_ID) {
++        return NC_FEATURE_BACKLOG_V42_FEATURE_COUNT;
++    }
++    return feature_id - NC_FEATURE_BACKLOG_V42_FEATURE_BASE_ID;
++}
++
++static int32_t v42_clamp_i32(int32_t value, int32_t min_value, int32_t max_value)
++{
++    if (value < min_value) {
++        return min_value;
++    }
++    if (value > max_value) {
++        return max_value;
++    }
++    return value;
++}
++
++static int32_t v42_apply_slowdown(int32_t feed_override_percent, int32_t reduction_percent)
++{
++    int32_t next_value = feed_override_percent - reduction_percent;
++    return v42_clamp_i32(next_value, V42_MIN_FEED_OVERRIDE_PERCENT, V42_DEFAULT_FEED_OVERRIDE_PERCENT);
++}
++
++static void v42_record_hit(uint32_t index, int32_t value)
++{
++    const V42_FEATURE_DEF *def;
++
++    if (index >= NC_FEATURE_BACKLOG_V42_FEATURE_COUNT) {
++        return;
++    }
++
++    def = &k_v42_defs[index];
++    g_ncFeatureBacklogV42Status.per_feature_hits[index]++;
++    g_ncFeatureBacklogV42Status.per_feature_last_value[index] = value;
++    g_ncFeatureBacklogV42Status.last_feature_id = def->feature_id;
++    g_ncFeatureBacklogV42Status.last_policy = (uint32_t)def->policy;
++    g_ncFeatureBacklogV42Status.cat_mask |= V42_BIT(def->category);
++
++    switch (def->policy) {
++    case NC_FEATURE_BACKLOG_V42_POLICY_MONITOR:
++        g_ncFeatureBacklogV42Status.monitor_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V42_POLICY_GATE:
++        g_ncFeatureBacklogV42Status.gate_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V42_POLICY_HOLD:
++        g_ncFeatureBacklogV42Status.hold_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V42_POLICY_INTERLOCK:
++        g_ncFeatureBacklogV42Status.interlock_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V42_POLICY_SLOWDOWN:
++        g_ncFeatureBacklogV42Status.slowdown_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V42_POLICY_TRACE:
++        g_ncFeatureBacklogV42Status.trace_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V42_POLICY_INHIBIT:
++        g_ncFeatureBacklogV42Status.inhibit_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V42_POLICY_RETRY:
++        g_ncFeatureBacklogV42Status.retry_count++;
++        break;
++    default:
++        g_ncFeatureBacklogV42Status.warning_count++;
++        break;
++    }
++}
++
++static void v42_record_fault(uint32_t index, uint32_t fault_bit, int32_t value)
++{
++    if (index >= NC_FEATURE_BACKLOG_V42_FEATURE_COUNT) {
++        g_ncFeatureBacklogV42Status.warning_count++;
++        return;
++    }
++    g_ncFeatureBacklogV42Status.last_fault_mask |= fault_bit;
++    g_ncFeatureBacklogV42Status.last_trace_event_code = NC_FEATURE_BACKLOG_V42_TRACE_BASE + index;
++    v42_record_hit(index, value);
++}
++
++static uint32_t v42_wait_or_clear(uint32_t *counter, uint32_t active, uint32_t threshold)
++{
++    if (counter == 0) {
++        return 0u;
++    }
++    if (active == 0u) {
++        *counter = 0u;
++        return 0u;
++    }
++    if (*counter < threshold) {
++        (*counter)++;
++    }
++    return (*counter >= threshold) ? 1u : 0u;
++}
++
++static void v42_reset_counters(void)
++{
++    s_spindle_air_wait_ticks = 0u;
++    s_axis_limit_wait_ticks = 0u;
++    s_oil_mist_wait_ticks = 0u;
++    s_loader_chuck_wait_ticks = 0u;
++    s_auto_door_wait_ticks = 0u;
++    s_table_seat_wait_ticks = 0u;
++    s_door_unlock_wait_ticks = 0u;
++    s_tool_rfid_wait_ticks = 0u;
++    s_room_light_wait_ticks = 0u;
++    s_servo_temp_wait_ticks = 0u;
++}
++
++void NcFeatureBacklogV42_Init(void)
++{
++    memset(&g_ncFeatureBacklogV42Status, 0, sizeof(g_ncFeatureBacklogV42Status));
++    g_ncFeatureBacklogV42Status.implemented_count = NC_FEATURE_BACKLOG_V42_FEATURE_COUNT;
++    g_ncFeatureBacklogV42Status.last_feed_override_percent = V42_DEFAULT_FEED_OVERRIDE_PERCENT;
++    v42_reset_counters();
++}
++
++int NcFeatureBacklogV42_IsFeatureEnabled(uint32_t feature_id)
++{
++    uint32_t index = v42_index_from_feature_id(feature_id);
++    if (index >= NC_FEATURE_BACKLOG_V42_FEATURE_COUNT) {
++        return 0;
++    }
++    return ((g_ncFeatureBacklogV42Status.enabled_mask & V42_BIT(index)) != 0u) ? 1 : 0;
++}
++
++int Api_SetNcFeatureBacklogV42Feature(uint32_t feature_id, uint32_t enabled)
++{
++    uint32_t index = v42_index_from_feature_id(feature_id);
++    uint32_t scan;
++    if (index >= NC_FEATURE_BACKLOG_V42_FEATURE_COUNT) {
++        return NC_FEATURE_BACKLOG_V42_ERR_RANGE;
++    }
++    if (enabled != 0u) {
++        g_ncFeatureBacklogV42Status.enabled_mask |= V42_BIT(index);
++    } else {
++        g_ncFeatureBacklogV42Status.enabled_mask &= ~V42_BIT(index);
++    }
++    g_ncFeatureBacklogV42Status.configured_count = 0u;
++    for (scan = 0u; scan < NC_FEATURE_BACKLOG_V42_FEATURE_COUNT; ++scan) {
++        if ((g_ncFeatureBacklogV42Status.enabled_mask & V42_BIT(scan)) != 0u) {
++            g_ncFeatureBacklogV42Status.configured_count++;
++        }
++    }
++    return NC_FEATURE_BACKLOG_V42_OK;
++}
++
++void Api_EnableAllNcFeatureBacklogV42Features(void)
++{
++    uint32_t index;
++    g_ncFeatureBacklogV42Status.enabled_mask = 0u;
++    for (index = 0u; index < NC_FEATURE_BACKLOG_V42_FEATURE_COUNT; ++index) {
++        g_ncFeatureBacklogV42Status.enabled_mask |= V42_BIT(index);
++    }
++    g_ncFeatureBacklogV42Status.configured_count = NC_FEATURE_BACKLOG_V42_FEATURE_COUNT;
++}
++
++int Api_GetNcFeatureBacklogV42Status(NC_FEATURE_BACKLOG_V42_STATUS *out_status)
++{
++    if (out_status == 0) {
++        return NC_FEATURE_BACKLOG_V42_ERR_NULL;
++    }
++    *out_status = g_ncFeatureBacklogV42Status;
++    return NC_FEATURE_BACKLOG_V42_OK;
++}
++
++const char *NcFeatureBacklogV42_GetFeatureName(uint32_t feature_id)
++{
++    uint32_t index = v42_index_from_feature_id(feature_id);
++    if (index >= NC_FEATURE_BACKLOG_V42_FEATURE_COUNT) {
++        return "unknown";
++    }
++    return k_v42_defs[index].name;
++}
++
++void NcFeatureBacklogV42_ApplyBlockTs(NC_FEATURE_BACKLOG_V42_BLOCK *block)
++{
++    uint32_t index;
++    if (block == 0) {
++        g_ncFeatureBacklogV42Status.warning_count++;
++        return;
++    }
++    g_ncFeatureBacklogV42Status.ts_apply_count++;
++    if (block->feed_override_percent <= 0) {
++        block->feed_override_percent = V42_DEFAULT_FEED_OVERRIDE_PERCENT;
++    }
++
++    for (index = 0u; index < NC_FEATURE_BACKLOG_V42_FEATURE_COUNT; ++index) {
++        const V42_FEATURE_DEF *def;
++        uint32_t feature_bit;
++        uint32_t trace;
++        if ((g_ncFeatureBacklogV42Status.enabled_mask & V42_BIT(index)) == 0u) {
++            continue;
++        }
++        def = &k_v42_defs[index];
++        feature_bit = V42_BIT(index);
++        trace = NC_FEATURE_BACKLOG_V42_TRACE_BASE + index;
++
++        switch (def->feature_id) {
++        case NC_FEATURE_V42_SPINDLE_AIR_PURGE_PRESSURE_GATE:
++            block->sequence_gate_mask |= feature_bit;
++            block->aux_request_bits |= feature_bit;
++            v42_record_hit(index, (int32_t)block->sequence_gate_mask);
++            break;
++        case NC_FEATURE_V42_AXIS_LIMIT_SWITCH_STUCK_TRACE:
++            block->diagnostics_mask |= feature_bit;
++            block->trace_event_code = trace;
++            g_ncFeatureBacklogV42Status.last_trace_event_code = trace;
++            v42_record_hit(index, (int32_t)trace);
++            break;
++        case NC_FEATURE_V42_OIL_MIST_SUPPLY_LOW_HOLD:
++            block->hold_request |= feature_bit;
++            block->diagnostics_mask |= feature_bit;
++            v42_record_hit(index, (int32_t)block->hold_request);
++            break;
++        case NC_FEATURE_V42_LOADER_CHUCK_CONFIRM_INTERLOCK:
++            block->interlock_mask |= feature_bit;
++            block->sequence_gate_mask |= feature_bit;
++            v42_record_hit(index, (int32_t)block->interlock_mask);
++            break;
++        case NC_FEATURE_V42_AUTO_DOOR_MOTION_TIMEOUT_RETRY:
++            block->retry_request_mask |= feature_bit;
++            block->sequence_gate_mask |= feature_bit;
++            v42_record_hit(index, (int32_t)block->retry_request_mask);
++            break;
++        case NC_FEATURE_V42_TABLE_SEATING_SENSOR_MISMATCH_HOLD:
++            block->hold_request |= feature_bit;
++            block->interlock_mask |= feature_bit;
++            v42_record_hit(index, (int32_t)block->hold_request);
++            break;
++        case NC_FEATURE_V42_DOOR_UNLOCK_DURING_SPINDLE_INHIBIT:
++            block->inhibit_mask |= feature_bit;
++            block->diagnostics_mask |= feature_bit;
++            v42_record_hit(index, (int32_t)block->inhibit_mask);
++            break;
++        case NC_FEATURE_V42_TOOL_RFID_READ_FAIL_GATE:
++            block->sequence_gate_mask |= feature_bit;
++            block->aux_request_bits |= feature_bit;
++            v42_record_hit(index, (int32_t)block->sequence_gate_mask);
++            break;
++        case NC_FEATURE_V42_MACHINING_ROOM_LIGHT_FAULT_TRACE:
++            block->diagnostics_mask |= feature_bit;
++            block->trace_event_code = trace;
++            g_ncFeatureBacklogV42Status.last_trace_event_code = trace;
++            v42_record_hit(index, (int32_t)trace);
++            break;
++        case NC_FEATURE_V42_SERVO_TEMPERATURE_RISE_SLOWDOWN:
++            block->feed_override_percent = v42_apply_slowdown(block->feed_override_percent, 11);
++            block->diagnostics_mask |= feature_bit;
++            v42_record_hit(index, block->feed_override_percent);
++            break;
++        default:
++            g_ncFeatureBacklogV42Status.warning_count++;
++            break;
++        }
++    }
++
++    g_ncFeatureBacklogV42Status.last_feed_override_percent = block->feed_override_percent;
++    g_ncFeatureBacklogV42Status.last_x = block->axis_target[0];
++}
++
++void NcFeatureBacklogV42_RunRtTick(const NC_FEATURE_BACKLOG_V42_RT_IO *io)
++{
++    uint32_t fault_bit;
++    if (io == 0) {
++        g_ncFeatureBacklogV42Status.warning_count++;
++        return;
++    }
++
++    g_ncFeatureBacklogV42Status.rt_tick_count++;
++    g_ncFeatureBacklogV42Status.last_fault_mask = 0u;
++
++    if (NcFeatureBacklogV42_IsFeatureEnabled(NC_FEATURE_V42_SPINDLE_AIR_PURGE_PRESSURE_GATE) != 0) {
++        uint32_t active = ((io->spindle_air_purge_required != 0u) && (io->spindle_air_pressure_kpa < V42_SPINDLE_AIR_PRESSURE_MIN_KPA)) ? 1u : 0u;
++        if (v42_wait_or_clear(&s_spindle_air_wait_ticks, active, V42_SPINDLE_AIR_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V42_BIT(0u);
++            g_ncFeatureBacklogV42Status.last_pressure_kpa = io->spindle_air_pressure_kpa;
++            v42_record_fault(0u, fault_bit, io->spindle_air_pressure_kpa);
++        }
++    }
++
++    if (NcFeatureBacklogV42_IsFeatureEnabled(NC_FEATURE_V42_AXIS_LIMIT_SWITCH_STUCK_TRACE) != 0) {
++        uint32_t stuck = io->commanded_axis_mask & io->limit_switch_active_mask;
++        uint32_t active = ((io->axis_limit_switch_monitor != 0u) && (stuck != 0u)) ? 1u : 0u;
++        if (v42_wait_or_clear(&s_axis_limit_wait_ticks, active, V42_AXIS_LIMIT_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V42_BIT(1u);
++            g_ncFeatureBacklogV42Status.last_axis_mask = stuck;
++            v42_record_fault(1u, fault_bit, (int32_t)stuck);
++        }
++    }
++
++    if (NcFeatureBacklogV42_IsFeatureEnabled(NC_FEATURE_V42_OIL_MIST_SUPPLY_LOW_HOLD) != 0) {
++        uint32_t active = ((io->oil_mist_monitor != 0u) && (io->oil_mist_pressure_kpa < V42_OIL_MIST_PRESSURE_MIN_KPA)) ? 1u : 0u;
++        if (v42_wait_or_clear(&s_oil_mist_wait_ticks, active, V42_OIL_MIST_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V42_BIT(2u);
++            g_ncFeatureBacklogV42Status.last_pressure_kpa = io->oil_mist_pressure_kpa;
++            v42_record_fault(2u, fault_bit, io->oil_mist_pressure_kpa);
++            g_ncFeatureBacklogV42Status.hold_count++;
++        }
++    }
++
++    if (NcFeatureBacklogV42_IsFeatureEnabled(NC_FEATURE_V42_LOADER_CHUCK_CONFIRM_INTERLOCK) != 0) {
++        uint32_t invalid_pair = ((io->loader_chuck_open_signal != 0u) && (io->loader_chuck_closed_signal != 0u)) ? 1u : 0u;
++        uint32_t missing_confirm = ((io->loader_chuck_open_signal == 0u) && (io->loader_chuck_closed_signal == 0u)) ? 1u : 0u;
++        uint32_t active = ((io->loader_chuck_check_request != 0u) && ((invalid_pair != 0u) || (missing_confirm != 0u))) ? 1u : 0u;
++        if (v42_wait_or_clear(&s_loader_chuck_wait_ticks, active, V42_LOADER_CHUCK_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V42_BIT(3u);
++            v42_record_fault(3u, fault_bit, (int32_t)((io->loader_chuck_open_signal << 1u) | io->loader_chuck_closed_signal));
++        }
++    }
++
++    if (NcFeatureBacklogV42_IsFeatureEnabled(NC_FEATURE_V42_AUTO_DOOR_MOTION_TIMEOUT_RETRY) != 0) {
++        uint32_t active = ((io->auto_door_command_active != 0u) && (io->auto_door_done == 0u)) ? 1u : 0u;
++        if (v42_wait_or_clear(&s_auto_door_wait_ticks, active, V42_AUTO_DOOR_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V42_BIT(4u);
++            v42_record_fault(4u, fault_bit, (int32_t)io->auto_door_done);
++            g_ncFeatureBacklogV42Status.retry_count++;
++        }
++    }
++
++    if (NcFeatureBacklogV42_IsFeatureEnabled(NC_FEATURE_V42_TABLE_SEATING_SENSOR_MISMATCH_HOLD) != 0) {
++        uint32_t mismatch = io->table_seat_a_mask ^ io->table_seat_b_mask;
++        uint32_t active = ((io->table_seat_check_request != 0u) && (mismatch != 0u)) ? 1u : 0u;
++        if (v42_wait_or_clear(&s_table_seat_wait_ticks, active, V42_TABLE_SEAT_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V42_BIT(5u);
++            g_ncFeatureBacklogV42Status.last_table_mismatch_mask = mismatch;
++            v42_record_fault(5u, fault_bit, (int32_t)mismatch);
++            g_ncFeatureBacklogV42Status.hold_count++;
++        }
++    }
++
++    if (NcFeatureBacklogV42_IsFeatureEnabled(NC_FEATURE_V42_DOOR_UNLOCK_DURING_SPINDLE_INHIBIT) != 0) {
++        uint32_t active = ((io->door_unlock_request != 0u) && (io->spindle_speed_rpm >= V42_SPINDLE_ROTATION_RPM_MIN)) ? 1u : 0u;
++        if (v42_wait_or_clear(&s_door_unlock_wait_ticks, active, V42_DOOR_UNLOCK_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V42_BIT(6u);
++            g_ncFeatureBacklogV42Status.last_spindle_speed_rpm = io->spindle_speed_rpm;
++            v42_record_fault(6u, fault_bit, io->spindle_speed_rpm);
++            g_ncFeatureBacklogV42Status.inhibit_count++;
++        }
++    }
++
++    if (NcFeatureBacklogV42_IsFeatureEnabled(NC_FEATURE_V42_TOOL_RFID_READ_FAIL_GATE) != 0) {
++        uint32_t active = ((io->tool_rfid_required != 0u) && (io->tool_rfid_read_ok == 0u)) ? 1u : 0u;
++        if (v42_wait_or_clear(&s_tool_rfid_wait_ticks, active, V42_TOOL_RFID_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V42_BIT(7u);
++            g_ncFeatureBacklogV42Status.last_tool_rfid_ok = io->tool_rfid_read_ok;
++            v42_record_fault(7u, fault_bit, (int32_t)io->tool_rfid_read_ok);
++        }
++    }
++
++    if (NcFeatureBacklogV42_IsFeatureEnabled(NC_FEATURE_V42_MACHINING_ROOM_LIGHT_FAULT_TRACE) != 0) {
++        uint32_t active = ((io->machining_room_light_monitor != 0u) && (io->machining_room_light_ok == 0u)) ? 1u : 0u;
++        if (v42_wait_or_clear(&s_room_light_wait_ticks, active, V42_ROOM_LIGHT_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V42_BIT(8u);
++            v42_record_fault(8u, fault_bit, (int32_t)io->machining_room_light_ok);
++        }
++    }
++
++    if (NcFeatureBacklogV42_IsFeatureEnabled(NC_FEATURE_V42_SERVO_TEMPERATURE_RISE_SLOWDOWN) != 0) {
++        uint32_t active = ((io->servo_temperature_monitor != 0u) && (io->servo_temperature_c >= V42_SERVO_TEMPERATURE_WARN_C)) ? 1u : 0u;
++        if (v42_wait_or_clear(&s_servo_temp_wait_ticks, active, V42_SERVO_TEMP_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V42_BIT(9u);
++            g_ncFeatureBacklogV42Status.last_axis_mask = io->servo_temperature_axis_mask;
++            g_ncFeatureBacklogV42Status.last_temperature_c = io->servo_temperature_c;
++            v42_record_fault(9u, fault_bit, io->servo_temperature_c);
++            if (io->servo_temperature_c >= V42_SERVO_TEMPERATURE_LIMIT_C) {
++                g_ncFeatureBacklogV42Status.slowdown_count++;
++            }
++        }
++    }
++}
++
++int Api_RunNcFeatureBacklogV42SelfCheck(void)
++{
++    uint32_t index;
++    if (NC_FEATURE_BACKLOG_V42_FEATURE_COUNT != 10u) {
++        return NC_FEATURE_BACKLOG_V42_ERR_RANGE;
++    }
++    if (NC_IMPL_BACKLOG_FEATURE_COUNT_V42 != 345u) {
++        return NC_FEATURE_BACKLOG_V42_ERR_RANGE;
++    }
++    if (NC_IMPL_BACKLOG_WORD_COUNT_V42 != 11u) {
++        return NC_FEATURE_BACKLOG_V42_ERR_RANGE;
++    }
++    for (index = 0u; index < NC_FEATURE_BACKLOG_V42_FEATURE_COUNT; ++index) {
++        if (k_v42_defs[index].feature_id != (NC_FEATURE_BACKLOG_V42_FEATURE_BASE_ID + index)) {
++            return NC_FEATURE_BACKLOG_V42_ERR_RANGE;
++        }
++        if (k_v42_defs[index].name == 0) {
++            return NC_FEATURE_BACKLOG_V42_ERR_NULL;
++        }
++    }
++    return NC_FEATURE_BACKLOG_V42_OK;
++}
+diff -ruN /mnt/data/work_v42_before/source/tests/test_nc_feature_backlog_v42.c /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/tests/test_nc_feature_backlog_v42.c
+--- /mnt/data/work_v42_before/source/tests/test_nc_feature_backlog_v42.c	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/ibm_bob_source_implemented_additional_features_v42_10/source/tests/test_nc_feature_backlog_v42.c	2026-05-03 02:50:09.870810806 +0000
+@@ -0,0 +1,167 @@
++#include "nc_feature_backlog_v42.h"
++
++#include <stdio.h>
++#include <string.h>
++
++static int expect_u32(const char *name, uint32_t actual, uint32_t expected)
++{
++    if (actual != expected) {
++        printf("FAIL %s actual=%u expected=%u\n", name, actual, expected);
++        return 1;
++    }
++    return 0;
++}
++
++static int expect_nonzero(const char *name, uint32_t actual)
++{
++    if (actual == 0u) {
++        printf("FAIL %s actual=0\n", name);
++        return 1;
++    }
++    return 0;
++}
++
++static int expect_less_than(const char *name, int32_t actual, int32_t threshold)
++{
++    if (actual >= threshold) {
++        printf("FAIL %s actual=%d threshold=%d\n", name, actual, threshold);
++        return 1;
++    }
++    return 0;
++}
++
++int main(void)
++{
++    NC_FEATURE_BACKLOG_V42_BLOCK block;
++    NC_FEATURE_BACKLOG_V42_RT_IO io;
++    NC_FEATURE_BACKLOG_V42_STATUS status;
++    uint32_t i;
++    int failures = 0;
++
++    NcFeatureBacklogV42_Init();
++    failures += expect_u32("implemented", g_ncFeatureBacklogV42Status.implemented_count, 10u);
++    failures += expect_u32("configured_init", g_ncFeatureBacklogV42Status.configured_count, 0u);
++
++    if (Api_SetNcFeatureBacklogV42Feature(NC_FEATURE_V42_SPINDLE_AIR_PURGE_PRESSURE_GATE, 1u) != 0) {
++        printf("FAIL enable feature 335\n");
++        failures++;
++    }
++    if (Api_SetNcFeatureBacklogV42Feature(999u, 1u) == 0) {
++        printf("FAIL out-of-range feature accepted\n");
++        failures++;
++    }
++    if (NcFeatureBacklogV42_IsFeatureEnabled(NC_FEATURE_V42_SPINDLE_AIR_PURGE_PRESSURE_GATE) == 0) {
++        printf("FAIL enabled feature was not visible\n");
++        failures++;
++    }
++    Api_EnableAllNcFeatureBacklogV42Features();
++    failures += expect_u32("configured_all", g_ncFeatureBacklogV42Status.configured_count, 10u);
++
++    memset(&block, 0, sizeof(block));
++    for (i = 0u; i < NC_FEATURE_BACKLOG_V42_AXIS_COUNT; ++i) {
++        block.axis_target[i] = (int32_t)(4200 + (int32_t)i);
++    }
++    block.feed_override_percent = 100;
++    NcFeatureBacklogV42_ApplyBlockTs(&block);
++
++    failures += expect_nonzero("ts_apply", g_ncFeatureBacklogV42Status.ts_apply_count);
++    failures += expect_nonzero("hold_request", block.hold_request);
++    failures += expect_nonzero("interlock_mask", block.interlock_mask);
++    failures += expect_nonzero("sequence_gate", block.sequence_gate_mask);
++    failures += expect_nonzero("diagnostics", block.diagnostics_mask);
++    failures += expect_nonzero("retry", block.retry_request_mask);
++    failures += expect_nonzero("inhibit", block.inhibit_mask);
++    failures += expect_nonzero("trace", block.trace_event_code);
++    failures += expect_less_than("feed_override", block.feed_override_percent, 100);
++
++    memset(&io, 0, sizeof(io));
++    io.spindle_air_purge_required = 1u;
++    io.spindle_air_pressure_kpa = 350;
++    io.axis_limit_switch_monitor = 1u;
++    io.commanded_axis_mask = 0x00000005u;
++    io.limit_switch_active_mask = 0x00000004u;
++    io.oil_mist_monitor = 1u;
++    io.oil_mist_pressure_kpa = 60;
++    io.loader_chuck_check_request = 1u;
++    io.loader_chuck_open_signal = 1u;
++    io.loader_chuck_closed_signal = 1u;
++    io.auto_door_command_active = 1u;
++    io.auto_door_done = 0u;
++    io.table_seat_check_request = 1u;
++    io.table_seat_a_mask = 0x00000003u;
++    io.table_seat_b_mask = 0x00000001u;
++    io.door_unlock_request = 1u;
++    io.spindle_speed_rpm = 2400;
++    io.tool_rfid_required = 1u;
++    io.tool_rfid_read_ok = 0u;
++    io.machining_room_light_monitor = 1u;
++    io.machining_room_light_ok = 0u;
++    io.servo_temperature_monitor = 1u;
++    io.servo_temperature_axis_mask = 0x00000002u;
++    io.servo_temperature_c = 86;
++
++    for (i = 0u; i < 8u; ++i) {
++        io.cycle_counter = i;
++        NcFeatureBacklogV42_RunRtTick(&io);
++    }
++
++    failures += expect_nonzero("rt_tick", g_ncFeatureBacklogV42Status.rt_tick_count);
++    failures += expect_nonzero("hold_count", g_ncFeatureBacklogV42Status.hold_count);
++    failures += expect_nonzero("interlock_count", g_ncFeatureBacklogV42Status.interlock_count);
++    failures += expect_nonzero("gate_count", g_ncFeatureBacklogV42Status.gate_count);
++    failures += expect_nonzero("trace_count", g_ncFeatureBacklogV42Status.trace_count);
++    failures += expect_nonzero("retry_count", g_ncFeatureBacklogV42Status.retry_count);
++    failures += expect_nonzero("inhibit_count", g_ncFeatureBacklogV42Status.inhibit_count);
++    failures += expect_nonzero("slowdown_count", g_ncFeatureBacklogV42Status.slowdown_count);
++    failures += expect_nonzero("fault_mask", g_ncFeatureBacklogV42Status.last_fault_mask);
++    failures += expect_u32("axis_mask", g_ncFeatureBacklogV42Status.last_axis_mask, 0x00000002u);
++    failures += expect_u32("table_mismatch", g_ncFeatureBacklogV42Status.last_table_mismatch_mask, 0x00000002u);
++    failures += expect_u32("tool_rfid", g_ncFeatureBacklogV42Status.last_tool_rfid_ok, 0u);
++
++    if (Api_GetNcFeatureBacklogV42Status(&status) != 0) {
++        printf("FAIL status get\n");
++        failures++;
++    }
++    if (Api_GetNcFeatureBacklogV42Status(0) == 0) {
++        printf("FAIL null status accepted\n");
++        failures++;
++    }
++    if (Api_RunNcFeatureBacklogV42SelfCheck() != 0) {
++        printf("FAIL selfcheck\n");
++        failures++;
++    }
++
++    Api_GetNcFeatureBacklogV42Status(&status);
++    printf("implementation_backlog_v42 implemented=%u configured=%u ts=%u rt=%u hold=%u interlock=%u gate=%u slowdown=%u trace=%u retry=%u inhibit=%u cat_mask=0x%08x last_id=%u last_policy=%u trace=0x%04x fault=0x%08x axis=0x%08x pressure=%d spindle_rpm=%d temp=%d table_mismatch=0x%08x tool_rfid=%u last_x=%d\n",
++           status.implemented_count,
++           status.configured_count,
++           status.ts_apply_count,
++           status.rt_tick_count,
++           status.hold_count,
++           status.interlock_count,
++           status.gate_count,
++           status.slowdown_count,
++           status.trace_count,
++           status.retry_count,
++           status.inhibit_count,
++           status.cat_mask,
++           status.last_feature_id,
++           status.last_policy,
++           status.last_trace_event_code,
++           status.last_fault_mask,
++           status.last_axis_mask,
++           status.last_pressure_kpa,
++           status.last_spindle_speed_rpm,
++           status.last_temperature_c,
++           status.last_table_mismatch_mask,
++           status.last_tool_rfid_ok,
++           status.last_x);
++
++    if (failures != 0) {
++        printf("FAILED failures=%d\n", failures);
++        return 1;
++    }
++
++    printf("PASS nc_feature_backlog_v42\n");
++    return 0;
++}

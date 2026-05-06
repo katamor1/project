@@ -1,0 +1,31 @@
+{
+  "name": "ibm_bob_source_unit_tests_additional_v43_40",
+  "base": "ibm_bob_source_implemented_additional_features_v42_10",
+  "test_count": 40,
+  "modules_under_test": [
+    "nc_feature_backlog_v35",
+    "nc_feature_backlog_v36",
+    "nc_feature_backlog_v37",
+    "nc_feature_backlog_v38",
+    "nc_feature_backlog_v39",
+    "nc_feature_backlog_v40",
+    "nc_feature_backlog_v41",
+    "nc_feature_backlog_v42"
+  ],
+  "added_files": [
+    "source/tests/test_nc_feature_backlog_additional_40.c",
+    "source/scripts/build_gcc_unit_tests_v43_40.sh",
+    "source/scripts/test_gcc_unit_tests_v43_40.sh",
+    "source/scripts/build_vc2026_unit_tests_v43_40.bat",
+    "source/scripts/test_vc2026_unit_tests_v43_40.bat",
+    "source/scripts/build_clang_unit_tests_v43_40.bat",
+    "source/scripts/test_clang_unit_tests_v43_40.bat",
+    "source/docs/verification_output_unit_tests_v43_40.txt",
+    "source/docs/unit_test_report_v43_40.md",
+    "source/docs/manifest_unit_tests_v43_40.json"
+  ],
+  "gcc_result": "PASS",
+  "test_summary_line": [
+    "UNIT_TEST_SUMMARY tests=40 failures=0"
+  ]
+}

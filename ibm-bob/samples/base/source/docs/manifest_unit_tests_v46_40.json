@@ -1,0 +1,76 @@
+{
+  "package": "ibm_bob_source_unit_tests_additional_v46_40",
+  "base_package": "ibm_bob_source_unit_tests_additional_v45_40",
+  "created_for": "追加単体テスト40件",
+  "test_count": 40,
+  "target_modules": [
+    "nc_feature_backlog_v35",
+    "nc_feature_backlog_v36",
+    "nc_feature_backlog_v37",
+    "nc_feature_backlog_v38",
+    "nc_feature_backlog_v39",
+    "nc_feature_backlog_v40",
+    "nc_feature_backlog_v41"
+  ],
+  "test_viewpoints": [
+    "double enable/disable idempotence",
+    "NULL status API error contract",
+    "Init after activity clears counters",
+    "reverse disable clears all bits",
+    "invalid feature names below/above range",
+    "partially disabled TS excludes edge features"
+  ],
+  "gcc_result": "PASS additional_unit_tests_v46_40",
+  "files": [
+    {
+      "path": "source/tests/test_nc_feature_backlog_additional_v46_40.c",
+      "sha256": "1c9892527830a03886ac581576b37d1efc7e61454696d4ff1bcb5befb1443250",
+      "bytes": 12045
+    },
+    {
+      "path": "source/scripts/build_gcc_unit_tests_v46_40.sh",
+      "sha256": "5b7e30b0ac753a84952d2d57336d51cc8e99d689c511e8a79630c0687b9321ac",
+      "bytes": 450
+    },
+    {
+      "path": "source/scripts/test_gcc_unit_tests_v46_40.sh",
+      "sha256": "250edab109dfd0a84fcf1a9a3e281ef22c85c979572a4f9e3bb88215cac486f4",
+      "bytes": 190
+    },
+    {
+      "path": "source/scripts/build_vc2026_unit_tests_v46_40.bat",
+      "sha256": "29a16ecc821bcccd64db33f5e3c82048762e1f5c920944cd24564aa61c783ecd",
+      "bytes": 485
+    },
+    {
+      "path": "source/scripts/test_vc2026_unit_tests_v46_40.bat",
+      "sha256": "277b43f00eb5fda2d86e977750d6aeeb5f162a612cc8d446252ca9d99838d698",
+      "bytes": 268
+    },
+    {
+      "path": "source/scripts/build_clang_unit_tests_v46_40.bat",
+      "sha256": "6a6b59159e8c1875dde6ab7cc0bebb7828311825f7f6dcfb64b6e5feccf76265",
+      "bytes": 469
+    },
+    {
+      "path": "source/scripts/test_clang_unit_tests_v46_40.bat",
+      "sha256": "09c330e7ab040b15ec4aac05a28280e0968e5ef414750167aa1908d2306478fb",
+      "bytes": 267
+    },
+    {
+      "path": "source/docs/unit_test_report_v46_40.md",
+      "sha256": "2424e548e0ad8e632837decd174744ee99d292f510f1cff630ec8548ed70f9a4",
+      "bytes": 1984
+    },
+    {
+      "path": "source/docs/verification_output_unit_tests_v46_40.txt",
+      "sha256": "2855665a540ae1b09ebdbc01565a8ce299988dbb5d52320e019c12917f5bb1b7",
+      "bytes": 2124
+    },
+    {
+      "path": "source/docs/continuation_unit_tests_v46_40_diff.patch",
+      "sha256": "a9e706bdf570134f93df3e4239121f33e0434dd668128818518637e0d8e6b04e",
+      "bytes": 17322
+    }
+  ]
+}

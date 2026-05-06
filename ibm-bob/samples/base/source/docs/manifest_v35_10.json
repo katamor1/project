@@ -1,0 +1,34 @@
+{
+  "version": "v35_10",
+  "base_record": "v34_10",
+  "feature_count_before": 270,
+  "feature_count_after": 280,
+  "word_count_after": 9,
+  "added_feature_ids": [270, 271, 272, 273, 274, 275, 276, 277, 278, 279],
+  "added_files": [
+    "source/inc/nc_feature_backlog_v35.h",
+    "source/src/nc_feature_backlog_v35.c",
+    "source/tests/test_nc_feature_backlog_v35.c",
+    "source/scripts/build_gcc_smoke_v35_10.sh",
+    "source/scripts/test_gcc_smoke_v35_10.sh",
+    "source/scripts/build_vc2026_v35_10.bat",
+    "source/scripts/test_vc2026_v35_10.bat",
+    "source/scripts/build_clang_v35_10.bat",
+    "source/scripts/test_clang_v35_10.bat",
+    "source/docs/implementation_report_v35_10.md",
+    "source/docs/verification_output_v35_10.txt",
+    "source/docs/continuation_v35_10_diff.patch"
+  ],
+  "rt_safety": {
+    "dynamic_allocation": false,
+    "file_io": false,
+    "windows_api": false,
+    "bounded_loops": true
+  },
+  "verification": {
+    "gcc_smoke_build": "passed",
+    "gcc_smoke_test": "passed",
+    "vc2026": "script provided; run on Windows developer environment",
+    "clang_windows": "script provided; run on Windows environment with clang.exe"
+  }
+}

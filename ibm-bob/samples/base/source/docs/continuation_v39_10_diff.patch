@@ -1,0 +1,974 @@
+diff -ruN '--exclude=build' '--exclude=continuation_v39_10_diff.patch' work_v39_before/source/docs/implementation_report_v39_10.md work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/docs/implementation_report_v39_10.md
+--- work_v39_before/source/docs/implementation_report_v39_10.md	1970-01-01 00:00:00.000000000 +0000
++++ work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/docs/implementation_report_v39_10.md	2026-05-03 02:33:45.770778731 +0000
+@@ -0,0 +1,44 @@
++# IBM-Bob 未実装機能追加 実装レポート v39_10
++
++## 概要
++
++`v38_10` の続きとして、未実装/入口実装止まりだった機械安全・周辺装置READY・保全診断系の機能を10件追加した。
++追加IDは `305〜314` とし、既存の `v35〜v38` と同じ固定長・RT安全な独立バックログモジュール方式で実装した。
++
++## 追加機能
++
++| ID | 機能 | 主処理方針 |
++|---:|---|---|
++| 305 | 主軸ベアリング温度上昇段階減速 | 温度警告をRT周期で監視し、段階減速/高温時HOLDを記録 |
++| 306 | リニアスケール汚れ検出トレース | 軸別dirty maskを固定長ステータスへ記録 |
++| 307 | 工具クランプ引込確認インターロック | ドローバ確認不成立時に起動禁止/インターロック |
++| 308 | ロータリテーブルクランプ確認ゲート | 回転テーブル動作前のクランプ確認ゲート |
++| 309 | 切削液フィルタ差圧高HOLD | 差圧高継続時にHOLD要求 |
++| 310 | 集塵装置風量低下ゲート | 集塵READY/風量OKをシーケンスゲート化 |
++| 311 | 主軸オーバライド変更禁止ゾーン | 危険領域でのoverride変更抑止 |
++| 312 | ATC工具番号照合不一致HOLD | expected/actual工具番号不一致でHOLD |
++| 313 | ワーク測定プローブREADYタイムアウト | READY待ちタイムアウト時にretry要求 |
++| 314 | UPS電圧低下減速停止要求 | UPS低電圧時に減速停止/HOLD相当の安全側要求 |
++
++## 追加ファイル
++
++- `source/inc/nc_feature_backlog_v39.h`
++- `source/src/nc_feature_backlog_v39.c`
++- `source/tests/test_nc_feature_backlog_v39.c`
++- `source/scripts/build_gcc_smoke_v39_10.sh`
++- `source/scripts/test_gcc_smoke_v39_10.sh`
++- `source/scripts/build_vc2026_v39_10.bat`
++- `source/scripts/test_vc2026_v39_10.bat`
++- `source/scripts/build_clang_v39_10.bat`
++- `source/scripts/test_clang_v39_10.bat`
++
++## RT/TS分離
++
++- TS側: `NcFeatureBacklogV39_ApplyBlockTs()` で固定長ブロックへ hold/interlock/gate/retry/inhibit/trace/slowdown を反映する。
++- RT側: `NcFeatureBacklogV39_RunRtTick()` で固定長IOを監視し、閾値/タイムアウト成立時のみ固定長ステータスを更新する。
++- RT側ではファイルI/O、Windows API、動的メモリ確保、非固定長ループを使用しない。
++
++## 検証
++
++GCC smoke build/test を実行し、`PASS nc_feature_backlog_v39` を確認した。
++VC2026 / clang Windows は実行環境の都合で未実行のため、同梱BATでWindows側確認を行う。
+diff -ruN '--exclude=build' '--exclude=continuation_v39_10_diff.patch' work_v39_before/source/docs/integration_note_v39_10.md work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/docs/integration_note_v39_10.md
+--- work_v39_before/source/docs/integration_note_v39_10.md	1970-01-01 00:00:00.000000000 +0000
++++ work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/docs/integration_note_v39_10.md	2026-05-03 02:33:45.771387927 +0000
+@@ -0,0 +1,25 @@
++# v39_10 統合メモ
++
++## 統合方針
++
++`v38_10` をベースにする場合、以下を追加する。
++
++1. `source/inc/nc_feature_backlog_v39.h` をインクルード対象に追加
++2. `source/src/nc_feature_backlog_v39.c` をビルド対象に追加
++3. 起動初期化で `NcFeatureBacklogV39_Init()` を呼び出す
++4. 対象機能を有効化する場合は `Api_EnableAllNcFeatureBacklogV39Features()` または `Api_SetNcFeatureBacklogV39Feature()` を使用
++5. TS側ブロック確定前に `NcFeatureBacklogV39_ApplyBlockTs()` を呼び出す
++6. RT周期処理内で固定長IOを渡して `NcFeatureBacklogV39_RunRtTick()` を呼び出す
++7. UI/診断側は `Api_GetNcFeatureBacklogV39Status()` で状態を取得する
++
++## Windows確認
++
++```bat
++cd source
++scripts	est_vc2026_v39_10.bat
++scripts	est_clang_v39_10.bat
++```
++
++## 注意点
++
++本モジュールはバックログ機能の実装入口であり、実機連携時はセンサビット割付、警告閾値、設備別タイムアウト、HOLD/ALARMへの最終マッピングを詳細設計側で確定する。
+diff -ruN '--exclude=build' '--exclude=continuation_v39_10_diff.patch' work_v39_before/source/docs/manifest_v39_10.json work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/docs/manifest_v39_10.json
+--- work_v39_before/source/docs/manifest_v39_10.json	1970-01-01 00:00:00.000000000 +0000
++++ work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/docs/manifest_v39_10.json	2026-05-03 02:35:38.552908863 +0000
+@@ -0,0 +1,35 @@
++{
++  "version": "v39_10",
++  "base_version": "v38_10",
++  "feature_id_range": "305-314",
++  "feature_count_added": 10,
++  "total_feature_count_after_v39": 315,
++  "word_count_after_v39": 10,
++  "added_files": [
++    "source/inc/nc_feature_backlog_v39.h",
++    "source/src/nc_feature_backlog_v39.c",
++    "source/tests/test_nc_feature_backlog_v39.c",
++    "source/scripts/build_gcc_smoke_v39_10.sh",
++    "source/scripts/test_gcc_smoke_v39_10.sh",
++    "source/scripts/build_vc2026_v39_10.bat",
++    "source/scripts/test_vc2026_v39_10.bat",
++    "source/scripts/build_clang_v39_10.bat",
++    "source/scripts/test_clang_v39_10.bat",
++    "source/docs/implementation_report_v39_10.md",
++    "source/docs/verification_output_v39_10.txt",
++    "source/docs/continuation_v39_10_diff.patch",
++    "source/docs/integration_note_v39_10.md",
++    "source/docs/manifest_v39_10.json"
++  ],
++  "rt_safety": {
++    "dynamic_allocation": false,
++    "file_io": false,
++    "windows_api": false,
++    "bounded_loop": true
++  },
++  "verification": {
++    "gcc_smoke_test": "PASS",
++    "vc2026_windows": "not executed in Linux sandbox",
++    "clang_windows": "not executed in Linux sandbox"
++  }
++}
+\ No newline at end of file
+diff -ruN '--exclude=build' '--exclude=continuation_v39_10_diff.patch' work_v39_before/source/docs/verification_output_v39_10.txt work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/docs/verification_output_v39_10.txt
+--- work_v39_before/source/docs/verification_output_v39_10.txt	1970-01-01 00:00:00.000000000 +0000
++++ work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/docs/verification_output_v39_10.txt	2026-05-03 02:34:09.256752333 +0000
+@@ -0,0 +1,2 @@
++implementation_backlog_v39 implemented=10 configured=10 ts=1 rt=6 hold=18 interlock=4 gate=8 slowdown=11 trace=5 retry=3 inhibit=6 cat_mask=0x00000200 last_id=314 last_policy=4 trace=0x3909 fault=0x000003ff axis=0x00000005 tool=12/14 spindle_temp=86 last_x=3900
++PASS nc_feature_backlog_v39
+diff -ruN '--exclude=build' '--exclude=continuation_v39_10_diff.patch' work_v39_before/source/inc/nc_feature_backlog_v39.h work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/inc/nc_feature_backlog_v39.h
+--- work_v39_before/source/inc/nc_feature_backlog_v39.h	1970-01-01 00:00:00.000000000 +0000
++++ work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/inc/nc_feature_backlog_v39.h	2026-05-03 02:33:45.766204529 +0000
+@@ -0,0 +1,146 @@
++#ifndef NC_FEATURE_BACKLOG_V39_H
++#define NC_FEATURE_BACKLOG_V39_H
++
++#include <stdint.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++/*
++ * IBM-Bob implementation backlog continuation v39_10.
++ *
++ * This module adds feature IDs 305-314 after v38_10.
++ * The implementation follows the IBM-Bob RT/TS split rules:
++ * - fixed-size state only
++ * - no dynamic allocation
++ * - no file I/O
++ * - no Windows API calls
++ * - deterministic loops bounded by NC_FEATURE_BACKLOG_V39_FEATURE_COUNT
++ */
++
++#define NC_IMPL_BACKLOG_FEATURE_COUNT_V38      (305u)
++#define NC_IMPL_BACKLOG_FEATURE_COUNT_V39      (315u)
++#define NC_IMPL_BACKLOG_WORD_COUNT_V39         (10u)
++#define NC_FEATURE_BACKLOG_V39_FEATURE_BASE_ID (305u)
++#define NC_FEATURE_BACKLOG_V39_FEATURE_COUNT   (10u)
++#define NC_FEATURE_BACKLOG_V39_AXIS_COUNT      (8u)
++
++#define NC_FEATURE_BACKLOG_V39_OK              (0)
++#define NC_FEATURE_BACKLOG_V39_ERR_NULL        (-1)
++#define NC_FEATURE_BACKLOG_V39_ERR_RANGE       (-2)
++
++#define NC_FEATURE_BACKLOG_V39_TRACE_NONE      (0u)
++#define NC_FEATURE_BACKLOG_V39_TRACE_BASE      (0x3900u)
++
++/* Added feature IDs: 305-314. */
++typedef enum NC_FEATURE_BACKLOG_V39_ID_TAG {
++    NC_FEATURE_V39_SPINDLE_BEARING_TEMP_SLOWDOWN = 305,
++    NC_FEATURE_V39_LINEAR_SCALE_DIRTY_TRACE = 306,
++    NC_FEATURE_V39_TOOL_CLAMP_DRAWBAR_CONFIRM_INTERLOCK = 307,
++    NC_FEATURE_V39_ROTARY_TABLE_CLAMP_CONFIRM_GATE = 308,
++    NC_FEATURE_V39_COOLANT_FILTER_DIFF_PRESSURE_HOLD = 309,
++    NC_FEATURE_V39_DUST_COLLECTOR_AIRFLOW_LOW_GATE = 310,
++    NC_FEATURE_V39_SPINDLE_OVERRIDE_LOCK_ZONE_INHIBIT = 311,
++    NC_FEATURE_V39_ATC_TOOL_NUMBER_MISMATCH_HOLD = 312,
++    NC_FEATURE_V39_WORK_PROBE_READY_TIMEOUT_RETRY = 313,
++    NC_FEATURE_V39_UPS_VOLTAGE_LOW_DECEL_STOP = 314
++} NC_FEATURE_BACKLOG_V39_ID;
++
++typedef enum NC_FEATURE_BACKLOG_V39_POLICY_TAG {
++    NC_FEATURE_BACKLOG_V39_POLICY_MONITOR = 0,
++    NC_FEATURE_BACKLOG_V39_POLICY_GATE = 1,
++    NC_FEATURE_BACKLOG_V39_POLICY_HOLD = 2,
++    NC_FEATURE_BACKLOG_V39_POLICY_INTERLOCK = 3,
++    NC_FEATURE_BACKLOG_V39_POLICY_SLOWDOWN = 4,
++    NC_FEATURE_BACKLOG_V39_POLICY_TRACE = 5,
++    NC_FEATURE_BACKLOG_V39_POLICY_INHIBIT = 6,
++    NC_FEATURE_BACKLOG_V39_POLICY_RETRY = 7
++} NC_FEATURE_BACKLOG_V39_POLICY;
++
++typedef struct NC_FEATURE_BACKLOG_V39_BLOCK_TAG {
++    int32_t axis_target[NC_FEATURE_BACKLOG_V39_AXIS_COUNT];
++    int32_t feed_override_percent;
++    uint32_t aux_request_bits;
++    uint32_t hold_request;
++    uint32_t interlock_mask;
++    uint32_t sequence_gate_mask;
++    uint32_t diagnostics_mask;
++    uint32_t retry_request_mask;
++    uint32_t inhibit_mask;
++    uint32_t trace_event_code;
++} NC_FEATURE_BACKLOG_V39_BLOCK;
++
++typedef struct NC_FEATURE_BACKLOG_V39_RT_IO_TAG {
++    uint32_t cycle_counter;
++    uint32_t spindle_bearing_temp_check;
++    int32_t spindle_bearing_temp_c;
++    uint32_t linear_scale_monitor_mask;
++    uint32_t linear_scale_dirty_mask;
++    uint32_t tool_clamp_check_request;
++    uint32_t tool_clamp_drawbar_ok;
++    uint32_t rotary_table_motion_request;
++    uint32_t rotary_table_clamp_confirmed;
++    uint32_t coolant_filter_monitor;
++    uint32_t coolant_filter_diff_pressure_high;
++    uint32_t dust_collector_required;
++    uint32_t dust_collector_airflow_ok;
++    uint32_t spindle_override_lock_zone;
++    uint32_t spindle_override_change_request;
++    uint32_t atc_tool_number_check_request;
++    uint32_t atc_expected_tool_no;
++    uint32_t atc_actual_tool_no;
++    uint32_t work_probe_measure_request;
++    uint32_t work_probe_ready;
++    uint32_t ups_monitor_enabled;
++    uint32_t ups_voltage_low;
++} NC_FEATURE_BACKLOG_V39_RT_IO;
++
++typedef struct NC_FEATURE_BACKLOG_V39_STATUS_TAG {
++    uint32_t implemented_count;
++    uint32_t configured_count;
++    uint32_t enabled_mask;
++    uint32_t ts_apply_count;
++    uint32_t rt_tick_count;
++    uint32_t monitor_count;
++    uint32_t gate_count;
++    uint32_t hold_count;
++    uint32_t interlock_count;
++    uint32_t slowdown_count;
++    uint32_t trace_count;
++    uint32_t inhibit_count;
++    uint32_t retry_count;
++    uint32_t warning_count;
++    uint32_t cat_mask;
++    uint32_t last_feature_id;
++    uint32_t last_policy;
++    uint32_t last_trace_event_code;
++    int32_t last_feed_override_percent;
++    int32_t last_x;
++    uint32_t last_fault_mask;
++    uint32_t last_axis_mask;
++    uint32_t last_tool_expected;
++    uint32_t last_tool_actual;
++    int32_t last_spindle_bearing_temp_c;
++    uint32_t per_feature_hits[NC_FEATURE_BACKLOG_V39_FEATURE_COUNT];
++    int32_t per_feature_last_value[NC_FEATURE_BACKLOG_V39_FEATURE_COUNT];
++} NC_FEATURE_BACKLOG_V39_STATUS;
++
++extern NC_FEATURE_BACKLOG_V39_STATUS g_ncFeatureBacklogV39Status;
++
++void NcFeatureBacklogV39_Init(void);
++int NcFeatureBacklogV39_IsFeatureEnabled(uint32_t feature_id);
++int Api_SetNcFeatureBacklogV39Feature(uint32_t feature_id, uint32_t enabled);
++void Api_EnableAllNcFeatureBacklogV39Features(void);
++int Api_GetNcFeatureBacklogV39Status(NC_FEATURE_BACKLOG_V39_STATUS *out_status);
++int Api_RunNcFeatureBacklogV39SelfCheck(void);
++
++void NcFeatureBacklogV39_ApplyBlockTs(NC_FEATURE_BACKLOG_V39_BLOCK *block);
++void NcFeatureBacklogV39_RunRtTick(const NC_FEATURE_BACKLOG_V39_RT_IO *io);
++const char *NcFeatureBacklogV39_GetFeatureName(uint32_t feature_id);
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* NC_FEATURE_BACKLOG_V39_H */
+diff -ruN '--exclude=build' '--exclude=continuation_v39_10_diff.patch' work_v39_before/source/scripts/build_clang_v39_10.bat work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/scripts/build_clang_v39_10.bat
+--- work_v39_before/source/scripts/build_clang_v39_10.bat	1970-01-01 00:00:00.000000000 +0000
++++ work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/scripts/build_clang_v39_10.bat	2026-05-03 02:33:45.769636842 +0000
+@@ -0,0 +1,6 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++if not exist build mkdir build
++clang.exe -std=c99 -Wall -Wextra -Iinc src\nc_feature_backlog_v39.c tests\test_nc_feature_backlog_v39.c -o build\test_nc_feature_backlog_v39.exe
++endlocal
+diff -ruN '--exclude=build' '--exclude=continuation_v39_10_diff.patch' work_v39_before/source/scripts/build_gcc_smoke_v39_10.sh work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/scripts/build_gcc_smoke_v39_10.sh
+--- work_v39_before/source/scripts/build_gcc_smoke_v39_10.sh	1970-01-01 00:00:00.000000000 +0000
++++ work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/scripts/build_gcc_smoke_v39_10.sh	2026-05-03 02:33:45.767632549 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd "$(dirname "$0")/.."
++mkdir -p build
++gcc -std=c99 -Wall -Wextra -Iinc src/nc_feature_backlog_v39.c tests/test_nc_feature_backlog_v39.c -o build/test_nc_feature_backlog_v39
+diff -ruN '--exclude=build' '--exclude=continuation_v39_10_diff.patch' work_v39_before/source/scripts/build_vc2026_v39_10.bat work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/scripts/build_vc2026_v39_10.bat
+--- work_v39_before/source/scripts/build_vc2026_v39_10.bat	1970-01-01 00:00:00.000000000 +0000
++++ work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/scripts/build_vc2026_v39_10.bat	2026-05-03 02:33:45.768763053 +0000
+@@ -0,0 +1,6 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++if not exist build mkdir build
++cl.exe /nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\nc_feature_backlog_v39.c tests\test_nc_feature_backlog_v39.c /Febuild\test_nc_feature_backlog_v39.exe
++endlocal
+diff -ruN '--exclude=build' '--exclude=continuation_v39_10_diff.patch' work_v39_before/source/scripts/test_clang_v39_10.bat work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/scripts/test_clang_v39_10.bat
+--- work_v39_before/source/scripts/test_clang_v39_10.bat	1970-01-01 00:00:00.000000000 +0000
++++ work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/scripts/test_clang_v39_10.bat	2026-05-03 02:33:45.770320031 +0000
+@@ -0,0 +1,6 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++call scripts\build_clang_v39_10.bat || exit /b 1
++build\test_nc_feature_backlog_v39.exe
++endlocal
+diff -ruN '--exclude=build' '--exclude=continuation_v39_10_diff.patch' work_v39_before/source/scripts/test_gcc_smoke_v39_10.sh work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/scripts/test_gcc_smoke_v39_10.sh
+--- work_v39_before/source/scripts/test_gcc_smoke_v39_10.sh	1970-01-01 00:00:00.000000000 +0000
++++ work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/scripts/test_gcc_smoke_v39_10.sh	2026-05-03 02:33:45.768311682 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd "$(dirname "$0")/.."
++scripts/build_gcc_smoke_v39_10.sh
++build/test_nc_feature_backlog_v39
+diff -ruN '--exclude=build' '--exclude=continuation_v39_10_diff.patch' work_v39_before/source/scripts/test_vc2026_v39_10.bat work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/scripts/test_vc2026_v39_10.bat
+--- work_v39_before/source/scripts/test_vc2026_v39_10.bat	1970-01-01 00:00:00.000000000 +0000
++++ work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/scripts/test_vc2026_v39_10.bat	2026-05-03 02:33:45.769176890 +0000
+@@ -0,0 +1,6 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++call scripts\build_vc2026_v39_10.bat || exit /b 1
++build\test_nc_feature_backlog_v39.exe
++endlocal
+diff -ruN '--exclude=build' '--exclude=continuation_v39_10_diff.patch' work_v39_before/source/src/nc_feature_backlog_v39.c work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/src/nc_feature_backlog_v39.c
+--- work_v39_before/source/src/nc_feature_backlog_v39.c	1970-01-01 00:00:00.000000000 +0000
++++ work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/src/nc_feature_backlog_v39.c	2026-05-03 02:33:45.766793723 +0000
+@@ -0,0 +1,469 @@
++#include "nc_feature_backlog_v39.h"
++
++#include <string.h>
++
++#define V39_BIT(index_) (1u << (uint32_t)(index_))
++#define V39_DEFAULT_FEED_OVERRIDE_PERCENT       (100)
++#define V39_MIN_FEED_OVERRIDE_PERCENT           (5)
++#define V39_SPINDLE_TEMP_WARN_C                 (72)
++#define V39_SPINDLE_TEMP_HOLD_C                 (82)
++#define V39_SPINDLE_TEMP_TIMEOUT_TICKS          (2u)
++#define V39_LINEAR_SCALE_DIRTY_TIMEOUT_TICKS    (2u)
++#define V39_TOOL_CLAMP_TIMEOUT_TICKS            (3u)
++#define V39_ROTARY_TABLE_CLAMP_TIMEOUT_TICKS    (3u)
++#define V39_COOLANT_FILTER_TIMEOUT_TICKS        (3u)
++#define V39_DUST_COLLECTOR_TIMEOUT_TICKS        (3u)
++#define V39_SPINDLE_OVERRIDE_LOCK_TIMEOUT_TICKS (1u)
++#define V39_ATC_TOOL_NO_TIMEOUT_TICKS           (2u)
++#define V39_WORK_PROBE_READY_TIMEOUT_TICKS      (4u)
++#define V39_UPS_VOLTAGE_LOW_TIMEOUT_TICKS       (1u)
++
++typedef struct V39_FEATURE_DEF_TAG {
++    uint32_t feature_id;
++    NC_FEATURE_BACKLOG_V39_POLICY policy;
++    uint32_t category;
++    const char *name;
++} V39_FEATURE_DEF;
++
++static const V39_FEATURE_DEF k_v39_defs[NC_FEATURE_BACKLOG_V39_FEATURE_COUNT] = {
++    { NC_FEATURE_V39_SPINDLE_BEARING_TEMP_SLOWDOWN,          NC_FEATURE_BACKLOG_V39_POLICY_SLOWDOWN, 9u, "spindle bearing temperature slowdown" },
++    { NC_FEATURE_V39_LINEAR_SCALE_DIRTY_TRACE,               NC_FEATURE_BACKLOG_V39_POLICY_TRACE,    9u, "linear scale dirty trace" },
++    { NC_FEATURE_V39_TOOL_CLAMP_DRAWBAR_CONFIRM_INTERLOCK,   NC_FEATURE_BACKLOG_V39_POLICY_INTERLOCK,9u, "tool clamp drawbar confirmation interlock" },
++    { NC_FEATURE_V39_ROTARY_TABLE_CLAMP_CONFIRM_GATE,        NC_FEATURE_BACKLOG_V39_POLICY_GATE,     9u, "rotary table clamp confirmation gate" },
++    { NC_FEATURE_V39_COOLANT_FILTER_DIFF_PRESSURE_HOLD,      NC_FEATURE_BACKLOG_V39_POLICY_HOLD,     9u, "coolant filter differential pressure hold" },
++    { NC_FEATURE_V39_DUST_COLLECTOR_AIRFLOW_LOW_GATE,        NC_FEATURE_BACKLOG_V39_POLICY_GATE,     9u, "dust collector airflow low gate" },
++    { NC_FEATURE_V39_SPINDLE_OVERRIDE_LOCK_ZONE_INHIBIT,     NC_FEATURE_BACKLOG_V39_POLICY_INHIBIT,  9u, "spindle override lock zone inhibit" },
++    { NC_FEATURE_V39_ATC_TOOL_NUMBER_MISMATCH_HOLD,          NC_FEATURE_BACKLOG_V39_POLICY_HOLD,     9u, "ATC tool number mismatch hold" },
++    { NC_FEATURE_V39_WORK_PROBE_READY_TIMEOUT_RETRY,         NC_FEATURE_BACKLOG_V39_POLICY_RETRY,    9u, "work probe ready timeout retry" },
++    { NC_FEATURE_V39_UPS_VOLTAGE_LOW_DECEL_STOP,             NC_FEATURE_BACKLOG_V39_POLICY_SLOWDOWN, 9u, "UPS voltage low deceleration stop" }
++};
++
++NC_FEATURE_BACKLOG_V39_STATUS g_ncFeatureBacklogV39Status;
++
++static uint32_t s_spindle_temp_wait_ticks;
++static uint32_t s_linear_scale_dirty_wait_ticks;
++static uint32_t s_tool_clamp_wait_ticks;
++static uint32_t s_rotary_table_clamp_wait_ticks;
++static uint32_t s_coolant_filter_wait_ticks;
++static uint32_t s_dust_collector_wait_ticks;
++static uint32_t s_spindle_override_lock_wait_ticks;
++static uint32_t s_atc_tool_no_wait_ticks;
++static uint32_t s_work_probe_ready_wait_ticks;
++static uint32_t s_ups_voltage_low_wait_ticks;
++
++static uint32_t v39_index_from_feature_id(uint32_t feature_id)
++{
++    if (feature_id < NC_FEATURE_BACKLOG_V39_FEATURE_BASE_ID) {
++        return NC_FEATURE_BACKLOG_V39_FEATURE_COUNT;
++    }
++    return feature_id - NC_FEATURE_BACKLOG_V39_FEATURE_BASE_ID;
++}
++
++static int32_t v39_clamp_i32(int32_t value, int32_t min_value, int32_t max_value)
++{
++    if (value < min_value) {
++        return min_value;
++    }
++    if (value > max_value) {
++        return max_value;
++    }
++    return value;
++}
++
++static int32_t v39_apply_slowdown(int32_t feed_override_percent, int32_t reduction_percent)
++{
++    int32_t next_value = feed_override_percent - reduction_percent;
++    return v39_clamp_i32(next_value, V39_MIN_FEED_OVERRIDE_PERCENT, V39_DEFAULT_FEED_OVERRIDE_PERCENT);
++}
++
++static void v39_record_hit(uint32_t index, int32_t value)
++{
++    const V39_FEATURE_DEF *def;
++
++    if (index >= NC_FEATURE_BACKLOG_V39_FEATURE_COUNT) {
++        return;
++    }
++
++    def = &k_v39_defs[index];
++    g_ncFeatureBacklogV39Status.per_feature_hits[index]++;
++    g_ncFeatureBacklogV39Status.per_feature_last_value[index] = value;
++    g_ncFeatureBacklogV39Status.last_feature_id = def->feature_id;
++    g_ncFeatureBacklogV39Status.last_policy = (uint32_t)def->policy;
++    g_ncFeatureBacklogV39Status.cat_mask |= V39_BIT(def->category);
++
++    switch (def->policy) {
++    case NC_FEATURE_BACKLOG_V39_POLICY_MONITOR:
++        g_ncFeatureBacklogV39Status.monitor_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V39_POLICY_GATE:
++        g_ncFeatureBacklogV39Status.gate_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V39_POLICY_HOLD:
++        g_ncFeatureBacklogV39Status.hold_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V39_POLICY_INTERLOCK:
++        g_ncFeatureBacklogV39Status.interlock_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V39_POLICY_SLOWDOWN:
++        g_ncFeatureBacklogV39Status.slowdown_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V39_POLICY_TRACE:
++        g_ncFeatureBacklogV39Status.trace_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V39_POLICY_INHIBIT:
++        g_ncFeatureBacklogV39Status.inhibit_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V39_POLICY_RETRY:
++        g_ncFeatureBacklogV39Status.retry_count++;
++        break;
++    default:
++        g_ncFeatureBacklogV39Status.warning_count++;
++        break;
++    }
++}
++
++static void v39_record_trace(uint32_t index)
++{
++    uint32_t trace;
++
++    if (index >= NC_FEATURE_BACKLOG_V39_FEATURE_COUNT) {
++        return;
++    }
++
++    trace = NC_FEATURE_BACKLOG_V39_TRACE_BASE + index;
++    g_ncFeatureBacklogV39Status.last_trace_event_code = trace;
++}
++
++static void v39_record_fault(uint32_t index, uint32_t fault_bit, int32_t value)
++{
++    g_ncFeatureBacklogV39Status.last_fault_mask |= fault_bit;
++    v39_record_trace(index);
++    v39_record_hit(index, value);
++}
++
++static uint32_t v39_wait_or_clear(uint32_t *wait_ticks, uint32_t active, uint32_t timeout_ticks)
++{
++    if (active == 0u) {
++        *wait_ticks = 0u;
++        return 0u;
++    }
++
++    if (*wait_ticks < timeout_ticks) {
++        (*wait_ticks)++;
++        return 0u;
++    }
++
++    return 1u;
++}
++
++static void v39_reset_counters(void)
++{
++    s_spindle_temp_wait_ticks = 0u;
++    s_linear_scale_dirty_wait_ticks = 0u;
++    s_tool_clamp_wait_ticks = 0u;
++    s_rotary_table_clamp_wait_ticks = 0u;
++    s_coolant_filter_wait_ticks = 0u;
++    s_dust_collector_wait_ticks = 0u;
++    s_spindle_override_lock_wait_ticks = 0u;
++    s_atc_tool_no_wait_ticks = 0u;
++    s_work_probe_ready_wait_ticks = 0u;
++    s_ups_voltage_low_wait_ticks = 0u;
++}
++
++void NcFeatureBacklogV39_Init(void)
++{
++    memset(&g_ncFeatureBacklogV39Status, 0, sizeof(g_ncFeatureBacklogV39Status));
++    g_ncFeatureBacklogV39Status.implemented_count = NC_FEATURE_BACKLOG_V39_FEATURE_COUNT;
++    g_ncFeatureBacklogV39Status.last_feed_override_percent = V39_DEFAULT_FEED_OVERRIDE_PERCENT;
++    v39_reset_counters();
++}
++
++int NcFeatureBacklogV39_IsFeatureEnabled(uint32_t feature_id)
++{
++    uint32_t index = v39_index_from_feature_id(feature_id);
++
++    if (index >= NC_FEATURE_BACKLOG_V39_FEATURE_COUNT) {
++        return 0;
++    }
++
++    return ((g_ncFeatureBacklogV39Status.enabled_mask & V39_BIT(index)) != 0u) ? 1 : 0;
++}
++
++int Api_SetNcFeatureBacklogV39Feature(uint32_t feature_id, uint32_t enabled)
++{
++    uint32_t index = v39_index_from_feature_id(feature_id);
++    uint32_t scan;
++
++    if (index >= NC_FEATURE_BACKLOG_V39_FEATURE_COUNT) {
++        return NC_FEATURE_BACKLOG_V39_ERR_RANGE;
++    }
++
++    if (enabled != 0u) {
++        g_ncFeatureBacklogV39Status.enabled_mask |= V39_BIT(index);
++    } else {
++        g_ncFeatureBacklogV39Status.enabled_mask &= ~V39_BIT(index);
++    }
++
++    g_ncFeatureBacklogV39Status.configured_count = 0u;
++    for (scan = 0u; scan < NC_FEATURE_BACKLOG_V39_FEATURE_COUNT; ++scan) {
++        if ((g_ncFeatureBacklogV39Status.enabled_mask & V39_BIT(scan)) != 0u) {
++            g_ncFeatureBacklogV39Status.configured_count++;
++        }
++    }
++
++    return NC_FEATURE_BACKLOG_V39_OK;
++}
++
++void Api_EnableAllNcFeatureBacklogV39Features(void)
++{
++    uint32_t index;
++
++    g_ncFeatureBacklogV39Status.enabled_mask = 0u;
++    for (index = 0u; index < NC_FEATURE_BACKLOG_V39_FEATURE_COUNT; ++index) {
++        g_ncFeatureBacklogV39Status.enabled_mask |= V39_BIT(index);
++    }
++    g_ncFeatureBacklogV39Status.configured_count = NC_FEATURE_BACKLOG_V39_FEATURE_COUNT;
++}
++
++int Api_GetNcFeatureBacklogV39Status(NC_FEATURE_BACKLOG_V39_STATUS *out_status)
++{
++    if (out_status == 0) {
++        return NC_FEATURE_BACKLOG_V39_ERR_NULL;
++    }
++
++    *out_status = g_ncFeatureBacklogV39Status;
++    return NC_FEATURE_BACKLOG_V39_OK;
++}
++
++const char *NcFeatureBacklogV39_GetFeatureName(uint32_t feature_id)
++{
++    uint32_t index = v39_index_from_feature_id(feature_id);
++
++    if (index >= NC_FEATURE_BACKLOG_V39_FEATURE_COUNT) {
++        return "unknown";
++    }
++
++    return k_v39_defs[index].name;
++}
++
++void NcFeatureBacklogV39_ApplyBlockTs(NC_FEATURE_BACKLOG_V39_BLOCK *block)
++{
++    uint32_t index;
++
++    if (block == 0) {
++        g_ncFeatureBacklogV39Status.warning_count++;
++        return;
++    }
++
++    g_ncFeatureBacklogV39Status.ts_apply_count++;
++
++    if (block->feed_override_percent <= 0) {
++        block->feed_override_percent = V39_DEFAULT_FEED_OVERRIDE_PERCENT;
++    }
++
++    for (index = 0u; index < NC_FEATURE_BACKLOG_V39_FEATURE_COUNT; ++index) {
++        const V39_FEATURE_DEF *def;
++        uint32_t feature_bit;
++        uint32_t trace;
++
++        if ((g_ncFeatureBacklogV39Status.enabled_mask & V39_BIT(index)) == 0u) {
++            continue;
++        }
++
++        def = &k_v39_defs[index];
++        feature_bit = V39_BIT(index);
++        trace = NC_FEATURE_BACKLOG_V39_TRACE_BASE + index;
++
++        switch (def->feature_id) {
++        case NC_FEATURE_V39_SPINDLE_BEARING_TEMP_SLOWDOWN:
++            block->diagnostics_mask |= feature_bit;
++            block->feed_override_percent = v39_apply_slowdown(block->feed_override_percent, 6);
++            v39_record_hit(index, block->feed_override_percent);
++            break;
++        case NC_FEATURE_V39_LINEAR_SCALE_DIRTY_TRACE:
++            block->diagnostics_mask |= feature_bit;
++            block->trace_event_code = trace;
++            g_ncFeatureBacklogV39Status.last_trace_event_code = trace;
++            v39_record_hit(index, (int32_t)feature_bit);
++            break;
++        case NC_FEATURE_V39_TOOL_CLAMP_DRAWBAR_CONFIRM_INTERLOCK:
++            block->interlock_mask |= feature_bit;
++            block->sequence_gate_mask |= feature_bit;
++            v39_record_hit(index, block->axis_target[2]);
++            break;
++        case NC_FEATURE_V39_ROTARY_TABLE_CLAMP_CONFIRM_GATE:
++            block->sequence_gate_mask |= feature_bit;
++            block->diagnostics_mask |= feature_bit;
++            v39_record_hit(index, block->axis_target[3]);
++            break;
++        case NC_FEATURE_V39_COOLANT_FILTER_DIFF_PRESSURE_HOLD:
++            block->hold_request |= feature_bit;
++            block->diagnostics_mask |= feature_bit;
++            block->feed_override_percent = v39_apply_slowdown(block->feed_override_percent, 4);
++            v39_record_hit(index, block->feed_override_percent);
++            break;
++        case NC_FEATURE_V39_DUST_COLLECTOR_AIRFLOW_LOW_GATE:
++            block->sequence_gate_mask |= feature_bit;
++            block->aux_request_bits |= feature_bit;
++            v39_record_hit(index, (int32_t)block->aux_request_bits);
++            break;
++        case NC_FEATURE_V39_SPINDLE_OVERRIDE_LOCK_ZONE_INHIBIT:
++            block->inhibit_mask |= feature_bit;
++            block->diagnostics_mask |= feature_bit;
++            v39_record_hit(index, block->feed_override_percent);
++            break;
++        case NC_FEATURE_V39_ATC_TOOL_NUMBER_MISMATCH_HOLD:
++            block->hold_request |= feature_bit;
++            block->sequence_gate_mask |= feature_bit;
++            v39_record_hit(index, (int32_t)feature_bit);
++            break;
++        case NC_FEATURE_V39_WORK_PROBE_READY_TIMEOUT_RETRY:
++            block->retry_request_mask |= feature_bit;
++            block->sequence_gate_mask |= feature_bit;
++            block->trace_event_code = trace;
++            g_ncFeatureBacklogV39Status.last_trace_event_code = trace;
++            v39_record_hit(index, (int32_t)trace);
++            break;
++        case NC_FEATURE_V39_UPS_VOLTAGE_LOW_DECEL_STOP:
++            block->hold_request |= feature_bit;
++            block->feed_override_percent = v39_apply_slowdown(block->feed_override_percent, 10);
++            block->trace_event_code = trace;
++            g_ncFeatureBacklogV39Status.last_trace_event_code = trace;
++            v39_record_hit(index, block->feed_override_percent);
++            break;
++        default:
++            g_ncFeatureBacklogV39Status.warning_count++;
++            break;
++        }
++    }
++
++    g_ncFeatureBacklogV39Status.last_feed_override_percent = block->feed_override_percent;
++    g_ncFeatureBacklogV39Status.last_x = block->axis_target[0];
++}
++
++void NcFeatureBacklogV39_RunRtTick(const NC_FEATURE_BACKLOG_V39_RT_IO *io)
++{
++    uint32_t fault_bit;
++
++    if (io == 0) {
++        g_ncFeatureBacklogV39Status.warning_count++;
++        return;
++    }
++
++    g_ncFeatureBacklogV39Status.rt_tick_count++;
++    g_ncFeatureBacklogV39Status.last_fault_mask = 0u;
++
++    if (NcFeatureBacklogV39_IsFeatureEnabled(NC_FEATURE_V39_SPINDLE_BEARING_TEMP_SLOWDOWN) != 0) {
++        uint32_t active = ((io->spindle_bearing_temp_check != 0u) && (io->spindle_bearing_temp_c >= V39_SPINDLE_TEMP_WARN_C)) ? 1u : 0u;
++        if (v39_wait_or_clear(&s_spindle_temp_wait_ticks, active, V39_SPINDLE_TEMP_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V39_BIT(0u);
++            g_ncFeatureBacklogV39Status.last_spindle_bearing_temp_c = io->spindle_bearing_temp_c;
++            v39_record_fault(0u, fault_bit, io->spindle_bearing_temp_c);
++            if (io->spindle_bearing_temp_c >= V39_SPINDLE_TEMP_HOLD_C) {
++                g_ncFeatureBacklogV39Status.hold_count++;
++            }
++        }
++    }
++
++    if (NcFeatureBacklogV39_IsFeatureEnabled(NC_FEATURE_V39_LINEAR_SCALE_DIRTY_TRACE) != 0) {
++        uint32_t dirty = io->linear_scale_monitor_mask & io->linear_scale_dirty_mask;
++        if (v39_wait_or_clear(&s_linear_scale_dirty_wait_ticks, dirty != 0u, V39_LINEAR_SCALE_DIRTY_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V39_BIT(1u);
++            g_ncFeatureBacklogV39Status.last_axis_mask = dirty;
++            v39_record_fault(1u, fault_bit, (int32_t)dirty);
++        }
++    }
++
++    if (NcFeatureBacklogV39_IsFeatureEnabled(NC_FEATURE_V39_TOOL_CLAMP_DRAWBAR_CONFIRM_INTERLOCK) != 0) {
++        uint32_t active = ((io->tool_clamp_check_request != 0u) && (io->tool_clamp_drawbar_ok == 0u)) ? 1u : 0u;
++        if (v39_wait_or_clear(&s_tool_clamp_wait_ticks, active, V39_TOOL_CLAMP_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V39_BIT(2u);
++            v39_record_fault(2u, fault_bit, (int32_t)io->tool_clamp_drawbar_ok);
++        }
++    }
++
++    if (NcFeatureBacklogV39_IsFeatureEnabled(NC_FEATURE_V39_ROTARY_TABLE_CLAMP_CONFIRM_GATE) != 0) {
++        uint32_t active = ((io->rotary_table_motion_request != 0u) && (io->rotary_table_clamp_confirmed == 0u)) ? 1u : 0u;
++        if (v39_wait_or_clear(&s_rotary_table_clamp_wait_ticks, active, V39_ROTARY_TABLE_CLAMP_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V39_BIT(3u);
++            v39_record_fault(3u, fault_bit, (int32_t)io->rotary_table_clamp_confirmed);
++        }
++    }
++
++    if (NcFeatureBacklogV39_IsFeatureEnabled(NC_FEATURE_V39_COOLANT_FILTER_DIFF_PRESSURE_HOLD) != 0) {
++        uint32_t active = ((io->coolant_filter_monitor != 0u) && (io->coolant_filter_diff_pressure_high != 0u)) ? 1u : 0u;
++        if (v39_wait_or_clear(&s_coolant_filter_wait_ticks, active, V39_COOLANT_FILTER_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V39_BIT(4u);
++            v39_record_fault(4u, fault_bit, (int32_t)io->coolant_filter_diff_pressure_high);
++        }
++    }
++
++    if (NcFeatureBacklogV39_IsFeatureEnabled(NC_FEATURE_V39_DUST_COLLECTOR_AIRFLOW_LOW_GATE) != 0) {
++        uint32_t active = ((io->dust_collector_required != 0u) && (io->dust_collector_airflow_ok == 0u)) ? 1u : 0u;
++        if (v39_wait_or_clear(&s_dust_collector_wait_ticks, active, V39_DUST_COLLECTOR_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V39_BIT(5u);
++            v39_record_fault(5u, fault_bit, (int32_t)io->dust_collector_airflow_ok);
++        }
++    }
++
++    if (NcFeatureBacklogV39_IsFeatureEnabled(NC_FEATURE_V39_SPINDLE_OVERRIDE_LOCK_ZONE_INHIBIT) != 0) {
++        uint32_t active = ((io->spindle_override_lock_zone != 0u) && (io->spindle_override_change_request != 0u)) ? 1u : 0u;
++        if (v39_wait_or_clear(&s_spindle_override_lock_wait_ticks, active, V39_SPINDLE_OVERRIDE_LOCK_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V39_BIT(6u);
++            v39_record_fault(6u, fault_bit, (int32_t)io->spindle_override_change_request);
++        }
++    }
++
++    if (NcFeatureBacklogV39_IsFeatureEnabled(NC_FEATURE_V39_ATC_TOOL_NUMBER_MISMATCH_HOLD) != 0) {
++        uint32_t mismatch = ((io->atc_tool_number_check_request != 0u) && (io->atc_expected_tool_no != io->atc_actual_tool_no)) ? 1u : 0u;
++        if (v39_wait_or_clear(&s_atc_tool_no_wait_ticks, mismatch, V39_ATC_TOOL_NO_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V39_BIT(7u);
++            g_ncFeatureBacklogV39Status.last_tool_expected = io->atc_expected_tool_no;
++            g_ncFeatureBacklogV39Status.last_tool_actual = io->atc_actual_tool_no;
++            v39_record_fault(7u, fault_bit, (int32_t)io->atc_actual_tool_no);
++        }
++    }
++
++    if (NcFeatureBacklogV39_IsFeatureEnabled(NC_FEATURE_V39_WORK_PROBE_READY_TIMEOUT_RETRY) != 0) {
++        uint32_t active = ((io->work_probe_measure_request != 0u) && (io->work_probe_ready == 0u)) ? 1u : 0u;
++        if (v39_wait_or_clear(&s_work_probe_ready_wait_ticks, active, V39_WORK_PROBE_READY_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V39_BIT(8u);
++            v39_record_fault(8u, fault_bit, (int32_t)io->work_probe_ready);
++        }
++    }
++
++    if (NcFeatureBacklogV39_IsFeatureEnabled(NC_FEATURE_V39_UPS_VOLTAGE_LOW_DECEL_STOP) != 0) {
++        uint32_t active = ((io->ups_monitor_enabled != 0u) && (io->ups_voltage_low != 0u)) ? 1u : 0u;
++        if (v39_wait_or_clear(&s_ups_voltage_low_wait_ticks, active, V39_UPS_VOLTAGE_LOW_TIMEOUT_TICKS) != 0u) {
++            fault_bit = V39_BIT(9u);
++            v39_record_fault(9u, fault_bit, (int32_t)io->ups_voltage_low);
++            g_ncFeatureBacklogV39Status.hold_count++;
++        }
++    }
++}
++
++int Api_RunNcFeatureBacklogV39SelfCheck(void)
++{
++    uint32_t index;
++
++    if (NC_FEATURE_BACKLOG_V39_FEATURE_COUNT != 10u) {
++        return NC_FEATURE_BACKLOG_V39_ERR_RANGE;
++    }
++    if (NC_IMPL_BACKLOG_FEATURE_COUNT_V39 != 315u) {
++        return NC_FEATURE_BACKLOG_V39_ERR_RANGE;
++    }
++    if (NC_IMPL_BACKLOG_WORD_COUNT_V39 != 10u) {
++        return NC_FEATURE_BACKLOG_V39_ERR_RANGE;
++    }
++
++    for (index = 0u; index < NC_FEATURE_BACKLOG_V39_FEATURE_COUNT; ++index) {
++        if (k_v39_defs[index].feature_id != (NC_FEATURE_BACKLOG_V39_FEATURE_BASE_ID + index)) {
++            return NC_FEATURE_BACKLOG_V39_ERR_RANGE;
++        }
++        if (k_v39_defs[index].name == 0) {
++            return NC_FEATURE_BACKLOG_V39_ERR_NULL;
++        }
++    }
++
++    return NC_FEATURE_BACKLOG_V39_OK;
++}
+diff -ruN '--exclude=build' '--exclude=continuation_v39_10_diff.patch' work_v39_before/source/tests/test_nc_feature_backlog_v39.c work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/tests/test_nc_feature_backlog_v39.c
+--- work_v39_before/source/tests/test_nc_feature_backlog_v39.c	1970-01-01 00:00:00.000000000 +0000
++++ work_v39/ibm_bob_source_implemented_additional_features_v38_10/source/tests/test_nc_feature_backlog_v39.c	2026-05-03 02:33:45.767304582 +0000
+@@ -0,0 +1,166 @@
++#include "nc_feature_backlog_v39.h"
++
++#include <stdio.h>
++#include <string.h>
++
++static int expect_u32(const char *name, uint32_t actual, uint32_t expected)
++{
++    if (actual != expected) {
++        printf("FAIL %s actual=%u expected=%u\n", name, actual, expected);
++        return 1;
++    }
++    return 0;
++}
++
++static int expect_nonzero(const char *name, uint32_t actual)
++{
++    if (actual == 0u) {
++        printf("FAIL %s actual=0\n", name);
++        return 1;
++    }
++    return 0;
++}
++
++static int expect_less_than(const char *name, int32_t actual, int32_t threshold)
++{
++    if (actual >= threshold) {
++        printf("FAIL %s actual=%d threshold=%d\n", name, actual, threshold);
++        return 1;
++    }
++    return 0;
++}
++
++int main(void)
++{
++    NC_FEATURE_BACKLOG_V39_BLOCK block;
++    NC_FEATURE_BACKLOG_V39_RT_IO io;
++    NC_FEATURE_BACKLOG_V39_STATUS status;
++    uint32_t i;
++    int failures = 0;
++
++    NcFeatureBacklogV39_Init();
++    failures += expect_u32("implemented", g_ncFeatureBacklogV39Status.implemented_count, 10u);
++    failures += expect_u32("configured_init", g_ncFeatureBacklogV39Status.configured_count, 0u);
++
++    if (Api_SetNcFeatureBacklogV39Feature(NC_FEATURE_V39_SPINDLE_BEARING_TEMP_SLOWDOWN, 1u) != 0) {
++        printf("FAIL enable feature 305\n");
++        failures++;
++    }
++    if (Api_SetNcFeatureBacklogV39Feature(999u, 1u) == 0) {
++        printf("FAIL out-of-range feature accepted\n");
++        failures++;
++    }
++    if (NcFeatureBacklogV39_IsFeatureEnabled(NC_FEATURE_V39_SPINDLE_BEARING_TEMP_SLOWDOWN) == 0) {
++        printf("FAIL enabled feature was not visible\n");
++        failures++;
++    }
++    Api_EnableAllNcFeatureBacklogV39Features();
++    failures += expect_u32("configured_all", g_ncFeatureBacklogV39Status.configured_count, 10u);
++
++    memset(&block, 0, sizeof(block));
++    for (i = 0u; i < NC_FEATURE_BACKLOG_V39_AXIS_COUNT; ++i) {
++        block.axis_target[i] = (int32_t)(3900 + (int32_t)i);
++    }
++    block.feed_override_percent = 100;
++    NcFeatureBacklogV39_ApplyBlockTs(&block);
++
++    failures += expect_nonzero("ts_apply", g_ncFeatureBacklogV39Status.ts_apply_count);
++    failures += expect_nonzero("hold_request", block.hold_request);
++    failures += expect_nonzero("interlock_mask", block.interlock_mask);
++    failures += expect_nonzero("sequence_gate_mask", block.sequence_gate_mask);
++    failures += expect_nonzero("diagnostics_mask", block.diagnostics_mask);
++    failures += expect_nonzero("retry_request", block.retry_request_mask);
++    failures += expect_nonzero("inhibit_mask", block.inhibit_mask);
++    failures += expect_nonzero("trace_event_code", block.trace_event_code);
++    failures += expect_less_than("feed_override", block.feed_override_percent, 100);
++    if (block.axis_target[0] != 3900) {
++        printf("FAIL axis target unexpectedly changed actual=%d expected=3900\n", block.axis_target[0]);
++        failures++;
++    }
++
++    memset(&io, 0, sizeof(io));
++    io.spindle_bearing_temp_check = 1u;
++    io.spindle_bearing_temp_c = 86;
++    io.linear_scale_monitor_mask = 0x0Fu;
++    io.linear_scale_dirty_mask = 0x05u;
++    io.tool_clamp_check_request = 1u;
++    io.tool_clamp_drawbar_ok = 0u;
++    io.rotary_table_motion_request = 1u;
++    io.rotary_table_clamp_confirmed = 0u;
++    io.coolant_filter_monitor = 1u;
++    io.coolant_filter_diff_pressure_high = 1u;
++    io.dust_collector_required = 1u;
++    io.dust_collector_airflow_ok = 0u;
++    io.spindle_override_lock_zone = 1u;
++    io.spindle_override_change_request = 1u;
++    io.atc_tool_number_check_request = 1u;
++    io.atc_expected_tool_no = 12u;
++    io.atc_actual_tool_no = 14u;
++    io.work_probe_measure_request = 1u;
++    io.work_probe_ready = 0u;
++    io.ups_monitor_enabled = 1u;
++    io.ups_voltage_low = 1u;
++
++    for (i = 0u; i < 6u; ++i) {
++        io.cycle_counter = i;
++        NcFeatureBacklogV39_RunRtTick(&io);
++    }
++
++    failures += expect_nonzero("rt_tick", g_ncFeatureBacklogV39Status.rt_tick_count);
++    failures += expect_nonzero("hold_count", g_ncFeatureBacklogV39Status.hold_count);
++    failures += expect_nonzero("interlock_count", g_ncFeatureBacklogV39Status.interlock_count);
++    failures += expect_nonzero("gate_count", g_ncFeatureBacklogV39Status.gate_count);
++    failures += expect_nonzero("trace_count", g_ncFeatureBacklogV39Status.trace_count);
++    failures += expect_nonzero("retry_count", g_ncFeatureBacklogV39Status.retry_count);
++    failures += expect_nonzero("inhibit_count", g_ncFeatureBacklogV39Status.inhibit_count);
++    failures += expect_nonzero("slowdown_count", g_ncFeatureBacklogV39Status.slowdown_count);
++    failures += expect_nonzero("fault_mask", g_ncFeatureBacklogV39Status.last_fault_mask);
++    failures += expect_nonzero("axis_mask", g_ncFeatureBacklogV39Status.last_axis_mask);
++    failures += expect_u32("tool_expected", g_ncFeatureBacklogV39Status.last_tool_expected, 12u);
++    failures += expect_u32("tool_actual", g_ncFeatureBacklogV39Status.last_tool_actual, 14u);
++
++    if (Api_GetNcFeatureBacklogV39Status(&status) != 0) {
++        printf("FAIL status get\n");
++        failures++;
++    }
++    if (Api_GetNcFeatureBacklogV39Status(0) == 0) {
++        printf("FAIL null status accepted\n");
++        failures++;
++    }
++    if (Api_RunNcFeatureBacklogV39SelfCheck() != 0) {
++        printf("FAIL selfcheck\n");
++        failures++;
++    }
++
++    Api_GetNcFeatureBacklogV39Status(&status);
++    printf("implementation_backlog_v39 implemented=%u configured=%u ts=%u rt=%u hold=%u interlock=%u gate=%u slowdown=%u trace=%u retry=%u inhibit=%u cat_mask=0x%08x last_id=%u last_policy=%u trace=0x%04x fault=0x%08x axis=0x%08x tool=%u/%u spindle_temp=%d last_x=%d\n",
++           status.implemented_count,
++           status.configured_count,
++           status.ts_apply_count,
++           status.rt_tick_count,
++           status.hold_count,
++           status.interlock_count,
++           status.gate_count,
++           status.slowdown_count,
++           status.trace_count,
++           status.retry_count,
++           status.inhibit_count,
++           status.cat_mask,
++           status.last_feature_id,
++           status.last_policy,
++           status.last_trace_event_code,
++           status.last_fault_mask,
++           status.last_axis_mask,
++           status.last_tool_expected,
++           status.last_tool_actual,
++           status.last_spindle_bearing_temp_c,
++           status.last_x);
++
++    if (failures != 0) {
++        printf("FAILED failures=%d\n", failures);
++        return 1;
++    }
++
++    printf("PASS nc_feature_backlog_v39\n");
++    return 0;
++}

@@ -1,0 +1,343 @@
+diff -ruN '--exclude=build' '--exclude=continuation_v28_10_diff.patch' /mnt/data/work_v28_10_base/source/docs/implementation_report_v28_10.md /mnt/data/work_v28_10/source/docs/implementation_report_v28_10.md
+--- /mnt/data/work_v28_10_base/source/docs/implementation_report_v28_10.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v28_10/source/docs/implementation_report_v28_10.md	2026-05-02 14:30:55.622145471 +0000
+@@ -0,0 +1,66 @@
++# IBM-Bob ソースコード追加実装レポート v28_10
++
++## 概要
++
++`ibm_bob_source_implemented_additional_features_v27_20.zip` をベースに、未実装/入口実装止まりだった設計機能を10件追加した。
++
++## 変更サマリ
++
++- `NC_IMPL_BACKLOG_FEATURE_COUNT` を `200U` から `210U` に拡張。
++- `NC_IMPL_BACKLOG_WORD_COUNT` は `7U` のまま維持。
++  - 210件は 32bit * 7 word = 224 bit 内に収まるため。
++- `NC_IMPL_BACKLOG_V28_FIRST_FEATURE` / `NC_IMPL_BACKLOG_V28_ADDED_FEATURES` を追加。
++- `nc_feature_backlog.c` のバックログ記述子へ ID `200U`〜`209U` を追加。
++- `ApplyV23Policy()` に ID `200U`〜`209U` のTS側固定長ブロック補正を追加。
++- GCC smoke build/test 用スクリプト `build_gcc_smoke_v28_10.sh` / `test_gcc_smoke_v28_10.sh` を追加。
++
++## 追加した10機能
++
++| ID | 機能名 | 実装概要 |
++|---:|---|---|
++| 200 | 輪郭先読み急峻角ブレーキ | XY移動量から急峻角相当を検出し、送り低下と減速tickを付与 |
++| 201 | 微小円弧チョード誤差補正 | 円弧半径の下限ガード、終点微調整、高精度フラグ付与 |
++| 202 | 高速加工G05.1有効範囲監視 | 高速加工/高度補間フラグを付与し、送り上限と加減速tickを制御 |
++| 203 | ナノ補間丸め誤差蓄積リセット | 有効軸の指令値を微小ステップ境界へ丸め、累積誤差を抑制 |
++| 204 | 工具先端点姿勢変化率制限 | 工具姿勢角をパラメータ範囲でクランプし、姿勢変化時の送りを制限 |
++| 205 | 自動潤滑ポンプREADY監視 | 潤滑READY確認用Mコード/MFIN待ちを固定長ブロックへ付与 |
++| 206 | クランプエア圧低下HOLDラッチ | エア圧低下相当時に退避フラグ、MFIN待ち、強制減速を付与 |
++| 207 | 切削油温度上昇フィード制限 | 切削油温上昇相当時に送り上限・加減速tick・平滑化を付与 |
++| 208 | チャック回転中ドアロック二重確認 | 主軸回転中のドアロック確認用補助Mコードと安全減速を付与 |
++| 209 | 主軸冷却ファン異常段階減速 | 主軸冷却異常相当時に主軸速度フォールバック、減速tick、平滑化を付与 |
++
++## RT/TS分担
++
++- TS側: `NcFeatureBacklog_ApplyBlockTs()` 経由で固定長 `NC_EXEC_BLOCK` の補正を行う。
++- RT側: `NcFeatureBacklog_OnBlockRt()` 経由で状態カウントとイベント記録のみ行う。
++- RT側では動的メモリ確保、ファイルI/O、Windows API呼び出しは追加していない。
++
++## 検証
++
++以下を実行し、GCC smoke build/test を通過した。
++
++```bash
++cd source
++scripts/test_gcc_smoke_v28_10.sh
++```
++
++確認結果の要点:
++
++```text
++implementation_backlog implemented=210 configured=210 ts=525 rt=268 synthetic=210 cat_mask=0x000003ff last_id=209 last_cat=4 last_policy=5 slowdown=43 cat0=108 cat9=80 last_x=1209
++coord_error_checks=5
++g08_error_checks=3
++hpcc_error_checks=4
++cycle_error_checks=4
++```
++
++## 変更ファイル
++
++- `source/inc/system_config.h`
++- `source/src/nc_feature_backlog.c`
++- `source/scripts/build_gcc_smoke_v28_10.sh`
++- `source/scripts/test_gcc_smoke_v28_10.sh`
++- `source/docs/implementation_report_v28_10.md`
++- `source/docs/verification_output_v28_10.txt`
++- `source/docs/manifest_v28_10.json`
++- `source/docs/continuation_v28_10_diff.patch`
+diff -ruN '--exclude=build' '--exclude=continuation_v28_10_diff.patch' /mnt/data/work_v28_10_base/source/docs/manifest_v28_10.json /mnt/data/work_v28_10/source/docs/manifest_v28_10.json
+--- /mnt/data/work_v28_10_base/source/docs/manifest_v28_10.json	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v28_10/source/docs/manifest_v28_10.json	2026-05-02 14:30:55.635969255 +0000
+@@ -0,0 +1,36 @@
++{
++  "version": "v28_10",
++  "base_version": "v27_20",
++  "feature_count_before": 200,
++  "feature_count_after": 210,
++  "word_count_before": 7,
++  "word_count_after": 7,
++  "added_feature_ids": [200,201,202,203,204,205,206,207,208,209],
++  "added_features": [
++    "輪郭先読み急峻角ブレーキ",
++    "微小円弧チョード誤差補正",
++    "高速加工G05.1有効範囲監視",
++    "ナノ補間丸め誤差蓄積リセット",
++    "工具先端点姿勢変化率制限",
++    "自動潤滑ポンプREADY監視",
++    "クランプエア圧低下HOLDラッチ",
++    "切削油温度上昇フィード制限",
++    "チャック回転中ドアロック二重確認",
++    "主軸冷却ファン異常段階減速"
++  ],
++  "changed_files": [
++    "source/inc/system_config.h",
++    "source/src/nc_feature_backlog.c",
++    "source/scripts/build_gcc_smoke_v28_10.sh",
++    "source/scripts/test_gcc_smoke_v28_10.sh",
++    "source/docs/implementation_report_v28_10.md",
++    "source/docs/verification_output_v28_10.txt",
++    "source/docs/manifest_v28_10.json",
++    "source/docs/continuation_v28_10_diff.patch"
++  ],
++  "verification": {
++    "gcc_smoke_build": "passed",
++    "gcc_smoke_test": "passed",
++    "output_file": "source/docs/verification_output_v28_10.txt"
++  }
++}
+diff -ruN '--exclude=build' '--exclude=continuation_v28_10_diff.patch' /mnt/data/work_v28_10_base/source/docs/verification_output_v28_10.txt /mnt/data/work_v28_10/source/docs/verification_output_v28_10.txt
+--- /mnt/data/work_v28_10_base/source/docs/verification_output_v28_10.txt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v28_10/source/docs/verification_output_v28_10.txt	2026-05-02 14:30:32.298925998 +0000
+@@ -0,0 +1,35 @@
++nc_state=4 nc_error=0 nc_error_line=0 nc_exec=33 nc_read=89 nc_buf=56 nc_x=0 nc_y=0 nc_z=0 nc_m=0
++interp_segments=0 feed_profile=0 feed_override=0 dwell_ticks=0
++coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=0
++coord_transform blocks=0 mask=0x00000000 work_set=0 local_set=0 temp_set=0 dyn_x=0 mount_err_x=0 rotary_z=0
++feature_blocks=0 feature_flags=0 canned=0 skip=0 advanced=0
++g08_standard_seen=0 g08_high_precision_seen=0 g08_cancel_seen=0 g08_final_smoothing=0 g08_final_high_precision=0
++hpcc_seen=0 hpcc_cancel_seen=0 hpcc_final=0 g05_p3_seen=0
++comp_applied=23 comp_mask=0x00000007 comp_tool=0 comp_cutter=0 comp_rotation=0
++path_arc=3 path_helical=1 path_arc_segments=12 path_lookahead=47 path_slowdowns=29 path_corner_deg=180 path_override=80
++kin_transformed=43 kin_mirrored=23 kin_retracts=1 kin_singularity_warn=0 kin_mirror_mask=0x00000000 kin_retract_mask=0x00000004 kin_tool_z=9848 kin_last_x=3405 kin_last_a=-1200
++diag_axis_warn=0x00000003 diag_axis_limit=0x00000001 diag_axis_critical=0x00000000 decel_level=2 decel_override=45 load_peak_x=847
++tool_active=2 tool2_uses=1 tool_warn=0x00000000 tool_expired=0x00000000 diag_decel=2 diag_tool_expired=0x00000000 diag_axis_warn=0x00000003
++tool_mgmt active=0 prepared=0 parsed_t=0 exchange_req=0 exchange_done=0 max_wait=0 pocket2=0
++motion_filter_samples=159 mode=2 axis_mask=0x0000000f raw_vx=2789 smooth_vx=2920 out_x=3702
++motion_filter_limits vel_events=23 accel_events=61 endpoint_corrections=31 residual_samples=65 max_lag_x=3651 residual_x=-82
++tool_life_hold_state=0 tool_life_hold_error=0 tool_life_hold_line=0 events=64 lost=155 last_event=9601
++cycle_completed=2 cycle_phase_count=51 skip_completed=1 skip_x=1132
++cycle_detail last=830 repeat=1 repeat_done=2 peck_blocks=1 tap_blocks=0 boring_blocks=0 spindle_sync=0 spindle_reverse=0 manual_return=1
++aux_completed=1 aux_wait_cycles=126 prestart_ok=1 prestart_mask=0x00000000
++trace_frozen=0 trace_captured=32 trace_trigger_cycle=0
++capability parsed=88 g=84 m=7 address_words=319 binary_loaded=0
++interference checked=26 warnings=0 slowdown=0 safety_external=1 safety_position=1 safety_override=100
++reference planned=3 executed=3 homed=0x00000001 markers=1 one_direction=1 rollover=0 approach_x=-468
++rotary_mcc parsed=3 executed=0 active_mask=0x00000000 mcc_on=0 mcc_off=0 virt=11 cmd=0x00000003
++axis_config path=0x0000000f rotary=0x00000008 diameter=0x00000001 applied=39 diameter_blocks=39 detached_blocks=0 rejected=0 name_a=A last_x=608
++design_features mode=0x00000000 nurbs=0 exp=0 cyl=0 polar=0 helical_b=0 auto_corner=0 grinding=0 egb_skip=0 interference3d=0 followup=0 ts=0 rt=0 slowdown=0 override=0 last_x=0 last_y=0
++design_features_v21 involute=0 hp_contour=0 exact_stop=0 rigid_tap=0 thread_chamfer=0 second_ref=0 machine_direct=0 coord_shift=0 css=0 feed_per_rev=0
++implementation_backlog implemented=210 configured=210 ts=525 rt=268 synthetic=210 cat_mask=0x000003ff last_id=209 last_cat=4 last_policy=5 slowdown=43 cat0=108 cat9=80 last_x=1209
++sync mode_bits=0x0000 planned=0 executed=0 sync_motion=0 compound_motion=0 overlay_motion=0 double_table=0 slave_mask=0x00000000 max_follow_y=0 out_y=0
++precision previewed=49 limited=41 learning_updates=29 vibration_warn=0 rt_ticks=1195 corr_x=-67
++mode=1 state=2 alarm=0 cycle=1200
++coord_error_checks=5
++g08_error_checks=3
++hpcc_error_checks=4
++cycle_error_checks=4
+diff -ruN '--exclude=build' '--exclude=continuation_v28_10_diff.patch' /mnt/data/work_v28_10_base/source/inc/system_config.h /mnt/data/work_v28_10/source/inc/system_config.h
+--- /mnt/data/work_v28_10_base/source/inc/system_config.h	2026-05-02 11:25:48.000000000 +0000
++++ /mnt/data/work_v28_10/source/inc/system_config.h	2026-05-02 14:30:10.304574772 +0000
+@@ -771,7 +771,7 @@
+ #define NC_DESIGN_RIGID_TAP_MIN_TICKS         (8U)
+ #define NC_DESIGN_EXACT_STOP_PERCENT          (55U)
+ #define NC_DESIGN_HP_CONTOUR_PERCENT          (75U)
+-#define NC_IMPL_BACKLOG_FEATURE_COUNT          (200U)
++#define NC_IMPL_BACKLOG_FEATURE_COUNT          (210U)
+ #define NC_IMPL_BACKLOG_WORD_COUNT             (7U)
+ #define NC_IMPL_BACKLOG_DEFAULT_OVERRIDE       (92U)
+ #define NC_IMPL_BACKLOG_MIN_TICKS              (3U)
+@@ -786,6 +786,8 @@
+ #define NC_IMPL_BACKLOG_V26_ADDED_FEATURES      (20U)
+ #define NC_IMPL_BACKLOG_V27_FIRST_FEATURE       (180U)
+ #define NC_IMPL_BACKLOG_V27_ADDED_FEATURES      (20U)
++#define NC_IMPL_BACKLOG_V28_FIRST_FEATURE       (200U)
++#define NC_IMPL_BACKLOG_V28_ADDED_FEATURES      (10U)
+ #define NC_IMPL_BACKLOG_V23_ROTARY_DEG_180      (180000)
+ #define NC_IMPL_BACKLOG_V23_ROTARY_DEG_360      (360000)
+ #define NC_EVENT_CODE_DESIGN_FEATURE_APPLIED  (9601U)
+diff -ruN '--exclude=build' '--exclude=continuation_v28_10_diff.patch' /mnt/data/work_v28_10_base/source/runtime_log.csv /mnt/data/work_v28_10/source/runtime_log.csv
+--- /mnt/data/work_v28_10_base/source/runtime_log.csv	2026-05-02 11:26:15.000000000 +0000
++++ /mnt/data/work_v28_10/source/runtime_log.csv	2026-05-02 14:30:32.298510182 +0000
+@@ -201,3 +201,11 @@
+ 1,7101,1,35
+ 1,7102,1,40
+ 3,2001,0,1200
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++1,7101,1,35
++1,7102,1,40
++3,2001,0,1200
+diff -ruN '--exclude=build' '--exclude=continuation_v28_10_diff.patch' /mnt/data/work_v28_10_base/source/scripts/build_gcc_smoke_v28_10.sh /mnt/data/work_v28_10/source/scripts/build_gcc_smoke_v28_10.sh
+--- /mnt/data/work_v28_10_base/source/scripts/build_gcc_smoke_v28_10.sh	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v28_10/source/scripts/build_gcc_smoke_v28_10.sh	2026-05-02 14:30:19.395694583 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++mkdir -p "$ROOT_DIR/build"
++gcc -std=c99 -Wall -Wextra -I"$ROOT_DIR/inc" "$ROOT_DIR"/src/*.c -lm -o "$ROOT_DIR/build/ibm_bob_sample_v28_10"
+diff -ruN '--exclude=build' '--exclude=continuation_v28_10_diff.patch' /mnt/data/work_v28_10_base/source/scripts/test_gcc_smoke_v28_10.sh /mnt/data/work_v28_10/source/scripts/test_gcc_smoke_v28_10.sh
+--- /mnt/data/work_v28_10_base/source/scripts/test_gcc_smoke_v28_10.sh	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v28_10/source/scripts/test_gcc_smoke_v28_10.sh	2026-05-02 14:30:19.410915598 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++bash "$ROOT_DIR/scripts/build_gcc_smoke_v28_10.sh"
++"$ROOT_DIR/build/ibm_bob_sample_v28_10" | tee "$ROOT_DIR/docs/verification_output_v28_10.txt"
+diff -ruN '--exclude=build' '--exclude=continuation_v28_10_diff.patch' /mnt/data/work_v28_10_base/source/src/nc_feature_backlog.c /mnt/data/work_v28_10/source/src/nc_feature_backlog.c
+--- /mnt/data/work_v28_10_base/source/src/nc_feature_backlog.c	2026-05-02 11:25:48.000000000 +0000
++++ /mnt/data/work_v28_10/source/src/nc_feature_backlog.c	2026-05-02 14:30:10.306300582 +0000
+@@ -1,5 +1,5 @@
+ /* ibm-bob/samples/base/source/src/nc_feature_backlog.c */
+-/* Implements the v22-v27 design-document backlog features as fixed-size, RT-safe handlers. */
++/* Implements the v22-v28 design-document backlog features as fixed-size, RT-safe handlers. */
+ #include <string.h>
+ #include "nc_feature_backlog.h"
+ #include "nc_program.h"
+@@ -212,6 +212,16 @@
+     /* 197: ドライランI/O出力抑止 */ { 197U, 4U, 1U, 507U },
+     /* 198: シミュレーションモード安全出力マスク */ { 198U, 4U, 2U, 508U },
+     /* 199: 保守モード軸単独送り速度制限 */ { 199U, 4U, 3U, 509U },
++    /* 200: 輪郭先読み急峻角ブレーキ */ { 200U, 0U, 4U, 510U },
++    /* 201: 微小円弧チョード誤差補正 */ { 201U, 0U, 5U, 511U },
++    /* 202: 高速加工G05.1有効範囲監視 */ { 202U, 0U, 6U, 512U },
++    /* 203: ナノ補間丸め誤差蓄積リセット */ { 203U, 0U, 7U, 513U },
++    /* 204: 工具先端点姿勢変化率制限 */ { 204U, 5U, 0U, 514U },
++    /* 205: 自動潤滑ポンプREADY監視 */ { 205U, 8U, 1U, 515U },
++    /* 206: クランプエア圧低下HOLDラッチ */ { 206U, 9U, 2U, 516U },
++    /* 207: 切削油温度上昇フィード制限 */ { 207U, 4U, 3U, 517U },
++    /* 208: チャック回転中ドアロック二重確認 */ { 208U, 8U, 4U, 518U },
++    /* 209: 主軸冷却ファン異常段階減速 */ { 209U, 4U, 5U, 519U },
+ };
+ 
+ static uint16_t s_parameter[NC_IMPL_BACKLOG_FEATURE_COUNT];
+@@ -1029,6 +1039,103 @@
+         pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
+         SetMinTicks(pBlock, 5U);
+         break;
++
++    case 200U: { /* Lookahead sharp-corner brake. */
++        int32_t dx = pBlock->axis_target[0] - pBlock->axis_start[0];
++        int32_t dy = pBlock->axis_target[1] - pBlock->axis_start[1];
++        int32_t turnMetric = AbsI32(dx) + AbsI32(dy);
++        if ((IsMotion(pBlock) != 0U) &&
++            (turnMetric > (int32_t)ClampI32((int32_t)param * 20, 100, 20000))) {
++            SlowFeed(pBlock, 72U);
++            pBlock->decel_ticks += 3U;
++        }
++        pBlock->feature_flags |= (NC_FEATURE_FLAG_HIGH_SPEED_MODE | NC_FEATURE_FLAG_SMOOTHING);
++        SetMinTicks(pBlock, 6U);
++        break;
++    }
++    case 201U: /* Micro-arc chord-error correction. */
++        if ((pBlock->motion_type == NC_MOTION_ARC_CW) ||
++            (pBlock->motion_type == NC_MOTION_ARC_CCW) ||
++            (pBlock->arc_radius != 0)) {
++            int32_t chordGuard = ClampI32((int32_t)param, 2, 200);
++            pBlock->arc_radius = ClampI32((pBlock->arc_radius == 0) ? chordGuard : pBlock->arc_radius, chordGuard, 1000000);
++            pBlock->axis_target[0] += (pBlock->motion_type == NC_MOTION_ARC_CCW) ? 1 : -1;
++            pBlock->axis_target[1] += 1;
++            pBlock->feature_flags |= NC_FEATURE_FLAG_HIGH_PRECISION;
++        }
++        SetMinTicks(pBlock, 5U);
++        break;
++    case 202U: /* G05.1 high-speed machining effective-range monitor. */
++        pBlock->feature_flags |= (NC_FEATURE_FLAG_HIGH_SPEED_MODE | NC_FEATURE_FLAG_ADVANCED_INTERP);
++        if (pBlock->feed > 0) {
++            int32_t maxFeed = (int32_t)ClampI32((int32_t)param * 900, 12000, 90000);
++            pBlock->feed = ClampI32(pBlock->feed, 1, maxFeed);
++        }
++        pBlock->accel_ticks += 2U;
++        pBlock->decel_ticks += 2U;
++        SetMinTicks(pBlock, 7U);
++        break;
++    case 203U: { /* Nano-interpolation accumulated-rounding reset. */
++        uint32_t axis;
++        for (axis = 0U; axis < AXIS_MAX; ++axis) {
++            if ((pBlock->axis_mask & (1UL << axis)) != 0U) {
++                int32_t step = (int32_t)ClampI32((int32_t)(param % 8U) + 1, 1, 8);
++                pBlock->axis_target[axis] = (pBlock->axis_target[axis] / step) * step;
++            }
++        }
++        pBlock->feature_flags |= NC_FEATURE_FLAG_HIGH_PRECISION;
++        SetMinTicks(pBlock, 4U);
++        break;
++    }
++    case 204U: { /* Tool-tip posture change-rate limit. */
++        int32_t maxStep = ClampI32((int32_t)param * 5, 25, 2000);
++        uint32_t axis;
++        pBlock->tool_axis_command = 1U;
++        for (axis = 0U; axis < 3U; ++axis) {
++            pBlock->tool_axis_angle_deg[axis] = ClampI32(pBlock->tool_axis_angle_deg[axis], -maxStep, maxStep);
++        }
++        pBlock->feature_flags |= NC_FEATURE_FLAG_TOOL_AXIS_DIR;
++        SlowFeed(pBlock, 78U);
++        SetMinTicks(pBlock, 6U);
++        break;
++    }
++    case 205U: /* Automatic lubrication pump READY monitor. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 70U; }
++        pBlock->p_word = (pBlock->p_word == 0U) ? (uint32_t)ClampI32((int32_t)param % 20, 1, 19) : pBlock->p_word;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
++        SetMinTicks(pBlock, 5U);
++        break;
++    case 206U: /* Clamp-air pressure drop HOLD latch. */
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        SlowFeed(pBlock, 40U);
++        pBlock->decel_ticks += 6U;
++        SetMinTicks(pBlock, 10U);
++        break;
++    case 207U: /* Cutting-oil temperature high feed limitation. */
++        pBlock->feed = ClampI32((pBlock->feed <= 0) ? 1000 : pBlock->feed, 1, 30000);
++        SlowFeed(pBlock, 64U);
++        pBlock->accel_ticks += 2U;
++        pBlock->decel_ticks += 2U;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_SMOOTHING;
++        SetMinTicks(pBlock, 7U);
++        break;
++    case 208U: /* Door-lock double confirmation while chuck rotates. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 71U; }
++        if (pBlock->spindle_speed == 0U) { pBlock->spindle_speed = 250U; }
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        SlowFeed(pBlock, 52U);
++        SetMinTicks(pBlock, 8U);
++        break;
++    case 209U: /* Spindle cooling fan abnormal staged deceleration. */
++        if (pBlock->spindle_speed == 0U) { pBlock->spindle_speed = 500U; }
++        SlowFeed(pBlock, 58U);
++        pBlock->decel_ticks += 4U;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_SMOOTHING;
++        SetMinTicks(pBlock, 8U);
++        break;
+     default:
+         break;
+     }
+@@ -1178,7 +1285,7 @@
+         const NC_BACKLOG_DESCRIPTOR* pDesc = &s_backlog[i];
+         if ((IsEnabled(pDesc->feature_id) != 0U) &&
+             (MatchesDescriptor(pDesc, pBlock) != 0U)) {
+-            /* v22 legacy items remain observation-first. v23-v27 additions are
++            /* v22 legacy items remain observation-first. v23-v28 additions are
+              * promoted to deterministic fixed-block TS transformations. */
+             if (pDesc->feature_id >= NC_IMPL_BACKLOG_V23_FIRST_FEATURE) {
+                 ApplyV23Policy(pDesc, pBlock);

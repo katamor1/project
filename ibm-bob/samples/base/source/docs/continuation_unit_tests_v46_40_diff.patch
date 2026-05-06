@@ -1,0 +1,375 @@
+diff --git a/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/tests/test_nc_feature_backlog_additional_v46_40.c b/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/tests/test_nc_feature_backlog_additional_v46_40.c
+new file mode 100755
+index 0000000..fd4d658
+--- /dev/null
++++ b/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/tests/test_nc_feature_backlog_additional_v46_40.c
+@@ -0,0 +1,268 @@
++/*
++ * IBM-Bob additional unit tests v46_40.
++ *
++ * Adds another 40 unit tests for backlog modules v35-v41.
++ * This set intentionally avoids the main v43-v45 focus points and targets:
++ *   1) idempotent enable/disable calls
++ *   2) NULL status API error contracts
++ *   3) Init after activity clears all counters and masks
++ *   4) reverse-order disable clears all enabled bits
++ *   5) invalid feature-name resolution below/above the valid range
++ *   6) partially disabled TS path excludes disabled feature hit records
++ */
++#include "nc_feature_backlog_v35.h"
++#include "nc_feature_backlog_v36.h"
++#include "nc_feature_backlog_v37.h"
++#include "nc_feature_backlog_v38.h"
++#include "nc_feature_backlog_v39.h"
++#include "nc_feature_backlog_v40.h"
++#include "nc_feature_backlog_v41.h"
++
++#include <stdint.h>
++#include <stdio.h>
++#include <string.h>
++
++#if defined(__GNUC__)
++#define IBM_BOB_UNUSED __attribute__((unused))
++#else
++#define IBM_BOB_UNUSED
++#endif
++
++static uint32_t g_tests_run = 0u;
++static uint32_t g_tests_failed = 0u;
++
++static void test_begin(const char *name)
++{
++    g_tests_run++;
++    printf("[TEST %02u] %s\n", g_tests_run, name);
++}
++
++static void fail_u32(const char *expr, uint32_t actual, uint32_t expected, const char *file, int line)
++{
++    g_tests_failed++;
++    printf("  FAIL %s:%d %s actual=%u expected=%u\n", file, line, expr, actual, expected);
++}
++
++static void fail_i32(const char *expr, int32_t actual, int32_t expected, const char *file, int line)
++{
++    g_tests_failed++;
++    printf("  FAIL %s:%d %s actual=%d expected=%d\n", file, line, expr, actual, expected);
++}
++
++static void fail_true(const char *expr, const char *file, int line)
++{
++    g_tests_failed++;
++    printf("  FAIL %s:%d %s\n", file, line, expr);
++}
++
++#define EXPECT_EQ_U32(actual_, expected_) do { \
++    uint32_t a__ = (uint32_t)(actual_); \
++    uint32_t e__ = (uint32_t)(expected_); \
++    if (a__ != e__) { fail_u32(#actual_, a__, e__, __FILE__, __LINE__); } \
++} while (0)
++
++#define EXPECT_EQ_I32(actual_, expected_) do { \
++    int32_t a__ = (int32_t)(actual_); \
++    int32_t e__ = (int32_t)(expected_); \
++    if (a__ != e__) { fail_i32(#actual_, a__, e__, __FILE__, __LINE__); } \
++} while (0)
++
++#define EXPECT_TRUE(expr_) do { \
++    if (!(expr_)) { fail_true(#expr_, __FILE__, __LINE__); } \
++} while (0)
++
++#define EXPECT_NONZERO_U32(value_) do { \
++    if ((uint32_t)(value_) == 0u) { fail_true(#value_ " != 0", __FILE__, __LINE__); } \
++} while (0)
++
++#define DEFINE_V46_COMMON_TESTS(VNUM) \
++static uint32_t sum_hits_v##VNUM(const NC_FEATURE_BACKLOG_V##VNUM##_STATUS *status) \
++{ \
++    uint32_t i; \
++    uint32_t sum = 0u; \
++    for (i = 0u; i < NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_COUNT; ++i) { \
++        sum += status->per_feature_hits[i]; \
++    } \
++    return sum; \
++} \
++static void fill_block_v##VNUM(NC_FEATURE_BACKLOG_V##VNUM##_BLOCK *block, int32_t base_value) \
++{ \
++    uint32_t i; \
++    memset(block, 0, sizeof(*block)); \
++    block->feed_override_percent = 100; \
++    for (i = 0u; i < NC_FEATURE_BACKLOG_V##VNUM##_AXIS_COUNT; ++i) { \
++        block->axis_target[i] = base_value + (int32_t)(i * 7u); \
++    } \
++} \
++static void test_v##VNUM##_v46_01_double_enable_disable_idempotent(void) \
++{ \
++    NC_FEATURE_BACKLOG_V##VNUM##_STATUS status; \
++    uint32_t base = NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_BASE_ID; \
++    test_begin("v" #VNUM " double enable/disable is idempotent"); \
++    NcFeatureBacklogV##VNUM##_Init(); \
++    EXPECT_EQ_U32(Api_SetNcFeatureBacklogV##VNUM##Feature(base, 1u), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(Api_SetNcFeatureBacklogV##VNUM##Feature(base, 1u), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(Api_GetNcFeatureBacklogV##VNUM##Status(&status), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(status.configured_count, 1u); \
++    EXPECT_EQ_U32(status.enabled_mask, 1u); \
++    EXPECT_EQ_U32(Api_SetNcFeatureBacklogV##VNUM##Feature(base, 0u), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(Api_SetNcFeatureBacklogV##VNUM##Feature(base, 0u), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(Api_GetNcFeatureBacklogV##VNUM##Status(&status), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(status.configured_count, 0u); \
++    EXPECT_EQ_U32(status.enabled_mask, 0u); \
++} \
++static void test_v##VNUM##_v46_02_status_null_error_contract(void) \
++{ \
++    NC_FEATURE_BACKLOG_V##VNUM##_STATUS status; \
++    test_begin("v" #VNUM " NULL status API returns ERR_NULL"); \
++    NcFeatureBacklogV##VNUM##_Init(); \
++    EXPECT_EQ_I32(Api_GetNcFeatureBacklogV##VNUM##Status((NC_FEATURE_BACKLOG_V##VNUM##_STATUS *)0), NC_FEATURE_BACKLOG_V##VNUM##_ERR_NULL); \
++    EXPECT_EQ_I32(Api_GetNcFeatureBacklogV##VNUM##Status(&status), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(status.implemented_count, NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_COUNT); \
++    EXPECT_EQ_U32(status.warning_count, 0u); \
++} \
++static void test_v##VNUM##_v46_03_init_after_activity_clears_counters(void) \
++{ \
++    NC_FEATURE_BACKLOG_V##VNUM##_BLOCK block; \
++    NC_FEATURE_BACKLOG_V##VNUM##_RT_IO io; \
++    NC_FEATURE_BACKLOG_V##VNUM##_STATUS status; \
++    test_begin("v" #VNUM " Init after activity clears counters"); \
++    NcFeatureBacklogV##VNUM##_Init(); \
++    Api_EnableAllNcFeatureBacklogV##VNUM##Features(); \
++    fill_block_v##VNUM(&block, (int32_t)(VNUM * 1000 + 100)); \
++    memset(&io, 0, sizeof(io)); \
++    io.cycle_counter = 77u; \
++    NcFeatureBacklogV##VNUM##_ApplyBlockTs(&block); \
++    NcFeatureBacklogV##VNUM##_RunRtTick(&io); \
++    EXPECT_EQ_U32(Api_GetNcFeatureBacklogV##VNUM##Status(&status), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_NONZERO_U32(status.configured_count); \
++    EXPECT_NONZERO_U32(status.ts_apply_count); \
++    EXPECT_NONZERO_U32(status.rt_tick_count); \
++    NcFeatureBacklogV##VNUM##_Init(); \
++    EXPECT_EQ_U32(Api_GetNcFeatureBacklogV##VNUM##Status(&status), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(status.configured_count, 0u); \
++    EXPECT_EQ_U32(status.enabled_mask, 0u); \
++    EXPECT_EQ_U32(status.ts_apply_count, 0u); \
++    EXPECT_EQ_U32(status.rt_tick_count, 0u); \
++    EXPECT_EQ_U32(status.warning_count, 0u); \
++    EXPECT_EQ_U32(sum_hits_v##VNUM(&status), 0u); \
++} \
++static void test_v##VNUM##_v46_04_reverse_disable_clears_all_bits(void) \
++{ \
++    NC_FEATURE_BACKLOG_V##VNUM##_STATUS status; \
++    uint32_t i; \
++    uint32_t base = NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_BASE_ID; \
++    test_begin("v" #VNUM " reverse disable clears all bits"); \
++    NcFeatureBacklogV##VNUM##_Init(); \
++    Api_EnableAllNcFeatureBacklogV##VNUM##Features(); \
++    for (i = NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_COUNT; i > 0u; --i) { \
++        EXPECT_EQ_U32(Api_SetNcFeatureBacklogV##VNUM##Feature(base + (i - 1u), 0u), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    } \
++    EXPECT_EQ_U32(Api_GetNcFeatureBacklogV##VNUM##Status(&status), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(status.configured_count, 0u); \
++    EXPECT_EQ_U32(status.enabled_mask, 0u); \
++    for (i = 0u; i < NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_COUNT; ++i) { \
++        EXPECT_EQ_U32(NcFeatureBacklogV##VNUM##_IsFeatureEnabled(base + i), 0u); \
++    } \
++} \
++static void test_v##VNUM##_v46_05_invalid_feature_names_below_and_above_are_unknown(void) \
++{ \
++    uint32_t base = NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_BASE_ID; \
++    test_begin("v" #VNUM " invalid feature names below and above range"); \
++    NcFeatureBacklogV##VNUM##_Init(); \
++    EXPECT_TRUE(strcmp(NcFeatureBacklogV##VNUM##_GetFeatureName(base - 1u), "unknown") == 0); \
++    EXPECT_TRUE(strcmp(NcFeatureBacklogV##VNUM##_GetFeatureName(base + NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_COUNT + 10u), "unknown") == 0); \
++    EXPECT_TRUE(strcmp(NcFeatureBacklogV##VNUM##_GetFeatureName(base), "unknown") != 0); \
++} \
++static IBM_BOB_UNUSED void test_v##VNUM##_v46_06_partially_disabled_ts_excludes_edges(void) \
++{ \
++    NC_FEATURE_BACKLOG_V##VNUM##_BLOCK block; \
++    NC_FEATURE_BACKLOG_V##VNUM##_STATUS status; \
++    uint32_t base = NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_BASE_ID; \
++    uint32_t last = NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_COUNT - 1u; \
++    test_begin("v" #VNUM " partially disabled TS excludes edge features"); \
++    NcFeatureBacklogV##VNUM##_Init(); \
++    Api_EnableAllNcFeatureBacklogV##VNUM##Features(); \
++    EXPECT_EQ_U32(Api_SetNcFeatureBacklogV##VNUM##Feature(base, 0u), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(Api_SetNcFeatureBacklogV##VNUM##Feature(base + last, 0u), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    fill_block_v##VNUM(&block, (int32_t)(VNUM * 1000 + 200)); \
++    NcFeatureBacklogV##VNUM##_ApplyBlockTs(&block); \
++    EXPECT_EQ_U32(Api_GetNcFeatureBacklogV##VNUM##Status(&status), NC_FEATURE_BACKLOG_V##VNUM##_OK); \
++    EXPECT_EQ_U32(status.ts_apply_count, 1u); \
++    EXPECT_EQ_U32(status.configured_count, NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_COUNT - 2u); \
++    EXPECT_EQ_U32(status.per_feature_hits[0], 0u); \
++    EXPECT_EQ_U32(status.per_feature_hits[last], 0u); \
++    EXPECT_EQ_U32(sum_hits_v##VNUM(&status), NC_FEATURE_BACKLOG_V##VNUM##_FEATURE_COUNT - 2u); \
++    EXPECT_TRUE(status.last_feature_id != base); \
++    EXPECT_TRUE(status.last_feature_id != (base + last)); \
++}
++
++DEFINE_V46_COMMON_TESTS(35)
++DEFINE_V46_COMMON_TESTS(36)
++DEFINE_V46_COMMON_TESTS(37)
++DEFINE_V46_COMMON_TESTS(38)
++DEFINE_V46_COMMON_TESTS(39)
++DEFINE_V46_COMMON_TESTS(40)
++DEFINE_V46_COMMON_TESTS(41)
++
++int main(void)
++{
++    test_v35_v46_01_double_enable_disable_idempotent();
++    test_v35_v46_02_status_null_error_contract();
++    test_v35_v46_03_init_after_activity_clears_counters();
++    test_v35_v46_04_reverse_disable_clears_all_bits();
++    test_v35_v46_05_invalid_feature_names_below_and_above_are_unknown();
++    test_v35_v46_06_partially_disabled_ts_excludes_edges();
++
++    test_v36_v46_01_double_enable_disable_idempotent();
++    test_v36_v46_02_status_null_error_contract();
++    test_v36_v46_03_init_after_activity_clears_counters();
++    test_v36_v46_04_reverse_disable_clears_all_bits();
++    test_v36_v46_05_invalid_feature_names_below_and_above_are_unknown();
++    test_v36_v46_06_partially_disabled_ts_excludes_edges();
++
++    test_v37_v46_01_double_enable_disable_idempotent();
++    test_v37_v46_02_status_null_error_contract();
++    test_v37_v46_03_init_after_activity_clears_counters();
++    test_v37_v46_04_reverse_disable_clears_all_bits();
++    test_v37_v46_05_invalid_feature_names_below_and_above_are_unknown();
++    test_v37_v46_06_partially_disabled_ts_excludes_edges();
++
++    test_v38_v46_01_double_enable_disable_idempotent();
++    test_v38_v46_02_status_null_error_contract();
++    test_v38_v46_03_init_after_activity_clears_counters();
++    test_v38_v46_04_reverse_disable_clears_all_bits();
++    test_v38_v46_05_invalid_feature_names_below_and_above_are_unknown();
++    test_v38_v46_06_partially_disabled_ts_excludes_edges();
++
++    test_v39_v46_01_double_enable_disable_idempotent();
++    test_v39_v46_02_status_null_error_contract();
++    test_v39_v46_03_init_after_activity_clears_counters();
++    test_v39_v46_04_reverse_disable_clears_all_bits();
++    test_v39_v46_05_invalid_feature_names_below_and_above_are_unknown();
++    test_v39_v46_06_partially_disabled_ts_excludes_edges();
++
++    test_v40_v46_01_double_enable_disable_idempotent();
++    test_v40_v46_02_status_null_error_contract();
++    test_v40_v46_03_init_after_activity_clears_counters();
++    test_v40_v46_04_reverse_disable_clears_all_bits();
++    test_v40_v46_05_invalid_feature_names_below_and_above_are_unknown();
++
++    test_v41_v46_01_double_enable_disable_idempotent();
++    test_v41_v46_02_status_null_error_contract();
++    test_v41_v46_03_init_after_activity_clears_counters();
++    test_v41_v46_04_reverse_disable_clears_all_bits();
++    test_v41_v46_05_invalid_feature_names_below_and_above_are_unknown();
++
++    printf("UNIT_TEST_SUMMARY tests=%u failures=%u\n", g_tests_run, g_tests_failed);
++    if (g_tests_run != 40u) {
++        printf("FAILED expected exactly 40 test cases\n");
++        return 1;
++    }
++    if (g_tests_failed != 0u) {
++        printf("FAILED failures=%u\n", g_tests_failed);
++        return 1;
++    }
++    printf("PASS additional_unit_tests_v46_40\n");
++    return 0;
++}
+diff --git a/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/scripts/build_gcc_unit_tests_v46_40.sh b/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/scripts/build_gcc_unit_tests_v46_40.sh
+new file mode 100755
+index 0000000..a894ea2
+--- /dev/null
++++ b/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/scripts/build_gcc_unit_tests_v46_40.sh
+@@ -0,0 +1,14 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd "$(dirname "$0")/.."
++mkdir -p build
++gcc -std=c99 -Wall -Wextra -Iinc \
++  tests/test_nc_feature_backlog_additional_v46_40.c \
++  src/nc_feature_backlog_v35.c \
++  src/nc_feature_backlog_v36.c \
++  src/nc_feature_backlog_v37.c \
++  src/nc_feature_backlog_v38.c \
++  src/nc_feature_backlog_v39.c \
++  src/nc_feature_backlog_v40.c \
++  src/nc_feature_backlog_v41.c \
++  -o build/test_nc_feature_backlog_additional_v46_40
+diff --git a/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/scripts/test_gcc_unit_tests_v46_40.sh b/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/scripts/test_gcc_unit_tests_v46_40.sh
+new file mode 100755
+index 0000000..9626cfa
+--- /dev/null
++++ b/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/scripts/test_gcc_unit_tests_v46_40.sh
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd "$(dirname "$0")/.."
++scripts/build_gcc_unit_tests_v46_40.sh
++build/test_nc_feature_backlog_additional_v46_40 | tee build/unit_test_results_v46_40.txt
+diff --git a/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/scripts/build_vc2026_unit_tests_v46_40.bat b/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/scripts/build_vc2026_unit_tests_v46_40.bat
+new file mode 100644
+index 0000000..4bf9c82
+--- /dev/null
++++ b/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/scripts/build_vc2026_unit_tests_v46_40.bat
+@@ -0,0 +1,15 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++if not exist build mkdir build
++cl.exe /nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc ^
++  tests\test_nc_feature_backlog_additional_v46_40.c ^
++  src\nc_feature_backlog_v35.c ^
++  src\nc_feature_backlog_v36.c ^
++  src\nc_feature_backlog_v37.c ^
++  src\nc_feature_backlog_v38.c ^
++  src\nc_feature_backlog_v39.c ^
++  src\nc_feature_backlog_v40.c ^
++  src\nc_feature_backlog_v41.c ^
++  /Febuild\test_nc_feature_backlog_additional_v46_40.exe
++exit /b %ERRORLEVEL%
+diff --git a/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/scripts/test_vc2026_unit_tests_v46_40.bat b/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/scripts/test_vc2026_unit_tests_v46_40.bat
+new file mode 100644
+index 0000000..8c28e94
+--- /dev/null
++++ b/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/scripts/test_vc2026_unit_tests_v46_40.bat
+@@ -0,0 +1,8 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++call scripts\build_vc2026_unit_tests_v46_40.bat || exit /b %ERRORLEVEL%
++build\test_nc_feature_backlog_additional_v46_40.exe > build\unit_test_results_v46_40.txt
++set RC=%ERRORLEVEL%
++type build\unit_test_results_v46_40.txt
++exit /b %RC%
+diff --git a/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/scripts/build_clang_unit_tests_v46_40.bat b/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/scripts/build_clang_unit_tests_v46_40.bat
+new file mode 100644
+index 0000000..6cc6b51
+--- /dev/null
++++ b/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/scripts/build_clang_unit_tests_v46_40.bat
+@@ -0,0 +1,15 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++if not exist build mkdir build
++clang.exe -std=c99 -Wall -Wextra -Iinc ^
++  tests\test_nc_feature_backlog_additional_v46_40.c ^
++  src\nc_feature_backlog_v35.c ^
++  src\nc_feature_backlog_v36.c ^
++  src\nc_feature_backlog_v37.c ^
++  src\nc_feature_backlog_v38.c ^
++  src\nc_feature_backlog_v39.c ^
++  src\nc_feature_backlog_v40.c ^
++  src\nc_feature_backlog_v41.c ^
++  -o build\test_nc_feature_backlog_additional_v46_40.exe
++exit /b %ERRORLEVEL%
+diff --git a/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/scripts/test_clang_unit_tests_v46_40.bat b/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/scripts/test_clang_unit_tests_v46_40.bat
+new file mode 100644
+index 0000000..5621e5f
+--- /dev/null
++++ b/mnt/data/ibm_bob_source_unit_tests_additional_v46_40/source/scripts/test_clang_unit_tests_v46_40.bat
+@@ -0,0 +1,8 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++call scripts\build_clang_unit_tests_v46_40.bat || exit /b %ERRORLEVEL%
++build\test_nc_feature_backlog_additional_v46_40.exe > build\unit_test_results_v46_40.txt
++set RC=%ERRORLEVEL%
++type build\unit_test_results_v46_40.txt
++exit /b %RC%

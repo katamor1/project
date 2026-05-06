@@ -1,0 +1,67 @@
+{
+  "version": "v25_20",
+  "base": "v24_20",
+  "feature_count_before": 140,
+  "feature_count_after": 160,
+  "added_feature_ids": [
+    140,
+    141,
+    142,
+    143,
+    144,
+    145,
+    146,
+    147,
+    148,
+    149,
+    150,
+    151,
+    152,
+    153,
+    154,
+    155,
+    156,
+    157,
+    158,
+    159
+  ],
+  "gcc_smoke_test": "passed",
+  "generated_at_epoch": 1777718562,
+  "files": [
+    {
+      "path": "source/inc/system_config.h",
+      "size": 36899,
+      "sha256": "134e7ac0c4ee1d0ba9315c265c90d5e001ed8739a2e6bce4c1c8b77097f0a298"
+    },
+    {
+      "path": "source/inc/system_shared.h",
+      "size": 70755,
+      "sha256": "ce83735251cb85ac5ec548a916247f85680e17551566e82ba84b3d41ce830cf3"
+    },
+    {
+      "path": "source/src/nc_feature_backlog.c",
+      "size": 46701,
+      "sha256": "5238b95e7f40ad70716a4420e62d74eaf84e5e9bdc768f5f88e3529fe839e94d"
+    },
+    {
+      "path": "source/scripts/build_gcc_smoke_v25.sh",
+      "size": 219,
+      "sha256": "ad3d3e17b088f95fb121b2ecfe7dfa104cab101c2d5418be31466469734526a9"
+    },
+    {
+      "path": "source/scripts/test_gcc_smoke_v25.sh",
+      "size": 222,
+      "sha256": "366fa65f778ebedb0dbdc699d07b717cff961d64c7d03ea48b1d435ebf339c14"
+    },
+    {
+      "path": "source/docs/implementation_report_v25_20.md",
+      "size": 3059,
+      "sha256": "1da0e1fea74d672ba2a3128f7d2d671273abe0a6bd4d5bab4c05020f72fb040c"
+    },
+    {
+      "path": "source/docs/verification_output_v25_20.txt",
+      "size": 3354,
+      "sha256": "3426a19d7571c87b77bb51b86d43409a828fe33a685de2eacec64fc103abf3bb"
+    }
+  ]
+}

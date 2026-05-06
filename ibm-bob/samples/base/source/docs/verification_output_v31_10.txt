@@ -1,0 +1,35 @@
+nc_state=4 nc_error=0 nc_error_line=0 nc_exec=32 nc_read=89 nc_buf=57 nc_x=0 nc_y=0 nc_z=0 nc_m=0
+interp_segments=0 feed_profile=0 feed_override=0 dwell_ticks=0
+coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=0
+coord_transform blocks=0 mask=0x00000000 work_set=0 local_set=0 temp_set=0 dyn_x=0 mount_err_x=0 rotary_z=0
+feature_blocks=0 feature_flags=0 canned=0 skip=0 advanced=0
+g08_standard_seen=0 g08_high_precision_seen=0 g08_cancel_seen=0 g08_final_smoothing=0 g08_final_high_precision=0
+hpcc_seen=0 hpcc_cancel_seen=0 hpcc_final=0 g05_p3_seen=0
+comp_applied=23 comp_mask=0x00000007 comp_tool=0 comp_cutter=0 comp_rotation=0
+path_arc=3 path_helical=1 path_arc_segments=12 path_lookahead=47 path_slowdowns=29 path_corner_deg=180 path_override=80
+kin_transformed=43 kin_mirrored=23 kin_retracts=1 kin_singularity_warn=0 kin_mirror_mask=0x00000000 kin_retract_mask=0x00000004 kin_tool_z=9848 kin_last_x=3405 kin_last_a=-1200
+diag_axis_warn=0x00000003 diag_axis_limit=0x00000001 diag_axis_critical=0x00000000 decel_level=2 decel_override=45 load_peak_x=847
+tool_active=0 tool2_uses=0 tool_warn=0x00000000 tool_expired=0x00000000 diag_decel=2 diag_tool_expired=0x00000000 diag_axis_warn=0x00000003
+tool_mgmt active=0 prepared=0 parsed_t=0 exchange_req=0 exchange_done=0 max_wait=0 pocket2=0
+motion_filter_samples=182 mode=2 axis_mask=0x0000000f raw_vx=2783 smooth_vx=2475 out_x=3702
+motion_filter_limits vel_events=32 accel_events=92 endpoint_corrections=30 residual_samples=87 max_lag_x=5847 residual_x=-82
+tool_life_hold_state=0 tool_life_hold_error=0 tool_life_hold_line=0 events=64 lost=180 last_event=9601
+cycle_completed=2 cycle_phase_count=51 skip_completed=1 skip_x=2460
+cycle_detail last=830 repeat=1 repeat_done=2 peck_blocks=1 tap_blocks=0 boring_blocks=0 spindle_sync=0 spindle_reverse=0 manual_return=1
+aux_completed=4 aux_wait_cycles=0 prestart_ok=1 prestart_mask=0x00000000
+trace_frozen=0 trace_captured=32 trace_trigger_cycle=0
+capability parsed=88 g=84 m=10 address_words=331 binary_loaded=0
+interference checked=26 warnings=0 slowdown=0 safety_external=1 safety_position=1 safety_override=100
+reference planned=3 executed=3 homed=0x00000001 markers=1 one_direction=1 rollover=0 approach_x=-468
+rotary_mcc parsed=3 executed=0 active_mask=0x00000000 mcc_on=0 mcc_off=0 virt=11 cmd=0x00000003
+axis_config path=0x0000000f rotary=0x00000008 diameter=0x00000001 applied=39 diameter_blocks=39 detached_blocks=0 rejected=0 name_a=A last_x=608
+design_features mode=0x00000000 nurbs=0 exp=0 cyl=0 polar=0 helical_b=0 auto_corner=0 grinding=0 egb_skip=0 interference3d=0 followup=0 ts=0 rt=0 slowdown=0 override=0 last_x=0 last_y=0
+design_features_v21 involute=0 hp_contour=0 exact_stop=0 rigid_tap=0 thread_chamfer=0 second_ref=0 machine_direct=0 coord_shift=0 css=0 feed_per_rev=0
+implementation_backlog implemented=240 configured=240 ts=574 rt=302 synthetic=240 cat_mask=0x000003ff last_id=239 last_cat=9 last_policy=3 slowdown=55 cat0=112 cat9=99 last_x=1239
+sync mode_bits=0x0000 planned=0 executed=0 sync_motion=0 compound_motion=0 overlay_motion=0 double_table=0 slave_mask=0x00000000 max_follow_y=0 out_y=0
+precision previewed=52 limited=49 learning_updates=35 vibration_warn=0 rt_ticks=1195 corr_x=-67
+mode=1 state=2 alarm=0 cycle=1200
+coord_error_checks=5
+g08_error_checks=3
+hpcc_error_checks=4
+cycle_error_checks=4

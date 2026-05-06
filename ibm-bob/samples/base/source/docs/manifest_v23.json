@@ -1,0 +1,47 @@
+{
+  "version": "v23",
+  "base": "uploaded source.zip v22-style source tree",
+  "implemented_feature_count": 20,
+  "implementation_backlog_feature_count": 120,
+  "first_added_feature_id": 100,
+  "last_added_feature_id": 119,
+  "verification": "GCC smoke build/test passed; see docs/verification_output_v23.txt",
+  "notes": "continuation_v23_diff.patch excludes generated manifest and itself to avoid circular diffs. The manifest intentionally does not hash itself.",
+  "files": [
+    {
+      "path": "inc/system_config.h",
+      "size": 36681,
+      "sha256": "9e3fafb09e679e796c388443b04e05d4ffdfe956dad6b05716c9a82a4ce42176"
+    },
+    {
+      "path": "src/nc_feature_backlog.c",
+      "size": 28354,
+      "sha256": "ec491b8a8cf85f14f31c8866b382abe93ae3fbd71f5fba58014fdfb40705ac9d"
+    },
+    {
+      "path": "scripts/build_gcc_smoke_v23.sh",
+      "size": 219,
+      "sha256": "7f1fd82f3fe2f5aeaec7be60cd296985c43b9a3ef70a578eef6e6cb4d100b929"
+    },
+    {
+      "path": "scripts/test_gcc_smoke_v23.sh",
+      "size": 219,
+      "sha256": "0cc20873004874c9e730b3b3cbb8a4aeb3e0bf1c976a103d71bbec98f310fd90"
+    },
+    {
+      "path": "docs/implementation_report_v23.md",
+      "size": 5475,
+      "sha256": "764d0074559a23d237cb840728dfe5e5f7ae44e29fb7bfc8e75654511674925a"
+    },
+    {
+      "path": "docs/verification_output_v23.txt",
+      "size": 3400,
+      "sha256": "38cf6a8fd931abd57e26cd20ca8d407a691e3afc771387ec8d866d47a859e15b"
+    },
+    {
+      "path": "docs/continuation_v23_diff.patch",
+      "size": 25173,
+      "sha256": "62fe990cd8632a0e7caa96fb50aefd2fe572d77cf19cbaa949c70a121fcf8d8e"
+    }
+  ]
+}

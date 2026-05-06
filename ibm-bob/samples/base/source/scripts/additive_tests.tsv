@@ -1,0 +1,170 @@
+# ibm-bob/samples/base/source/scripts/additive_tests.tsv
+# Lists all unit-test executables and their source dependencies.
+# This exists so build and run scripts stay consolidated and data-driven.
+# RELEVANT FILES: ibm-bob/samples/base/source/scripts/build_additive_tests.bat, ibm-bob/samples/base/source/scripts/run_additive_tests.bat, ibm-bob/samples/base/source/scripts/build_tests.bat
+# test_name|msvc_flags|posix_flags|sources
+test_control_api|-|-|tests/test_control_api.c src/control_api.c src/nc_design_features.c src/nc_feature_backlog.c src/system_shared.c src/nc_buffer.c src/nc_motion_filter.c stubs/stub_external_io.c stubs/stub_module_deps.c
+test_nc_buffer|-|-|tests/test_nc_buffer.c src/system_shared.c src/nc_buffer.c src/nc_motion_filter.c stubs/stub_external_io.c
+test_nc_diagnostics|-|-|tests/test_nc_diagnostics.c src/system_shared.c src/nc_buffer.c src/nc_motion_filter.c src/nc_diagnostics.c stubs/stub_external_io.c
+test_nc_motion_filter|-|-|tests/test_nc_motion_filter.c src/system_shared.c src/nc_buffer.c src/nc_motion_filter.c stubs/stub_external_io.c
+test_nc_codes|-|-|tests/test_nc_codes.c src/nc_codes.c
+test_nc_feed|-|-|tests/test_nc_feed.c src/system_shared.c src/nc_feed.c src/nc_buffer.c src/nc_motion_filter.c stubs/stub_external_io.c
+test_nc_coordinate|-|-|tests/test_nc_coordinate.c src/system_shared.c src/nc_coordinate.c src/nc_buffer.c src/nc_motion_filter.c stubs/stub_external_io.c
+test_nc_coordinate_transform|-|-|tests/test_nc_coordinate_transform.c src/system_shared.c src/nc_coordinate.c src/nc_coordinate_transform.c src/nc_buffer.c src/nc_motion_filter.c stubs/stub_external_io.c
+test_nc_axis_config|-|-|tests/test_nc_axis_config.c src/system_shared.c src/nc_axis_config.c src/nc_design_features.c src/nc_buffer.c src/nc_motion_filter.c stubs/stub_external_io.c
+test_nc_rotary_mcc|-|-|tests/test_nc_rotary_mcc.c src/system_shared.c src/nc_rotary_mcc.c src/nc_buffer.c src/nc_motion_filter.c stubs/stub_external_io.c
+test_nc_capability|-|-|tests/test_nc_capability.c src/system_shared.c src/nc_capability.c
+test_nc_interference|-|-|tests/test_nc_interference.c src/system_shared.c src/nc_interference.c
+test_nc_safety_motion|-|-|tests/test_nc_safety_motion.c src/system_shared.c src/nc_safety_motion.c
+test_nc_tool_management|-|-|tests/test_nc_tool_management.c src/system_shared.c src/nc_tool_management.c
+test_nc_spindle|-|-|tests/test_nc_spindle.c src/system_shared.c src/nc_spindle.c
+test_nc_precision|-|-|tests/test_nc_precision.c src/system_shared.c src/nc_precision.c
+test_nc_synchronization|-|-|tests/test_nc_synchronization.c src/system_shared.c src/nc_synchronization.c
+test_nc_compensation|-|-|tests/test_nc_compensation.c src/system_shared.c src/nc_compensation.c
+test_nc_cycle|-|-|tests/test_nc_cycle.c src/system_shared.c src/nc_cycle.c
+test_nc_reference|-|-|tests/test_nc_reference.c src/system_shared.c src/nc_reference.c
+test_nc_lathe_cycle|-|-|tests/test_nc_lathe_cycle.c src/system_shared.c src/nc_lathe_cycle.c
+test_nc_kinematics|-|-|tests/test_nc_kinematics.c src/system_shared.c src/nc_kinematics.c
+test_nc_interp_math|-|-|tests/test_nc_interp_math.c src/system_shared.c src/nc_interp_math.c
+test_system_shared|-|-|tests/test_system_shared.c src/system_shared.c
+test_ts_service|-|-|tests/test_ts_service.c src/system_shared.c src/ts_service.c stubs/stub_ts_service_deps.c
+test_rt_control|-|-|tests/test_rt_control.c src/system_shared.c src/rt_control.c stubs/stub_rt_control_deps.c
+test_nc_lookahead|-|-|tests/test_nc_lookahead.c src/system_shared.c src/nc_lookahead.c src/nc_interp_math.c
+test_nc_interpolation|-|-|tests/test_nc_interpolation.c src/system_shared.c src/nc_interpolation.c src/nc_feed.c src/nc_cycle.c src/nc_interp_math.c src/nc_motion_filter.c src/nc_buffer.c stubs/stub_external_io.c
+test_nc_parser|-|-|tests/test_nc_parser.c src/system_shared.c src/nc_parser.c src/nc_parser_modal.c src/nc_design_features.c src/nc_feature_backlog.c src/nc_parser_tokens.c src/nc_parser_feature.c src/nc_codes.c src/nc_coordinate.c src/nc_coordinate_transform.c src/nc_cycle.c src/nc_interpolation.c src/nc_feed.c src/nc_motion_filter.c src/nc_buffer.c src/nc_compensation.c src/nc_kinematics.c src/nc_axis_config.c src/nc_rotary_mcc.c src/nc_interp_math.c src/nc_lookahead.c src/nc_capability.c
+test_control_api_extended|-|-|tests/test_control_api_extended.c src/control_api.c src/nc_design_features.c src/nc_feature_backlog.c src/system_shared.c src/nc_buffer.c src/nc_motion_filter.c stubs/stub_external_io.c stubs/stub_module_deps.c
+test_nc_parser_modal_direct|-|-|tests/test_nc_parser_modal_direct.c src/system_shared.c src/nc_parser_modal.c src/nc_design_features.c src/nc_feature_backlog.c src/nc_codes.c stubs/stub_parser_deps.c
+test_nc_parser_tokens_direct|-|-|tests/test_nc_parser_tokens_direct.c src/system_shared.c src/nc_parser_tokens.c src/nc_parser_modal.c src/nc_design_features.c src/nc_feature_backlog.c src/nc_codes.c stubs/stub_parser_deps.c
+test_nc_program_binary_flow|-|-|tests/test_nc_program_binary_flow.c src/system_shared.c src/nc_program.c src/nc_design_features.c src/nc_feature_backlog.c src/nc_buffer.c src/nc_motion_filter.c stubs/stub_nc_program_deps.c
+test_nc_parser_feature_direct|-|-|tests/test_nc_parser_feature_direct.c src/system_shared.c src/nc_parser_feature.c
+test_nc_codes_extended|-|-|tests/test_nc_codes_extended.c src/nc_codes.c
+test_nc_program_feature_status|-|-|tests/test_nc_program_feature_status.c src/system_shared.c src/nc_program.c src/nc_design_features.c src/nc_feature_backlog.c src/nc_buffer.c src/nc_motion_filter.c stubs/stub_nc_program_deps.c
+test_nc_coordinate_transform_direct|-|-|tests/test_nc_coordinate_transform_direct.c src/system_shared.c src/nc_coordinate.c src/nc_coordinate_transform.c
+test_nc_safety_motion_edges|-|-|tests/test_nc_safety_motion_edges.c src/system_shared.c src/nc_safety_motion.c
+test_nc_reference_edges|-|-|tests/test_nc_reference_edges.c src/system_shared.c src/nc_reference.c
+test_nc_tool_management_timeout|-|-|tests/test_nc_tool_management_timeout.c src/system_shared.c src/nc_tool_management.c
+test_nc_precision_edges|-|-|tests/test_nc_precision_edges.c src/system_shared.c src/nc_precision.c
+test_nc_feed_profile_boundaries|-|-|tests/test_nc_feed_profile_boundaries.c src/system_shared.c src/nc_feed.c
+test_nc_cycle_segment_variants|-|-|tests/test_nc_cycle_segment_variants.c src/system_shared.c src/nc_cycle.c
+test_nc_capability_history_wrap|-|-|tests/test_nc_capability_history_wrap.c src/system_shared.c src/nc_capability.c
+test_nc_interference_warning_edges|-|-|tests/test_nc_interference_warning_edges.c src/system_shared.c src/nc_interference.c
+test_nc_spindle_orientation_edges|-|-|tests/test_nc_spindle_orientation_edges.c src/system_shared.c src/nc_spindle.c
+test_nc_compensation_rotation_polar_edges|-|-|tests/test_nc_compensation_rotation_polar_edges.c src/system_shared.c src/nc_compensation.c
+test_nc_interp_math_arc_r_edges|-|-|tests/test_nc_interp_math_arc_r_edges.c src/system_shared.c src/nc_interp_math.c
+test_nc_kinematics_detach_tilt_cancel|-|-|tests/test_nc_kinematics_detach_tilt_cancel.c src/system_shared.c src/nc_kinematics.c
+test_nc_synchronization_cancel_double_table|-|-|tests/test_nc_synchronization_cancel_double_table.c src/system_shared.c src/nc_synchronization.c
+test_nc_lathe_cycle_variants|-|-|tests/test_nc_lathe_cycle_variants.c src/system_shared.c src/nc_lathe_cycle.c
+test_nc_coordinate_program_machine_edges|-|-|tests/test_nc_coordinate_program_machine_edges.c src/system_shared.c src/nc_coordinate.c
+test_nc_buffer_generation_validity_edges|-|-|tests/test_nc_buffer_generation_validity_edges.c src/system_shared.c src/nc_buffer.c src/nc_motion_filter.c stubs/stub_external_io.c
+test_nc_axis_config_apply_edges|-|-|tests/test_nc_axis_config_apply_edges.c src/system_shared.c src/nc_axis_config.c src/nc_design_features.c
+test_nc_coordinate_transform_apply_edges|-|-|tests/test_nc_coordinate_transform_apply_edges.c src/system_shared.c src/nc_coordinate.c src/nc_coordinate_transform.c
+test_system_shared_event_log_more_edges|-|-|tests/test_system_shared_event_log_more_edges.c src/system_shared.c
+test_control_api_remaining_setters|-|-|tests/test_control_api_remaining_setters.c src/control_api.c src/nc_design_features.c src/nc_feature_backlog.c src/system_shared.c src/nc_buffer.c src/nc_motion_filter.c stubs/stub_external_io.c stubs/stub_module_deps.c
+test_nc_program_request_edges|-|-|tests/test_nc_program_request_edges.c src/system_shared.c src/nc_program.c src/nc_design_features.c src/nc_feature_backlog.c src/nc_buffer.c src/nc_motion_filter.c stubs/stub_nc_program_deps.c
+test_rt_control_dispatch_edges|-|-|tests/test_rt_control_dispatch_edges.c src/system_shared.c src/rt_control.c stubs/stub_rt_control_deps.c
+test_ts_service_log_and_slice_edges|-|-|tests/test_ts_service_log_and_slice_edges.c src/system_shared.c src/ts_service.c stubs/stub_ts_service_deps.c
+test_nc_motion_filter_multiaxis_accel_edges|-|-|tests/test_nc_motion_filter_multiaxis_accel_edges.c src/system_shared.c src/nc_buffer.c src/nc_motion_filter.c stubs/stub_external_io.c
+test_nc_feed_per_rev_and_error_edges|-|-|tests/test_nc_feed_per_rev_and_error_edges.c src/system_shared.c src/nc_feed.c
+test_nc_compensation_offset_cancel_edges|-|-|tests/test_nc_compensation_offset_cancel_edges.c src/system_shared.c src/nc_compensation.c
+test_nc_tool_management_duplicate_and_mfin_edges|-|-|tests/test_nc_tool_management_duplicate_and_mfin_edges.c src/system_shared.c src/nc_tool_management.c
+test_nc_coordinate_selection_clear_edges|-|-|tests/test_nc_coordinate_selection_clear_edges.c src/system_shared.c src/nc_coordinate.c
+test_nc_codes_decimal_and_address_edges|-|-|tests/test_nc_codes_decimal_and_address_edges.c src/nc_codes.c
+test_nc_capability_null_and_address_more|-|-|tests/test_nc_capability_null_and_address_more.c src/system_shared.c src/nc_capability.c
+test_nc_rotary_mcc_invalid_and_noop_edges|-|-|tests/test_nc_rotary_mcc_invalid_and_noop_edges.c src/system_shared.c src/nc_rotary_mcc.c src/nc_codes.c
+test_nc_parser_public_line_more_edges|-|-|tests/test_nc_parser_public_line_more_edges.c src/system_shared.c src/nc_parser.c src/nc_parser_modal.c src/nc_design_features.c src/nc_feature_backlog.c src/nc_parser_tokens.c src/nc_parser_feature.c src/nc_codes.c src/nc_coordinate.c src/nc_coordinate_transform.c src/nc_cycle.c src/nc_interpolation.c src/nc_feed.c src/nc_motion_filter.c src/nc_buffer.c src/nc_compensation.c src/nc_kinematics.c src/nc_axis_config.c src/nc_rotary_mcc.c src/nc_interp_math.c src/nc_lookahead.c src/nc_capability.c
+test_nc_interpolation_begin_cancel_more_edges|-|-|tests/test_nc_interpolation_begin_cancel_more_edges.c src/system_shared.c src/nc_interpolation.c src/nc_feed.c src/nc_cycle.c src/nc_interp_math.c src/nc_motion_filter.c src/nc_buffer.c stubs/stub_external_io.c
+test_system_shared_defaults_reinit_edges|-|-|tests/test_system_shared_defaults_reinit_edges.c src/system_shared.c
+test_nc_axis_config_definition_more|-|-|tests/test_nc_axis_config_definition_more.c src/system_shared.c src/nc_axis_config.c src/nc_design_features.c
+test_nc_axis_config_apply_path_filter_more|-|-|tests/test_nc_axis_config_apply_path_filter_more.c src/system_shared.c src/nc_axis_config.c src/nc_design_features.c
+test_nc_axis_config_diameter_rounding_more|-|-|tests/test_nc_axis_config_diameter_rounding_more.c src/system_shared.c src/nc_axis_config.c src/nc_design_features.c
+test_nc_coordinate_work_offset_more|-|-|tests/test_nc_coordinate_work_offset_more.c src/system_shared.c src/nc_coordinate.c
+test_nc_coordinate_machine_inverse_more|-|-|tests/test_nc_coordinate_machine_inverse_more.c src/system_shared.c src/nc_coordinate.c
+test_nc_coordinate_fill_targets_more|-|-|tests/test_nc_coordinate_fill_targets_more.c src/system_shared.c src/nc_coordinate.c
+test_nc_coordinate_transform_enable_more|-|-|tests/test_nc_coordinate_transform_enable_more.c src/system_shared.c src/nc_coordinate.c src/nc_coordinate_transform.c
+test_nc_coordinate_transform_apply_combo_more|-|-|tests/test_nc_coordinate_transform_apply_combo_more.c src/system_shared.c src/nc_coordinate.c src/nc_coordinate_transform.c
+test_nc_cycle_modal_replay_more|-|-|tests/test_nc_cycle_modal_replay_more.c src/system_shared.c src/nc_cycle.c src/nc_buffer.c src/nc_motion_filter.c stubs/stub_external_io.c
+test_nc_cycle_segment_guards_more|-|-|tests/test_nc_cycle_segment_guards_more.c src/system_shared.c src/nc_cycle.c src/nc_buffer.c src/nc_motion_filter.c stubs/stub_external_io.c
+test_nc_feed_prepare_motion_zero_override_more|-|-|tests/test_nc_feed_prepare_motion_zero_override_more.c src/system_shared.c src/nc_feed.c
+test_nc_feed_prepare_dwell_bounds_more|-|-|tests/test_nc_feed_prepare_dwell_bounds_more.c src/system_shared.c src/nc_feed.c
+test_nc_interference_check_axis_limit_more|-|-|tests/test_nc_interference_check_axis_limit_more.c src/system_shared.c src/nc_interference.c
+test_nc_lookahead_null_and_g08_more|-|-|tests/test_nc_lookahead_null_and_g08_more.c src/system_shared.c src/nc_lookahead.c src/nc_interp_math.c
+test_nc_precision_setters_valid_invalid_more|-|-|tests/test_nc_precision_setters_valid_invalid_more.c src/system_shared.c src/nc_precision.c
+test_nc_spindle_css_stop_more|-|-|tests/test_nc_spindle_css_stop_more.c src/system_shared.c src/nc_spindle.c src/nc_buffer.c src/nc_motion_filter.c stubs/stub_external_io.c
+test_nc_tool_management_prepare_invalid_more|-|-|tests/test_nc_tool_management_prepare_invalid_more.c src/system_shared.c src/nc_tool_management.c
+test_nc_synchronization_overlay_bounds_more|-|-|tests/test_nc_synchronization_overlay_bounds_more.c src/system_shared.c src/nc_synchronization.c
+test_nc_reference_one_direction_more|-|-|tests/test_nc_reference_one_direction_more.c src/system_shared.c src/nc_reference.c
+test_nc_rotary_mcc_output_service_more|-|-|tests/test_nc_rotary_mcc_output_service_more.c src/system_shared.c src/nc_rotary_mcc.c
+test_nc_codes_catalog_more|-|-|tests/test_nc_codes_catalog_more.c src/nc_codes.c
+test_nc_feed_rt_update_more|-|-|tests/test_nc_feed_rt_update_more.c src/nc_feed.c src/system_shared.c
+test_nc_coordinate_invalid_and_modes_more|-|-|tests/test_nc_coordinate_invalid_and_modes_more.c src/nc_coordinate.c src/system_shared.c
+test_nc_axis_config_masks_more|-|-|tests/test_nc_axis_config_masks_more.c src/nc_axis_config.c src/system_shared.c
+test_nc_interference_more|-|-|tests/test_nc_interference_more.c src/nc_interference.c src/system_shared.c
+test_nc_reference_more|-|-|tests/test_nc_reference_more.c src/nc_reference.c src/system_shared.c
+test_nc_spindle_more|-|-|tests/test_nc_spindle_more.c src/nc_spindle.c src/system_shared.c
+test_nc_tool_management_more|-|-|tests/test_nc_tool_management_more.c src/nc_tool_management.c src/system_shared.c
+test_nc_motion_filter_endpoint_more|-|-|tests/test_nc_motion_filter_endpoint_more.c src/nc_motion_filter.c src/system_shared.c
+test_control_api_more_getters_setters|-|-|tests/test_control_api_more_getters_setters.c src/control_api.c src/nc_design_features.c src/nc_feature_backlog.c src/system_shared.c src/nc_buffer.c src/nc_motion_filter.c stubs/stub_external_io.c stubs/stub_module_deps.c
+test_nc_capability_history_more|-|-|tests/test_nc_capability_history_more.c src/nc_capability.c src/system_shared.c
+test_nc_lookahead_modes_arcs_more|-|-|tests/test_nc_lookahead_modes_arcs_more.c src/nc_lookahead.c src/nc_interp_math.c src/system_shared.c
+test_nc_precision_modes_service_more|-|-|tests/test_nc_precision_modes_service_more.c src/nc_precision.c src/system_shared.c
+test_nc_synchronization_modes_following_more|-|-|tests/test_nc_synchronization_modes_following_more.c src/nc_synchronization.c src/system_shared.c
+test_nc_rotary_mcc_service_more|-|-|tests/test_nc_rotary_mcc_service_more.c src/nc_rotary_mcc.c src/nc_codes.c src/system_shared.c
+test_nc_lathe_cycle_tracking_more|-|-|tests/test_nc_lathe_cycle_tracking_more.c src/nc_lathe_cycle.c src/system_shared.c
+test_nc_safety_motion_latch_release_more|-|-|tests/test_nc_safety_motion_latch_release_more.c src/nc_safety_motion.c src/system_shared.c
+test_nc_diagnostics_snapshot_life_more|-|-|tests/test_nc_diagnostics_snapshot_life_more.c src/nc_diagnostics.c src/system_shared.c
+test_nc_buffer_wrap_validity_more|-|-|tests/test_nc_buffer_wrap_validity_more.c src/nc_buffer.c src/system_shared.c
+test_system_shared_event_log_more|-|-|tests/test_system_shared_event_log_more.c src/system_shared.c
+test_nc_compensation_transform_more|-|-|tests/test_nc_compensation_transform_more.c src/control_api.c src/nc_design_features.c src/nc_feature_backlog.c src/nc_axis_config.c src/nc_buffer.c src/nc_capability.c src/nc_codes.c src/nc_compensation.c src/nc_coordinate.c src/nc_coordinate_transform.c src/nc_cycle.c src/nc_diagnostics.c src/nc_feed.c src/nc_interference.c src/nc_interp_math.c src/nc_interpolation.c src/nc_kinematics.c src/nc_lathe_cycle.c src/nc_lookahead.c src/nc_motion_filter.c src/nc_parser.c src/nc_parser_feature.c src/nc_parser_modal.c src/nc_parser_tokens.c src/nc_precision.c src/nc_program.c src/nc_reference.c src/nc_rotary_mcc.c src/nc_safety_motion.c src/nc_spindle.c src/nc_synchronization.c src/nc_tool_management.c src/rt_control.c src/system_shared.c src/ts_service.c
+test_nc_coordinate_transform_correction_gates_more|-|-|tests/test_nc_coordinate_transform_correction_gates_more.c src/control_api.c src/nc_design_features.c src/nc_feature_backlog.c src/nc_axis_config.c src/nc_buffer.c src/nc_capability.c src/nc_codes.c src/nc_compensation.c src/nc_coordinate.c src/nc_coordinate_transform.c src/nc_cycle.c src/nc_diagnostics.c src/nc_feed.c src/nc_interference.c src/nc_interp_math.c src/nc_interpolation.c src/nc_kinematics.c src/nc_lathe_cycle.c src/nc_lookahead.c src/nc_motion_filter.c src/nc_parser.c src/nc_parser_feature.c src/nc_parser_modal.c src/nc_parser_tokens.c src/nc_precision.c src/nc_program.c src/nc_reference.c src/nc_rotary_mcc.c src/nc_safety_motion.c src/nc_spindle.c src/nc_synchronization.c src/nc_tool_management.c src/rt_control.c src/system_shared.c src/ts_service.c
+test_nc_axis_config_filter_more|-|-|tests/test_nc_axis_config_filter_more.c src/control_api.c src/nc_design_features.c src/nc_feature_backlog.c src/nc_axis_config.c src/nc_buffer.c src/nc_capability.c src/nc_codes.c src/nc_compensation.c src/nc_coordinate.c src/nc_coordinate_transform.c src/nc_cycle.c src/nc_diagnostics.c src/nc_feed.c src/nc_interference.c src/nc_interp_math.c src/nc_interpolation.c src/nc_kinematics.c src/nc_lathe_cycle.c src/nc_lookahead.c src/nc_motion_filter.c src/nc_parser.c src/nc_parser_feature.c src/nc_parser_modal.c src/nc_parser_tokens.c src/nc_precision.c src/nc_program.c src/nc_reference.c src/nc_rotary_mcc.c src/nc_safety_motion.c src/nc_spindle.c src/nc_synchronization.c src/nc_tool_management.c src/rt_control.c src/system_shared.c src/ts_service.c
+test_nc_kinematics_transform_more|-|-|tests/test_nc_kinematics_transform_more.c src/control_api.c src/nc_design_features.c src/nc_feature_backlog.c src/nc_axis_config.c src/nc_buffer.c src/nc_capability.c src/nc_codes.c src/nc_compensation.c src/nc_coordinate.c src/nc_coordinate_transform.c src/nc_cycle.c src/nc_diagnostics.c src/nc_feed.c src/nc_interference.c src/nc_interp_math.c src/nc_interpolation.c src/nc_kinematics.c src/nc_lathe_cycle.c src/nc_lookahead.c src/nc_motion_filter.c src/nc_parser.c src/nc_parser_feature.c src/nc_parser_modal.c src/nc_parser_tokens.c src/nc_precision.c src/nc_program.c src/nc_reference.c src/nc_rotary_mcc.c src/nc_safety_motion.c src/nc_spindle.c src/nc_synchronization.c src/nc_tool_management.c src/rt_control.c src/system_shared.c src/ts_service.c
+test_nc_interp_math_geometry_more|-|-|tests/test_nc_interp_math_geometry_more.c src/control_api.c src/nc_design_features.c src/nc_feature_backlog.c src/nc_axis_config.c src/nc_buffer.c src/nc_capability.c src/nc_codes.c src/nc_compensation.c src/nc_coordinate.c src/nc_coordinate_transform.c src/nc_cycle.c src/nc_diagnostics.c src/nc_feed.c src/nc_interference.c src/nc_interp_math.c src/nc_interpolation.c src/nc_kinematics.c src/nc_lathe_cycle.c src/nc_lookahead.c src/nc_motion_filter.c src/nc_parser.c src/nc_parser_feature.c src/nc_parser_modal.c src/nc_parser_tokens.c src/nc_precision.c src/nc_program.c src/nc_reference.c src/nc_rotary_mcc.c src/nc_safety_motion.c src/nc_spindle.c src/nc_synchronization.c src/nc_tool_management.c src/rt_control.c src/system_shared.c src/ts_service.c
+test_nc_interpolation_step_more|-|-|tests/test_nc_interpolation_step_more.c src/control_api.c src/nc_design_features.c src/nc_feature_backlog.c src/nc_axis_config.c src/nc_buffer.c src/nc_capability.c src/nc_codes.c src/nc_compensation.c src/nc_coordinate.c src/nc_coordinate_transform.c src/nc_cycle.c src/nc_diagnostics.c src/nc_feed.c src/nc_interference.c src/nc_interp_math.c src/nc_interpolation.c src/nc_kinematics.c src/nc_lathe_cycle.c src/nc_lookahead.c src/nc_motion_filter.c src/nc_parser.c src/nc_parser_feature.c src/nc_parser_modal.c src/nc_parser_tokens.c src/nc_precision.c src/nc_program.c src/nc_reference.c src/nc_rotary_mcc.c src/nc_safety_motion.c src/nc_spindle.c src/nc_synchronization.c src/nc_tool_management.c src/rt_control.c src/system_shared.c src/ts_service.c
+test_nc_parser_internal_modal_more|-|-|tests/test_nc_parser_internal_modal_more.c src/control_api.c src/nc_design_features.c src/nc_feature_backlog.c src/nc_axis_config.c src/nc_buffer.c src/nc_capability.c src/nc_codes.c src/nc_compensation.c src/nc_coordinate.c src/nc_coordinate_transform.c src/nc_cycle.c src/nc_diagnostics.c src/nc_feed.c src/nc_interference.c src/nc_interp_math.c src/nc_interpolation.c src/nc_kinematics.c src/nc_lathe_cycle.c src/nc_lookahead.c src/nc_motion_filter.c src/nc_parser.c src/nc_parser_feature.c src/nc_parser_modal.c src/nc_parser_tokens.c src/nc_precision.c src/nc_program.c src/nc_reference.c src/nc_rotary_mcc.c src/nc_safety_motion.c src/nc_spindle.c src/nc_synchronization.c src/nc_tool_management.c src/rt_control.c src/system_shared.c src/ts_service.c
+test_rt_control_state_more|-|-|tests/test_rt_control_state_more.c src/control_api.c src/nc_design_features.c src/nc_feature_backlog.c src/nc_axis_config.c src/nc_buffer.c src/nc_capability.c src/nc_codes.c src/nc_compensation.c src/nc_coordinate.c src/nc_coordinate_transform.c src/nc_cycle.c src/nc_diagnostics.c src/nc_feed.c src/nc_interference.c src/nc_interp_math.c src/nc_interpolation.c src/nc_kinematics.c src/nc_lathe_cycle.c src/nc_lookahead.c src/nc_motion_filter.c src/nc_parser.c src/nc_parser_feature.c src/nc_parser_modal.c src/nc_parser_tokens.c src/nc_precision.c src/nc_program.c src/nc_reference.c src/nc_rotary_mcc.c src/nc_safety_motion.c src/nc_spindle.c src/nc_synchronization.c src/nc_tool_management.c src/rt_control.c src/system_shared.c src/ts_service.c
+test_ts_service_prefetch_ui_more|-|-|tests/test_ts_service_prefetch_ui_more.c src/control_api.c src/nc_design_features.c src/nc_feature_backlog.c src/nc_axis_config.c src/nc_buffer.c src/nc_capability.c src/nc_codes.c src/nc_compensation.c src/nc_coordinate.c src/nc_coordinate_transform.c src/nc_cycle.c src/nc_diagnostics.c src/nc_feed.c src/nc_interference.c src/nc_interp_math.c src/nc_interpolation.c src/nc_kinematics.c src/nc_lathe_cycle.c src/nc_lookahead.c src/nc_motion_filter.c src/nc_parser.c src/nc_parser_feature.c src/nc_parser_modal.c src/nc_parser_tokens.c src/nc_precision.c src/nc_program.c src/nc_reference.c src/nc_rotary_mcc.c src/nc_safety_motion.c src/nc_spindle.c src/nc_synchronization.c src/nc_tool_management.c src/rt_control.c src/system_shared.c src/ts_service.c
+test_control_api_request_more|-|-|tests/test_control_api_request_more.c src/control_api.c src/nc_design_features.c src/nc_feature_backlog.c src/nc_axis_config.c src/nc_buffer.c src/nc_capability.c src/nc_codes.c src/nc_compensation.c src/nc_coordinate.c src/nc_coordinate_transform.c src/nc_cycle.c src/nc_diagnostics.c src/nc_feed.c src/nc_interference.c src/nc_interp_math.c src/nc_interpolation.c src/nc_kinematics.c src/nc_lathe_cycle.c src/nc_lookahead.c src/nc_motion_filter.c src/nc_parser.c src/nc_parser_feature.c src/nc_parser_modal.c src/nc_parser_tokens.c src/nc_precision.c src/nc_program.c src/nc_reference.c src/nc_rotary_mcc.c src/nc_safety_motion.c src/nc_spindle.c src/nc_synchronization.c src/nc_tool_management.c src/rt_control.c src/system_shared.c src/ts_service.c
+test_nc_capability_accounting_more|-|-|tests/test_nc_capability_accounting_more.c src/nc_capability.c src/system_shared.c
+test_nc_coordinate_modes_more|-|-|tests/test_nc_coordinate_modes_more.c src/nc_coordinate.c src/system_shared.c
+test_nc_cycle_modal_segments_more|-|-|tests/test_nc_cycle_modal_segments_more.c src/nc_cycle.c src/system_shared.c
+test_nc_buffer_ring_more|-|-|tests/test_nc_buffer_ring_more.c src/nc_buffer.c src/system_shared.c
+test_nc_diagnostics_thresholds_more|-|-|tests/test_nc_diagnostics_thresholds_more.c src/nc_diagnostics.c src/system_shared.c
+test_nc_safety_motion_sensor_edges|-|-|tests/test_nc_safety_motion_sensor_edges.c src/nc_safety_motion.c src/system_shared.c
+test_nc_spindle_css_orient_more|-|-|tests/test_nc_spindle_css_orient_more.c src/nc_spindle.c src/system_shared.c
+test_nc_synchronization_apply_more|-|-|tests/test_nc_synchronization_apply_more.c src/nc_synchronization.c src/system_shared.c
+test_nc_interference_warning_more|-|-|tests/test_nc_interference_warning_more.c src/nc_interference.c src/system_shared.c
+test_system_shared_ring_more|-|-|tests/test_system_shared_ring_more.c src/system_shared.c
+test_nc_codes_lookup_more|-|-|tests/test_nc_codes_lookup_more.c src/nc_codes.c src/system_shared.c
+test_nc_buffer_generation_more|-|-|tests/test_nc_buffer_generation_more.c src/nc_buffer.c src/system_shared.c
+test_nc_capability_address_history_more|-|-|tests/test_nc_capability_address_history_more.c src/nc_capability.c src/system_shared.c
+test_nc_motion_filter_disable_limits_more|-|-|tests/test_nc_motion_filter_disable_limits_more.c src/nc_motion_filter.c src/system_shared.c
+test_nc_precision_learning_service_more|-|-|tests/test_nc_precision_learning_service_more.c src/nc_precision.c src/system_shared.c
+test_nc_safety_motion_priority_more|-|-|tests/test_nc_safety_motion_priority_more.c src/nc_safety_motion.c src/system_shared.c
+test_nc_rotary_mcc_output_more|-|-|tests/test_nc_rotary_mcc_output_more.c src/nc_rotary_mcc.c src/system_shared.c
+test_nc_spindle_parse_sync_more|-|-|tests/test_nc_spindle_parse_sync_more.c src/nc_spindle.c src/system_shared.c
+test_nc_coordinate_transform_apply_more|-|-|tests/test_nc_coordinate_transform_apply_more.c src/nc_coordinate_transform.c src/nc_coordinate.c src/system_shared.c
+test_nc_parser_modal_errors_more|-|-|tests/test_nc_parser_modal_errors_more.c src/nc_parser.c src/nc_parser_modal.c src/nc_design_features.c src/nc_feature_backlog.c src/nc_parser_tokens.c src/nc_parser_feature.c src/nc_codes.c src/nc_coordinate.c src/nc_coordinate_transform.c src/nc_cycle.c src/nc_interpolation.c src/nc_feed.c src/nc_motion_filter.c src/nc_buffer.c src/nc_compensation.c src/nc_kinematics.c src/nc_axis_config.c src/nc_rotary_mcc.c src/nc_interp_math.c src/nc_lookahead.c src/nc_capability.c src/system_shared.c
+test_nc_axis_config_apply_more|-|-|tests/test_nc_axis_config_apply_more.c src/nc_axis_config.c src/nc_motion_filter.c src/nc_buffer.c src/nc_compensation.c src/nc_kinematics.c src/nc_design_features.c src/system_shared.c
+test_nc_compensation_commands_more|-|-|tests/test_nc_compensation_commands_more.c src/nc_compensation.c src/system_shared.c
+test_nc_coordinate_transform_modes_more|-|-|tests/test_nc_coordinate_transform_modes_more.c src/nc_coordinate_transform.c src/nc_coordinate.c src/system_shared.c
+test_nc_kinematics_commands_more|-|-|tests/test_nc_kinematics_commands_more.c src/nc_kinematics.c src/system_shared.c
+test_nc_cycle_variants_more|-|-|tests/test_nc_cycle_variants_more.c src/nc_cycle.c src/system_shared.c
+test_nc_feed_profiles_more|-|-|tests/test_nc_feed_profiles_more.c src/nc_feed.c src/system_shared.c
+test_nc_interpolation_runtime_more|-|-|tests/test_nc_interpolation_runtime_more.c src/nc_interpolation.c src/nc_cycle.c src/nc_feed.c src/nc_motion_filter.c src/nc_interp_math.c src/system_shared.c
+test_nc_reference_markers_more|-|-|tests/test_nc_reference_markers_more.c src/nc_reference.c src/system_shared.c
+test_rt_control_trace_more|-|-|tests/test_rt_control_trace_more.c src/rt_control.c src/nc_rotary_mcc.c src/nc_design_features.c src/nc_feature_backlog.c src/nc_buffer.c src/nc_parser.c src/nc_synchronization.c src/nc_lathe_cycle.c src/nc_kinematics.c src/nc_interpolation.c src/nc_compensation.c src/nc_feed.c src/nc_motion_filter.c src/nc_cycle.c src/nc_interp_math.c src/nc_lookahead.c src/nc_parser_feature.c src/nc_parser_modal.c src/nc_parser_tokens.c src/nc_axis_config.c src/nc_capability.c src/nc_codes.c src/nc_coordinate.c src/nc_coordinate_transform.c src/nc_interference.c src/nc_diagnostics.c src/nc_program.c src/nc_safety_motion.c src/nc_spindle.c src/nc_reference.c src/nc_tool_management.c src/nc_precision.c src/system_shared.c
+test_control_api_gateways_more|-|-|tests/test_control_api_gateways_more.c src/control_api.c src/nc_design_features.c src/nc_feature_backlog.c src/system_shared.c src/nc_parser.c src/nc_parser_modal.c src/nc_parser_tokens.c src/nc_parser_feature.c src/nc_codes.c src/nc_coordinate.c src/nc_coordinate_transform.c src/nc_cycle.c src/nc_interpolation.c src/nc_feed.c src/nc_motion_filter.c src/nc_buffer.c src/nc_compensation.c src/nc_kinematics.c src/nc_axis_config.c src/nc_rotary_mcc.c src/nc_interp_math.c src/nc_lookahead.c src/nc_program.c src/nc_lathe_cycle.c src/nc_safety_motion.c src/nc_interference.c src/nc_diagnostics.c src/nc_reference.c src/nc_precision.c src/nc_spindle.c src/nc_synchronization.c src/nc_tool_management.c src/nc_capability.c
+test_nc_feature_backlog_aux_safety|-|-|tests/test_nc_feature_backlog_aux_safety.c src/nc_feature_backlog_aux_safety.c
+test_nc_feature_backlog_lube_brake_thermal|/WX|-|tests/test_nc_feature_backlog_lube_brake_thermal.c src/nc_feature_backlog_lube_brake_thermal.c
+test_nc_feature_backlog_readiness_sensors|-|-|tests/test_nc_feature_backlog_readiness_sensors.c src/nc_feature_backlog_readiness_sensors.c
+test_nc_feature_backlog_pallet_fixture_safety|-|-|tests/test_nc_feature_backlog_pallet_fixture_safety.c src/nc_feature_backlog_pallet_fixture_safety.c
+test_nc_feature_backlog_tool_utility_monitors|-|-|tests/test_nc_feature_backlog_tool_utility_monitors.c src/nc_feature_backlog_tool_utility_monitors.c
+test_nc_feature_backlog_process_safety|-|-|tests/test_nc_feature_backlog_process_safety.c src/nc_feature_backlog_process_safety.c
+test_nc_feature_backlog_service_interlocks|-|-|tests/test_nc_feature_backlog_service_interlocks.c src/nc_feature_backlog_service_interlocks.c
+test_nc_feature_backlog_loader_environment|-|-|tests/test_nc_feature_backlog_loader_environment.c src/nc_feature_backlog_loader_environment.c
+test_nc_feature_backlog_contract_matrix|/WX|-|tests/test_nc_feature_backlog_contract_matrix.c src/nc_feature_backlog_aux_safety.c src/nc_feature_backlog_lube_brake_thermal.c src/nc_feature_backlog_readiness_sensors.c src/nc_feature_backlog_pallet_fixture_safety.c src/nc_feature_backlog_tool_utility_monitors.c src/nc_feature_backlog_process_safety.c src/nc_feature_backlog_service_interlocks.c src/nc_feature_backlog_loader_environment.c
+test_nc_feature_backlog_boundary_contracts|-|-|tests/test_nc_feature_backlog_boundary_contracts.c src/nc_feature_backlog_aux_safety.c src/nc_feature_backlog_lube_brake_thermal.c src/nc_feature_backlog_readiness_sensors.c src/nc_feature_backlog_pallet_fixture_safety.c src/nc_feature_backlog_tool_utility_monitors.c src/nc_feature_backlog_process_safety.c src/nc_feature_backlog_service_interlocks.c src/nc_feature_backlog_loader_environment.c
+test_nc_feature_backlog_status_accumulation|-|-|tests/test_nc_feature_backlog_status_accumulation.c src/nc_feature_backlog_aux_safety.c src/nc_feature_backlog_lube_brake_thermal.c src/nc_feature_backlog_readiness_sensors.c src/nc_feature_backlog_pallet_fixture_safety.c src/nc_feature_backlog_tool_utility_monitors.c src/nc_feature_backlog_process_safety.c src/nc_feature_backlog_service_interlocks.c
+test_nc_feature_backlog_reset_idempotence|-|-|tests/test_nc_feature_backlog_reset_idempotence.c src/nc_feature_backlog_aux_safety.c src/nc_feature_backlog_lube_brake_thermal.c src/nc_feature_backlog_readiness_sensors.c src/nc_feature_backlog_pallet_fixture_safety.c src/nc_feature_backlog_tool_utility_monitors.c src/nc_feature_backlog_process_safety.c src/nc_feature_backlog_service_interlocks.c
+test_nc_feature_backlog_sparse_cross_contracts|-|-|tests/test_nc_feature_backlog_sparse_cross_contracts.c src/nc_feature_backlog_aux_safety.c src/nc_feature_backlog_lube_brake_thermal.c src/nc_feature_backlog_readiness_sensors.c src/nc_feature_backlog_pallet_fixture_safety.c src/nc_feature_backlog_tool_utility_monitors.c src/nc_feature_backlog_process_safety.c src/nc_feature_backlog_service_interlocks.c
+test_nc_feature_backlog_standalone_contract|/DIBM_BOB_TEST_STANDALONE=1|-DIBM_BOB_TEST_STANDALONE=1|tests/test_nc_feature_backlog_standalone_contract.c

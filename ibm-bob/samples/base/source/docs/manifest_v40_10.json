@@ -1,0 +1,78 @@
+{
+  "version": "v40_10",
+  "base_version": "v39_10",
+  "feature_id_range": "315-324",
+  "feature_count": 10,
+  "implemented_features": [
+    {
+      "id": 315,
+      "name_ja": "レーザエリアスキャナ侵入HOLD"
+    },
+    {
+      "id": 316,
+      "name_ja": "主軸振動上昇トレース"
+    },
+    {
+      "id": 317,
+      "name_ja": "送り軸潤滑ポンプREADYゲート"
+    },
+    {
+      "id": 318,
+      "name_ja": "NCプログラム署名不一致実行禁止"
+    },
+    {
+      "id": 319,
+      "name_ja": "チャック開閉センサ二重化不一致インターロック"
+    },
+    {
+      "id": 320,
+      "name_ja": "工具折損検出後自動退避要求"
+    },
+    {
+      "id": 321,
+      "name_ja": "工具長測定値急変HOLD"
+    },
+    {
+      "id": 322,
+      "name_ja": "クーラント温度高段階減速"
+    },
+    {
+      "id": 323,
+      "name_ja": "パレット搬送ロボットREADYタイムアウト"
+    },
+    {
+      "id": 324,
+      "name_ja": "安全PLCハートビート喪失即時HOLD"
+    }
+  ],
+  "added_files": [
+    "source/inc/nc_feature_backlog_v40.h",
+    "source/src/nc_feature_backlog_v40.c",
+    "source/tests/test_nc_feature_backlog_v40.c",
+    "source/scripts/build_gcc_smoke_v40_10.sh",
+    "source/scripts/test_gcc_smoke_v40_10.sh",
+    "source/scripts/build_vc2026_v40_10.bat",
+    "source/scripts/test_vc2026_v40_10.bat",
+    "source/scripts/build_clang_v40_10.bat",
+    "source/scripts/test_clang_v40_10.bat",
+    "source/docs/implementation_report_v40_10.md",
+    "source/docs/verification_output_v40_10.txt",
+    "source/docs/integration_note_v40_10.md",
+    "source/docs/continuation_v40_10_diff.patch"
+  ],
+  "verification": {
+    "gcc_smoke": "PASS",
+    "vc2026": "not run in Linux sandbox",
+    "clang_windows": "not run in Linux sandbox",
+    "output": [
+      "implementation_backlog_v40 implemented=10 configured=10 ts=1 rt=8 hold=39 interlock=7 gate=6 slowdown=13 trace=13 retry=5 inhibit=8 retract=15 cat_mask=0x00000400 last_id=324 last_policy=2 trace=0x4009 fault=0x000003ff axis=0x00000005 chuck=1/0 vibration=76 tool_delta=185 coolant=51 heartbeat=77 last_x=4000",
+      "PASS nc_feature_backlog_v40"
+    ]
+  },
+  "rt_constraints": {
+    "dynamic_allocation": false,
+    "file_io": false,
+    "windows_api": false,
+    "bounded_loop_count": "NC_FEATURE_BACKLOG_V40_FEATURE_COUNT"
+  }
+}

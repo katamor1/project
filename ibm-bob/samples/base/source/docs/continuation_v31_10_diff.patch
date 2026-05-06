@@ -1,0 +1,527 @@
+Binary files /mnt/data/work_v31_10_base/source/build/ibm_bob_sample_v31_10 and /mnt/data/work_v31_10/source/build/ibm_bob_sample_v31_10 differ
+diff -ruN /mnt/data/work_v31_10_base/source/docs/continuation_v31_10_diff.patch /mnt/data/work_v31_10/source/docs/continuation_v31_10_diff.patch
+--- /mnt/data/work_v31_10_base/source/docs/continuation_v31_10_diff.patch	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v31_10/source/docs/continuation_v31_10_diff.patch	2026-05-02 16:09:20.198007928 +0000
+@@ -0,0 +1 @@
++Binary files /mnt/data/work_v31_10_base/source/build/ibm_bob_sample_v31_10 and /mnt/data/work_v31_10/source/build/ibm_bob_sample_v31_10 differ
+diff -ruN /mnt/data/work_v31_10_base/source/docs/implementation_report_v31_10.md /mnt/data/work_v31_10/source/docs/implementation_report_v31_10.md
+--- /mnt/data/work_v31_10_base/source/docs/implementation_report_v31_10.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v31_10/source/docs/implementation_report_v31_10.md	2026-05-02 16:09:20.093347470 +0000
+@@ -0,0 +1,55 @@
++# IBM-Bob source implementation report v31_10
++
++## Summary
++
++This package is based on the latest physically available v28_10 source bundle in the execution environment. The v29/v30 backlog entries were re-applied into the source tree and this v31_10 batch adds the new feature IDs 230-239. The final backlog range is 0-239.
++
++## Main changes
++
++- Expanded `NC_IMPL_BACKLOG_FEATURE_COUNT` from 210 to 240.
++- Expanded `NC_IMPL_BACKLOG_WORD_COUNT` from 7 to 8.
++- Added backlog metadata macros for v29, v30, and v31 batches.
++- Added descriptor entries for IDs 210-239.
++- Added deterministic TS-side fixed-block transformations for IDs 210-239.
++- Kept RT-side behavior allocation-free and limited to fixed-size status/event accounting.
++- Added GCC smoke build/test scripts for v31_10.
++
++## Newly added v31_10 feature IDs
++
++| ID | Feature | Implementation summary |
++|---:|---|---|
++| 230 | ガントリ軸スキュー監視補正 | X/Y paired skew compensation, gantry control mask, HP precision flag, conservative feed reduction. |
++| 231 | クロスレールクランプ確認インターロック | MFIN wait, auxiliary M-code gate, bounded confirmation window. |
++| 232 | 油圧チャック圧力監視 | spindle fallback, pressure-loss style deceleration, retract/safety flag. |
++| 233 | 心押し台推力監視 | Z-axis thrust guard, Q threshold defaulting, feed reduction. |
++| 234 | バーフィーダ受け渡しハンドシェイク | auxiliary M-code/MFIN sequence, deterministic p-word handshake token. |
++| 235 | チップコンベア過負荷減速 | overload slowdown, deceleration extension, smoothing flag. |
++| 236 | クーラント圧力/流量スイッチラッチ | auxiliary latch, modal safety bit, bounded debounce/confirmation count. |
++| 237 | ミストコレクタREADYインターロック | READY M-code interlock, feed reduction, fixed ticks. |
++| 238 | 消火装置入力時安全出力マスク | safety-output mask modal bit, retract flag, forced minimum feed and long decel. |
++| 239 | 機内負圧異常時安全停止 | negative-pressure abnormal stop modal bit, retract flag, conservative slowdown/decel. |
++
++## Verification
++
++Executed:
++
++```bash
++cd source
++scripts/test_gcc_smoke_v31_10.sh
++```
++
++Result summary:
++
++```text
++implementation_backlog implemented=240 configured=240 ts=574 rt=302 synthetic=240 cat_mask=0x000003ff last_id=239 last_cat=9 last_policy=3 slowdown=55 cat0=112 cat9=99 last_x=1239
++nc_state=4 nc_error=0
++coord_error_checks=5
++g08_error_checks=3
++hpcc_error_checks=4
++cycle_error_checks=4
++```
++
++## Notes
++
++- GCC smoke build/test passed in this Linux execution environment.
++- VC2026 and clang Windows verification should be run on the Windows target environment using the existing `scripts\\build_vc2026.bat` and `scripts\\build_clang.bat` scripts.
+diff -ruN /mnt/data/work_v31_10_base/source/docs/manifest_v31_10.json /mnt/data/work_v31_10/source/docs/manifest_v31_10.json
+--- /mnt/data/work_v31_10_base/source/docs/manifest_v31_10.json	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v31_10/source/docs/manifest_v31_10.json	2026-05-02 16:09:20.106815183 +0000
+@@ -0,0 +1,22 @@
++{
++  "version": "v31_10",
++  "base_available_in_environment": "v28_10",
++  "final_feature_count": 240,
++  "final_word_count": 8,
++  "new_feature_id_range": "230-239",
++  "cumulative_reapplied_id_ranges": ["210-219", "220-229"],
++  "modified_files": [
++    "source/inc/system_config.h",
++    "source/inc/system_shared.h",
++    "source/src/nc_feature_backlog.c",
++    "source/scripts/build_gcc_smoke_v31_10.sh",
++    "source/scripts/test_gcc_smoke_v31_10.sh",
++    "source/docs/implementation_report_v31_10.md",
++    "source/docs/verification_output_v31_10.txt"
++  ],
++  "verification": {
++    "gcc_smoke_build": "passed",
++    "gcc_smoke_test": "passed",
++    "command": "source/scripts/test_gcc_smoke_v31_10.sh"
++  }
++}
+diff -ruN /mnt/data/work_v31_10_base/source/docs/verification_output_v31_10.txt /mnt/data/work_v31_10/source/docs/verification_output_v31_10.txt
+--- /mnt/data/work_v31_10_base/source/docs/verification_output_v31_10.txt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v31_10/source/docs/verification_output_v31_10.txt	2026-05-02 16:09:04.093053092 +0000
+@@ -0,0 +1,35 @@
++nc_state=4 nc_error=0 nc_error_line=0 nc_exec=32 nc_read=89 nc_buf=57 nc_x=0 nc_y=0 nc_z=0 nc_m=0
++interp_segments=0 feed_profile=0 feed_override=0 dwell_ticks=0
++coord_unit=0 coord_distance=0 coord_work=0 coord_local=0 coord_work_x=0
++coord_transform blocks=0 mask=0x00000000 work_set=0 local_set=0 temp_set=0 dyn_x=0 mount_err_x=0 rotary_z=0
++feature_blocks=0 feature_flags=0 canned=0 skip=0 advanced=0
++g08_standard_seen=0 g08_high_precision_seen=0 g08_cancel_seen=0 g08_final_smoothing=0 g08_final_high_precision=0
++hpcc_seen=0 hpcc_cancel_seen=0 hpcc_final=0 g05_p3_seen=0
++comp_applied=23 comp_mask=0x00000007 comp_tool=0 comp_cutter=0 comp_rotation=0
++path_arc=3 path_helical=1 path_arc_segments=12 path_lookahead=47 path_slowdowns=29 path_corner_deg=180 path_override=80
++kin_transformed=43 kin_mirrored=23 kin_retracts=1 kin_singularity_warn=0 kin_mirror_mask=0x00000000 kin_retract_mask=0x00000004 kin_tool_z=9848 kin_last_x=3405 kin_last_a=-1200
++diag_axis_warn=0x00000003 diag_axis_limit=0x00000001 diag_axis_critical=0x00000000 decel_level=2 decel_override=45 load_peak_x=847
++tool_active=0 tool2_uses=0 tool_warn=0x00000000 tool_expired=0x00000000 diag_decel=2 diag_tool_expired=0x00000000 diag_axis_warn=0x00000003
++tool_mgmt active=0 prepared=0 parsed_t=0 exchange_req=0 exchange_done=0 max_wait=0 pocket2=0
++motion_filter_samples=182 mode=2 axis_mask=0x0000000f raw_vx=2783 smooth_vx=2475 out_x=3702
++motion_filter_limits vel_events=32 accel_events=92 endpoint_corrections=30 residual_samples=87 max_lag_x=5847 residual_x=-82
++tool_life_hold_state=0 tool_life_hold_error=0 tool_life_hold_line=0 events=64 lost=180 last_event=9601
++cycle_completed=2 cycle_phase_count=51 skip_completed=1 skip_x=2460
++cycle_detail last=830 repeat=1 repeat_done=2 peck_blocks=1 tap_blocks=0 boring_blocks=0 spindle_sync=0 spindle_reverse=0 manual_return=1
++aux_completed=4 aux_wait_cycles=0 prestart_ok=1 prestart_mask=0x00000000
++trace_frozen=0 trace_captured=32 trace_trigger_cycle=0
++capability parsed=88 g=84 m=10 address_words=331 binary_loaded=0
++interference checked=26 warnings=0 slowdown=0 safety_external=1 safety_position=1 safety_override=100
++reference planned=3 executed=3 homed=0x00000001 markers=1 one_direction=1 rollover=0 approach_x=-468
++rotary_mcc parsed=3 executed=0 active_mask=0x00000000 mcc_on=0 mcc_off=0 virt=11 cmd=0x00000003
++axis_config path=0x0000000f rotary=0x00000008 diameter=0x00000001 applied=39 diameter_blocks=39 detached_blocks=0 rejected=0 name_a=A last_x=608
++design_features mode=0x00000000 nurbs=0 exp=0 cyl=0 polar=0 helical_b=0 auto_corner=0 grinding=0 egb_skip=0 interference3d=0 followup=0 ts=0 rt=0 slowdown=0 override=0 last_x=0 last_y=0
++design_features_v21 involute=0 hp_contour=0 exact_stop=0 rigid_tap=0 thread_chamfer=0 second_ref=0 machine_direct=0 coord_shift=0 css=0 feed_per_rev=0
++implementation_backlog implemented=240 configured=240 ts=574 rt=302 synthetic=240 cat_mask=0x000003ff last_id=239 last_cat=9 last_policy=3 slowdown=55 cat0=112 cat9=99 last_x=1239
++sync mode_bits=0x0000 planned=0 executed=0 sync_motion=0 compound_motion=0 overlay_motion=0 double_table=0 slave_mask=0x00000000 max_follow_y=0 out_y=0
++precision previewed=52 limited=49 learning_updates=35 vibration_warn=0 rt_ticks=1195 corr_x=-67
++mode=1 state=2 alarm=0 cycle=1200
++coord_error_checks=5
++g08_error_checks=3
++hpcc_error_checks=4
++cycle_error_checks=4
+diff -ruN /mnt/data/work_v31_10_base/source/inc/system_config.h /mnt/data/work_v31_10/source/inc/system_config.h
+--- /mnt/data/work_v31_10_base/source/inc/system_config.h	2026-05-02 14:30:10.000000000 +0000
++++ /mnt/data/work_v31_10/source/inc/system_config.h	2026-05-02 16:08:44.632260184 +0000
+@@ -771,8 +771,8 @@
+ #define NC_DESIGN_RIGID_TAP_MIN_TICKS         (8U)
+ #define NC_DESIGN_EXACT_STOP_PERCENT          (55U)
+ #define NC_DESIGN_HP_CONTOUR_PERCENT          (75U)
+-#define NC_IMPL_BACKLOG_FEATURE_COUNT          (210U)
+-#define NC_IMPL_BACKLOG_WORD_COUNT             (7U)
++#define NC_IMPL_BACKLOG_FEATURE_COUNT          (240U)
++#define NC_IMPL_BACKLOG_WORD_COUNT             (8U)
+ #define NC_IMPL_BACKLOG_DEFAULT_OVERRIDE       (92U)
+ #define NC_IMPL_BACKLOG_MIN_TICKS              (3U)
+ #define NC_IMPL_BACKLOG_MAX_POLICY             (7U)
+@@ -788,6 +788,12 @@
+ #define NC_IMPL_BACKLOG_V27_ADDED_FEATURES      (20U)
+ #define NC_IMPL_BACKLOG_V28_FIRST_FEATURE       (200U)
+ #define NC_IMPL_BACKLOG_V28_ADDED_FEATURES      (10U)
++#define NC_IMPL_BACKLOG_V29_FIRST_FEATURE       (210U)
++#define NC_IMPL_BACKLOG_V29_ADDED_FEATURES      (10U)
++#define NC_IMPL_BACKLOG_V30_FIRST_FEATURE       (220U)
++#define NC_IMPL_BACKLOG_V30_ADDED_FEATURES      (10U)
++#define NC_IMPL_BACKLOG_V31_FIRST_FEATURE       (230U)
++#define NC_IMPL_BACKLOG_V31_ADDED_FEATURES      (10U)
+ #define NC_IMPL_BACKLOG_V23_ROTARY_DEG_180      (180000)
+ #define NC_IMPL_BACKLOG_V23_ROTARY_DEG_360      (360000)
+ #define NC_EVENT_CODE_DESIGN_FEATURE_APPLIED  (9601U)
+diff -ruN /mnt/data/work_v31_10_base/source/inc/system_shared.h /mnt/data/work_v31_10/source/inc/system_shared.h
+--- /mnt/data/work_v31_10_base/source/inc/system_shared.h	2026-05-02 11:25:48.000000000 +0000
++++ /mnt/data/work_v31_10/source/inc/system_shared.h	2026-05-02 16:08:44.642086111 +0000
+@@ -1409,8 +1409,8 @@
+  * @brief Status for design-document feature completions added in v20.
+  */
+ /**
+- * @brief Status for the v22-v27 implementation backlog batches.
+- * @details Tracks 200 coded design-feature entries using fixed-size masks,
++ * @brief Status for the v22-v31 implementation backlog batches.
++ * @details Tracks 240 coded design-feature entries using fixed-size masks,
+  * counters, and last-block snapshots so RT, TS, and API callers can observe the
+  * added implementation without dynamic allocation.
+  */
+diff -ruN /mnt/data/work_v31_10_base/source/runtime_log.csv /mnt/data/work_v31_10/source/runtime_log.csv
+--- /mnt/data/work_v31_10_base/source/runtime_log.csv	2026-05-02 14:30:32.000000000 +0000
++++ /mnt/data/work_v31_10/source/runtime_log.csv	2026-05-02 16:09:04.092719021 +0000
+@@ -209,3 +209,11 @@
+ 1,7101,1,35
+ 1,7102,1,40
+ 3,2001,0,1200
++0,1001,300,2
++3,5001,0,5
++3,5002,0,5
++3,5003,0,5
++3,5004,0,6
++1,7101,1,35
++1,7102,1,40
++3,2001,0,1200
+diff -ruN /mnt/data/work_v31_10_base/source/scripts/build_gcc_smoke_v31_10.sh /mnt/data/work_v31_10/source/scripts/build_gcc_smoke_v31_10.sh
+--- /mnt/data/work_v31_10_base/source/scripts/build_gcc_smoke_v31_10.sh	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v31_10/source/scripts/build_gcc_smoke_v31_10.sh	2026-05-02 16:08:50.797773732 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++mkdir -p "$ROOT_DIR/build"
++gcc -std=c99 -Wall -Wextra -I"$ROOT_DIR/inc" "$ROOT_DIR"/src/*.c -lm -o "$ROOT_DIR/build/ibm_bob_sample_v31_10"
+diff -ruN /mnt/data/work_v31_10_base/source/scripts/test_gcc_smoke_v31_10.sh /mnt/data/work_v31_10/source/scripts/test_gcc_smoke_v31_10.sh
+--- /mnt/data/work_v31_10_base/source/scripts/test_gcc_smoke_v31_10.sh	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/work_v31_10/source/scripts/test_gcc_smoke_v31_10.sh	2026-05-02 16:08:50.798441236 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++bash "$ROOT_DIR/scripts/build_gcc_smoke_v31_10.sh"
++"$ROOT_DIR/build/ibm_bob_sample_v31_10" | tee "$ROOT_DIR/docs/verification_output_v31_10.txt"
+diff -ruN /mnt/data/work_v31_10_base/source/src/nc_feature_backlog.c /mnt/data/work_v31_10/source/src/nc_feature_backlog.c
+--- /mnt/data/work_v31_10_base/source/src/nc_feature_backlog.c	2026-05-02 14:30:10.000000000 +0000
++++ /mnt/data/work_v31_10/source/src/nc_feature_backlog.c	2026-05-02 16:08:44.641017786 +0000
+@@ -222,6 +222,36 @@
+     /* 207: 切削油温度上昇フィード制限 */ { 207U, 4U, 3U, 517U },
+     /* 208: チャック回転中ドアロック二重確認 */ { 208U, 8U, 4U, 518U },
+     /* 209: 主軸冷却ファン異常段階減速 */ { 209U, 4U, 5U, 519U },
++    /* 210: サーボアンプ温度予兆監視 */ { 210U, 4U, 6U, 520U },
++    /* 211: 工具折損検出入力デバウンス */ { 211U, 8U, 7U, 521U },
++    /* 212: プローブ信号stuck-on診断 */ { 212U, 8U, 0U, 522U },
++    /* 213: 機械原点近傍低速ゾーン */ { 213U, 3U, 1U, 523U },
++    /* 214: NC実行中設定変更保留キュー */ { 214U, 9U, 2U, 524U },
++    /* 215: エアパージREADYインターロック */ { 215U, 8U, 3U, 525U },
++    /* 216: チップ洗浄圧低下安全HOLD */ { 216U, 9U, 4U, 526U },
++    /* 217: ワーククランプID不一致ガード */ { 217U, 8U, 5U, 527U },
++    /* 218: プログラム再開時主軸状態ゲート */ { 218U, 4U, 6U, 528U },
++    /* 219: 外部軸READYタイムアウト監視 */ { 219U, 9U, 7U, 529U },
++    /* 220: 熱変位補正テーブル係数反映 */ { 220U, 5U, 0U, 530U },
++    /* 221: 主軸暖機状態による回転数ランプ制限 */ { 221U, 4U, 1U, 531U },
++    /* 222: 機内温度オフセット補正 */ { 222U, 5U, 2U, 532U },
++    /* 223: ボールねじピッチ誤差簡易補正 */ { 223U, 6U, 3U, 533U },
++    /* 224: 反転バックラッシュ事前補正 */ { 224U, 6U, 4U, 534U },
++    /* 225: サーボゲイン切替領域フィード制限 */ { 225U, 4U, 5U, 535U },
++    /* 226: 輪郭振動ノッチ相当スムージング */ { 226U, 0U, 6U, 536U },
++    /* 227: 回転軸高調波抑制補正 */ { 227U, 5U, 7U, 537U },
++    /* 228: 象限突起抑制円弧補正 */ { 228U, 0U, 0U, 538U },
++    /* 229: ロストモーション方向別補正 */ { 229U, 6U, 1U, 539U },
++    /* 230: ガントリ軸スキュー監視補正 */ { 230U, 6U, 2U, 540U },
++    /* 231: クロスレールクランプ確認インターロック */ { 231U, 8U, 3U, 541U },
++    /* 232: 油圧チャック圧力監視 */ { 232U, 9U, 4U, 542U },
++    /* 233: 心押し台推力監視 */ { 233U, 9U, 5U, 543U },
++    /* 234: バーフィーダ受け渡しハンドシェイク */ { 234U, 8U, 6U, 544U },
++    /* 235: チップコンベア過負荷減速 */ { 235U, 9U, 7U, 545U },
++    /* 236: クーラント圧力/流量スイッチラッチ */ { 236U, 8U, 0U, 546U },
++    /* 237: ミストコレクタREADYインターロック */ { 237U, 8U, 1U, 547U },
++    /* 238: 消火装置入力時安全出力マスク */ { 238U, 9U, 2U, 548U },
++    /* 239: 機内負圧異常時安全停止 */ { 239U, 9U, 3U, 549U },
+ };
+ 
+ static uint16_t s_parameter[NC_IMPL_BACKLOG_FEATURE_COUNT];
+@@ -1136,6 +1166,273 @@
+         pBlock->feature_flags |= NC_FEATURE_FLAG_SMOOTHING;
+         SetMinTicks(pBlock, 8U);
+         break;
++    case 210U: /* Servo-amplifier temperature prewarning monitor. */
++        if (pBlock->spindle_speed == 0U) { pBlock->spindle_speed = 450U; }
++        pBlock->feed = ClampI32((pBlock->feed <= 0) ? 1200 : pBlock->feed, 1, 36000);
++        SlowFeed(pBlock, 61U);
++        pBlock->accel_ticks += 2U;
++        pBlock->decel_ticks += 5U;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_SMOOTHING;
++        SetMinTicks(pBlock, 9U);
++        break;
++    case 211U: /* Tool-breakage input debounce. */
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        pBlock->p_word = (pBlock->p_word == 0U) ? (uint32_t)ClampI32((int32_t)param % 16, 2, 15) : pBlock->p_word;
++        pBlock->feed = ClampI32((pBlock->feed <= 0) ? 500 : pBlock->feed, 1, 15000);
++        SlowFeed(pBlock, 45U);
++        SetMinTicks(pBlock, 9U);
++        break;
++    case 212U: /* Probe signal stuck-on diagnosis. */
++        pBlock->motion_type = NC_MOTION_SKIP;
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_SKIP;
++        pBlock->q_value = (pBlock->q_value == 0) ? (int32_t)ClampI32((int32_t)param, 3, 300) : pBlock->q_value;
++        SlowFeed(pBlock, 54U);
++        SetMinTicks(pBlock, 8U);
++        break;
++    case 213U: /* Machine-origin vicinity low-speed zone. */
++        pBlock->motion_type = NC_MOTION_REFERENCE_RETURN;
++        pBlock->axis_mask |= 0x00000007UL;
++        pBlock->axis_target[0] = ClampI32(pBlock->axis_target[0], -5000, 5000);
++        pBlock->axis_target[1] = ClampI32(pBlock->axis_target[1], -5000, 5000);
++        pBlock->axis_target[2] = ClampI32(pBlock->axis_target[2], -5000, 5000);
++        SlowFeed(pBlock, 38U);
++        SetMinTicks(pBlock, 11U);
++        break;
++    case 214U: /* Pending queue for setting changes during NC execution. */
++        pBlock->modal_flags |= 0x00000010UL;
++        pBlock->generation++;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
++        pBlock->feed_override_percent = (uint16_t)ClampI32((int32_t)pBlock->feed_override_percent, 80, 120);
++        SetMinTicks(pBlock, 4U);
++        break;
++    case 215U: /* Air-purge READY interlock. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 72U; }
++        pBlock->p_word = (pBlock->p_word == 0U) ? (uint32_t)ClampI32((int32_t)param % 25, 1, 24) : pBlock->p_word;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
++        SetMinTicks(pBlock, 6U);
++        break;
++    case 216U: /* Chip-flush pressure drop safe HOLD. */
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        pBlock->feed = 1;
++        pBlock->decel_ticks += 8U;
++        pBlock->interp_ticks += 6U;
++        SetMinTicks(pBlock, 12U);
++        break;
++    case 217U: /* Work-clamp ID mismatch guard. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 73U; }
++        pBlock->p_word = (pBlock->p_word == 0U) ? (uint32_t)(3000U + (param % 100U)) : pBlock->p_word;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        pBlock->feed = ClampI32((pBlock->feed <= 0) ? 800 : pBlock->feed, 1, 12000);
++        SetMinTicks(pBlock, 7U);
++        break;
++    case 218U: /* Spindle-state gate at program restart. */
++        pBlock->modal_flags |= 0x00000020UL;
++        if (pBlock->spindle_speed == 0U) { pBlock->spindle_speed = 300U + (uint32_t)(param % 700U); }
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        SlowFeed(pBlock, 67U);
++        SetMinTicks(pBlock, 8U);
++        break;
++    case 219U: /* External-axis READY timeout monitor. */
++        pBlock->axis_mask |= 0x00000018UL;
++        pBlock->axis_control_mask |= 0x00000018UL;
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        pBlock->p_word = (pBlock->p_word == 0U) ? (uint32_t)ClampI32((int32_t)param / 2, 2, 120) : pBlock->p_word;
++        SlowFeed(pBlock, 57U);
++        SetMinTicks(pBlock, 9U);
++        break;
++    case 220U: { /* Thermal-displacement compensation table coefficient reflection. */
++        uint32_t axis;
++        int32_t coeff = ClampI32((int32_t)param, 1, 120);
++        pBlock->axis_mask |= 0x00000007UL;
++        for (axis = 0U; axis < 3U; ++axis) {
++            if ((pBlock->axis_mask & (1UL << axis)) != 0U) {
++                pBlock->axis_target[axis] += (int32_t)((axis + 1U) * (uint32_t)coeff);
++            }
++        }
++        pBlock->feature_flags |= NC_FEATURE_FLAG_HIGH_PRECISION;
++        SetMinTicks(pBlock, 5U);
++        break;
++    }
++    case 221U: /* Spindle warm-up state dependent speed-ramp limiter. */
++        if (pBlock->spindle_speed == 0U) { pBlock->spindle_speed = 400U + (uint32_t)(param % 600U); }
++        pBlock->spindle_speed = (uint32_t)ClampI32((int32_t)pBlock->spindle_speed, 1, 3500);
++        pBlock->aux_flags |= NC_AUX_FLAG_SPINDLE;
++        pBlock->accel_ticks += 4U;
++        pBlock->decel_ticks += 2U;
++        SlowFeed(pBlock, 73U);
++        SetMinTicks(pBlock, 9U);
++        break;
++    case 222U: { /* Machine-room temperature offset compensation. */
++        int32_t offset = ClampI32((int32_t)(param % 64U), 1, 63);
++        pBlock->axis_mask |= 0x00000007UL;
++        pBlock->axis_target[0] += offset;
++        pBlock->axis_target[1] -= offset / 2;
++        pBlock->axis_target[2] += offset / 3;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_COORD_ROTATION;
++        SetMinTicks(pBlock, 5U);
++        break;
++    }
++    case 223U: { /* Simplified ball-screw pitch-error compensation. */
++        uint32_t axis;
++        int32_t ppm = ClampI32((int32_t)param, 1, 300);
++        for (axis = 0U; axis < AXIS_MAX; ++axis) {
++            if ((pBlock->axis_mask & (1UL << axis)) != 0U) {
++                pBlock->axis_target[axis] += (int32_t)(((int64_t)pBlock->axis_target[axis] * (int64_t)ppm) / 100000LL);
++            }
++        }
++        pBlock->feature_flags |= NC_FEATURE_FLAG_HIGH_PRECISION;
++        SetMinTicks(pBlock, 6U);
++        break;
++    }
++    case 224U: { /* Direction-dependent pre-backlash compensation. */
++        uint32_t axis;
++        int32_t backlash = ClampI32((int32_t)(param % 40U) + 1, 1, 40);
++        for (axis = 0U; axis < AXIS_MAX; ++axis) {
++            if ((pBlock->axis_mask & (1UL << axis)) != 0U) {
++                int32_t delta = pBlock->axis_target[axis] - pBlock->axis_start[axis];
++                if (delta > 0) { pBlock->axis_target[axis] += backlash; }
++                else if (delta < 0) { pBlock->axis_target[axis] -= backlash; }
++            }
++        }
++        pBlock->feature_flags |= NC_FEATURE_FLAG_SMOOTHING;
++        SetMinTicks(pBlock, 6U);
++        break;
++    }
++    case 225U: /* Feed limitation around servo-gain switching region. */
++        pBlock->feed = ClampI32((pBlock->feed <= 0) ? 1800 : pBlock->feed, 1, 28000);
++        SlowFeed(pBlock, 62U);
++        pBlock->feed_profile = NC_FEED_PROFILE_TRAPEZOID;
++        pBlock->accel_ticks += 3U;
++        pBlock->decel_ticks += 3U;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_EXACT_STOP;
++        SetMinTicks(pBlock, 10U);
++        break;
++    case 226U: /* Contour-vibration notch-equivalent smoothing. */
++        pBlock->feature_flags |= (NC_FEATURE_FLAG_SMOOTHING | NC_FEATURE_FLAG_HPCC);
++        pBlock->accel_ticks += 5U;
++        pBlock->decel_ticks += 5U;
++        SlowFeed(pBlock, 82U);
++        SetMinTicks(pBlock, 12U);
++        break;
++    case 227U: { /* Rotary-axis harmonic suppression compensation. */
++        uint32_t axis;
++        int32_t harmonic = ClampI32((int32_t)(param % 24U) + 1, 1, 24);
++        pBlock->axis_mask |= 0x00000018UL;
++        pBlock->axis_control_mask |= 0x00000018UL;
++        for (axis = 3U; axis < AXIS_MAX; ++axis) {
++            if ((pBlock->axis_mask & (1UL << axis)) != 0U) {
++                pBlock->axis_target[axis] += ((pBlock->axis_target[axis] >= 0) ? harmonic : -harmonic);
++            }
++        }
++        pBlock->feature_flags |= NC_FEATURE_FLAG_TOOL_AXIS_DIR;
++        SetMinTicks(pBlock, 7U);
++        break;
++    }
++    case 228U: /* Quadrant-protrusion suppression for arc motion. */
++        pBlock->motion_type = (pBlock->motion_type == NC_MOTION_ARC_CCW) ? NC_MOTION_ARC_CCW : NC_MOTION_ARC_CW;
++        pBlock->arc_radius = ClampI32((pBlock->arc_radius == 0) ? (int32_t)param : pBlock->arc_radius, 50, 1000000);
++        pBlock->axis_target[0] += (pBlock->axis_target[0] >= 0) ? -2 : 2;
++        pBlock->axis_target[1] += (pBlock->axis_target[1] >= 0) ? -2 : 2;
++        pBlock->feature_flags |= (NC_FEATURE_FLAG_HIGH_PRECISION | NC_FEATURE_FLAG_SMOOTHING);
++        SlowFeed(pBlock, 76U);
++        SetMinTicks(pBlock, 8U);
++        break;
++    case 229U: { /* Directional lost-motion compensation. */
++        uint32_t axis;
++        int32_t comp = ClampI32((int32_t)(param % 32U) + 1, 1, 32);
++        for (axis = 0U; axis < AXIS_MAX; ++axis) {
++            if ((pBlock->axis_mask & (1UL << axis)) != 0U) {
++                int32_t delta = pBlock->axis_target[axis] - pBlock->axis_start[axis];
++                if (delta >= 0) { pBlock->axis_target[axis] += comp; }
++                else { pBlock->axis_target[axis] -= comp; }
++            }
++        }
++        pBlock->feature_flags |= NC_FEATURE_FLAG_HIGH_PRECISION;
++        SetMinTicks(pBlock, 6U);
++        break;
++    }
++    case 230U: { /* Gantry-axis skew monitoring compensation. */
++        int32_t skew = ClampI32((int32_t)(param % 45U) + 1, 1, 45);
++        pBlock->axis_mask |= 0x00000003UL;
++        pBlock->axis_control_mask |= 0x00000003UL;
++        pBlock->axis_target[0] += skew;
++        pBlock->axis_target[1] -= skew;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_HIGH_PRECISION;
++        SlowFeed(pBlock, 84U);
++        SetMinTicks(pBlock, 7U);
++        break;
++    }
++    case 231U: /* Cross-rail clamp confirmation interlock. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 74U; }
++        pBlock->p_word = (pBlock->p_word == 0U) ? (uint32_t)ClampI32((int32_t)param % 30, 2, 29) : pBlock->p_word;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
++        SetMinTicks(pBlock, 7U);
++        break;
++    case 232U: /* Hydraulic chuck pressure monitor. */
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        if (pBlock->spindle_speed == 0U) { pBlock->spindle_speed = 200U + (uint32_t)(param % 500U); }
++        SlowFeed(pBlock, 48U);
++        pBlock->decel_ticks += 5U;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        SetMinTicks(pBlock, 10U);
++        break;
++    case 233U: /* Tailstock thrust monitor. */
++        pBlock->axis_mask |= 0x00000004UL;
++        pBlock->axis_target[2] = ClampI32(pBlock->axis_target[2], -200000, 200000);
++        pBlock->q_value = (pBlock->q_value == 0) ? (int32_t)ClampI32((int32_t)param * 3, 10, 3000) : pBlock->q_value;
++        SlowFeed(pBlock, 63U);
++        SetMinTicks(pBlock, 9U);
++        break;
++    case 234U: /* Bar-feeder transfer handshake. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 75U; }
++        pBlock->p_word = (pBlock->p_word == 0U) ? (uint32_t)(4000U + (param % 200U)) : pBlock->p_word;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
++        SetMinTicks(pBlock, 8U);
++        break;
++    case 235U: /* Chip-conveyor overload deceleration. */
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_SMOOTHING;
++        SlowFeed(pBlock, 50U);
++        pBlock->decel_ticks += 6U;
++        SetMinTicks(pBlock, 11U);
++        break;
++    case 236U: /* Coolant pressure/flow switch latch. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 76U; }
++        pBlock->modal_flags |= 0x00000040UL;
++        pBlock->p_word = (pBlock->p_word == 0U) ? (uint32_t)ClampI32((int32_t)param % 40, 3, 39) : pBlock->p_word;
++        SetMinTicks(pBlock, 7U);
++        break;
++    case 237U: /* Mist-collector READY interlock. */
++        pBlock->aux_flags |= (NC_AUX_FLAG_M_CODE | NC_AUX_FLAG_MFIN_WAIT);
++        if (pBlock->aux_m_code == 0U) { pBlock->aux_m_code = 77U; }
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_ASSIGNMENT;
++        SlowFeed(pBlock, 69U);
++        SetMinTicks(pBlock, 8U);
++        break;
++    case 238U: /* Fire-suppression input safe-output mask. */
++        pBlock->modal_flags |= 0x00000080UL;
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        pBlock->feed = 1;
++        pBlock->decel_ticks += 10U;
++        SetMinTicks(pBlock, 14U);
++        break;
++    case 239U: /* Machine negative-pressure abnormal safe stop. */
++        pBlock->modal_flags |= 0x00000100UL;
++        pBlock->aux_flags |= NC_AUX_FLAG_MFIN_WAIT;
++        pBlock->feature_flags |= NC_FEATURE_FLAG_AXIS_RETRACT;
++        SlowFeed(pBlock, 35U);
++        pBlock->decel_ticks += 9U;
++        SetMinTicks(pBlock, 13U);
++        break;
+     default:
+         break;
+     }
+@@ -1285,7 +1582,7 @@
+         const NC_BACKLOG_DESCRIPTOR* pDesc = &s_backlog[i];
+         if ((IsEnabled(pDesc->feature_id) != 0U) &&
+             (MatchesDescriptor(pDesc, pBlock) != 0U)) {
+-            /* v22 legacy items remain observation-first. v23-v28 additions are
++            /* v22 legacy items remain observation-first. v23-v31 additions are
+              * promoted to deterministic fixed-block TS transformations. */
+             if (pDesc->feature_id >= NC_IMPL_BACKLOG_V23_FIRST_FEATURE) {
+                 ApplyV23Policy(pDesc, pBlock);

@@ -1,0 +1,691 @@
+
+/*
+ * IBM-Bob additional unit tests v48_40
+ *
+ * Purpose:
+ *   Adds 40 unit-test cases for the NC feature-backlog / implementation backlog
+ *   contract, focusing on boundary conditions, enable/disable ordering, TS/RT
+ *   application side effects, clamps, and status consistency.
+ *
+ * Integration notes:
+ *   - In this package, the test is executable as a standalone contract test by
+ *     compiling with IBM_BOB_TEST_STANDALONE=1.
+ *   - When integrating into the real IBM-Bob tree, replace the V48 adapter
+ *     functions with direct calls to the production API in nc_feature_backlog.*
+ *     or define IBM_BOB_TEST_STANDALONE=0 and provide the adapter mapping.
+ *   - The test body itself intentionally avoids malloc, file I/O, Windows API,
+ *     and non-deterministic timing so it remains suitable for the RT/TS split
+ *     design style used by IBM-Bob.
+ */
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
+#ifndef IBM_BOB_TEST_STANDALONE
+#define IBM_BOB_TEST_STANDALONE 1
+#endif
+
+#define V48_FEATURE_COUNT 320
+#define V48_WORD_BITS 32
+#define V48_WORD_COUNT ((V48_FEATURE_COUNT + V48_WORD_BITS - 1) / V48_WORD_BITS)
+#define V48_CATEGORY_COUNT 10
+#define V48_FEED_MIN 1
+#define V48_FEED_MAX 200
+
+#define V48_OK 0
+#define V48_ERR_RANGE (-1)
+#define V48_ERR_NULL (-2)
+
+typedef struct V48_NcBlockTag {
+    int32_t x;
+    int32_t y;
+    int32_t z;
+    int32_t a;
+    int32_t feed_override_percent;
+    int32_t dwell_ms;
+    uint32_t category_mask;
+} V48_NC_BLOCK;
+
+typedef struct V48_BacklogStatusTag {
+    uint32_t enabled_words[V48_WORD_COUNT];
+    int32_t configured_count;
+    int32_t enabled_count;
+    int32_t applied_ts_count;
+    int32_t applied_rt_count;
+    int32_t synthetic_checks;
+    int32_t warnings;
+    int32_t last_feature_id;
+    int32_t last_category;
+    int32_t last_policy;
+    uint32_t category_mask;
+} V48_BACKLOG_STATUS;
+
+static V48_BACKLOG_STATUS g_v48_status;
+
+static int v48_category_of(int feature_id) {
+    if (feature_id < 0 || feature_id >= V48_FEATURE_COUNT) {
+        return -1;
+    }
+    return feature_id % V48_CATEGORY_COUNT;
+}
+
+static int v48_policy_of(int feature_id) {
+    if (feature_id < 0 || feature_id >= V48_FEATURE_COUNT) {
+        return -1;
+    }
+    return (feature_id % 7) + 1;
+}
+
+static int v48_clamp_feed(int feed) {
+    if (feed < V48_FEED_MIN) return V48_FEED_MIN;
+    if (feed > V48_FEED_MAX) return V48_FEED_MAX;
+    return feed;
+}
+
+static void v48_recompute_counts(void) {
+    int count = 0;
+    uint32_t cat_mask = 0U;
+    for (int id = 0; id < V48_FEATURE_COUNT; ++id) {
+        const int word = id / V48_WORD_BITS;
+        const int bit = id % V48_WORD_BITS;
+        if ((g_v48_status.enabled_words[word] & (1U << bit)) != 0U) {
+            count++;
+            cat_mask |= (1U << v48_category_of(id));
+        }
+    }
+    g_v48_status.enabled_count = count;
+    g_v48_status.category_mask = cat_mask;
+}
+
+static void v48_reset(void) {
+    memset(&g_v48_status, 0, sizeof(g_v48_status));
+    g_v48_status.configured_count = V48_FEATURE_COUNT;
+    g_v48_status.last_feature_id = -1;
+    g_v48_status.last_category = -1;
+    g_v48_status.last_policy = -1;
+}
+
+static int v48_is_enabled(int feature_id) {
+    if (feature_id < 0 || feature_id >= V48_FEATURE_COUNT) {
+        return 0;
+    }
+    return (g_v48_status.enabled_words[feature_id / V48_WORD_BITS] &
+            (1U << (feature_id % V48_WORD_BITS))) != 0U;
+}
+
+static int v48_set_feature(int feature_id, int enabled) {
+    if (feature_id < 0 || feature_id >= V48_FEATURE_COUNT) {
+        return V48_ERR_RANGE;
+    }
+    const int word = feature_id / V48_WORD_BITS;
+    const int bit = feature_id % V48_WORD_BITS;
+    if (enabled) {
+        g_v48_status.enabled_words[word] |= (1U << bit);
+    } else {
+        g_v48_status.enabled_words[word] &= ~(1U << bit);
+    }
+    v48_recompute_counts();
+    return V48_OK;
+}
+
+static int v48_enable_all(void) {
+    for (int id = 0; id < V48_FEATURE_COUNT; ++id) {
+        (void)v48_set_feature(id, 1);
+    }
+    return V48_OK;
+}
+
+static int v48_disable_all(void) {
+    memset(g_v48_status.enabled_words, 0, sizeof(g_v48_status.enabled_words));
+    v48_recompute_counts();
+    return V48_OK;
+}
+
+static const char *v48_feature_name(int feature_id) {
+    if (feature_id < 0 || feature_id >= V48_FEATURE_COUNT) {
+        return NULL;
+    }
+    static char name[48];
+    snprintf(name, sizeof(name), "NC_IMPL_BACKLOG_FEATURE_%03d", feature_id);
+    return name;
+}
+
+static int v48_self_check(void) {
+    int computed_enabled = 0;
+    uint32_t computed_category_mask = 0U;
+    for (int id = 0; id < V48_FEATURE_COUNT; ++id) {
+        const char *name = v48_feature_name(id);
+        if (name == NULL || name[0] == '\0') {
+            g_v48_status.warnings++;
+            return V48_ERR_RANGE;
+        }
+        if (v48_is_enabled(id)) {
+            computed_enabled++;
+            computed_category_mask |= (1U << v48_category_of(id));
+        }
+    }
+    if (computed_enabled != g_v48_status.enabled_count ||
+        computed_category_mask != g_v48_status.category_mask) {
+        g_v48_status.warnings++;
+        return V48_ERR_RANGE;
+    }
+    g_v48_status.synthetic_checks++;
+    return V48_OK;
+}
+
+static int v48_apply_ts(V48_NC_BLOCK *block) {
+    if (block == NULL) {
+        return V48_ERR_NULL;
+    }
+    int applied = 0;
+    for (int id = 0; id < V48_FEATURE_COUNT; ++id) {
+        if (!v48_is_enabled(id)) {
+            continue;
+        }
+        const int category = v48_category_of(id);
+        const int policy = v48_policy_of(id);
+        switch (category) {
+            case 0:
+                block->x += 1 + (id % 3);
+                break;
+            case 1:
+                block->y += 2 + (id % 4);
+                break;
+            case 2:
+                block->feed_override_percent -= 25 + (id % 5);
+                break;
+            case 3:
+                block->feed_override_percent += 30 + (id % 7);
+                break;
+            case 4:
+                block->dwell_ms += 10 + (id % 10);
+                break;
+            case 5:
+                block->z -= 1 + (id % 2);
+                break;
+            case 6:
+                block->a += 1;
+                break;
+            case 7:
+                block->category_mask |= (1U << 7);
+                break;
+            case 8:
+                block->x -= 1;
+                block->y += 1;
+                break;
+            case 9:
+                block->z += 2;
+                break;
+            default:
+                g_v48_status.warnings++;
+                return V48_ERR_RANGE;
+        }
+        block->feed_override_percent = v48_clamp_feed(block->feed_override_percent);
+        g_v48_status.last_feature_id = id;
+        g_v48_status.last_category = category;
+        g_v48_status.last_policy = policy;
+        applied++;
+    }
+    g_v48_status.applied_ts_count += applied;
+    return V48_OK;
+}
+
+static int v48_apply_rt(void) {
+    int applied = 0;
+    for (int id = 0; id < V48_FEATURE_COUNT; ++id) {
+        if (!v48_is_enabled(id)) {
+            continue;
+        }
+        g_v48_status.last_feature_id = id;
+        g_v48_status.last_category = v48_category_of(id);
+        g_v48_status.last_policy = v48_policy_of(id);
+        applied++;
+    }
+    g_v48_status.applied_rt_count += applied;
+    return V48_OK;
+}
+
+static V48_NC_BLOCK v48_default_block(void) {
+    V48_NC_BLOCK b;
+    memset(&b, 0, sizeof(b));
+    b.feed_override_percent = 100;
+    return b;
+}
+
+static int g_failures = 0;
+static int g_tests = 0;
+
+#define ASSERT_TRUE(expr) do { \
+    if (!(expr)) { \
+        printf("FAIL %s:%d: %s\n", __FILE__, __LINE__, #expr); \
+        g_failures++; \
+        return; \
+    } \
+} while (0)
+
+#define ASSERT_EQ_INT(expected, actual) do { \
+    const int e__ = (int)(expected); \
+    const int a__ = (int)(actual); \
+    if (e__ != a__) { \
+        printf("FAIL %s:%d: expected %d actual %d\n", __FILE__, __LINE__, e__, a__); \
+        g_failures++; \
+        return; \
+    } \
+} while (0)
+
+#define ASSERT_EQ_U32(expected, actual) do { \
+    const uint32_t e__ = (uint32_t)(expected); \
+    const uint32_t a__ = (uint32_t)(actual); \
+    if (e__ != a__) { \
+        printf("FAIL %s:%d: expected 0x%08x actual 0x%08x\n", __FILE__, __LINE__, e__, a__); \
+        g_failures++; \
+        return; \
+    } \
+} while (0)
+
+static void test_01_reset_clears_status(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_FEATURE_COUNT, g_v48_status.configured_count);
+    ASSERT_EQ_INT(0, g_v48_status.enabled_count);
+    ASSERT_EQ_INT(-1, g_v48_status.last_feature_id);
+    ASSERT_EQ_U32(0U, g_v48_status.category_mask);
+}
+
+static void test_02_enable_first_feature_sets_bit_and_count(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(0, 1));
+    ASSERT_TRUE(v48_is_enabled(0));
+    ASSERT_EQ_INT(1, g_v48_status.enabled_count);
+    ASSERT_EQ_U32(1U << 0, g_v48_status.category_mask);
+}
+
+static void test_03_enable_middle_feature_uses_expected_word(void) {
+    v48_reset();
+    const int id = 137;
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(id, 1));
+    ASSERT_TRUE((g_v48_status.enabled_words[id / 32] & (1U << (id % 32))) != 0U);
+    ASSERT_EQ_INT(1, g_v48_status.enabled_count);
+}
+
+static void test_04_enable_last_feature_sets_last_word(void) {
+    v48_reset();
+    const int id = V48_FEATURE_COUNT - 1;
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(id, 1));
+    ASSERT_TRUE(v48_is_enabled(id));
+    ASSERT_EQ_INT(1, g_v48_status.enabled_count);
+}
+
+static void test_05_disable_feature_reduces_count(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(10, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(10, 0));
+    ASSERT_TRUE(!v48_is_enabled(10));
+    ASSERT_EQ_INT(0, g_v48_status.enabled_count);
+}
+
+static void test_06_enable_same_feature_is_idempotent(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(12, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(12, 1));
+    ASSERT_EQ_INT(1, g_v48_status.enabled_count);
+}
+
+static void test_07_disable_same_feature_is_idempotent(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(12, 0));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(12, 0));
+    ASSERT_EQ_INT(0, g_v48_status.enabled_count);
+}
+
+static void test_08_negative_feature_id_is_rejected(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_ERR_RANGE, v48_set_feature(-1, 1));
+    ASSERT_EQ_INT(0, g_v48_status.enabled_count);
+}
+
+static void test_09_count_feature_id_is_rejected(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_ERR_RANGE, v48_set_feature(V48_FEATURE_COUNT, 1));
+    ASSERT_EQ_INT(0, g_v48_status.enabled_count);
+}
+
+static void test_10_large_feature_id_is_rejected(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_ERR_RANGE, v48_set_feature(V48_FEATURE_COUNT + 1000, 1));
+    ASSERT_EQ_INT(0, g_v48_status.enabled_count);
+}
+
+static void test_11_enable_all_sets_all_valid_bits(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_OK, v48_enable_all());
+    ASSERT_EQ_INT(V48_FEATURE_COUNT, g_v48_status.enabled_count);
+    ASSERT_TRUE(v48_is_enabled(0));
+    ASSERT_TRUE(v48_is_enabled(V48_FEATURE_COUNT - 1));
+}
+
+static void test_12_disable_all_clears_all_bits(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_OK, v48_enable_all());
+    ASSERT_EQ_INT(V48_OK, v48_disable_all());
+    ASSERT_EQ_INT(0, g_v48_status.enabled_count);
+    ASSERT_EQ_U32(0U, g_v48_status.category_mask);
+}
+
+static void test_13_sparse_enable_count_matches(void) {
+    v48_reset();
+    const int ids[] = {0, 9, 31, 32, 63, 64, 127, 255};
+    for (unsigned i = 0; i < sizeof(ids)/sizeof(ids[0]); ++i) {
+        ASSERT_EQ_INT(V48_OK, v48_set_feature(ids[i], 1));
+    }
+    ASSERT_EQ_INT(8, g_v48_status.enabled_count);
+}
+
+static void test_14_category_mask_tracks_enabled_categories(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(0, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(1, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(9, 1));
+    ASSERT_EQ_U32((1U << 0) | (1U << 1) | (1U << 9), g_v48_status.category_mask);
+}
+
+static void test_15_category_mask_recomputes_after_disable(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(0, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(10, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(1, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(0, 0));
+    ASSERT_EQ_U32((1U << 0) | (1U << 1), g_v48_status.category_mask);
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(10, 0));
+    ASSERT_EQ_U32(1U << 1, g_v48_status.category_mask);
+}
+
+static void test_16_feature_names_valid_for_first_middle_last(void) {
+    ASSERT_TRUE(v48_feature_name(0) != NULL && v48_feature_name(0)[0] != '\0');
+    ASSERT_TRUE(v48_feature_name(123) != NULL && v48_feature_name(123)[0] != '\0');
+    ASSERT_TRUE(v48_feature_name(V48_FEATURE_COUNT - 1) != NULL && v48_feature_name(V48_FEATURE_COUNT - 1)[0] != '\0');
+}
+
+static void test_17_invalid_feature_name_is_null(void) {
+    ASSERT_TRUE(v48_feature_name(-1) == NULL);
+    ASSERT_TRUE(v48_feature_name(V48_FEATURE_COUNT) == NULL);
+}
+
+static void test_18_self_check_clean_after_reset(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_OK, v48_self_check());
+    ASSERT_EQ_INT(1, g_v48_status.synthetic_checks);
+    ASSERT_EQ_INT(0, g_v48_status.warnings);
+}
+
+static void test_19_self_check_detects_consistency_after_sparse(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(2, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(73, 1));
+    ASSERT_EQ_INT(V48_OK, v48_self_check());
+    ASSERT_EQ_INT(2, g_v48_status.enabled_count);
+    ASSERT_EQ_INT(0, g_v48_status.warnings);
+}
+
+static void test_20_apply_ts_no_enabled_features_noop(void) {
+    v48_reset();
+    V48_NC_BLOCK b = v48_default_block();
+    ASSERT_EQ_INT(V48_OK, v48_apply_ts(&b));
+    ASSERT_EQ_INT(0, b.x);
+    ASSERT_EQ_INT(100, b.feed_override_percent);
+    ASSERT_EQ_INT(0, g_v48_status.applied_ts_count);
+}
+
+static void test_21_apply_ts_null_block_is_rejected_no_crash(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_ERR_NULL, v48_apply_ts(NULL));
+    ASSERT_EQ_INT(0, g_v48_status.applied_ts_count);
+}
+
+static void test_22_apply_ts_first_feature_moves_x(void) {
+    v48_reset();
+    V48_NC_BLOCK b = v48_default_block();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(0, 1));
+    ASSERT_EQ_INT(V48_OK, v48_apply_ts(&b));
+    ASSERT_EQ_INT(1, b.x);
+    ASSERT_EQ_INT(0, b.y);
+    ASSERT_EQ_INT(1, g_v48_status.applied_ts_count);
+}
+
+static void test_23_apply_ts_category1_moves_y_only(void) {
+    v48_reset();
+    V48_NC_BLOCK b = v48_default_block();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(1, 1));
+    ASSERT_EQ_INT(V48_OK, v48_apply_ts(&b));
+    ASSERT_EQ_INT(0, b.x);
+    ASSERT_EQ_INT(3, b.y);
+    ASSERT_EQ_INT(100, b.feed_override_percent);
+}
+
+static void test_24_apply_ts_category2_feed_clamps_low(void) {
+    v48_reset();
+    V48_NC_BLOCK b = v48_default_block();
+    b.feed_override_percent = 2;
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(2, 1));
+    ASSERT_EQ_INT(V48_OK, v48_apply_ts(&b));
+    ASSERT_EQ_INT(V48_FEED_MIN, b.feed_override_percent);
+}
+
+static void test_25_apply_ts_category3_feed_clamps_high(void) {
+    v48_reset();
+    V48_NC_BLOCK b = v48_default_block();
+    b.feed_override_percent = 190;
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(3, 1));
+    ASSERT_EQ_INT(V48_OK, v48_apply_ts(&b));
+    ASSERT_EQ_INT(V48_FEED_MAX, b.feed_override_percent);
+}
+
+static void test_26_apply_ts_category4_accumulates_dwell(void) {
+    v48_reset();
+    V48_NC_BLOCK b = v48_default_block();
+    b.dwell_ms = 5;
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(4, 1));
+    ASSERT_EQ_INT(V48_OK, v48_apply_ts(&b));
+    ASSERT_EQ_INT(19, b.dwell_ms);
+}
+
+static void test_27_apply_ts_category5_moves_z_negative(void) {
+    v48_reset();
+    V48_NC_BLOCK b = v48_default_block();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(5, 1));
+    ASSERT_EQ_INT(V48_OK, v48_apply_ts(&b));
+    ASSERT_EQ_INT(-2, b.z);
+}
+
+static void test_28_apply_ts_category6_moves_a_positive(void) {
+    v48_reset();
+    V48_NC_BLOCK b = v48_default_block();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(6, 1));
+    ASSERT_EQ_INT(V48_OK, v48_apply_ts(&b));
+    ASSERT_EQ_INT(1, b.a);
+}
+
+static void test_29_apply_ts_category7_sets_block_category_mask(void) {
+    v48_reset();
+    V48_NC_BLOCK b = v48_default_block();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(7, 1));
+    ASSERT_EQ_INT(V48_OK, v48_apply_ts(&b));
+    ASSERT_EQ_U32(1U << 7, b.category_mask);
+}
+
+static void test_30_apply_ts_multiple_features_updates_last_feature_id(void) {
+    v48_reset();
+    V48_NC_BLOCK b = v48_default_block();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(3, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(77, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(222, 1));
+    ASSERT_EQ_INT(V48_OK, v48_apply_ts(&b));
+    ASSERT_EQ_INT(222, g_v48_status.last_feature_id);
+    ASSERT_EQ_INT(3, g_v48_status.applied_ts_count);
+}
+
+static void test_31_apply_ts_sparse_order_is_deterministic(void) {
+    v48_reset();
+    V48_NC_BLOCK a = v48_default_block();
+    V48_NC_BLOCK b = v48_default_block();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(90, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(11, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(45, 1));
+    ASSERT_EQ_INT(V48_OK, v48_apply_ts(&a));
+    v48_reset();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(45, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(90, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(11, 1));
+    ASSERT_EQ_INT(V48_OK, v48_apply_ts(&b));
+    ASSERT_EQ_INT(a.x, b.x);
+    ASSERT_EQ_INT(a.y, b.y);
+    ASSERT_EQ_INT(a.z, b.z);
+    ASSERT_EQ_INT(a.feed_override_percent, b.feed_override_percent);
+}
+
+static void test_32_apply_ts_repeated_runs_are_bounded_by_clamp(void) {
+    v48_reset();
+    V48_NC_BLOCK b = v48_default_block();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(2, 1));
+    for (int i = 0; i < 20; ++i) {
+        ASSERT_EQ_INT(V48_OK, v48_apply_ts(&b));
+    }
+    ASSERT_EQ_INT(V48_FEED_MIN, b.feed_override_percent);
+}
+
+static void test_33_apply_rt_no_enabled_features_noop_count(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_OK, v48_apply_rt());
+    ASSERT_EQ_INT(0, g_v48_status.applied_rt_count);
+    ASSERT_EQ_INT(-1, g_v48_status.last_feature_id);
+}
+
+static void test_34_apply_rt_enabled_features_count(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(8, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(18, 1));
+    ASSERT_EQ_INT(V48_OK, v48_apply_rt());
+    ASSERT_EQ_INT(2, g_v48_status.applied_rt_count);
+}
+
+static void test_35_apply_rt_last_feature_matches_highest_enabled(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(1, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(V48_FEATURE_COUNT - 1, 1));
+    ASSERT_EQ_INT(V48_OK, v48_apply_rt());
+    ASSERT_EQ_INT(V48_FEATURE_COUNT - 1, g_v48_status.last_feature_id);
+}
+
+static void test_36_disable_before_apply_prevents_side_effect(void) {
+    v48_reset();
+    V48_NC_BLOCK b = v48_default_block();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(0, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(0, 0));
+    ASSERT_EQ_INT(V48_OK, v48_apply_ts(&b));
+    ASSERT_EQ_INT(0, b.x);
+    ASSERT_EQ_INT(0, g_v48_status.applied_ts_count);
+}
+
+static void test_37_enable_disable_other_feature_independence(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(0, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(1, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(1, 0));
+    ASSERT_TRUE(v48_is_enabled(0));
+    ASSERT_TRUE(!v48_is_enabled(1));
+    ASSERT_EQ_INT(1, g_v48_status.enabled_count);
+}
+
+static void test_38_enable_all_then_disable_edges_retains_middle(void) {
+    v48_reset();
+    ASSERT_EQ_INT(V48_OK, v48_enable_all());
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(0, 0));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(V48_FEATURE_COUNT - 1, 0));
+    ASSERT_TRUE(!v48_is_enabled(0));
+    ASSERT_TRUE(v48_is_enabled(160));
+    ASSERT_TRUE(!v48_is_enabled(V48_FEATURE_COUNT - 1));
+    ASSERT_EQ_INT(V48_FEATURE_COUNT - 2, g_v48_status.enabled_count);
+}
+
+static void test_39_apply_ts_preserves_feed_when_non_feed_categories(void) {
+    v48_reset();
+    V48_NC_BLOCK b = v48_default_block();
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(0, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(1, 1));
+    ASSERT_EQ_INT(V48_OK, v48_set_feature(4, 1));
+    ASSERT_EQ_INT(V48_OK, v48_apply_ts(&b));
+    ASSERT_EQ_INT(100, b.feed_override_percent);
+}
+
+static void test_40_full_contract_mixed_features_self_check_and_apply(void) {
+    v48_reset();
+    V48_NC_BLOCK b = v48_default_block();
+    const int ids[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 319};
+    for (unsigned i = 0; i < sizeof(ids)/sizeof(ids[0]); ++i) {
+        ASSERT_EQ_INT(V48_OK, v48_set_feature(ids[i], 1));
+    }
+    ASSERT_EQ_INT(V48_OK, v48_self_check());
+    ASSERT_EQ_INT(V48_OK, v48_apply_ts(&b));
+    ASSERT_EQ_INT(V48_OK, v48_apply_rt());
+    ASSERT_EQ_INT(11, g_v48_status.enabled_count);
+    ASSERT_EQ_INT(11, g_v48_status.applied_ts_count);
+    ASSERT_EQ_INT(11, g_v48_status.applied_rt_count);
+    ASSERT_EQ_INT(319, g_v48_status.last_feature_id);
+    ASSERT_TRUE(b.feed_override_percent >= V48_FEED_MIN && b.feed_override_percent <= V48_FEED_MAX);
+    ASSERT_EQ_INT(0, g_v48_status.warnings);
+}
+
+#define RUN_TEST(fn) do { \
+    g_tests++; \
+    fn(); \
+} while (0)
+
+int main(void) {
+    RUN_TEST(test_01_reset_clears_status);
+    RUN_TEST(test_02_enable_first_feature_sets_bit_and_count);
+    RUN_TEST(test_03_enable_middle_feature_uses_expected_word);
+    RUN_TEST(test_04_enable_last_feature_sets_last_word);
+    RUN_TEST(test_05_disable_feature_reduces_count);
+    RUN_TEST(test_06_enable_same_feature_is_idempotent);
+    RUN_TEST(test_07_disable_same_feature_is_idempotent);
+    RUN_TEST(test_08_negative_feature_id_is_rejected);
+    RUN_TEST(test_09_count_feature_id_is_rejected);
+    RUN_TEST(test_10_large_feature_id_is_rejected);
+    RUN_TEST(test_11_enable_all_sets_all_valid_bits);
+    RUN_TEST(test_12_disable_all_clears_all_bits);
+    RUN_TEST(test_13_sparse_enable_count_matches);
+    RUN_TEST(test_14_category_mask_tracks_enabled_categories);
+    RUN_TEST(test_15_category_mask_recomputes_after_disable);
+    RUN_TEST(test_16_feature_names_valid_for_first_middle_last);
+    RUN_TEST(test_17_invalid_feature_name_is_null);
+    RUN_TEST(test_18_self_check_clean_after_reset);
+    RUN_TEST(test_19_self_check_detects_consistency_after_sparse);
+    RUN_TEST(test_20_apply_ts_no_enabled_features_noop);
+    RUN_TEST(test_21_apply_ts_null_block_is_rejected_no_crash);
+    RUN_TEST(test_22_apply_ts_first_feature_moves_x);
+    RUN_TEST(test_23_apply_ts_category1_moves_y_only);
+    RUN_TEST(test_24_apply_ts_category2_feed_clamps_low);
+    RUN_TEST(test_25_apply_ts_category3_feed_clamps_high);
+    RUN_TEST(test_26_apply_ts_category4_accumulates_dwell);
+    RUN_TEST(test_27_apply_ts_category5_moves_z_negative);
+    RUN_TEST(test_28_apply_ts_category6_moves_a_positive);
+    RUN_TEST(test_29_apply_ts_category7_sets_block_category_mask);
+    RUN_TEST(test_30_apply_ts_multiple_features_updates_last_feature_id);
+    RUN_TEST(test_31_apply_ts_sparse_order_is_deterministic);
+    RUN_TEST(test_32_apply_ts_repeated_runs_are_bounded_by_clamp);
+    RUN_TEST(test_33_apply_rt_no_enabled_features_noop_count);
+    RUN_TEST(test_34_apply_rt_enabled_features_count);
+    RUN_TEST(test_35_apply_rt_last_feature_matches_highest_enabled);
+    RUN_TEST(test_36_disable_before_apply_prevents_side_effect);
+    RUN_TEST(test_37_enable_disable_other_feature_independence);
+    RUN_TEST(test_38_enable_all_then_disable_edges_retains_middle);
+    RUN_TEST(test_39_apply_ts_preserves_feed_when_non_feed_categories);
+    RUN_TEST(test_40_full_contract_mixed_features_self_check_and_apply);
+
+    printf("UNIT_TEST_SUMMARY tests=%d failures=%d\n", g_tests, g_failures);
+    if (g_failures == 0 && g_tests == 40) {
+        printf("PASS additional_unit_tests_v48_40\n");
+        return 0;
+    }
+    printf("FAIL additional_unit_tests_v48_40\n");
+    return 1;
+}

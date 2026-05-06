@@ -1,0 +1,78 @@
+{
+  "version": "v41_10",
+  "base_version": "v40_10",
+  "feature_id_range": "325-334",
+  "feature_count": 10,
+  "implemented_features": [
+    {
+      "id": 325,
+      "name_ja": "サーボ位置偏差過大段階減速"
+    },
+    {
+      "id": 326,
+      "name_ja": "主軸負荷急上昇HOLD"
+    },
+    {
+      "id": 327,
+      "name_ja": "クーラント流量センサ断線トレース"
+    },
+    {
+      "id": 328,
+      "name_ja": "治具クランプ圧低下インターロック"
+    },
+    {
+      "id": 329,
+      "name_ja": "ロボット扉閉確認ゲート"
+    },
+    {
+      "id": 330,
+      "name_ja": "切削室排気ファンREADYゲート"
+    },
+    {
+      "id": 331,
+      "name_ja": "工具洗浄ノズル詰まりリトライ"
+    },
+    {
+      "id": 332,
+      "name_ja": "軸原点センサ二重化不一致トレース"
+    },
+    {
+      "id": 333,
+      "name_ja": "NCオプションライセンス不一致実行禁止"
+    },
+    {
+      "id": 334,
+      "name_ja": "保守モードキー抜けHOLD"
+    }
+  ],
+  "added_files": [
+    "source/inc/nc_feature_backlog_v41.h",
+    "source/src/nc_feature_backlog_v41.c",
+    "source/tests/test_nc_feature_backlog_v41.c",
+    "source/scripts/build_gcc_smoke_v41_10.sh",
+    "source/scripts/test_gcc_smoke_v41_10.sh",
+    "source/scripts/build_vc2026_v41_10.bat",
+    "source/scripts/test_vc2026_v41_10.bat",
+    "source/scripts/build_clang_v41_10.bat",
+    "source/scripts/test_clang_v41_10.bat",
+    "source/docs/implementation_report_v41_10.md",
+    "source/docs/verification_output_v41_10.txt",
+    "source/docs/integration_note_v41_10.md",
+    "source/docs/continuation_v41_10_diff.patch"
+  ],
+  "verification": {
+    "gcc_smoke": "PASS",
+    "vc2026": "not run in Linux sandbox",
+    "clang_windows": "not run in Linux sandbox",
+    "output": [
+      "implementation_backlog_v41 implemented=10 configured=10 ts=1 rt=8 hold=30 interlock=7 gate=12 slowdown=13 trace=14 retry=7 inhibit=8 cat_mask=0x00000800 last_id=334 last_policy=2 trace=0x4109 fault=0x000003ff axis=0x00000002 servo_error=175 spindle_load=148 fixture_kpa=360 wash_flow=20 license_missing=0x00000008 last_x=4100",
+      "PASS nc_feature_backlog_v41"
+    ]
+  },
+  "rt_constraints": {
+    "dynamic_allocation": false,
+    "file_io": false,
+    "windows_api": false,
+    "bounded_loop_count": "NC_FEATURE_BACKLOG_V41_FEATURE_COUNT"
+  }
+}

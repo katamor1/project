@@ -1,0 +1,1021 @@
+--- /dev/null	2026-05-03 02:15:21.009921600 +0000
++++ /mnt/data/work_v38/ibm_bob_source_implemented_additional_features_v37_10/source/inc/nc_feature_backlog_v38.h	2026-05-03 02:30:11.178319384 +0000
+@@ -0,0 +1,148 @@
++#ifndef NC_FEATURE_BACKLOG_V38_H
++#define NC_FEATURE_BACKLOG_V38_H
++
++#include <stdint.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++/*
++ * IBM-Bob implementation backlog continuation v38_10.
++ *
++ * This module adds feature IDs 295-304 after v37_10.
++ * The implementation follows the IBM-Bob RT/TS split rules:
++ * - fixed-size state only
++ * - no dynamic allocation
++ * - no file I/O
++ * - no Windows API calls
++ * - deterministic loops bounded by NC_FEATURE_BACKLOG_V38_FEATURE_COUNT
++ */
++
++#define NC_IMPL_BACKLOG_FEATURE_COUNT_V37      (295u)
++#define NC_IMPL_BACKLOG_FEATURE_COUNT_V38      (305u)
++#define NC_IMPL_BACKLOG_WORD_COUNT_V38         (10u)
++#define NC_FEATURE_BACKLOG_V38_FEATURE_BASE_ID (295u)
++#define NC_FEATURE_BACKLOG_V38_FEATURE_COUNT   (10u)
++#define NC_FEATURE_BACKLOG_V38_AXIS_COUNT      (8u)
++
++#define NC_FEATURE_BACKLOG_V38_OK              (0)
++#define NC_FEATURE_BACKLOG_V38_ERR_NULL        (-1)
++#define NC_FEATURE_BACKLOG_V38_ERR_RANGE       (-2)
++
++#define NC_FEATURE_BACKLOG_V38_TRACE_NONE      (0u)
++#define NC_FEATURE_BACKLOG_V38_TRACE_BASE      (0x3800u)
++
++/* Added feature IDs: 295-304. */
++typedef enum NC_FEATURE_BACKLOG_V38_ID_TAG {
++    NC_FEATURE_V38_MACHINE_THERMAL_STABLE_READY_INHIBIT = 295,
++    NC_FEATURE_V38_HYDRAULIC_FILTER_CLOG_TRACE = 296,
++    NC_FEATURE_V38_ATC_POT_INDEX_CONFIRM_INTERLOCK = 297,
++    NC_FEATURE_V38_PALLET_ID_MISMATCH_GATE = 298,
++    NC_FEATURE_V38_Z_COUNTERBALANCE_PRESSURE_LOW_HOLD = 299,
++    NC_FEATURE_V38_SERVO_ABSOLUTE_POSITION_MISMATCH_TRACE = 300,
++    NC_FEATURE_V38_SPINDLE_TOOL_UNCLAMP_CONFIRM_RETRY = 301,
++    NC_FEATURE_V38_COOLANT_TANK_LEVEL_LOW_GATE = 302,
++    NC_FEATURE_V38_MIST_COLLECTOR_READY_GATE = 303,
++    NC_FEATURE_V38_SAFETY_MAT_INTRUSION_HOLD = 304
++} NC_FEATURE_BACKLOG_V38_ID;
++
++typedef enum NC_FEATURE_BACKLOG_V38_POLICY_TAG {
++    NC_FEATURE_BACKLOG_V38_POLICY_MONITOR = 0,
++    NC_FEATURE_BACKLOG_V38_POLICY_GATE = 1,
++    NC_FEATURE_BACKLOG_V38_POLICY_HOLD = 2,
++    NC_FEATURE_BACKLOG_V38_POLICY_INTERLOCK = 3,
++    NC_FEATURE_BACKLOG_V38_POLICY_SLOWDOWN = 4,
++    NC_FEATURE_BACKLOG_V38_POLICY_TRACE = 5,
++    NC_FEATURE_BACKLOG_V38_POLICY_INHIBIT = 6,
++    NC_FEATURE_BACKLOG_V38_POLICY_RETRY = 7
++} NC_FEATURE_BACKLOG_V38_POLICY;
++
++typedef struct NC_FEATURE_BACKLOG_V38_BLOCK_TAG {
++    int32_t axis_target[NC_FEATURE_BACKLOG_V38_AXIS_COUNT];
++    int32_t feed_override_percent;
++    uint32_t aux_request_bits;
++    uint32_t hold_request;
++    uint32_t interlock_mask;
++    uint32_t sequence_gate_mask;
++    uint32_t diagnostics_mask;
++    uint32_t retry_request_mask;
++    uint32_t inhibit_mask;
++    uint32_t trace_event_code;
++} NC_FEATURE_BACKLOG_V38_BLOCK;
++
++typedef struct NC_FEATURE_BACKLOG_V38_RT_IO_TAG {
++    uint32_t cycle_counter;
++    uint32_t thermal_stable_request;
++    uint32_t thermal_temp_ready;
++    int32_t thermal_drift_um;
++    uint32_t hydraulic_filter_monitored;
++    uint32_t hydraulic_filter_clogged;
++    uint32_t atc_pot_index_request;
++    uint32_t atc_pot_position_ok;
++    uint32_t pallet_id_check_request;
++    uint32_t pallet_present;
++    uint32_t expected_pallet_id;
++    uint32_t actual_pallet_id;
++    uint32_t z_axis_enabled;
++    uint32_t z_counterbalance_pressure_ok;
++    uint32_t servo_abs_check_mask;
++    uint32_t servo_abs_mismatch_mask;
++    uint32_t spindle_tool_unclamp_request;
++    uint32_t spindle_tool_unclamp_sensor;
++    uint32_t coolant_request;
++    uint32_t coolant_tank_level_low;
++    uint32_t mist_collector_required;
++    uint32_t mist_collector_ready;
++    uint32_t safety_mat_enabled;
++    uint32_t safety_mat_intrusion;
++} NC_FEATURE_BACKLOG_V38_RT_IO;
++
++typedef struct NC_FEATURE_BACKLOG_V38_STATUS_TAG {
++    uint32_t implemented_count;
++    uint32_t configured_count;
++    uint32_t enabled_mask;
++    uint32_t ts_apply_count;
++    uint32_t rt_tick_count;
++    uint32_t monitor_count;
++    uint32_t gate_count;
++    uint32_t hold_count;
++    uint32_t interlock_count;
++    uint32_t slowdown_count;
++    uint32_t trace_count;
++    uint32_t inhibit_count;
++    uint32_t retry_count;
++    uint32_t warning_count;
++    uint32_t cat_mask;
++    uint32_t last_feature_id;
++    uint32_t last_policy;
++    uint32_t last_trace_event_code;
++    int32_t last_feed_override_percent;
++    int32_t last_x;
++    uint32_t last_fault_mask;
++    uint32_t last_axis_mask;
++    uint32_t last_pallet_expected;
++    uint32_t last_pallet_actual;
++    int32_t last_thermal_drift_um;
++    uint32_t per_feature_hits[NC_FEATURE_BACKLOG_V38_FEATURE_COUNT];
++    int32_t per_feature_last_value[NC_FEATURE_BACKLOG_V38_FEATURE_COUNT];
++} NC_FEATURE_BACKLOG_V38_STATUS;
++
++extern NC_FEATURE_BACKLOG_V38_STATUS g_ncFeatureBacklogV38Status;
++
++void NcFeatureBacklogV38_Init(void);
++int NcFeatureBacklogV38_IsFeatureEnabled(uint32_t feature_id);
++int Api_SetNcFeatureBacklogV38Feature(uint32_t feature_id, uint32_t enabled);
++void Api_EnableAllNcFeatureBacklogV38Features(void);
++int Api_GetNcFeatureBacklogV38Status(NC_FEATURE_BACKLOG_V38_STATUS *out_status);
++int Api_RunNcFeatureBacklogV38SelfCheck(void);
++
++void NcFeatureBacklogV38_ApplyBlockTs(NC_FEATURE_BACKLOG_V38_BLOCK *block);
++void NcFeatureBacklogV38_RunRtTick(const NC_FEATURE_BACKLOG_V38_RT_IO *io);
++const char *NcFeatureBacklogV38_GetFeatureName(uint32_t feature_id);
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* NC_FEATURE_BACKLOG_V38_H */
+
+--- /dev/null	2026-05-03 02:15:21.009921600 +0000
++++ /mnt/data/work_v38/ibm_bob_source_implemented_additional_features_v37_10/source/src/nc_feature_backlog_v38.c	2026-05-03 02:30:11.191036359 +0000
+@@ -0,0 +1,483 @@
++#include "nc_feature_backlog_v38.h"
++
++#include <string.h>
++
++#define V38_BIT(index_) (1u << (uint32_t)(index_))
++#define V38_DEFAULT_FEED_OVERRIDE_PERCENT       (100)
++#define V38_MIN_FEED_OVERRIDE_PERCENT           (5)
++#define V38_THERMAL_DRIFT_WARN_UM               (80)
++#define V38_THERMAL_DRIFT_HOLD_UM               (150)
++#define V38_THERMAL_STABLE_TIMEOUT_TICKS        (4u)
++#define V38_HYD_FILTER_TIMEOUT_TICKS            (2u)
++#define V38_ATC_POT_INDEX_TIMEOUT_TICKS         (4u)
++#define V38_PALLET_ID_TIMEOUT_TICKS             (2u)
++#define V38_Z_COUNTERBALANCE_TIMEOUT_TICKS      (3u)
++#define V38_SERVO_ABS_MISMATCH_TIMEOUT_TICKS    (2u)
++#define V38_TOOL_UNCLAMP_TIMEOUT_TICKS          (3u)
++#define V38_COOLANT_LEVEL_TIMEOUT_TICKS         (3u)
++#define V38_MIST_COLLECTOR_TIMEOUT_TICKS        (3u)
++#define V38_SAFETY_MAT_TIMEOUT_TICKS            (1u)
++
++typedef struct V38_FEATURE_DEF_TAG {
++    uint32_t feature_id;
++    NC_FEATURE_BACKLOG_V38_POLICY policy;
++    uint32_t category;
++    const char *name;
++} V38_FEATURE_DEF;
++
++static const V38_FEATURE_DEF k_v38_defs[NC_FEATURE_BACKLOG_V38_FEATURE_COUNT] = {
++    { NC_FEATURE_V38_MACHINE_THERMAL_STABLE_READY_INHIBIT,   NC_FEATURE_BACKLOG_V38_POLICY_INHIBIT,  9u, "machine thermal stable ready inhibit" },
++    { NC_FEATURE_V38_HYDRAULIC_FILTER_CLOG_TRACE,            NC_FEATURE_BACKLOG_V38_POLICY_TRACE,    9u, "hydraulic filter clog trace" },
++    { NC_FEATURE_V38_ATC_POT_INDEX_CONFIRM_INTERLOCK,        NC_FEATURE_BACKLOG_V38_POLICY_INTERLOCK,9u, "ATC pot index confirmation interlock" },
++    { NC_FEATURE_V38_PALLET_ID_MISMATCH_GATE,                NC_FEATURE_BACKLOG_V38_POLICY_GATE,     9u, "pallet ID mismatch gate" },
++    { NC_FEATURE_V38_Z_COUNTERBALANCE_PRESSURE_LOW_HOLD,     NC_FEATURE_BACKLOG_V38_POLICY_HOLD,     9u, "Z counterbalance pressure low hold" },
++    { NC_FEATURE_V38_SERVO_ABSOLUTE_POSITION_MISMATCH_TRACE, NC_FEATURE_BACKLOG_V38_POLICY_TRACE,    9u, "servo absolute position mismatch trace" },
++    { NC_FEATURE_V38_SPINDLE_TOOL_UNCLAMP_CONFIRM_RETRY,     NC_FEATURE_BACKLOG_V38_POLICY_RETRY,    9u, "spindle tool unclamp confirmation retry" },
++    { NC_FEATURE_V38_COOLANT_TANK_LEVEL_LOW_GATE,            NC_FEATURE_BACKLOG_V38_POLICY_GATE,     9u, "coolant tank level low gate" },
++    { NC_FEATURE_V38_MIST_COLLECTOR_READY_GATE,              NC_FEATURE_BACKLOG_V38_POLICY_GATE,     9u, "mist collector ready gate" },
++    { NC_FEATURE_V38_SAFETY_MAT_INTRUSION_HOLD,              NC_FEATURE_BACKLOG_V38_POLICY_HOLD,     9u, "safety mat intrusion hold" }
++};
++
++NC_FEATURE_BACKLOG_V38_STATUS g_ncFeatureBacklogV38Status;
++
++static uint32_t s_thermal_stable_wait_ticks;
++static uint32_t s_hyd_filter_wait_ticks;
++static uint32_t s_atc_pot_wait_ticks;
++static uint32_t s_pallet_id_wait_ticks;
++static uint32_t s_z_counterbalance_wait_ticks;
++static uint32_t s_servo_abs_wait_ticks;
++static uint32_t s_tool_unclamp_wait_ticks;
++static uint32_t s_coolant_level_wait_ticks;
++static uint32_t s_mist_collector_wait_ticks;
++static uint32_t s_safety_mat_wait_ticks;
++
++static uint32_t v38_index_from_feature_id(uint32_t feature_id)
++{
++    if (feature_id < NC_FEATURE_BACKLOG_V38_FEATURE_BASE_ID) {
++        return NC_FEATURE_BACKLOG_V38_FEATURE_COUNT;
++    }
++    return feature_id - NC_FEATURE_BACKLOG_V38_FEATURE_BASE_ID;
++}
++
++static int32_t v38_abs_i32(int32_t value)
++{
++    if (value < 0) {
++        return -value;
++    }
++    return value;
++}
++
++static int32_t v38_clamp_i32(int32_t value, int32_t min_value, int32_t max_value)
++{
++    if (value < min_value) {
++        return min_value;
++    }
++    if (value > max_value) {
++        return max_value;
++    }
++    return value;
++}
++
++static int32_t v38_apply_slowdown(int32_t feed_override_percent, int32_t reduction_percent)
++{
++    int32_t next_value;
++
++    next_value = feed_override_percent - reduction_percent;
++    return v38_clamp_i32(next_value, V38_MIN_FEED_OVERRIDE_PERCENT, V38_DEFAULT_FEED_OVERRIDE_PERCENT);
++}
++
++static void v38_record_hit(uint32_t index, int32_t value)
++{
++    const V38_FEATURE_DEF *def;
++
++    if (index >= NC_FEATURE_BACKLOG_V38_FEATURE_COUNT) {
++        return;
++    }
++
++    def = &k_v38_defs[index];
++    g_ncFeatureBacklogV38Status.per_feature_hits[index]++;
++    g_ncFeatureBacklogV38Status.per_feature_last_value[index] = value;
++    g_ncFeatureBacklogV38Status.last_feature_id = def->feature_id;
++    g_ncFeatureBacklogV38Status.last_policy = (uint32_t)def->policy;
++    g_ncFeatureBacklogV38Status.cat_mask |= V38_BIT(def->category);
++
++    switch (def->policy) {
++    case NC_FEATURE_BACKLOG_V38_POLICY_MONITOR:
++        g_ncFeatureBacklogV38Status.monitor_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V38_POLICY_GATE:
++        g_ncFeatureBacklogV38Status.gate_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V38_POLICY_HOLD:
++        g_ncFeatureBacklogV38Status.hold_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V38_POLICY_INTERLOCK:
++        g_ncFeatureBacklogV38Status.interlock_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V38_POLICY_SLOWDOWN:
++        g_ncFeatureBacklogV38Status.slowdown_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V38_POLICY_TRACE:
++        g_ncFeatureBacklogV38Status.trace_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V38_POLICY_INHIBIT:
++        g_ncFeatureBacklogV38Status.inhibit_count++;
++        break;
++    case NC_FEATURE_BACKLOG_V38_POLICY_RETRY:
++        g_ncFeatureBacklogV38Status.retry_count++;
++        break;
++    default:
++        g_ncFeatureBacklogV38Status.warning_count++;
++        break;
++    }
++}
++
++static void v38_reset_counters(void)
++{
++    s_thermal_stable_wait_ticks = 0u;
++    s_hyd_filter_wait_ticks = 0u;
++    s_atc_pot_wait_ticks = 0u;
++    s_pallet_id_wait_ticks = 0u;
++    s_z_counterbalance_wait_ticks = 0u;
++    s_servo_abs_wait_ticks = 0u;
++    s_tool_unclamp_wait_ticks = 0u;
++    s_coolant_level_wait_ticks = 0u;
++    s_mist_collector_wait_ticks = 0u;
++    s_safety_mat_wait_ticks = 0u;
++}
++
++void NcFeatureBacklogV38_Init(void)
++{
++    memset(&g_ncFeatureBacklogV38Status, 0, sizeof(g_ncFeatureBacklogV38Status));
++    g_ncFeatureBacklogV38Status.implemented_count = NC_FEATURE_BACKLOG_V38_FEATURE_COUNT;
++    g_ncFeatureBacklogV38Status.last_feed_override_percent = V38_DEFAULT_FEED_OVERRIDE_PERCENT;
++    v38_reset_counters();
++}
++
++int NcFeatureBacklogV38_IsFeatureEnabled(uint32_t feature_id)
++{
++    uint32_t index = v38_index_from_feature_id(feature_id);
++
++    if (index >= NC_FEATURE_BACKLOG_V38_FEATURE_COUNT) {
++        return 0;
++    }
++
++    return ((g_ncFeatureBacklogV38Status.enabled_mask & V38_BIT(index)) != 0u) ? 1 : 0;
++}
++
++int Api_SetNcFeatureBacklogV38Feature(uint32_t feature_id, uint32_t enabled)
++{
++    uint32_t index = v38_index_from_feature_id(feature_id);
++
++    if (index >= NC_FEATURE_BACKLOG_V38_FEATURE_COUNT) {
++        return NC_FEATURE_BACKLOG_V38_ERR_RANGE;
++    }
++
++    if (enabled != 0u) {
++        g_ncFeatureBacklogV38Status.enabled_mask |= V38_BIT(index);
++    } else {
++        g_ncFeatureBacklogV38Status.enabled_mask &= ~V38_BIT(index);
++    }
++
++    g_ncFeatureBacklogV38Status.configured_count = 0u;
++    for (index = 0u; index < NC_FEATURE_BACKLOG_V38_FEATURE_COUNT; ++index) {
++        if ((g_ncFeatureBacklogV38Status.enabled_mask & V38_BIT(index)) != 0u) {
++            g_ncFeatureBacklogV38Status.configured_count++;
++        }
++    }
++
++    return NC_FEATURE_BACKLOG_V38_OK;
++}
++
++void Api_EnableAllNcFeatureBacklogV38Features(void)
++{
++    uint32_t index;
++
++    g_ncFeatureBacklogV38Status.enabled_mask = 0u;
++    for (index = 0u; index < NC_FEATURE_BACKLOG_V38_FEATURE_COUNT; ++index) {
++        g_ncFeatureBacklogV38Status.enabled_mask |= V38_BIT(index);
++    }
++    g_ncFeatureBacklogV38Status.configured_count = NC_FEATURE_BACKLOG_V38_FEATURE_COUNT;
++}
++
++int Api_GetNcFeatureBacklogV38Status(NC_FEATURE_BACKLOG_V38_STATUS *out_status)
++{
++    if (out_status == 0) {
++        return NC_FEATURE_BACKLOG_V38_ERR_NULL;
++    }
++
++    *out_status = g_ncFeatureBacklogV38Status;
++    return NC_FEATURE_BACKLOG_V38_OK;
++}
++
++const char *NcFeatureBacklogV38_GetFeatureName(uint32_t feature_id)
++{
++    uint32_t index = v38_index_from_feature_id(feature_id);
++
++    if (index >= NC_FEATURE_BACKLOG_V38_FEATURE_COUNT) {
++        return "unknown";
++    }
++
++    return k_v38_defs[index].name;
++}
++
++void NcFeatureBacklogV38_ApplyBlockTs(NC_FEATURE_BACKLOG_V38_BLOCK *block)
++{
++    uint32_t index;
++
++    if (block == 0) {
++        g_ncFeatureBacklogV38Status.warning_count++;
++        return;
++    }
++
++    g_ncFeatureBacklogV38Status.ts_apply_count++;
++
++    if (block->feed_override_percent <= 0) {
++        block->feed_override_percent = V38_DEFAULT_FEED_OVERRIDE_PERCENT;
++    }
++
++    for (index = 0u; index < NC_FEATURE_BACKLOG_V38_FEATURE_COUNT; ++index) {
++        const V38_FEATURE_DEF *def;
++        uint32_t feature_bit;
++        uint32_t trace;
++
++        if ((g_ncFeatureBacklogV38Status.enabled_mask & V38_BIT(index)) == 0u) {
++            continue;
++        }
++
++        def = &k_v38_defs[index];
++        feature_bit = V38_BIT(index);
++        trace = NC_FEATURE_BACKLOG_V38_TRACE_BASE + index;
++
++        switch (def->feature_id) {
++        case NC_FEATURE_V38_MACHINE_THERMAL_STABLE_READY_INHIBIT:
++            block->inhibit_mask |= feature_bit;
++            block->sequence_gate_mask |= feature_bit;
++            block->diagnostics_mask |= feature_bit;
++            block->feed_override_percent = v38_apply_slowdown(block->feed_override_percent, 4);
++            v38_record_hit(index, block->axis_target[0]);
++            break;
++        case NC_FEATURE_V38_HYDRAULIC_FILTER_CLOG_TRACE:
++            block->diagnostics_mask |= feature_bit;
++            block->trace_event_code = trace;
++            g_ncFeatureBacklogV38Status.last_trace_event_code = trace;
++            v38_record_hit(index, block->axis_target[1]);
++            break;
++        case NC_FEATURE_V38_ATC_POT_INDEX_CONFIRM_INTERLOCK:
++            block->sequence_gate_mask |= feature_bit;
++            block->interlock_mask |= feature_bit;
++            v38_record_hit(index, block->axis_target[2]);
++            break;
++        case NC_FEATURE_V38_PALLET_ID_MISMATCH_GATE:
++            block->sequence_gate_mask |= feature_bit;
++            block->diagnostics_mask |= feature_bit;
++            v38_record_hit(index, block->axis_target[3]);
++            break;
++        case NC_FEATURE_V38_Z_COUNTERBALANCE_PRESSURE_LOW_HOLD:
++            block->hold_request |= feature_bit;
++            block->diagnostics_mask |= feature_bit;
++            block->feed_override_percent = v38_apply_slowdown(block->feed_override_percent, 6);
++            v38_record_hit(index, block->axis_target[4]);
++            break;
++        case NC_FEATURE_V38_SERVO_ABSOLUTE_POSITION_MISMATCH_TRACE:
++            block->diagnostics_mask |= feature_bit;
++            block->trace_event_code = trace;
++            g_ncFeatureBacklogV38Status.last_trace_event_code = trace;
++            v38_record_hit(index, block->axis_target[5]);
++            break;
++        case NC_FEATURE_V38_SPINDLE_TOOL_UNCLAMP_CONFIRM_RETRY:
++            block->sequence_gate_mask |= feature_bit;
++            block->retry_request_mask |= feature_bit;
++            v38_record_hit(index, block->axis_target[6]);
++            break;
++        case NC_FEATURE_V38_COOLANT_TANK_LEVEL_LOW_GATE:
++            block->sequence_gate_mask |= feature_bit;
++            block->hold_request |= feature_bit;
++            v38_record_hit(index, block->axis_target[7]);
++            break;
++        case NC_FEATURE_V38_MIST_COLLECTOR_READY_GATE:
++            block->sequence_gate_mask |= feature_bit;
++            block->diagnostics_mask |= feature_bit;
++            v38_record_hit(index, (int32_t)block->sequence_gate_mask);
++            break;
++        case NC_FEATURE_V38_SAFETY_MAT_INTRUSION_HOLD:
++            block->hold_request |= feature_bit;
++            block->interlock_mask |= feature_bit;
++            block->trace_event_code = trace;
++            g_ncFeatureBacklogV38Status.last_trace_event_code = trace;
++            v38_record_hit(index, (int32_t)trace);
++            break;
++        default:
++            g_ncFeatureBacklogV38Status.warning_count++;
++            break;
++        }
++    }
++
++    g_ncFeatureBacklogV38Status.last_feed_override_percent = block->feed_override_percent;
++    g_ncFeatureBacklogV38Status.last_x = block->axis_target[0];
++}
++
++void NcFeatureBacklogV38_RunRtTick(const NC_FEATURE_BACKLOG_V38_RT_IO *io)
++{
++    if (io == 0) {
++        g_ncFeatureBacklogV38Status.warning_count++;
++        return;
++    }
++
++    g_ncFeatureBacklogV38Status.rt_tick_count++;
++
++    if (NcFeatureBacklogV38_IsFeatureEnabled(NC_FEATURE_V38_MACHINE_THERMAL_STABLE_READY_INHIBIT) != 0) {
++        int32_t drift_abs = v38_abs_i32(io->thermal_drift_um);
++        if (io->thermal_stable_request != 0u &&
++            (io->thermal_temp_ready == 0u || drift_abs >= V38_THERMAL_DRIFT_WARN_UM)) {
++            s_thermal_stable_wait_ticks++;
++            if (s_thermal_stable_wait_ticks >= V38_THERMAL_STABLE_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV38Status.last_fault_mask |= V38_BIT(0u);
++                g_ncFeatureBacklogV38Status.last_thermal_drift_um = io->thermal_drift_um;
++                v38_record_hit(0u, io->thermal_drift_um);
++                if (drift_abs >= V38_THERMAL_DRIFT_HOLD_UM) {
++                    g_ncFeatureBacklogV38Status.hold_count++;
++                }
++            }
++        } else {
++            s_thermal_stable_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV38_IsFeatureEnabled(NC_FEATURE_V38_HYDRAULIC_FILTER_CLOG_TRACE) != 0) {
++        if (io->hydraulic_filter_monitored != 0u && io->hydraulic_filter_clogged != 0u) {
++            s_hyd_filter_wait_ticks++;
++            if (s_hyd_filter_wait_ticks >= V38_HYD_FILTER_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV38Status.last_fault_mask |= V38_BIT(1u);
++                g_ncFeatureBacklogV38Status.last_trace_event_code = NC_FEATURE_BACKLOG_V38_TRACE_BASE + 1u;
++                v38_record_hit(1u, (int32_t)io->hydraulic_filter_clogged);
++            }
++        } else {
++            s_hyd_filter_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV38_IsFeatureEnabled(NC_FEATURE_V38_ATC_POT_INDEX_CONFIRM_INTERLOCK) != 0) {
++        if (io->atc_pot_index_request != 0u && io->atc_pot_position_ok == 0u) {
++            s_atc_pot_wait_ticks++;
++            if (s_atc_pot_wait_ticks >= V38_ATC_POT_INDEX_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV38Status.last_fault_mask |= V38_BIT(2u);
++                v38_record_hit(2u, (int32_t)io->cycle_counter);
++            }
++        } else {
++            s_atc_pot_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV38_IsFeatureEnabled(NC_FEATURE_V38_PALLET_ID_MISMATCH_GATE) != 0) {
++        if (io->pallet_id_check_request != 0u && io->pallet_present != 0u &&
++            io->expected_pallet_id != io->actual_pallet_id) {
++            s_pallet_id_wait_ticks++;
++            if (s_pallet_id_wait_ticks >= V38_PALLET_ID_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV38Status.last_fault_mask |= V38_BIT(3u);
++                g_ncFeatureBacklogV38Status.last_pallet_expected = io->expected_pallet_id;
++                g_ncFeatureBacklogV38Status.last_pallet_actual = io->actual_pallet_id;
++                v38_record_hit(3u, (int32_t)io->actual_pallet_id);
++            }
++        } else {
++            s_pallet_id_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV38_IsFeatureEnabled(NC_FEATURE_V38_Z_COUNTERBALANCE_PRESSURE_LOW_HOLD) != 0) {
++        if (io->z_axis_enabled != 0u && io->z_counterbalance_pressure_ok == 0u) {
++            s_z_counterbalance_wait_ticks++;
++            if (s_z_counterbalance_wait_ticks >= V38_Z_COUNTERBALANCE_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV38Status.last_fault_mask |= V38_BIT(4u);
++                g_ncFeatureBacklogV38Status.last_axis_mask |= V38_BIT(2u);
++                v38_record_hit(4u, (int32_t)s_z_counterbalance_wait_ticks);
++            }
++        } else {
++            s_z_counterbalance_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV38_IsFeatureEnabled(NC_FEATURE_V38_SERVO_ABSOLUTE_POSITION_MISMATCH_TRACE) != 0) {
++        uint32_t mismatch = io->servo_abs_check_mask & io->servo_abs_mismatch_mask;
++        if (mismatch != 0u) {
++            s_servo_abs_wait_ticks++;
++            if (s_servo_abs_wait_ticks >= V38_SERVO_ABS_MISMATCH_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV38Status.last_fault_mask |= V38_BIT(5u);
++                g_ncFeatureBacklogV38Status.last_axis_mask = mismatch;
++                g_ncFeatureBacklogV38Status.last_trace_event_code = NC_FEATURE_BACKLOG_V38_TRACE_BASE + 5u;
++                v38_record_hit(5u, (int32_t)mismatch);
++            }
++        } else {
++            s_servo_abs_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV38_IsFeatureEnabled(NC_FEATURE_V38_SPINDLE_TOOL_UNCLAMP_CONFIRM_RETRY) != 0) {
++        if (io->spindle_tool_unclamp_request != 0u && io->spindle_tool_unclamp_sensor == 0u) {
++            s_tool_unclamp_wait_ticks++;
++            if (s_tool_unclamp_wait_ticks >= V38_TOOL_UNCLAMP_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV38Status.last_fault_mask |= V38_BIT(6u);
++                v38_record_hit(6u, (int32_t)s_tool_unclamp_wait_ticks);
++            }
++        } else {
++            s_tool_unclamp_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV38_IsFeatureEnabled(NC_FEATURE_V38_COOLANT_TANK_LEVEL_LOW_GATE) != 0) {
++        if (io->coolant_request != 0u && io->coolant_tank_level_low != 0u) {
++            s_coolant_level_wait_ticks++;
++            if (s_coolant_level_wait_ticks >= V38_COOLANT_LEVEL_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV38Status.last_fault_mask |= V38_BIT(7u);
++                v38_record_hit(7u, (int32_t)s_coolant_level_wait_ticks);
++            }
++        } else {
++            s_coolant_level_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV38_IsFeatureEnabled(NC_FEATURE_V38_MIST_COLLECTOR_READY_GATE) != 0) {
++        if (io->mist_collector_required != 0u && io->mist_collector_ready == 0u) {
++            s_mist_collector_wait_ticks++;
++            if (s_mist_collector_wait_ticks >= V38_MIST_COLLECTOR_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV38Status.last_fault_mask |= V38_BIT(8u);
++                v38_record_hit(8u, (int32_t)s_mist_collector_wait_ticks);
++            }
++        } else {
++            s_mist_collector_wait_ticks = 0u;
++        }
++    }
++
++    if (NcFeatureBacklogV38_IsFeatureEnabled(NC_FEATURE_V38_SAFETY_MAT_INTRUSION_HOLD) != 0) {
++        if (io->safety_mat_enabled != 0u && io->safety_mat_intrusion != 0u) {
++            s_safety_mat_wait_ticks++;
++            if (s_safety_mat_wait_ticks >= V38_SAFETY_MAT_TIMEOUT_TICKS) {
++                g_ncFeatureBacklogV38Status.last_fault_mask |= V38_BIT(9u);
++                g_ncFeatureBacklogV38Status.last_trace_event_code = NC_FEATURE_BACKLOG_V38_TRACE_BASE + 9u;
++                v38_record_hit(9u, (int32_t)io->safety_mat_intrusion);
++            }
++        } else {
++            s_safety_mat_wait_ticks = 0u;
++        }
++    }
++}
++
++int Api_RunNcFeatureBacklogV38SelfCheck(void)
++{
++    uint32_t index;
++
++    if (g_ncFeatureBacklogV38Status.implemented_count != NC_FEATURE_BACKLOG_V38_FEATURE_COUNT) {
++        return NC_FEATURE_BACKLOG_V38_ERR_RANGE;
++    }
++
++    for (index = 0u; index < NC_FEATURE_BACKLOG_V38_FEATURE_COUNT; ++index) {
++        if (k_v38_defs[index].feature_id != (NC_FEATURE_BACKLOG_V38_FEATURE_BASE_ID + index)) {
++            return NC_FEATURE_BACKLOG_V38_ERR_RANGE;
++        }
++        if (k_v38_defs[index].name == 0) {
++            return NC_FEATURE_BACKLOG_V38_ERR_NULL;
++        }
++    }
++
++    return NC_FEATURE_BACKLOG_V38_OK;
++}
+
+--- /dev/null	2026-05-03 02:15:21.009921600 +0000
++++ /mnt/data/work_v38/ibm_bob_source_implemented_additional_features_v37_10/source/tests/test_nc_feature_backlog_v38.c	2026-05-03 02:30:11.203071195 +0000
+@@ -0,0 +1,166 @@
++#include "nc_feature_backlog_v38.h"
++
++#include <stdio.h>
++#include <string.h>
++
++static int expect_u32(const char *name, uint32_t actual, uint32_t expected)
++{
++    if (actual != expected) {
++        printf("FAIL %s actual=%u expected=%u\n", name, actual, expected);
++        return 1;
++    }
++    return 0;
++}
++
++static int expect_nonzero(const char *name, uint32_t actual)
++{
++    if (actual == 0u) {
++        printf("FAIL %s actual=0\n", name);
++        return 1;
++    }
++    return 0;
++}
++
++static int expect_less_than(const char *name, int32_t actual, int32_t threshold)
++{
++    if (actual >= threshold) {
++        printf("FAIL %s actual=%d threshold=%d\n", name, actual, threshold);
++        return 1;
++    }
++    return 0;
++}
++
++int main(void)
++{
++    NC_FEATURE_BACKLOG_V38_BLOCK block;
++    NC_FEATURE_BACKLOG_V38_RT_IO io;
++    NC_FEATURE_BACKLOG_V38_STATUS status;
++    uint32_t i;
++    int failures = 0;
++
++    NcFeatureBacklogV38_Init();
++    failures += expect_u32("implemented", g_ncFeatureBacklogV38Status.implemented_count, 10u);
++    failures += expect_u32("configured_init", g_ncFeatureBacklogV38Status.configured_count, 0u);
++
++    if (Api_SetNcFeatureBacklogV38Feature(NC_FEATURE_V38_MACHINE_THERMAL_STABLE_READY_INHIBIT, 1u) != 0) {
++        printf("FAIL enable feature 295\n");
++        failures++;
++    }
++    if (Api_SetNcFeatureBacklogV38Feature(999u, 1u) == 0) {
++        printf("FAIL out-of-range feature accepted\n");
++        failures++;
++    }
++    if (NcFeatureBacklogV38_IsFeatureEnabled(NC_FEATURE_V38_MACHINE_THERMAL_STABLE_READY_INHIBIT) == 0) {
++        printf("FAIL enabled feature was not visible\n");
++        failures++;
++    }
++    Api_EnableAllNcFeatureBacklogV38Features();
++    failures += expect_u32("configured_all", g_ncFeatureBacklogV38Status.configured_count, 10u);
++
++    memset(&block, 0, sizeof(block));
++    for (i = 0u; i < NC_FEATURE_BACKLOG_V38_AXIS_COUNT; ++i) {
++        block.axis_target[i] = (int32_t)(1800 + (int32_t)i);
++    }
++    block.feed_override_percent = 100;
++    NcFeatureBacklogV38_ApplyBlockTs(&block);
++
++    failures += expect_nonzero("ts_apply", g_ncFeatureBacklogV38Status.ts_apply_count);
++    failures += expect_nonzero("hold_request", block.hold_request);
++    failures += expect_nonzero("interlock_mask", block.interlock_mask);
++    failures += expect_nonzero("sequence_gate_mask", block.sequence_gate_mask);
++    failures += expect_nonzero("diagnostics_mask", block.diagnostics_mask);
++    failures += expect_nonzero("retry_request", block.retry_request_mask);
++    failures += expect_nonzero("inhibit_mask", block.inhibit_mask);
++    failures += expect_nonzero("trace_event_code", block.trace_event_code);
++    failures += expect_less_than("feed_override", block.feed_override_percent, 100);
++    if (block.axis_target[0] != 1800) {
++        printf("FAIL axis target unexpectedly changed actual=%d expected=1800\n", block.axis_target[0]);
++        failures++;
++    }
++
++    memset(&io, 0, sizeof(io));
++    io.thermal_stable_request = 1u;
++    io.thermal_temp_ready = 0u;
++    io.thermal_drift_um = 190;
++    io.hydraulic_filter_monitored = 1u;
++    io.hydraulic_filter_clogged = 1u;
++    io.atc_pot_index_request = 1u;
++    io.atc_pot_position_ok = 0u;
++    io.pallet_id_check_request = 1u;
++    io.pallet_present = 1u;
++    io.expected_pallet_id = 17u;
++    io.actual_pallet_id = 23u;
++    io.z_axis_enabled = 1u;
++    io.z_counterbalance_pressure_ok = 0u;
++    io.servo_abs_check_mask = 0x0Fu;
++    io.servo_abs_mismatch_mask = 0x05u;
++    io.spindle_tool_unclamp_request = 1u;
++    io.spindle_tool_unclamp_sensor = 0u;
++    io.coolant_request = 1u;
++    io.coolant_tank_level_low = 1u;
++    io.mist_collector_required = 1u;
++    io.mist_collector_ready = 0u;
++    io.safety_mat_enabled = 1u;
++    io.safety_mat_intrusion = 1u;
++
++    for (i = 0u; i < 6u; ++i) {
++        io.cycle_counter = i;
++        NcFeatureBacklogV38_RunRtTick(&io);
++    }
++
++    failures += expect_nonzero("rt_tick", g_ncFeatureBacklogV38Status.rt_tick_count);
++    failures += expect_nonzero("hold_count", g_ncFeatureBacklogV38Status.hold_count);
++    failures += expect_nonzero("interlock_count", g_ncFeatureBacklogV38Status.interlock_count);
++    failures += expect_nonzero("gate_count", g_ncFeatureBacklogV38Status.gate_count);
++    failures += expect_nonzero("trace_count", g_ncFeatureBacklogV38Status.trace_count);
++    failures += expect_nonzero("retry_count", g_ncFeatureBacklogV38Status.retry_count);
++    failures += expect_nonzero("inhibit_count", g_ncFeatureBacklogV38Status.inhibit_count);
++    failures += expect_nonzero("fault_mask", g_ncFeatureBacklogV38Status.last_fault_mask);
++    failures += expect_nonzero("axis_mask", g_ncFeatureBacklogV38Status.last_axis_mask);
++    failures += expect_u32("pallet_expected", g_ncFeatureBacklogV38Status.last_pallet_expected, 17u);
++    failures += expect_u32("pallet_actual", g_ncFeatureBacklogV38Status.last_pallet_actual, 23u);
++
++    if (Api_GetNcFeatureBacklogV38Status(&status) != 0) {
++        printf("FAIL status get\n");
++        failures++;
++    }
++    if (Api_GetNcFeatureBacklogV38Status(0) == 0) {
++        printf("FAIL null status accepted\n");
++        failures++;
++    }
++    if (Api_RunNcFeatureBacklogV38SelfCheck() != 0) {
++        printf("FAIL selfcheck\n");
++        failures++;
++    }
++
++    Api_GetNcFeatureBacklogV38Status(&status);
++    printf("implementation_backlog_v38 implemented=%u configured=%u ts=%u rt=%u hold=%u interlock=%u gate=%u trace=%u retry=%u inhibit=%u cat_mask=0x%08x last_id=%u last_policy=%u trace=0x%04x fault=0x%08x axis=0x%08x pallet=%u/%u thermal=%d last_x=%d\n",
++           status.implemented_count,
++           status.configured_count,
++           status.ts_apply_count,
++           status.rt_tick_count,
++           status.hold_count,
++           status.interlock_count,
++           status.gate_count,
++           status.trace_count,
++           status.retry_count,
++           status.inhibit_count,
++           status.cat_mask,
++           status.last_feature_id,
++           status.last_policy,
++           status.last_trace_event_code,
++           status.last_fault_mask,
++           status.last_axis_mask,
++           status.last_pallet_expected,
++           status.last_pallet_actual,
++           status.last_thermal_drift_um,
++           status.last_x);
++
++    if (failures != 0) {
++        printf("FAILED failures=%d\n", failures);
++        return 1;
++    }
++
++    printf("PASS nc_feature_backlog_v38\n");
++    return 0;
++}
+
+--- /dev/null	2026-05-03 02:15:21.009921600 +0000
++++ /mnt/data/work_v38/ibm_bob_source_implemented_additional_features_v37_10/source/scripts/build_gcc_smoke_v38_10.sh	2026-05-03 02:30:17.966361112 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd "$(dirname "$0")/.."
++mkdir -p build
++gcc -std=c99 -Wall -Wextra -Iinc src/nc_feature_backlog_v38.c tests/test_nc_feature_backlog_v38.c -o build/test_nc_feature_backlog_v38
+
+--- /dev/null	2026-05-03 02:15:21.009921600 +0000
++++ /mnt/data/work_v38/ibm_bob_source_implemented_additional_features_v37_10/source/scripts/test_gcc_smoke_v38_10.sh	2026-05-03 02:30:18.049130294 +0000
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd "$(dirname "$0")/.."
++scripts/build_gcc_smoke_v38_10.sh
++build/test_nc_feature_backlog_v38
+
+--- /dev/null	2026-05-03 02:15:21.009921600 +0000
++++ /mnt/data/work_v38/ibm_bob_source_implemented_additional_features_v37_10/source/scripts/build_vc2026_v38_10.bat	2026-05-03 02:30:18.072781979 +0000
+@@ -0,0 +1,6 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++if not exist build mkdir build
++cl /nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\nc_feature_backlog_v38.c tests\test_nc_feature_backlog_v38.c /Febuild\test_nc_feature_backlog_v38.exe
++endlocal
+
+--- /dev/null	2026-05-03 02:15:21.009921600 +0000
++++ /mnt/data/work_v38/ibm_bob_source_implemented_additional_features_v37_10/source/scripts/test_vc2026_v38_10.bat	2026-05-03 02:30:18.154511201 +0000
+@@ -0,0 +1,6 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++call scripts\build_vc2026_v38_10.bat || exit /b 1
++build\test_nc_feature_backlog_v38.exe || exit /b 1
++endlocal
+
+--- /dev/null	2026-05-03 02:15:21.009921600 +0000
++++ /mnt/data/work_v38/ibm_bob_source_implemented_additional_features_v37_10/source/scripts/build_clang_v38_10.bat	2026-05-03 02:30:18.167871978 +0000
+@@ -0,0 +1,6 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++if not exist build mkdir build
++clang -std=c99 -Wall -Wextra -Iinc src\nc_feature_backlog_v38.c tests\test_nc_feature_backlog_v38.c -o build\test_nc_feature_backlog_v38.exe
++endlocal
+
+--- /dev/null	2026-05-03 02:15:21.009921600 +0000
++++ /mnt/data/work_v38/ibm_bob_source_implemented_additional_features_v37_10/source/scripts/test_clang_v38_10.bat	2026-05-03 02:30:18.247541696 +0000
+@@ -0,0 +1,6 @@
++@echo off
++setlocal
++cd /d %~dp0\..
++call scripts\build_clang_v38_10.bat || exit /b 1
++build\test_nc_feature_backlog_v38.exe || exit /b 1
++endlocal
+
+--- /dev/null	2026-05-03 02:15:21.009921600 +0000
++++ /mnt/data/work_v38/ibm_bob_source_implemented_additional_features_v37_10/source/docs/implementation_report_v38_10.md	2026-05-03 02:30:44.969125411 +0000
+@@ -0,0 +1,65 @@
++# IBM-Bob 未実装機能追加 実装レポート v38_10
++
++## 概要
++
++`v37_10` の続きとして、未実装/入口実装止まりだった周辺装置READY監視・安全保全系の機能を10件追加した。
++追加IDは `295〜304` とし、既存の `v35〜v37` と同じく独立モジュール方式で実装した。
++
++## 追加ファイル
++
++- `source/inc/nc_feature_backlog_v38.h`
++- `source/src/nc_feature_backlog_v38.c`
++- `source/tests/test_nc_feature_backlog_v38.c`
++- `source/scripts/build_gcc_smoke_v38_10.sh`
++- `source/scripts/test_gcc_smoke_v38_10.sh`
++- `source/scripts/build_vc2026_v38_10.bat`
++- `source/scripts/test_vc2026_v38_10.bat`
++- `source/scripts/build_clang_v38_10.bat`
++- `source/scripts/test_clang_v38_10.bat`
++
++## 追加した10機能
++
++| ID | 機能名 | 処理方針 | 主な動作 |
++|---:|---|---|---|
++| 295 | 機械熱安定READY禁止 | INHIBIT | 熱安定待ち中、温度未READYまたは熱変位量過大時に運転/測定系を抑止する。 |
++| 296 | 油圧フィルタ目詰まりトレース | TRACE | 油圧フィルタ目詰まり入力が継続した場合に診断トレースへ記録する。 |
++| 297 | ATCポット割出確認インターロック | INTERLOCK | ATCポット割出要求中に位置確認が成立しない場合、起動/シーケンスを禁止する。 |
++| 298 | パレットID不一致ゲート | GATE | 期待パレットIDと実パレットIDの不一致時に加工開始をゲートする。 |
++| 299 | Z軸カウンタバランス圧低下HOLD | HOLD | Z軸有効時のカウンタバランス圧低下を監視し、HOLD要求と軸マスクを公開する。 |
++| 300 | サーボ絶対位置不一致トレース | TRACE | 絶対位置照合対象軸で不一致が継続した場合に軸マスク付きでトレースする。 |
++| 301 | 主軸工具アンクランプ確認リトライ | RETRY | 工具アンクランプ要求後に確認入力が入らない場合、リトライ要求を発行する。 |
++| 302 | クーラントタンク液面低下ゲート | GATE | クーラント要求中の液面低下でシーケンスゲートとHOLD側の保護を行う。 |
++| 303 | ミストコレクタREADYゲート | GATE | ミストコレクタ必須条件でREADY未成立の場合、加工開始/補助機能をゲートする。 |
++| 304 | 安全マット侵入HOLD | HOLD | 安全マット侵入入力を即時HOLD/インターロック/トレース対象として扱う。 |
++
++## RT/TS分担
++
++- TS側: `NcFeatureBacklogV38_ApplyBlockTs()` で固定長ブロックに対し、ゲート、HOLD、インターロック、リトライ、抑止、診断トレース、送りオーバライド低減を設定する。
++- RT側: `NcFeatureBacklogV38_RunRtTick()` で周期入力を固定長カウンタにより監視し、タイムアウト成立時に状態公開する。
++- API側: `Api_SetNcFeatureBacklogV38Feature()`、`Api_EnableAllNcFeatureBacklogV38Features()`、`Api_GetNcFeatureBacklogV38Status()`、`Api_RunNcFeatureBacklogV38SelfCheck()` を追加した。
++
++## RT安全性
++
++- 動的メモリ確保なし。
++- ファイルI/Oなし。
++- Windows API呼び出しなし。
++- ループ上限は `NC_FEATURE_BACKLOG_V38_FEATURE_COUNT = 10` の固定長。
++- 状態は `g_ncFeatureBacklogV38Status` と静的カウンタのみ。
++
++## 検証
++
++GCC smoke build/test を実行し、PASSを確認した。
++
++```text
++implementation_backlog_v38 implemented=10 configured=10 ts=1 rt=6 hold=15 interlock=4 gate=16 trace=12 retry=5 inhibit=4 cat_mask=0x00000200 last_id=304 last_policy=2 trace=0x3809 fault=0x000003ff axis=0x00000005 pallet=17/23 thermal=190 last_x=1800
++PASS nc_feature_backlog_v38
++```
++
++## Windows確認方法
++
++```bat
++cd source
++scripts\test_vc2026_v38_10.bat
++scripts\test_clang_v38_10.bat
++```
++
+
+--- /dev/null	2026-05-03 02:15:21.009921600 +0000
++++ /mnt/data/work_v38/ibm_bob_source_implemented_additional_features_v37_10/source/docs/verification_output_v38_10.txt	2026-05-03 02:30:20.356198355 +0000
+@@ -0,0 +1,2 @@
++implementation_backlog_v38 implemented=10 configured=10 ts=1 rt=6 hold=15 interlock=4 gate=16 trace=12 retry=5 inhibit=4 cat_mask=0x00000200 last_id=304 last_policy=2 trace=0x3809 fault=0x000003ff axis=0x00000005 pallet=17/23 thermal=190 last_x=1800
++PASS nc_feature_backlog_v38
+
+--- /dev/null	2026-05-03 02:15:21.009921600 +0000
++++ /mnt/data/work_v38/ibm_bob_source_implemented_additional_features_v37_10/source/docs/integration_note_v38_10.md	2026-05-03 02:30:44.983150138 +0000
+@@ -0,0 +1,28 @@
++# v38_10 統合メモ
++
++## 統合方針
++
++この版は `v37_10` からの差分追加として、`nc_feature_backlog_v38` モジュールを追加する。
++既存モジュールに直接依存しないため、まずは単独スモークテストで検証し、その後に統合ビルド対象へ追加する。
++
++## 追加するビルド対象
++
++- `src/nc_feature_backlog_v38.c`
++- `tests/test_nc_feature_backlog_v38.c`
++
++## 公開ヘッダ
++
++- `inc/nc_feature_backlog_v38.h`
++
++## 既存ソースへ統合する場合の候補
++
++1. `system_shared.h` に `NC_FEATURE_BACKLOG_V38_STATUS` の共有メモリ公開方針を追加する。
++2. `control_api.h` に v38 API の公開宣言を追加する。
++3. `rt_control.c` のRT周期処理末尾で `NcFeatureBacklogV38_RunRtTick()` を呼ぶ。
++4. `ts_service.c` のNC固定ブロック生成後に `NcFeatureBacklogV38_ApplyBlockTs()` を呼ぶ。
++5. `build_vc2026.bat` / `build_clang.bat` のコンパイル対象へ `src\nc_feature_backlog_v38.c` を追加する。
++
++## 注意事項
++
++- 本モジュールはRT安全性を優先し、設備パラメータの永続化やログファイル出力は含めていない。
++- 実機適用時は、各入力信号のチャタリング除去、二重化信号の診断周期、HOLDとALARMの最終遷移先を機械仕様に合わせて確定する。
+
+--- /dev/null	2026-05-03 02:15:21.009921600 +0000
++++ /mnt/data/work_v38/ibm_bob_source_implemented_additional_features_v37_10/source/docs/manifest_v38_10.json	2026-05-03 02:30:44.996960097 +0000
+@@ -0,0 +1,43 @@
++{
++  "version": "v38_10",
++  "base_version": "v37_10",
++  "feature_id_range": {
++    "start": 295,
++    "end": 304,
++    "count": 10
++  },
++  "added_files": [
++    "source/inc/nc_feature_backlog_v38.h",
++    "source/src/nc_feature_backlog_v38.c",
++    "source/tests/test_nc_feature_backlog_v38.c",
++    "source/scripts/build_gcc_smoke_v38_10.sh",
++    "source/scripts/test_gcc_smoke_v38_10.sh",
++    "source/scripts/build_vc2026_v38_10.bat",
++    "source/scripts/test_vc2026_v38_10.bat",
++    "source/scripts/build_clang_v38_10.bat",
++    "source/scripts/test_clang_v38_10.bat",
++    "source/docs/implementation_report_v38_10.md",
++    "source/docs/verification_output_v38_10.txt",
++    "source/docs/integration_note_v38_10.md",
++    "source/docs/continuation_v38_10_diff.patch",
++    "source/docs/manifest_v38_10.json"
++  ],
++  "features": [
++    { "id": 295, "name": "機械熱安定READY禁止", "policy": "INHIBIT" },
++    { "id": 296, "name": "油圧フィルタ目詰まりトレース", "policy": "TRACE" },
++    { "id": 297, "name": "ATCポット割出確認インターロック", "policy": "INTERLOCK" },
++    { "id": 298, "name": "パレットID不一致ゲート", "policy": "GATE" },
++    { "id": 299, "name": "Z軸カウンタバランス圧低下HOLD", "policy": "HOLD" },
++    { "id": 300, "name": "サーボ絶対位置不一致トレース", "policy": "TRACE" },
++    { "id": 301, "name": "主軸工具アンクランプ確認リトライ", "policy": "RETRY" },
++    { "id": 302, "name": "クーラントタンク液面低下ゲート", "policy": "GATE" },
++    { "id": 303, "name": "ミストコレクタREADYゲート", "policy": "GATE" },
++    { "id": 304, "name": "安全マット侵入HOLD", "policy": "HOLD" }
++  ],
++  "verification": {
++    "gcc_smoke_build": "PASS",
++    "gcc_smoke_test": "PASS",
++    "vc2026_windows": "not_run_in_linux_sandbox",
++    "clang_windows": "not_run_in_linux_sandbox"
++  }
++}
+

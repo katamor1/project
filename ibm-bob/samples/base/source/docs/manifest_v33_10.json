@@ -1,0 +1,70 @@
+{
+  "version": "v33_10",
+  "base": "ibm_bob_source_implemented_additional_features_v32_10.zip",
+  "feature_count_before": 250,
+  "feature_count_after": 260,
+  "word_count_before": 8,
+  "word_count_after": 9,
+  "added_feature_ids": [
+    250,
+    251,
+    252,
+    253,
+    254,
+    255,
+    256,
+    257,
+    258,
+    259
+  ],
+  "added_features": [
+    "主軸ベルト滑り予兆監視",
+    "クーラントフィルタ目詰まりHOLD",
+    "エアシリンダ到達端確認Mコード監視",
+    "ワーク洗浄ノズル位置インターロック",
+    "ロボット搬入出エリア干渉待ち",
+    "チャック把握力段階監視",
+    "センタースルークーラント圧上昇待ち",
+    "切粉堆積センサ安全減速",
+    "機械照明/扉ロック保守モードゲート",
+    "UPS低残量安全停止シーケンス"
+  ],
+  "verification": "GCC smoke build/test passed in sandbox",
+  "files": [
+    {
+      "path": "source/inc/system_config.h",
+      "size": 37989,
+      "sha256": "64e612a26218826b438c6fc0c2e8278129a800611e21e533429a0bf0de03d183"
+    },
+    {
+      "path": "source/src/nc_feature_backlog.c",
+      "size": 96209,
+      "sha256": "e19c360f412309251571bf0f0f6224a2be87b00634fc7ee4aaf3a86550395b57"
+    },
+    {
+      "path": "source/scripts/build_gcc_smoke_v33_10.sh",
+      "size": 222,
+      "sha256": "0ad867af84e099516e16f2735b06a0aaaa1ac5a7774949fefc7e92f66ee9be2f"
+    },
+    {
+      "path": "source/scripts/test_gcc_smoke_v33_10.sh",
+      "size": 228,
+      "sha256": "7b089e657a1b46290cb273d09a7deb9564603053f84e6442d1173cca88dbd870"
+    },
+    {
+      "path": "source/docs/implementation_report_v33_10.md",
+      "size": 2655,
+      "sha256": "474c79cd6a39068e34ef4edaf8c1d7c7d4d2045b60b2218aa4430df680c391c1"
+    },
+    {
+      "path": "source/docs/verification_output_v33_10.txt",
+      "size": 3355,
+      "sha256": "4d27b1d4057af2b0b82aa0e4390349f390da26e7fa8efe63667b1156d9d52591"
+    },
+    {
+      "path": "source/docs/continuation_v33_10_diff.patch",
+      "size": 16307,
+      "sha256": "9451155943cbacd8530ebe3ee6f7f05a427f59670ab1cd2252d2ff6bf0195c4c"
+    }
+  ]
+}

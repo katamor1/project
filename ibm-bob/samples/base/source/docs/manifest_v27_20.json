@@ -1,0 +1,177 @@
+{
+  "version": "v27_20",
+  "base_version": "v26_20",
+  "feature_count_before": 180,
+  "feature_count_after": 200,
+  "added_feature_ids": [
+    180,
+    181,
+    182,
+    183,
+    184,
+    185,
+    186,
+    187,
+    188,
+    189,
+    190,
+    191,
+    192,
+    193,
+    194,
+    195,
+    196,
+    197,
+    198,
+    199
+  ],
+  "added_features": [
+    {
+      "id": 180,
+      "name": "加工中ワーク座標系変更禁止ラッチ",
+      "summary": "運転中のG10/G54系更新をモーダルラッチとして抑制し、移動中は送りを安全側に減速"
+    },
+    {
+      "id": 181,
+      "name": "プログラム停止時補助軸減速退避",
+      "summary": "M00/M02相当の停止ブロックで補助軸を固定量退避しMFIN待ちへ接続"
+    },
+    {
+      "id": 182,
+      "name": "主軸負荷ピークホールド減速",
+      "summary": "主軸負荷ピークを想定して減速tickを増やし送りを段階制限"
+    },
+    {
+      "id": 183,
+      "name": "工具交換アーム干渉領域クランプ",
+      "summary": "ATC干渉領域を固定範囲でクランプし退避フラグを付与"
+    },
+    {
+      "id": 184,
+      "name": "クランプ/アンクランプMコード順序監視",
+      "summary": "Mコード/MFIN待ちを生成し、順序監視用generationを更新"
+    },
+    {
+      "id": 185,
+      "name": "APCパレット番号整合監視",
+      "summary": "Pワードでパレット番号を固定範囲へ正規化しM60系待ちを生成"
+    },
+    {
+      "id": 186,
+      "name": "タレット割出し完了待ち監視",
+      "summary": "工具番号とM06/MFIN待ちを補完し安全送りへ制限"
+    },
+    {
+      "id": 187,
+      "name": "ローダ/アンローダ干渉待ち合わせ",
+      "summary": "ローダ干渉領域をXYでクランプし退避・MFIN待ちへ接続"
+    },
+    {
+      "id": 188,
+      "name": "主軸同期C軸切替ガード",
+      "summary": "C/A軸相当の最短回転補正と主軸同期切替用減速を追加"
+    },
+    {
+      "id": 189,
+      "name": "C軸輪郭制御送り正規化",
+      "summary": "C軸輪郭制御時の軸マスク/送り上限/平滑化フラグを補正"
+    },
+    {
+      "id": 190,
+      "name": "極小円弧半径丸め補正",
+      "summary": "小半径円弧の半径・中心値を固定範囲へ丸め、補間tickを保証"
+    },
+    {
+      "id": 191,
+      "name": "ヘリカル補間Z送り同期補正",
+      "summary": "Z軸を含むヘリカル補間として扱い、ADVANCED_INTERPと減速を付与"
+    },
+    {
+      "id": 192,
+      "name": "工具長摩耗補正上限ガード",
+      "summary": "H番号/工具長指令/Z目標を範囲ガードし工具長補正フラグを付与"
+    },
+    {
+      "id": 193,
+      "name": "工具径摩耗補正上限ガード",
+      "summary": "D番号/工具径指令/XY対象を範囲ガードし工具径補正フラグを付与"
+    },
+    {
+      "id": 194,
+      "name": "G10パラメータ書込み運転中禁止",
+      "summary": "G10相当の書込みブロックを運転中は禁止ラッチ＋MFIN待ちへ変換"
+    },
+    {
+      "id": 195,
+      "name": "通信異常時NCバッファ消費停止",
+      "summary": "通信異常相当でバッファ消費を止める安全待ちブロックを生成"
+    },
+    {
+      "id": 196,
+      "name": "先読み異常時安全停止ブロック生成",
+      "summary": "先読み異常時に軸移動なし・安全停止用の固定長ブロックへ変換"
+    },
+    {
+      "id": 197,
+      "name": "ドライランI/O出力抑止",
+      "summary": "ドライラン時に補助M出力を抑止し、送りだけを固定範囲に正規化"
+    },
+    {
+      "id": 198,
+      "name": "シミュレーションモード安全出力マスク",
+      "summary": "シミュレーション中の補助出力を全マスクし、軸割付/平滑化のみ残す"
+    },
+    {
+      "id": 199,
+      "name": "保守モード軸単独送り速度制限",
+      "summary": "保守単独送りを対象軸/速度/加減速tickの固定範囲へ制限"
+    }
+  ],
+  "verification": {
+    "command": "cd source && bash scripts/test_gcc_smoke_v27.sh",
+    "status": "passed",
+    "key_output": "implementation_backlog implemented=200 configured=200 ts=504 rt=258 synthetic=200 cat_mask=0x000003ff last_id=199 last_cat=4 last_policy=3 slowdown=34 cat0=100 cat9=77 last_x=1199"
+  },
+  "files": [
+    {
+      "path": "inc/system_config.h",
+      "sha256": "c69b9ef2e13ab40dd6205cbe541c60c7825c9acdbb1a85a760a5925d1eb94dad",
+      "size_bytes": 37117
+    },
+    {
+      "path": "inc/system_shared.h",
+      "sha256": "4e3ea5bcd5bbcff809ae8827a87b8d649742bcba22eef014d96f14e47f4a9ca8",
+      "size_bytes": 70755
+    },
+    {
+      "path": "src/nc_feature_backlog.c",
+      "sha256": "7156c97851059311c7dcf61a960558634ec284a2c5d1bb05e4bb4e848442a5e5",
+      "size_bytes": 65462
+    },
+    {
+      "path": "scripts/build_gcc_smoke_v27.sh",
+      "sha256": "82ac2a82ca1c97409b112438445158632b266f8ed767471fc3e4df54aeb3d50f",
+      "size_bytes": 219
+    },
+    {
+      "path": "scripts/test_gcc_smoke_v27.sh",
+      "sha256": "e270648e7aed5c844d8f60b51216d3edf3cbb3fa0f2e70e9242c71f827f45ec8",
+      "size_bytes": 222
+    },
+    {
+      "path": "docs/implementation_report_v27_20.md",
+      "sha256": "a0fc363bafa70e3cef4c7b370df307f3d3955b52f1be5747396e194fb90a08d4",
+      "size_bytes": 4379
+    },
+    {
+      "path": "docs/verification_output_v27_20.txt",
+      "sha256": "db75abe6888eca37dcd311da1be8a0b5dc112a7de99b20c19704e6b772aae33c",
+      "size_bytes": 3355
+    },
+    {
+      "path": "docs/continuation_v27_20_diff.patch",
+      "sha256": "e5e8e8d8670c2226e268fb3ac9f161e10a1edf4942f7fc8945dd05f0655767c4",
+      "size_bytes": 15292
+    }
+  ]
+}
