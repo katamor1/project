@@ -1,5 +1,5 @@
 {
-  "schema_version": "IBM-Bob Basic Design v2.0 compatible",
+  "schema_version": "ibm-bob-basic-design/2.0",
   "document": {
     "id": "BD-003",
     "title": "任意角度軸制御・傾斜ロータリ軸制御機能_基本設計書",
@@ -40,7 +40,8 @@
       "CNCは設定された角度に基づき",
       "TCP",
       "TWP"
-    ]
+    ],
+    "feature_id": "FX-BD-003"
   },
   "architecture": {
     "platform": "Windows C multi-threaded machine-control platform",
@@ -92,5 +93,15 @@
   "build_test": {
     "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
     "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "review_status": "draft_for_review",
+  "document_control": {
+    "document_id": "BD-003",
+    "title": "任意角度軸制御・傾斜ロータリ軸制御機能_基本設計書",
+    "target_version": "Ver.0.1",
+    "created_at": "2026-04-29",
+    "author": "AIドラフト",
+    "reviewer": "未定",
+    "approver": "未定"
   }
 }

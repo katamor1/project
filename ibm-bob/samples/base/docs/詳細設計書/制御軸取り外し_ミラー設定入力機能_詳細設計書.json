@@ -4,31 +4,13 @@
   "document_control": {
     "document_id": "DD-005",
     "title": "制御軸取り外し・ミラー設定入力機能 詳細設計書",
-    "target_system": "IBM-Bob baseline / Windows C realtime-control platform",
-    "target_version": "Ver.0.1",
+    "feature_id": "FX-005",
+    "source_basic_design": "../基本設計書/制御軸取り外し・ミラー設定入力機能_基本設計書.docx",
     "created_at": "2026-04-29",
     "author": "IBM-Bob生成",
-    "reviewer": "",
-    "approver": "",
-    "revision_history": [
-      {
-        "version": "0.1",
-        "date": "2026-04-29",
-        "summary": "基本設計書から詳細設計ドラフトを生成",
-        "author": "IBM-Bob生成"
-      }
-    ]
+    "version": "Ver.0.1"
   },
-  "source_basic_design": {
-    "basic_design_id": "BD-005",
-    "title": "制御軸取り外し・ミラー設定入力機能 基本設計書",
-    "version": "0.1",
-    "source_docx_path": "制御軸取り外し・ミラー設定入力機能_基本設計書.docx",
-    "source_json_path": "",
-    "accepted_warnings": [
-      "設備別パラメータ値、信号ビット割付け、RT実測時間は未確定。"
-    ]
-  },
+  "source_basic_design": "../基本設計書/制御軸取り外し・ミラー設定入力機能_基本設計書.docx",
   "feature": {
     "feature_id": "FX-005",
     "name": "制御軸取り外し・ミラー設定入力機能",
@@ -111,7 +93,8 @@
           "復旧"
         ]
       }
-    ]
+    ],
+    "source_basic_design": "../基本設計書/制御軸取り外し・ミラー設定入力機能_基本設計書.docx"
   },
   "impact_analysis": {
     "items": [

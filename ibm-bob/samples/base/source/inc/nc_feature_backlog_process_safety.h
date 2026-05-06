@@ -1,5 +1,9 @@
-#ifndef NC_FEATURE_BACKLOG_V40_H
-#define NC_FEATURE_BACKLOG_V40_H
+/* ibm-bob/samples/base/source/inc/nc_feature_backlog_process_safety.h */
+/* Declares the public contract for nc feature backlog process safety backlog checks. */
+/* This exists so tests and sample builds can share the same fixed-size RT-safe types. */
+/* RELEVANT FILES: ibm-bob/samples/base/source/src/nc_feature_backlog_process_safety.c, ibm-bob/samples/base/source/tests/test_nc_feature_backlog_process_safety.c, ibm-bob/samples/base/source/scripts/additive_tests.tsv */
+#ifndef NC_FEATURE_BACKLOG_PROCESS_SAFETY_H
+#define NC_FEATURE_BACKLOG_PROCESS_SAFETY_H
 
 #include <stdint.h>
 
@@ -150,4 +154,4 @@ const char *NcFeatureBacklogV40_GetFeatureName(uint32_t feature_id);
 }
 #endif
 
-#endif /* NC_FEATURE_BACKLOG_V40_H */
+#endif /* NC_FEATURE_BACKLOG_PROCESS_SAFETY_H */

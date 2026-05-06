@@ -133,5 +133,16 @@
     "references": [
       "設計_G74ペックドリルサイクル機能.docx"
     ]
-  }
+  },
+  "manual_review_required": [
+    {
+      "status": "manual_review_required",
+      "reason": "機能要件、RT/TS分担、または受入条件が空のため、正式設計前に原典確認が必要。",
+      "fields": [
+        "functional_requirements",
+        "thread_allocation",
+        "test_acceptance"
+      ]
+    }
+  ]
 }

@@ -1,5 +1,9 @@
-#ifndef NC_FEATURE_BACKLOG_V39_H
-#define NC_FEATURE_BACKLOG_V39_H
+/* ibm-bob/samples/base/source/inc/nc_feature_backlog_tool_utility_monitors.h */
+/* Declares the public contract for nc feature backlog tool utility monitors backlog checks. */
+/* This exists so tests and sample builds can share the same fixed-size RT-safe types. */
+/* RELEVANT FILES: ibm-bob/samples/base/source/src/nc_feature_backlog_tool_utility_monitors.c, ibm-bob/samples/base/source/tests/test_nc_feature_backlog_tool_utility_monitors.c, ibm-bob/samples/base/source/scripts/additive_tests.tsv */
+#ifndef NC_FEATURE_BACKLOG_TOOL_UTILITY_MONITORS_H
+#define NC_FEATURE_BACKLOG_TOOL_UTILITY_MONITORS_H
 
 #include <stdint.h>
 
@@ -143,4 +147,4 @@ const char *NcFeatureBacklogV39_GetFeatureName(uint32_t feature_id);
 }
 #endif
 
-#endif /* NC_FEATURE_BACKLOG_V39_H */
+#endif /* NC_FEATURE_BACKLOG_TOOL_UTILITY_MONITORS_H */

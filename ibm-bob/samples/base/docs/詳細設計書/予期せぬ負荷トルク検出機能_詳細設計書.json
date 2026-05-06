@@ -1,11 +1,11 @@
 {
-  "schema_version": "IBM-Bob Detail Design v2.0 compatible",
+  "schema_version": "ibm-bob-detail-design/2.0",
   "document": {
     "id": "DD-002",
     "title": "予期せぬ負荷トルク検出機能_詳細設計書",
     "language": "ja-JP",
     "created_at": "2026-04-29",
-    "source_basic_design": "予期せぬ負荷トルク検出機能_基本設計書",
+    "source_basic_design": "../基本設計書/予期せぬ負荷トルク検出機能_基本設計書.docx",
     "status": "draft_for_review"
   },
   "traceability": {
@@ -56,7 +56,8 @@
       "- 主軸モータに対する逆転機能はないため、主軸に大きな負荷がかかる場合は早期停止のみが行われる。",
       "引用",
       "本機能は工具や機械の損傷を防ぐために負荷トルクを監視し、推定値をPMCに送信する。設定値を超えるとモータを停止または逆転させアラームを出力する【144831653495762†L10354-L10385】。特定軸のみ検出を無効化することもできる【144831653495762†L10382-L10385】。"
-    ]
+    ],
+    "source_basic_design": "../基本設計書/予期せぬ負荷トルク検出機能_基本設計書.docx"
   },
   "design_policy": {
     "classification": "安全監視・入出力制御",
@@ -250,5 +251,40 @@
       "設備依存パラメータの初期値は機種別設定表で確定すること。",
       "併用不可機能の最終一覧はNC仕様書と照合すること。"
     ]
-  }
+  },
+  "review_status": "draft_for_review",
+  "source_basic_design": "../基本設計書/予期せぬ負荷トルク検出機能_基本設計書.docx",
+  "document_control": {
+    "document_id": "DD-002",
+    "title": "予期せぬ負荷トルク検出機能_詳細設計書",
+    "feature_id": "F002",
+    "source_basic_design": "../基本設計書/予期せぬ負荷トルク検出機能_基本設計書.docx",
+    "created_at": "2026-04-29",
+    "author": "AIドラフト",
+    "version": "0.1"
+  },
+  "test_design_handoff": {
+    "status": "manual_review_required",
+    "viewpoints": [
+      "正常系: 予期せぬ負荷トルク検出機能 の開始、実行、終了状態を確認する。",
+      "異常系: 範囲外入力、併用不可、インターロック、共有データ不整合を確認する。",
+      "境界: 軸数、配列上限、バッファ上限、最小/最大パラメータを確認する。",
+      "RT安全: RT側でWindows API、file I/O、動的確保、長時間待ちがないことを確認する。"
+    ],
+    "unit_tests": [
+      "詳細設計の関数/モジュール確定後に、正常、異常、境界、RT安全の単体テストへ割り当てる。"
+    ],
+    "acceptance_handoff": [
+      "基本設計の受入条件と同期し、承認前にレビュー済み条件として確定する。"
+    ]
+  },
+  "manual_review_required": [
+    {
+      "status": "manual_review_required",
+      "reason": "テスト設計の受け皿を追加したが、機能固有の期待値は原典確認が必要。",
+      "fields": [
+        "test_design_handoff"
+      ]
+    }
+  ]
 }

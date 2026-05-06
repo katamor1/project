@@ -1,3 +1,7 @@
+/* ibm-bob/samples/base/source/src/nc_feature_backlog_aux_safety.c */
+/* Implements auxiliary safety backlog monitors and interlocks. */
+/* This exists so v35 safety backlog checks stay isolated from the core backlog table. */
+/* RELEVANT FILES: ibm-bob/samples/base/source/inc/nc_feature_backlog_aux_safety.h, ibm-bob/samples/base/source/scripts/additive_tests.tsv, ibm-bob/samples/base/source/scripts/build_clang.bat */
 #include "nc_feature_backlog_aux_safety.h"
 
 #include <string.h>

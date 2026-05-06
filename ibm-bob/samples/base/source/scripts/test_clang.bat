@@ -26,14 +26,14 @@ if errorlevel 1 (
   exit /b 1
 )
 
-findstr /c:"path_arc=2 path_helical=1 path_arc_segments=8" build\test_output.txt >nul
+findstr /c:"path_arc=3 path_helical=1 path_arc_segments=12" build\test_output.txt >nul
 if errorlevel 1 (
   echo ERROR: expected path-control output was not found.
   type build\test_output.txt
   exit /b 1
 )
 
-findstr /c:"kin_transformed=31 kin_mirrored=13 kin_retracts=1" build\test_output.txt >nul
+findstr /c:"kin_transformed=43 kin_mirrored=23 kin_retracts=1" build\test_output.txt >nul
 if errorlevel 1 (
   echo ERROR: expected kinematics output was not found.
   type build\test_output.txt
@@ -47,7 +47,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-findstr /c:"tool_active=2 tool2_uses=22 tool_warn=0x00000000 tool_expired=0x00000000" build\test_output.txt >nul
+findstr /c:"tool_active=2 tool2_uses=31 tool_warn=0x00000000 tool_expired=0x00000000" build\test_output.txt >nul
 if errorlevel 1 (
   echo ERROR: expected tool-life diagnostic output was not found.
   type build\test_output.txt
@@ -68,14 +68,14 @@ if errorlevel 1 (
   exit /b 1
 )
 
-findstr /c:"motion_filter_samples=703 mode=2 axis_mask=0x00000009" build\test_output.txt >nul
+findstr /c:"motion_filter_samples=1092 mode=2 axis_mask=0x0000000f" build\test_output.txt >nul
 if errorlevel 1 (
   echo ERROR: expected motion-filter status output was not found.
   type build\test_output.txt
   exit /b 1
 )
 
-findstr /c:"motion_filter_limits vel_events=2 accel_events=12 endpoint_corrections=20" build\test_output.txt >nul
+findstr /c:"motion_filter_limits vel_events=18 accel_events=64 endpoint_corrections=58" build\test_output.txt >nul
 if errorlevel 1 (
   echo ERROR: expected motion-filter limit output was not found.
   type build\test_output.txt
@@ -110,7 +110,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-findstr /c:"cycle_detail last=890 repeat=1 repeat_done=14 peck_blocks=3 tap_blocks=2 boring_blocks=5 spindle_sync=2 spindle_reverse=2 manual_return=1" build\test_output.txt >nul
+findstr /c:"cycle_detail last=890 repeat=1 repeat_done=15 peck_blocks=4 tap_blocks=2 boring_blocks=5 spindle_sync=2 spindle_reverse=2 manual_return=1" build\test_output.txt >nul
 if errorlevel 1 (
   echo ERROR: expected fixed-cycle detail output was not found.
   type build\test_output.txt

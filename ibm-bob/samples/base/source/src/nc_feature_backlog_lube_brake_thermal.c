@@ -1,3 +1,7 @@
+/* ibm-bob/samples/base/source/src/nc_feature_backlog_lube_brake_thermal.c */
+/* Implements lubrication, brake, and thermal backlog checks. */
+/* This exists so v36 machine-readiness checks stay in a focused module. */
+/* RELEVANT FILES: ibm-bob/samples/base/source/inc/nc_feature_backlog_lube_brake_thermal.h, ibm-bob/samples/base/source/scripts/additive_tests.tsv, ibm-bob/samples/base/source/scripts/build_clang.bat */
 #include "nc_feature_backlog_lube_brake_thermal.h"
 
 #include <string.h>

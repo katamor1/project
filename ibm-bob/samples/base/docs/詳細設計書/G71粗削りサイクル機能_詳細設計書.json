@@ -1,4 +1,5 @@
 {
+  "schema_version": "ibm-bob-detail-design/2.0",
   "metadata": {
     "document_id": "DD-AUTO-71B124",
     "document_type": "詳細設計書",
@@ -20,7 +21,8 @@
       "G70",
       "G71"
     ],
-    "category": "cycle"
+    "category": "cycle",
+    "source_basic_design": "../基本設計書/G71粗削りサイクル機能_基本設計書.docx"
   },
   "design": {
     "identifier": "G71RoughCycle",
@@ -152,6 +154,53 @@
       "cmd /c scripts\\test_vc2026.bat",
       "cmd /c scripts\\build_clang.bat",
       "cmd /c scripts\\test_clang.bat"
+    ]
+  },
+  "review_status": "draft_for_review",
+  "source_basic_design": "../基本設計書/G71粗削りサイクル機能_基本設計書.docx",
+  "document_control": {
+    "document_id": "DD-DRAFT-G71粗削りサイクル機能_詳細設計書",
+    "title": "G71粗削りサイクル機能 詳細設計書",
+    "feature_id": "FX-DD-DRAFT-G71粗削りサイクル機能_詳細設計書",
+    "source_basic_design": "../基本設計書/G71粗削りサイクル機能_基本設計書.docx",
+    "created_at": "",
+    "author": "AIドラフト",
+    "version": "0.1"
+  },
+  "scope_limitation": {
+    "status": "limited_input_set",
+    "note": "この詳細設計は限定入力セット由来であり、110件corpusの正式成果物として扱う前に再生成または限定スコープ明記が必要。"
+  },
+  "manual_review_required": [
+    {
+      "status": "manual_review_required",
+      "reason": "限定入力セット由来のため、正式利用前に現在の基本設計110件corpusと再照合する。",
+      "fields": [
+        "source_basic_design",
+        "traceability"
+      ]
+    },
+    {
+      "status": "manual_review_required",
+      "reason": "テスト設計の受け皿を追加したが、機能固有の期待値は原典確認が必要。",
+      "fields": [
+        "test_design_handoff"
+      ]
+    }
+  ],
+  "test_design_handoff": {
+    "status": "manual_review_required",
+    "viewpoints": [
+      "正常系: G71粗削りサイクル機能 の開始、実行、終了状態を確認する。",
+      "異常系: 範囲外入力、併用不可、インターロック、共有データ不整合を確認する。",
+      "境界: 軸数、配列上限、バッファ上限、最小/最大パラメータを確認する。",
+      "RT安全: RT側でWindows API、file I/O、動的確保、長時間待ちがないことを確認する。"
+    ],
+    "unit_tests": [
+      "詳細設計の関数/モジュール確定後に、正常、異常、境界、RT安全の単体テストへ割り当てる。"
+    ],
+    "acceptance_handoff": [
+      "基本設計の受入条件と同期し、承認前にレビュー済み条件として確定する。"
     ]
   }
 }

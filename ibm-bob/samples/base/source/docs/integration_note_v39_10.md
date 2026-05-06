@@ -1,4 +1,10 @@
+<!-- ibm-bob/samples/base/source/docs/integration_note_v39_10.md -->
+<!-- Archives the pre-normalization v39_10 source evidence. -->
+<!-- This exists so current verification can distinguish archive evidence from runnable commands. -->
+<!-- RELEVANT FILES: ibm-bob/samples/base/source/scripts/additive_tests.tsv, ibm-bob/samples/base/source/src/nc_feature_backlog_tool_utility_monitors.c, ibm-bob/samples/base/source/tests/test_nc_feature_backlog_tool_utility_monitors.c -->
 # v39_10 統合メモ
+
+> **Archive note:** This is pre-normalization archive evidence. The current tree uses meaning-based files `inc/nc_feature_backlog_tool_utility_monitors.h`, `src/nc_feature_backlog_tool_utility_monitors.c`, and `tests/test_nc_feature_backlog_tool_utility_monitors.c`. Current verification is manifest-driven via `cmd /c scripts\run_tests.bat`; pinned sample smoke uses `cmd /c scripts\test_clang.bat` or `cmd /c scripts\test_vc2026.bat`.
 
 ## 統合方針
 

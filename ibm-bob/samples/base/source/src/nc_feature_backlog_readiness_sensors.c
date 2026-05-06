@@ -1,3 +1,7 @@
+/* ibm-bob/samples/base/source/src/nc_feature_backlog_readiness_sensors.c */
+/* Implements readiness-sensor backlog checks. */
+/* This exists so v37 sensor readiness policies stay isolated and testable. */
+/* RELEVANT FILES: ibm-bob/samples/base/source/inc/nc_feature_backlog_readiness_sensors.h, ibm-bob/samples/base/source/scripts/additive_tests.tsv, ibm-bob/samples/base/source/scripts/build_clang.bat */
 #include "nc_feature_backlog_readiness_sensors.h"
 
 #include <string.h>

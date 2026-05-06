@@ -1,5 +1,5 @@
 {
-  "schema_version": "IBM-Bob Basic Design v2.0 compatible",
+  "schema_version": "ibm-bob-basic-design/2.0",
   "document": {
     "id": "BD-004",
     "title": "停電時減速停止機能_基本設計書",
@@ -13,7 +13,7 @@
     "category": "安全監視・フェイルセーフ制御",
     "overview": [
       "この機能は、電源が遮断された場合に各軸の運動を安全に停止させるためのものである。加工中に停電が発生すると、制御装置は各軸の速度を一定の減速率で低下させ、過走による機械損傷を防止する。本機能は線形モータ等を用いた高速機械で電源バックアップモジュールとコンデンサモジュールを使用している場合に効果を発揮する。",
-      "運転中に停電検出信号PWFLが1になると、制御装置は設定された減速率で切削送りおよび早送りの両方を直線的に減速させて停止する。減速完了後は軸移動ができないため、再度電源を投入してから運転を再開する必要がある。本機能はPMC軸制御によるトルク制御軸、速度制御軸、EGB軸には適用されない。また、減速中はストロークチェックが無効になる。減速率を通常より低く設定すると停止距離が長くなるため、機械のストローク端との衝突に注意する必要がある【272618553149539†L0-L0】。"
+      "運転中に停電検出信号PWFLが1になると、制御装置は設定された減速率で切削送りおよび早送りの両方を直線的に減速させて停止する。減速完了後は軸移動ができないため、再度電源を投入してから運転を再開する必要がある。本機能はPMC軸制御によるトルク制御軸、速度制御軸、EGB軸には適用されない。また、減速中はストロークチェックが無効になる。減速率を通常より低く設定すると停止距離が長くなるため、機械のストローク端との衝突に注意する必要がある【272618553149539†根拠未確認】。"
     ],
     "source_interface_notes": [],
     "source_flow": [],
@@ -22,7 +22,8 @@
     "parameters": [],
     "signals": [
       "EGB軸には適用されない"
-    ]
+    ],
+    "feature_id": "FX-BD-004"
   },
   "architecture": {
     "platform": "Windows C multi-threaded machine-control platform",
@@ -74,5 +75,19 @@
   "build_test": {
     "vc2026": "cmd /c scripts\\build_vc2026.bat && cmd /c scripts\\test_vc2026.bat",
     "clang_windows": "cmd /c scripts\\build_clang.bat && cmd /c scripts\\test_clang.bat"
+  },
+  "review_status": "draft_for_review",
+  "document_control": {
+    "document_id": "BD-004",
+    "title": "停電時減速停止機能_基本設計書",
+    "target_version": "Ver.0.1",
+    "created_at": "2026-04-29",
+    "author": "AIドラフト",
+    "reviewer": "未定",
+    "approver": "未定"
+  },
+  "provenance_review": {
+    "status": "根拠未確認",
+    "note": "旧根拠トークンは原典位置として利用できないため、原典確認待ちとして扱う。"
   }
 }

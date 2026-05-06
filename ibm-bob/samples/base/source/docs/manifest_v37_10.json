@@ -117,5 +117,18 @@
       "bytes": 46039,
       "sha256": "self-referential-excluded"
     }
+  ],
+  "archive_status": "pre-normalization archive evidence",
+  "current_module": "nc_feature_backlog_readiness_sensors",
+  "current_files": [
+    "source/inc/nc_feature_backlog_readiness_sensors.h",
+    "source/src/nc_feature_backlog_readiness_sensors.c",
+    "source/tests/test_nc_feature_backlog_readiness_sensors.c"
+  ],
+  "current_manifest": "source/scripts/additive_tests.tsv",
+  "current_verification": [
+    "cmd /c scripts\\test_clang.bat",
+    "cmd /c scripts\\test_vc2026.bat",
+    "cmd /c scripts\\run_tests.bat"
   ]
 }

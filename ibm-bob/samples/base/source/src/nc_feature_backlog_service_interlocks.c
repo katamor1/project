@@ -1,3 +1,7 @@
+/* ibm-bob/samples/base/source/src/nc_feature_backlog_service_interlocks.c */
+/* Implements service interlock backlog checks. */
+/* This exists so v41 service interlock policies stay isolated and testable. */
+/* RELEVANT FILES: ibm-bob/samples/base/source/inc/nc_feature_backlog_service_interlocks.h, ibm-bob/samples/base/source/scripts/additive_tests.tsv, ibm-bob/samples/base/source/scripts/build_clang.bat */
 #include "nc_feature_backlog_service_interlocks.h"
 
 #include <string.h>

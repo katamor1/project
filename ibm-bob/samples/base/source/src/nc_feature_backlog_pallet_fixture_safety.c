@@ -1,3 +1,7 @@
+/* ibm-bob/samples/base/source/src/nc_feature_backlog_pallet_fixture_safety.c */
+/* Implements pallet, fixture, and safety-mat backlog checks. */
+/* This exists so v38 fixture safety policies stay isolated and testable. */
+/* RELEVANT FILES: ibm-bob/samples/base/source/inc/nc_feature_backlog_pallet_fixture_safety.h, ibm-bob/samples/base/source/scripts/additive_tests.tsv, ibm-bob/samples/base/source/scripts/build_clang.bat */
 #include "nc_feature_backlog_pallet_fixture_safety.h"
 
 #include <string.h>

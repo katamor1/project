@@ -1,5 +1,9 @@
-#ifndef NC_FEATURE_BACKLOG_V37_H
-#define NC_FEATURE_BACKLOG_V37_H
+/* ibm-bob/samples/base/source/inc/nc_feature_backlog_readiness_sensors.h */
+/* Declares the public contract for nc feature backlog readiness sensors backlog checks. */
+/* This exists so tests and sample builds can share the same fixed-size RT-safe types. */
+/* RELEVANT FILES: ibm-bob/samples/base/source/src/nc_feature_backlog_readiness_sensors.c, ibm-bob/samples/base/source/tests/test_nc_feature_backlog_readiness_sensors.c, ibm-bob/samples/base/source/scripts/additive_tests.tsv */
+#ifndef NC_FEATURE_BACKLOG_READINESS_SENSORS_H
+#define NC_FEATURE_BACKLOG_READINESS_SENSORS_H
 
 #include <stdint.h>
 
@@ -144,4 +148,4 @@ const char *NcFeatureBacklogV37_GetFeatureName(uint32_t feature_id);
 }
 #endif
 
-#endif /* NC_FEATURE_BACKLOG_V37_H */
+#endif /* NC_FEATURE_BACKLOG_READINESS_SENSORS_H */

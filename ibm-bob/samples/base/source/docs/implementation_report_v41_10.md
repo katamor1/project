@@ -1,4 +1,10 @@
+<!-- ibm-bob/samples/base/source/docs/implementation_report_v41_10.md -->
+<!-- Archives the pre-normalization v41_10 source evidence. -->
+<!-- This exists so current verification can distinguish archive evidence from runnable commands. -->
+<!-- RELEVANT FILES: ibm-bob/samples/base/source/scripts/additive_tests.tsv, ibm-bob/samples/base/source/src/nc_feature_backlog_service_interlocks.c, ibm-bob/samples/base/source/tests/test_nc_feature_backlog_service_interlocks.c -->
 # IBM-Bob source implementation report v41_10
+
+> **Archive note:** This is pre-normalization archive evidence. The current tree uses meaning-based files `inc/nc_feature_backlog_service_interlocks.h`, `src/nc_feature_backlog_service_interlocks.c`, and `tests/test_nc_feature_backlog_service_interlocks.c`. Current verification is manifest-driven via `cmd /c scripts\run_tests.bat`; pinned sample smoke uses `cmd /c scripts\test_clang.bat` or `cmd /c scripts\test_vc2026.bat`.
 
 ## 概要
 

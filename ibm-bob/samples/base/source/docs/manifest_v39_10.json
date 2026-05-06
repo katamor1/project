@@ -31,5 +31,18 @@
     "gcc_smoke_test": "PASS",
     "vc2026_windows": "not executed in Linux sandbox",
     "clang_windows": "not executed in Linux sandbox"
-  }
+  },
+  "archive_status": "pre-normalization archive evidence",
+  "current_module": "nc_feature_backlog_tool_utility_monitors",
+  "current_files": [
+    "source/inc/nc_feature_backlog_tool_utility_monitors.h",
+    "source/src/nc_feature_backlog_tool_utility_monitors.c",
+    "source/tests/test_nc_feature_backlog_tool_utility_monitors.c"
+  ],
+  "current_manifest": "source/scripts/additive_tests.tsv",
+  "current_verification": [
+    "cmd /c scripts\\test_clang.bat",
+    "cmd /c scripts\\test_vc2026.bat",
+    "cmd /c scripts\\run_tests.bat"
+  ]
 }

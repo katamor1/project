@@ -74,5 +74,18 @@
     "file_io": false,
     "windows_api": false,
     "bounded_loop_count": "NC_FEATURE_BACKLOG_V41_FEATURE_COUNT"
-  }
+  },
+  "archive_status": "pre-normalization archive evidence",
+  "current_module": "nc_feature_backlog_service_interlocks",
+  "current_files": [
+    "source/inc/nc_feature_backlog_service_interlocks.h",
+    "source/src/nc_feature_backlog_service_interlocks.c",
+    "source/tests/test_nc_feature_backlog_service_interlocks.c"
+  ],
+  "current_manifest": "source/scripts/additive_tests.tsv",
+  "current_verification": [
+    "cmd /c scripts\\test_clang.bat",
+    "cmd /c scripts\\test_vc2026.bat",
+    "cmd /c scripts\\run_tests.bat"
+  ]
 }

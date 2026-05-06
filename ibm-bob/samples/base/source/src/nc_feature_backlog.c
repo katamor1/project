@@ -1,5 +1,7 @@
 /* ibm-bob/samples/base/source/src/nc_feature_backlog.c */
 /* Implements the v22-v33 design-document backlog features as fixed-size, RT-safe handlers. */
+/* This exists so TS/RT code can exercise backlog design items without dynamic allocation. */
+/* RELEVANT FILES: ibm-bob/samples/base/source/inc/nc_feature_backlog.h, ibm-bob/samples/base/source/tests/test_nc_feature_backlog_reachability.c */
 #include <string.h>
 #include "nc_feature_backlog.h"
 #include "nc_program.h"
@@ -1701,6 +1703,11 @@ static uint8_t MatchesDescriptor(const NC_BACKLOG_DESCRIPTOR* pDesc, const NC_EX
     }
 }
 
+static uint8_t MatchesDeterministicDescriptor(const NC_BACKLOG_DESCRIPTOR* pDesc, const NC_EXEC_BLOCK* pBlock)
+{
+    return (uint8_t)(pBlock->g_code10 == pDesc->code10_hint);
+}
+
 void NcFeatureBacklog_Reset(void)
 {
     uint16_t id;
@@ -1756,21 +1763,26 @@ int32_t NcFeatureBacklog_EnableAll(uint16_t parameter)
 int32_t NcFeatureBacklog_ApplyBlockTs(NC_EXEC_BLOCK* pBlock, NC_ERROR_CODE* pOutError)
 {
     uint32_t i;
-    uint32_t applied = 0U;
+    uint32_t legacyApplied = 0U;
     if ((pBlock == 0) || (pOutError == 0)) { return -1; }
     CopyAxes((int32_t*)g_ncImplementationBacklogStatus.last_input_target, pBlock->axis_target);
     for (i = 0U; i < NC_IMPL_BACKLOG_FEATURE_COUNT; ++i) {
         const NC_BACKLOG_DESCRIPTOR* pDesc = &s_backlog[i];
         if ((IsEnabled(pDesc->feature_id) != 0U) &&
-            (MatchesDescriptor(pDesc, pBlock) != 0U)) {
-            /* v22 legacy items remain observation-first. v23-v32 additions are
-             * promoted to deterministic fixed-block TS transformations. */
-            if (pDesc->feature_id >= NC_IMPL_BACKLOG_V23_FIRST_FEATURE) {
-                ApplyV23Policy(pDesc, pBlock);
-            }
+            (pDesc->feature_id >= NC_IMPL_BACKLOG_V23_FIRST_FEATURE) &&
+            (MatchesDeterministicDescriptor(pDesc, pBlock) != 0U)) {
+            ApplyV23Policy(pDesc, pBlock);
             MarkFeature(pDesc, pBlock, 0U);
-            applied++;
-            if (applied >= 4U) { break; }
+        }
+    }
+    for (i = 0U; i < NC_IMPL_BACKLOG_FEATURE_COUNT; ++i) {
+        const NC_BACKLOG_DESCRIPTOR* pDesc = &s_backlog[i];
+        if ((pDesc->feature_id < NC_IMPL_BACKLOG_V23_FIRST_FEATURE) &&
+            (IsEnabled(pDesc->feature_id) != 0U) &&
+            (MatchesDescriptor(pDesc, pBlock) != 0U)) {
+            MarkFeature(pDesc, pBlock, 0U);
+            legacyApplied++;
+            if (legacyApplied >= 4U) { break; }
         }
     }
     return 0;

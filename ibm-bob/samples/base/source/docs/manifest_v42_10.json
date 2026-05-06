@@ -99,5 +99,18 @@
     "source/docs/manifest_v42_10.json",
     "source/docs/continuation_v42_10_diff.patch"
   ],
-  "verification_summary": "implementation_backlog_v42 implemented=10 configured=10 ts=1 rt=8 hold=30 interlock=8 gate=15 slowdown=15 trace=16 retry=11 inhibit=17 cat_mask=0x00001000 last_id=344 last_policy=4 trace=0x4209 fault=0x000003ff axis=0x00000002 pressure=60 spindle_rpm=2400 temp=86 table_mismatch=0x00000002 tool_rfid=0 last_x=4200\nPASS nc_feature_backlog_v42"
+  "verification_summary": "implementation_backlog_v42 implemented=10 configured=10 ts=1 rt=8 hold=30 interlock=8 gate=15 slowdown=15 trace=16 retry=11 inhibit=17 cat_mask=0x00001000 last_id=344 last_policy=4 trace=0x4209 fault=0x000003ff axis=0x00000002 pressure=60 spindle_rpm=2400 temp=86 table_mismatch=0x00000002 tool_rfid=0 last_x=4200\nPASS nc_feature_backlog_v42",
+  "archive_status": "pre-normalization archive evidence",
+  "current_module": "nc_feature_backlog_loader_environment",
+  "current_files": [
+    "source/inc/nc_feature_backlog_loader_environment.h",
+    "source/src/nc_feature_backlog_loader_environment.c",
+    "source/tests/test_nc_feature_backlog_loader_environment.c"
+  ],
+  "current_manifest": "source/scripts/additive_tests.tsv",
+  "current_verification": [
+    "cmd /c scripts\\test_clang.bat",
+    "cmd /c scripts\\test_vc2026.bat",
+    "cmd /c scripts\\run_tests.bat"
+  ]
 }

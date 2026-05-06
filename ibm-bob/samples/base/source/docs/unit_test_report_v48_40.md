@@ -1,4 +1,10 @@
+<!-- ibm-bob/samples/base/source/docs/unit_test_report_v48_40.md -->
+<!-- Archives the pre-normalization v48 unit-test evidence. -->
+<!-- This exists so current verification can distinguish archive evidence from runnable commands. -->
+<!-- RELEVANT FILES: ibm-bob/samples/base/source/scripts/additive_tests.tsv, ibm-bob/samples/base/source/tests/test_nc_feature_backlog_standalone_contract.c, ibm-bob/samples/base/source/scripts/run_tests.bat -->
 # IBM-Bob 単体テスト追加 v48_40 レポート
+
+> **Archive note:** This report records overlay evidence from before manifest normalization. The current repo artifact is `tests/test_nc_feature_backlog_standalone_contract.c`, listed in `scripts/additive_tests.tsv` as `test_nc_feature_backlog_standalone_contract`; use `cmd /c scripts\run_tests.bat` for current verification instead of versioned unit-test scripts.
 
 ## 概要
 

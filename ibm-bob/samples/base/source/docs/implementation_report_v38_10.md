@@ -1,4 +1,10 @@
+<!-- ibm-bob/samples/base/source/docs/implementation_report_v38_10.md -->
+<!-- Archives the pre-normalization v38_10 source evidence. -->
+<!-- This exists so current verification can distinguish archive evidence from runnable commands. -->
+<!-- RELEVANT FILES: ibm-bob/samples/base/source/scripts/additive_tests.tsv, ibm-bob/samples/base/source/src/nc_feature_backlog_pallet_fixture_safety.c, ibm-bob/samples/base/source/tests/test_nc_feature_backlog_pallet_fixture_safety.c -->
 # IBM-Bob 未実装機能追加 実装レポート v38_10
+
+> **Archive note:** This is pre-normalization archive evidence. The current tree uses meaning-based files `inc/nc_feature_backlog_pallet_fixture_safety.h`, `src/nc_feature_backlog_pallet_fixture_safety.c`, and `tests/test_nc_feature_backlog_pallet_fixture_safety.c`. Current verification is manifest-driven via `cmd /c scripts\run_tests.bat`; pinned sample smoke uses `cmd /c scripts\test_clang.bat` or `cmd /c scripts\test_vc2026.bat`.
 
 ## 概要
 

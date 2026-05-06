@@ -10,11 +10,30 @@ if not exist build mkdir build
 if not exist build\obj mkdir build\obj
 
 set "VS_DEV_SHELL=C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\Launch-VsDevShell.ps1"
-set "CL_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_capability.c src\nc_codes.c src\nc_compensation.c src\nc_coordinate.c src\nc_coordinate_transform.c src\nc_cycle.c src\nc_diagnostics.c src\nc_feed.c src\nc_interference.c src\nc_interp_math.c src\nc_interpolation.c src\nc_axis_config.c src\nc_design_features.c src\nc_feature_backlog.c src\nc_kinematics.c src\nc_lookahead.c src\nc_lathe_cycle.c src\nc_reference.c src\nc_precision.c src\nc_spindle.c src\nc_tool_management.c src\nc_synchronization.c src\nc_rotary_mcc.c src\nc_motion_filter.c src\nc_safety_motion.c src\nc_program.c src\nc_parser.c src\nc_parser_feature.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
+set "VS_DEV_CMD=C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\VsDevCmd.bat"
+set "BACKLOG_MODULES=src\nc_feature_backlog_aux_safety.c src\nc_feature_backlog_lube_brake_thermal.c src\nc_feature_backlog_readiness_sensors.c src\nc_feature_backlog_pallet_fixture_safety.c src\nc_feature_backlog_tool_utility_monitors.c src\nc_feature_backlog_process_safety.c src\nc_feature_backlog_service_interlocks.c src\nc_feature_backlog_loader_environment.c"
+set "CL_ARGS=/nologo /TC /W4 /D_CRT_SECURE_NO_WARNINGS /Iinc src\system_shared.c src\control_api.c src\nc_buffer.c src\nc_capability.c src\nc_codes.c src\nc_compensation.c src\nc_coordinate.c src\nc_coordinate_transform.c src\nc_cycle.c src\nc_diagnostics.c src\nc_feed.c src\nc_interference.c src\nc_interp_math.c src\nc_interpolation.c src\nc_axis_config.c src\nc_design_features.c src\nc_feature_backlog.c %BACKLOG_MODULES% src\nc_kinematics.c src\nc_lookahead.c src\nc_lathe_cycle.c src\nc_reference.c src\nc_precision.c src\nc_spindle.c src\nc_tool_management.c src\nc_synchronization.c src\nc_rotary_mcc.c src\nc_motion_filter.c src\nc_safety_motion.c src\nc_program.c src\nc_parser.c src\nc_parser_feature.c src\nc_parser_modal.c src\nc_parser_tokens.c src\rt_control.c src\ts_service.c src\main.c /Febuild\ibm_bob_sample.exe"
 
 echo [build_vc2026] Checking compiler...
 where cl.exe >nul 2>nul
 if not errorlevel 1 (
+  echo [build_vc2026] Compiling sample...
+  cl %CL_ARGS%
+  if errorlevel 1 (
+    echo ERROR: build failed.
+    exit /b 1
+  )
+  echo [build_vc2026] Build succeeded.
+  exit /b 0
+)
+
+if exist "%VS_DEV_CMD%" (
+  echo [build_vc2026] Launching VS Dev Cmd...
+  call "%VS_DEV_CMD%" -arch=amd64 -host_arch=amd64 >nul
+  if errorlevel 1 (
+    echo ERROR: VsDevCmd.bat failed.
+    exit /b 1
+  )
   echo [build_vc2026] Compiling sample...
   cl %CL_ARGS%
   if errorlevel 1 (

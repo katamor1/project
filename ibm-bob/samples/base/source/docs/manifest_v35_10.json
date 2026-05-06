@@ -4,7 +4,18 @@
   "feature_count_before": 270,
   "feature_count_after": 280,
   "word_count_after": 9,
-  "added_feature_ids": [270, 271, 272, 273, 274, 275, 276, 277, 278, 279],
+  "added_feature_ids": [
+    270,
+    271,
+    272,
+    273,
+    274,
+    275,
+    276,
+    277,
+    278,
+    279
+  ],
   "added_files": [
     "source/inc/nc_feature_backlog_v35.h",
     "source/src/nc_feature_backlog_v35.c",
@@ -30,5 +41,18 @@
     "gcc_smoke_test": "passed",
     "vc2026": "script provided; run on Windows developer environment",
     "clang_windows": "script provided; run on Windows environment with clang.exe"
-  }
+  },
+  "archive_status": "pre-normalization archive evidence",
+  "current_module": "nc_feature_backlog_aux_safety",
+  "current_files": [
+    "source/inc/nc_feature_backlog_aux_safety.h",
+    "source/src/nc_feature_backlog_aux_safety.c",
+    "source/tests/test_nc_feature_backlog_aux_safety.c"
+  ],
+  "current_manifest": "source/scripts/additive_tests.tsv",
+  "current_verification": [
+    "cmd /c scripts\\test_clang.bat",
+    "cmd /c scripts\\test_vc2026.bat",
+    "cmd /c scripts\\run_tests.bat"
+  ]
 }

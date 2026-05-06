@@ -1,3 +1,7 @@
+/* ibm-bob/samples/base/source/src/nc_feature_backlog_process_safety.c */
+/* Implements process-safety backlog checks. */
+/* This exists so v40 process safety policies stay isolated and testable. */
+/* RELEVANT FILES: ibm-bob/samples/base/source/inc/nc_feature_backlog_process_safety.h, ibm-bob/samples/base/source/scripts/additive_tests.tsv, ibm-bob/samples/base/source/scripts/build_clang.bat */
 #include "nc_feature_backlog_process_safety.h"
 
 #include <string.h>

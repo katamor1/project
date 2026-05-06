@@ -4,30 +4,13 @@
   "document_control": {
     "document_id": "DD-NC-PROG-001",
     "title": "NCプログラム運転機能 詳細設計書",
-    "target_system": "IBM-Bob baseline / Windows C realtime-control platform",
-    "target_version": "Ver.0.1",
+    "feature_id": "FX-NC-PROG-001",
+    "source_basic_design": "../基本設計書/NCプログラム運転機能_基本設計書.docx",
     "created_at": "2026-04-28",
     "author": "AIドラフト",
-    "reviewer": "未定",
-    "approver": "未定",
-    "revision_history": [
-      {
-        "version": "0.1",
-        "date": "2026-04-28",
-        "summary": "基本設計書BD-NC-PROG-001から初版作成",
-        "author": "AIドラフト",
-        "review_status": "draft"
-      }
-    ]
+    "version": "Ver.0.1"
   },
-  "source_basic_design": {
-    "basic_design_id": "BD-NC-PROG-001",
-    "title": "NCプログラム運転機能 基本設計書",
-    "version": "Ver.0.1",
-    "source_json_path": "/mnt/data/ibm_bob_nc_program_basic_design/NCプログラム運転機能_基本設計書.json",
-    "source_docx_path": "/mnt/data/ibm_bob_nc_program_basic_design/NCプログラム運転機能_基本設計書.docx",
-    "accepted_warnings": []
-  },
+  "source_basic_design": "../基本設計書/NCプログラム運転機能_基本設計書.docx",
   "feature": {
     "feature_id": "FX-NC-PROG-001",
     "name": "NCプログラム運転機能",
@@ -468,7 +451,8 @@
         "section_id": "BD-15",
         "title": "異常処理・安全設計"
       }
-    ]
+    ],
+    "source_basic_design": "../基本設計書/NCプログラム運転機能_基本設計書.docx"
   },
   "impact_analysis": {
     "items": [

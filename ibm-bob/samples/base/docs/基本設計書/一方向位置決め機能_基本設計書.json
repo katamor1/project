@@ -1,4 +1,5 @@
 {
+  "schema_version": "ibm-bob-basic-design/2.0",
   "document_type": "IBM-Bob Basic Design",
   "template_version": "2.0",
   "section_ids": [
@@ -115,5 +116,15 @@
     "BDR-004",
     "BDR-005",
     "BDR-006"
-  ]
+  ],
+  "review_status": "draft_for_review",
+  "document_control": {
+    "document_id": "BD-DRAFT-一方向位置決め機能_基本設計書",
+    "title": "一方向位置決め機能 基本設計書",
+    "target_version": "Ver.0.1",
+    "created_at": "",
+    "author": "AIドラフト",
+    "reviewer": "未定",
+    "approver": "未定"
+  }
 }

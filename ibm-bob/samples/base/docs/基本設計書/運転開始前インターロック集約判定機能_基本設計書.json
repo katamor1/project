@@ -1,5 +1,5 @@
 {
-  "schema_version": "ibm-bob-basic-design-v2.0",
+  "schema_version": "ibm-bob-basic-design/2.0",
   "document": {
     "document_id": "BD-SMP-003",
     "title": "運転開始前インターロック集約判定機能",
@@ -13,7 +13,8 @@
     "summary": "運転開始要求前に複数条件を集約評価し、起動許可/禁止理由を共有メモリに公開する。",
     "purpose": "運転開始不可の理由をRT側で一元判定し、UIや保守アプリから同一の禁止理由を参照できるようにする。",
     "scope": "運転開始要求受付、インターロック条件集約、禁止理由ビット、状態遷移管理を対象とする。",
-    "estimated_new_steps": "100-500 C steps"
+    "estimated_new_steps": "100-500 C steps",
+    "feature_id": "FX-BD-DRAFT-運転開始前インターロック集約判定機能_基本設計書"
   },
   "architecture": {
     "platform": "Windows / C language",
@@ -92,5 +93,15 @@
       "READYからBLOCKEDへ戻る条件の優先順位を詳細設計で定義すること",
       "禁止理由ビットの台帳管理とメッセージIDの対応を整備すること"
     ]
+  },
+  "review_status": "draft",
+  "document_control": {
+    "document_id": "BD-DRAFT-運転開始前インターロック集約判定機能_基本設計書",
+    "title": "運転開始前インターロック集約判定機能",
+    "target_version": "Ver.0.1",
+    "created_at": "",
+    "author": "AIドラフト",
+    "reviewer": "未定",
+    "approver": "未定"
   }
 }

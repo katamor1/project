@@ -173,5 +173,18 @@
       "bytes": 4986,
       "sha256": "ab1df683a6874395c077f116c5694f35038e0ba26d167ba8bdb7aa1bcd7a16c3"
     }
+  ],
+  "archive_status": "pre-normalization archive evidence",
+  "current_module": "nc_feature_backlog_lube_brake_thermal",
+  "current_files": [
+    "source/inc/nc_feature_backlog_lube_brake_thermal.h",
+    "source/src/nc_feature_backlog_lube_brake_thermal.c",
+    "source/tests/test_nc_feature_backlog_lube_brake_thermal.c"
+  ],
+  "current_manifest": "source/scripts/additive_tests.tsv",
+  "current_verification": [
+    "cmd /c scripts\\test_clang.bat",
+    "cmd /c scripts\\test_vc2026.bat",
+    "cmd /c scripts\\run_tests.bat"
   ]
 }

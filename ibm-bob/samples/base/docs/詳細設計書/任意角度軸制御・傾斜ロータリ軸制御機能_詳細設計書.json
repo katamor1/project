@@ -1,11 +1,11 @@
 {
-  "schema_version": "IBM-Bob Detail Design v2.0 compatible",
+  "schema_version": "ibm-bob-detail-design/2.0",
   "document": {
     "id": "DD-003",
     "title": "任意角度軸制御・傾斜ロータリ軸制御機能_詳細設計書",
     "language": "ja-JP",
     "created_at": "2026-04-29",
-    "source_basic_design": "任意角度軸制御・傾斜ロータリ軸制御機能_基本設計書",
+    "source_basic_design": "../基本設計書/任意角度軸制御・傾斜ロータリ軸制御機能_基本設計書.docx",
     "status": "draft_for_review"
   },
   "traceability": {
@@ -60,7 +60,8 @@
       "非直交の軸を持つ5軸機では、これらの制御を用いることでプログラムの作成が大幅に簡素化され、加工精度も向上する。",
       "任意角度軸制御および傾斜ロータリ軸制御を使用する場合は、ツール中心点制御や3次元工具補正など他の5軸機能と同時に使用するため、オプションの組み合わせを確認する必要がある。",
       "ピボット軸制御は特殊な構造の旋回軸に対して有効だが、負荷変動による速度変動を抑えるためのサーボ調整が重要である。"
-    ]
+    ],
+    "source_basic_design": "../基本設計書/任意角度軸制御・傾斜ロータリ軸制御機能_基本設計書.docx"
   },
   "design_policy": {
     "classification": "補正演算",
@@ -254,5 +255,40 @@
       "設備依存パラメータの初期値は機種別設定表で確定すること。",
       "併用不可機能の最終一覧はNC仕様書と照合すること。"
     ]
-  }
+  },
+  "review_status": "draft_for_review",
+  "source_basic_design": "../基本設計書/任意角度軸制御・傾斜ロータリ軸制御機能_基本設計書.docx",
+  "document_control": {
+    "document_id": "DD-003",
+    "title": "任意角度軸制御・傾斜ロータリ軸制御機能_詳細設計書",
+    "feature_id": "F003",
+    "source_basic_design": "../基本設計書/任意角度軸制御・傾斜ロータリ軸制御機能_基本設計書.docx",
+    "created_at": "2026-04-29",
+    "author": "AIドラフト",
+    "version": "0.1"
+  },
+  "test_design_handoff": {
+    "status": "manual_review_required",
+    "viewpoints": [
+      "正常系: 任意角度軸制御・傾斜ロータリ軸制御機能 の開始、実行、終了状態を確認する。",
+      "異常系: 範囲外入力、併用不可、インターロック、共有データ不整合を確認する。",
+      "境界: 軸数、配列上限、バッファ上限、最小/最大パラメータを確認する。",
+      "RT安全: RT側でWindows API、file I/O、動的確保、長時間待ちがないことを確認する。"
+    ],
+    "unit_tests": [
+      "詳細設計の関数/モジュール確定後に、正常、異常、境界、RT安全の単体テストへ割り当てる。"
+    ],
+    "acceptance_handoff": [
+      "基本設計の受入条件と同期し、承認前にレビュー済み条件として確定する。"
+    ]
+  },
+  "manual_review_required": [
+    {
+      "status": "manual_review_required",
+      "reason": "テスト設計の受け皿を追加したが、機能固有の期待値は原典確認が必要。",
+      "fields": [
+        "test_design_handoff"
+      ]
+    }
+  ]
 }

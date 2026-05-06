@@ -1,3 +1,7 @@
+/* ibm-bob/samples/base/source/src/nc_feature_backlog_loader_environment.c */
+/* Implements loader and machine-environment backlog checks. */
+/* This exists so v42 loader/environment policies stay isolated and testable. */
+/* RELEVANT FILES: ibm-bob/samples/base/source/inc/nc_feature_backlog_loader_environment.h, ibm-bob/samples/base/source/scripts/additive_tests.tsv, ibm-bob/samples/base/source/scripts/build_clang.bat */
 #include "nc_feature_backlog_loader_environment.h"
 
 #include <string.h>

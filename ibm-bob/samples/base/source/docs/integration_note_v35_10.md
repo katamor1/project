@@ -1,4 +1,10 @@
+<!-- ibm-bob/samples/base/source/docs/integration_note_v35_10.md -->
+<!-- Archives the pre-normalization v35_10 source evidence. -->
+<!-- This exists so current verification can distinguish archive evidence from runnable commands. -->
+<!-- RELEVANT FILES: ibm-bob/samples/base/source/scripts/additive_tests.tsv, ibm-bob/samples/base/source/src/nc_feature_backlog_aux_safety.c, ibm-bob/samples/base/source/tests/test_nc_feature_backlog_aux_safety.c -->
 # v35_10 統合メモ
+
+> **Archive note:** This is pre-normalization archive evidence. The current tree uses meaning-based files `inc/nc_feature_backlog_aux_safety.h`, `src/nc_feature_backlog_aux_safety.c`, and `tests/test_nc_feature_backlog_aux_safety.c`. Current verification is manifest-driven via `cmd /c scripts\run_tests.bat`; pinned sample smoke uses `cmd /c scripts\test_clang.bat` or `cmd /c scripts\test_vc2026.bat`.
 
 このZIPは、v34_10の実体ZIPが実行環境に存在しない状態でも確認できるよう、追加10機能を独立モジュールとして同梱している。
 既存v34_10ツリーへ統合する場合は、以下を行う。
